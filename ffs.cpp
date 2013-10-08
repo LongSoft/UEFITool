@@ -17,7 +17,10 @@ const UINT8 ffsAlignmentTable[] =
 
 UINT8 calculateChecksum8(UINT8* buffer, UINT32 bufferSize)
 {
-    UINT8 counter = 0;
+    if(!buffer)
+		return 0;
+	
+	UINT8 counter = 0;
     while(bufferSize--)
         counter += buffer[bufferSize];
     return ~counter + 1;
@@ -25,7 +28,10 @@ UINT8 calculateChecksum8(UINT8* buffer, UINT32 bufferSize)
 
 UINT16 calculateChecksum16(UINT8* buffer, UINT32 bufferSize)
 {
-    UINT16 counter = 0;
+    if(!buffer)
+		return 0;
+	
+	UINT16 counter = 0;
     while(bufferSize--)
         counter += buffer[bufferSize];
     return ~counter + 1;

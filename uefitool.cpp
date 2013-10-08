@@ -561,6 +561,13 @@ UINT8 UEFITool::parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 
         QByteArray file = volume.mid(fileIndex, uint24ToUint32(fileHeader->Size));
         QByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
         
+		// Check file size to at least sizeof(EFI_FFS_FILE_HEADER)
+		if (file.size() < sizeof(EFI_FFS_FILE_HEADER))
+		{
+			debug(tr("File with invalid size"));
+			return ERR_INVALID_FILE;
+		}
+
         // We are at empty space in the end of volume
         if (header.count(empty) == header.size()) {
             QByteArray body = volume.right(volume.size() - fileIndex);
@@ -736,7 +743,6 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
         UINT32 dataSize;
         QModelIndex index;
         UINT32 result;
-        bool lzmaHeaderFound;
 
         switch (sectionHeader->Type)
         {
@@ -796,55 +802,26 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
                 if (LzmaGetInfo(data, dataSize, &decompressedSize) != ERR_SUCCESS
                     ||  decompressedSize != compressedSectionHeader->UncompressedLength)
                 {
-                    // Shitty file with some data between COMPRESSED_SECTION_HEADER and LZMA_HEADER
-                    // Search for LZMA header in body
-                    // Header structure: UINT8 LzmaProperties | UINT32 DictionarySize | UINT64 DecompressedSize
-                    // We can't determine first two fiels here, but Decompressed size is known, so search for it
-                    INT32 lzmaHeaderIndex = body.indexOf(QByteArray((const char*)&compressedSectionHeader->UncompressedLength, 
-                        sizeof(compressedSectionHeader->UncompressedLength)).append('\x00').append('\x00').append('\x00').append('\x00'));
-                    lzmaHeaderIndex -= LZMA_PROPS_SIZE;
-                    // LZMA header not found
-                    if (lzmaHeaderIndex < 0)
-                    {
-                        lzmaHeaderFound = false;
-                        debug(tr("Lzma header not found"));
-                    }
-                    // LZMA header found
-                    else if (lzmaHeaderIndex) {
-                        data = (VOID*) (file.constData() + sectionIndex + sizeof(EFI_COMPRESSION_SECTION) + lzmaHeaderIndex);
-                        dataSize = uint24ToUint32(sectionHeader->Size) - sizeof(EFI_COMPRESSION_SECTION) - lzmaHeaderIndex;
-                        // Get buffer sizes again
-                        if (LzmaGetInfo(data, dataSize, &decompressedSize) != ERR_SUCCESS
-                            ||  decompressedSize != compressedSectionHeader->UncompressedLength)
-                        {
-                            debug(tr("LzmaGetInfo failed on LZMA header"));
-                            lzmaHeaderFound = false;
-                        }
-                        else
-                            debug(tr("Padding of size %1 between CompressedSectionHeader and LzmaHeader")
-                                .arg(lzmaHeaderIndex));
-                    }
-                    lzmaHeaderFound = true;
+                    // Shitty file with a section header between COMPRESSED_SECTION_HEADER and LZMA_HEADER
+					data = (VOID*) (file.constData() + sectionIndex + sizeof(EFI_COMPRESSION_SECTION) + sizeof(EFI_COMMON_SECTION_HEADER));
+					dataSize = uint24ToUint32(sectionHeader->Size) - sizeof(EFI_COMPRESSION_SECTION) - sizeof(EFI_COMMON_SECTION_HEADER);
+					if (LzmaGetInfo(data, dataSize, &decompressedSize) != ERR_SUCCESS)
+						debug(tr("LzmaGetInfo failed"));
                 }   
-                else
-                    lzmaHeaderFound = true;
-                // Decompress if header is found
-                if (lzmaHeaderFound) {
-                    decompressed = new UINT8[decompressedSize];
-                    // Decompress section data
-                    if (LzmaDecompress(data, dataSize, decompressed) != ERR_SUCCESS)
-                        debug(tr("LzmaDecompress failed"));
-                    else
-                    {
-                        body = QByteArray::fromRawData((const char*) decompressed, decompressedSize);
-                        // Parse stored file
-                        result = parseFile(body, revision, erasePolarity, index);
-                        if (result)
-                            debug(tr("Compressed section with LZMA compression can not be parsed as file (%1)").arg(result));
-                    }
+				decompressed = new UINT8[decompressedSize];
+				// Decompress section data
+				if (LzmaDecompress(data, dataSize, decompressed) != ERR_SUCCESS)
+					debug(tr("LzmaDecompress failed"));
+				else
+				{
+					body = QByteArray::fromRawData((const char*) decompressed, decompressedSize);
+					// Parse stored file
+					result = parseFile(body, revision, erasePolarity, index);
+					if (result)
+						debug(tr("Compressed section with LZMA compression can not be parsed as file (%1)").arg(result));
+				}
 
-                    delete[] decompressed;
-                }
+				delete[] decompressed;
                 break;
             default:
                 body  = file.mid(sectionIndex + sizeof(EFI_COMPRESSION_SECTION), sectionSize - sizeof(EFI_COMPRESSION_SECTION));

@@ -30,5 +30,4 @@ HEADERS  += uefitool.h \
             Tiano/EfiTianoCompress.h
 FORMS    += uefitool.ui
 RC_FILE   = uefitool.rc
-
-ICON      = uefitool.icns
+ICON      = uefitool.icns

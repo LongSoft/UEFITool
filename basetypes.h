@@ -70,6 +70,7 @@ typedef uint16_t  CHAR16;
 #define ERR_INVALID_VOLUME                11
 #define ERR_VOLUME_REVISION_NOT_SUPPORTED 12
 #define ERR_UNKNOWN_FFS                   13
+#define ERR_INVALID_FILE                  14
 
 
 // EFI GUID
