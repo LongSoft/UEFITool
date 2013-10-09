@@ -19,7 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 TreeModel::TreeModel(QObject *parent)
     : QAbstractItemModel(parent)
 {
-    rootItem = new TreeItem(ItemTypes::RootItem, 0, tr("Object"), tr("Type"), tr("Subtype"), tr("Text"));
+    rootItem = new TreeItem(RootItem, 0, tr("Object"), tr("Type"), tr("Subtype"), tr("Text"));
 }
 
 TreeModel::~TreeModel()
@@ -167,15 +167,15 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
     
     switch (type)
     {
-    case ItemTypes::RootItem:
+    case RootItem:
         // Do not allow to add another root item
         return QModelIndex();
         break;
-    case ItemTypes::CapsuleItem:
+    case CapsuleItem:
         //typeName = tr("Capsule");
         switch (subtype)
         {
-        case CapsuleSubtypes::AptioCapsule:
+        case AptioCapsule:
             name = tr("AMI Aptio capsule");
             aptioCapsuleHeader = (APTIO_CAPSULE_HEADER*) header.constData();
             info = tr("GUID: %1\nHeader size: %2\nFlags: %3\nImage size: %4")
@@ -185,7 +185,7 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
                 .arg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - aptioCapsuleHeader->RomImageOffset, 8, 16, QChar('0'));
             //!TODO: more info about Aptio capsule
             break;
-        case CapsuleSubtypes::UefiCapsule:
+        case UefiCapsule:
             name = tr("UEFI capsule");
             capsuleHeader = (EFI_CAPSULE_HEADER*) header.constData();
             info = tr("GUID: %1\nHeader size: %2\nFlags: %3\nImage size: %4")
@@ -200,7 +200,7 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
             break;
         }
         break;
-    case ItemTypes::DescriptorItem:
+    case DescriptorItem:
         name = tr("Descriptor");
         descriptorMap = (FLASH_DESCRIPTOR_MAP*) body.constData();
         info = tr("Flash chips: %1\nRegions: %2\nMasters: %3\nPCH straps:%4\nPROC straps: %5\nICC table entries: %6")
@@ -212,22 +212,22 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
             .arg(descriptorMap->NumberOfIccTableEntries);
         //!TODO: more info about descriptor
         break;
-    case ItemTypes::RegionItem:
+    case RegionItem:
         typeName = tr("Region");
         info = tr("Size: %1").arg(body.size(), 8, 16, QChar('0'));
         //!TODO: more info about GbE and ME regions
         switch (subtype)
         {
-        case RegionSubtypes::GbeRegion:
+        case GbeRegion:
             name = tr("GbE region");
             break;
-        case RegionSubtypes::MeRegion:
+        case MeRegion:
             name = tr("ME region");
             break;
-        case RegionSubtypes::BiosRegion:
+        case BiosRegion:
             name = tr("BIOS region");
             break;
-        case RegionSubtypes::PdrRegion:
+        case PdrRegion:
             name = tr("PDR region");
             break;
         default:
@@ -235,11 +235,11 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
             break;
         }
         break;
-    case ItemTypes::PaddingItem:
+    case PaddingItem:
         name = tr("Padding");
         info = tr("Size: %1").arg(body.size(), 8, 16, QChar('0'));
         break;
-    case ItemTypes::VolumeItem:
+    case VolumeItem:
         typeName = tr("Volume");
         // Parse volume header to determine its revision and file system
         volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) header.constData();
@@ -251,7 +251,7 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
             .arg(volumeHeader->Attributes, 8, 16, QChar('0'))
             .arg(volumeHeader->HeaderLength, 4, 16, QChar('0'));
         break;
-    case ItemTypes::FileItem:
+    case FileItem:
         typeName = tr("File");
         // Parse file header to determine its GUID and type
         fileHeader = (EFI_FFS_FILE_HEADER*) header.constData();
@@ -263,16 +263,16 @@ QModelIndex TreeModel::addItem(UINT8 type, UINT8 subtype, const QByteArray &head
             .arg(uint24ToUint32(fileHeader->Size), 6, 16, QChar('0'))
             .arg(fileHeader->State, 2, 16, QChar('0'));
         break;
-    case ItemTypes::SectionItem:
+    case SectionItem:
         typeName = tr("Section");
         name = sectionTypeToQString(subtype) + tr(" section");
         info = tr("Size: %1").arg(body.size(), 8, 16, QChar('0'));
         //!TODO: add more specific info for all section types with uncommon headers
         // Set name of file
-        if (subtype == SectionSubtypes::UserInterfaceSection)
+        if (subtype == UserInterfaceSection)
         {
             QString text = QString::fromUtf16((const ushort*)body.constData());
-            setItemText(text, findParentOfType(ItemTypes::FileItem, parent));
+            setItemText(text, findParentOfType(FileItem, parent));
         }
         break;
     default:

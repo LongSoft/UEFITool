@@ -155,9 +155,9 @@ typedef struct {
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
-UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit);
+extern UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit);
 // 16 bit base or limit
-UINT8* calculateAddress16(UINT8* baseAddress, const UINT16 baseOrLimit);
+extern UINT8* calculateAddress16(UINT8* baseAddress, const UINT16 baseOrLimit);
 //Calculate size of region using its base and limit
-size_t calculateRegionSize(const UINT16 base, const UINT16 limit);
+extern UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit);
 #endif

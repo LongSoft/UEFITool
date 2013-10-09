@@ -264,12 +264,12 @@ STATIC NODE   mPos, mMatchPos, mAvail, *mPosition, *mParent, *mPrev, *mNext = NU
 // functions
 //
 
-UINT32
+INT32
 EfiCompress (
       UINT8   *SrcBuffer,
       UINT32  SrcSize,
       UINT8   *DstBuffer,
- UINT32  *DstSize
+      UINT32  *DstSize
   )
 /*++
 

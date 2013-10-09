@@ -12,6 +12,7 @@
 */
 
 #include "uefitool.h"
+#include "treeitemtypes.h"
 #include "ui_uefitool.h"
 
 UEFITool::UEFITool(QWidget *parent) :
@@ -202,7 +203,7 @@ UINT8 UEFITool::parseInputFile(const QByteArray & buffer)
         capsuleHeaderSize = capsuleHeader->HeaderSize;
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body   = buffer.right(buffer.size() - capsuleHeaderSize);
-        index = addTreeItem(ItemTypes::CapsuleItem, CapsuleSubtypes::UefiCapsule, header, body);
+        index = addTreeItem(CapsuleItem, UefiCapsule, header, body);
     }
     
     // Check buffer for being extended Aptio capsule header
@@ -211,7 +212,7 @@ UINT8 UEFITool::parseInputFile(const QByteArray & buffer)
         capsuleHeaderSize = aptioCapsuleHeader->RomImageOffset;
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body   = buffer.right(buffer.size() - capsuleHeaderSize);
-        index = addTreeItem(ItemTypes::CapsuleItem, CapsuleSubtypes::AptioCapsule, header, body);
+        index = addTreeItem(CapsuleItem, AptioCapsule, header, body);
     }
 
     // Skip capsule header to have flash chip image
@@ -244,17 +245,17 @@ UINT8 UEFITool::parseInputFile(const QByteArray & buffer)
         // Add tree item
         QByteArray header = flashImage.left(sizeof(FLASH_DESCRIPTOR_HEADER));
         QByteArray body   = flashImage.mid(sizeof(FLASH_DESCRIPTOR_HEADER), FLASH_DESCRIPTOR_SIZE - sizeof(FLASH_DESCRIPTOR_HEADER));
-        index = addTreeItem(ItemTypes::DescriptorItem, 0, header, body, index);
+        index = addTreeItem(DescriptorItem, 0, header, body, index);
 
         // Parse region section
         QModelIndex gbeIndex(index);
         QModelIndex meIndex(index);
         QModelIndex biosIndex(index);
         QModelIndex pdrIndex(index);
-        gbeRegion  = parseRegion(flashImage, RegionSubtypes::GbeRegion,  regionSection->GbeBase,  regionSection->GbeLimit,  gbeIndex);
-        meRegion   = parseRegion(flashImage, RegionSubtypes::MeRegion,   regionSection->MeBase,   regionSection->MeLimit,   meIndex);
-        biosRegion = parseRegion(flashImage, RegionSubtypes::BiosRegion, regionSection->BiosBase, regionSection->BiosLimit, biosIndex);
-        pdrRegion  = parseRegion(flashImage, RegionSubtypes::PdrRegion,  regionSection->PdrBase,  regionSection->PdrLimit,  pdrIndex);
+        gbeRegion  = parseRegion(flashImage, GbeRegion,  regionSection->GbeBase,  regionSection->GbeLimit,  gbeIndex);
+        meRegion   = parseRegion(flashImage, MeRegion,   regionSection->MeBase,   regionSection->MeLimit,   meIndex);
+        biosRegion = parseRegion(flashImage, BiosRegion, regionSection->BiosBase, regionSection->BiosLimit, biosIndex);
+        pdrRegion  = parseRegion(flashImage, PdrRegion,  regionSection->PdrBase,  regionSection->PdrLimit,  pdrIndex);
         
         // Parse complete
         //!TODO: show some info about GbE, ME and PDR regions if found
@@ -298,16 +299,16 @@ UINT8* UEFITool::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype,
     QString regionName;
     switch (regionSubtype)
     {
-    case RegionSubtypes::GbeRegion:
+    case GbeRegion:
         regionName = "GbE";
         break;
-    case RegionSubtypes::MeRegion:
+    case MeRegion:
         regionName = "ME";
         break;
-    case RegionSubtypes::BiosRegion:
+    case BiosRegion:
         regionName = "Bios";
         break;
-    case RegionSubtypes::PdrRegion:
+    case PdrRegion:
         regionName = "PDR";
         break;
     default:
@@ -346,12 +347,12 @@ UINT8* UEFITool::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype,
 
     // Add tree item
     QByteArray body = flashImage.mid(regionBase * 0x1000, regionSize);
-    index = addTreeItem(ItemTypes::RegionItem, regionSubtype, QByteArray(), body, index);
+    index = addTreeItem(RegionItem, regionSubtype, QByteArray(), body, index);
 
     return region;
 }   
 
-UINT8 UEFITool::parseBios(const QByteArray & bios, QModelIndex & parent)
+UINT8 UEFITool::parseBios(const QByteArray & bios, const QModelIndex & parent)
 {
     // Search for first volume
     INT32 prevVolumeIndex = getNextVolumeIndex(bios);
@@ -364,7 +365,7 @@ UINT8 UEFITool::parseBios(const QByteArray & bios, QModelIndex & parent)
     // First volume is not at the beginning of bios space
     if (prevVolumeIndex > 0) {
         QByteArray padding = bios.left(prevVolumeIndex);
-         addTreeItem(ItemTypes::PaddingItem, 0, QByteArray(), padding, parent);
+         addTreeItem(PaddingItem, 0, QByteArray(), padding, parent);
     }
 
     // Search for and parse all volumes
@@ -378,7 +379,7 @@ UINT8 UEFITool::parseBios(const QByteArray & bios, QModelIndex & parent)
         if (volumeIndex > prevVolumeIndex + prevVolumeSize) {
             UINT32 size = volumeIndex - prevVolumeIndex - prevVolumeSize;
             QByteArray padding = bios.mid(prevVolumeIndex + prevVolumeSize, size);
-            addTreeItem(ItemTypes::PaddingItem, 0, QByteArray(), padding, parent);
+            addTreeItem(PaddingItem, 0, QByteArray(), padding, parent);
         } 
         
         // Populate volume header
@@ -394,23 +395,23 @@ UINT8 UEFITool::parseBios(const QByteArray & bios, QModelIndex & parent)
         UINT32 alignment;
         if (volumeHeader->Revision == 1) {
             // Aquire alignment bits
-            bool alignmentCap    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_CAP;
-            bool alignment2      = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_2;
-            bool alignment4      = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_4;
-            bool alignment8      = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_8;
-            bool alignment16     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_16;
-            bool alignment32     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_32;
-            bool alignment64     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_64;
-            bool alignment128    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_128;
-            bool alignment256    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_256;
-            bool alignment512    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_512;
-            bool alignment1k     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_1K;
-            bool alignment2k     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_2K;
-            bool alignment4k     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_4K;
-            bool alignment8k     = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_8K;
-            bool alignment16k    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_16K;
-            bool alignment32k    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_32K;
-            bool alignment64k    = volumeHeader->Attributes && EFI_FVB_ALIGNMENT_64K;
+            bool alignmentCap    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_CAP;
+            bool alignment2      = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_2;
+            bool alignment4      = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_4;
+            bool alignment8      = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_8;
+            bool alignment16     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_16;
+            bool alignment32     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_32;
+            bool alignment64     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_64;
+            bool alignment128    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_128;
+            bool alignment256    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_256;
+            bool alignment512    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_512;
+            bool alignment1k     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_1K;
+            bool alignment2k     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_2K;
+            bool alignment4k     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_4K;
+            bool alignment8k     = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_8K;
+            bool alignment16k    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_16K;
+            bool alignment32k    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_32K;
+            bool alignment64k    = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_64K;
 
             // Check alignment setup
             if (!alignmentCap &&
@@ -511,7 +512,7 @@ UINT8 UEFITool::parseBios(const QByteArray & bios, QModelIndex & parent)
         // Adding tree item
         QByteArray  header = bios.mid(volumeIndex, headerSize);
         QByteArray  body   = bios.mid(volumeIndex + headerSize, volumeHeader->FvLength - headerSize);
-        QModelIndex index  = addTreeItem(ItemTypes::VolumeItem, 0, header, body, parent);
+        QModelIndex index  = addTreeItem(VolumeItem, 0, header, body, parent);
 
         // Parse volume
         if (parseCurrentVolume) {
@@ -548,7 +549,7 @@ UINT32 UEFITool::getVolumeSize(const QByteArray & bios, INT32 volumeIndex)
     return volumeHeader->FvLength;
 }
 
-UINT8 UEFITool::parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 revision, bool erasePolarity, QModelIndex & parent)
+UINT8 UEFITool::parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 revision, bool erasePolarity, const QModelIndex & parent)
 {
     // Construct empty byte based on erasePolarity value
     // Native char type is used because QByteArray.count() takes it
@@ -571,7 +572,7 @@ UINT8 UEFITool::parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 
         // We are at empty space in the end of volume
         if (header.count(empty) == header.size()) {
             QByteArray body = volume.right(volume.size() - fileIndex);
-            addTreeItem(ItemTypes::PaddingItem, 0, QByteArray(), body, parent);
+            addTreeItem(PaddingItem, 0, QByteArray(), body, parent);
             break;
         }
                 
@@ -693,7 +694,7 @@ UINT8 UEFITool::parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 
         }
 
         // Add tree item
-        QModelIndex index = addTreeItem(ItemTypes::FileItem, fileHeader->Type, header, body, parent);
+        QModelIndex index = addTreeItem(FileItem, fileHeader->Type, header, body, parent);
         
         // Parse file
         if (parseCurrentFile) {
@@ -721,7 +722,7 @@ UINT8 UEFITool::parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 
     return ERR_SUCCESS;
 }
 
-UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePolarity, QModelIndex & parent)
+UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePolarity, const QModelIndex & parent)
 {
     // Search for and parse all sections
     INT32 sectionIndex = 0;
@@ -756,7 +757,7 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
             {
             case EFI_NOT_COMPRESSED:
                 body  = file.mid(sectionIndex + sizeof(EFI_COMPRESSION_SECTION), compressedSectionHeader->UncompressedLength);
-                index = addTreeItem(ItemTypes::SectionItem, SectionSubtypes::CompressionSection, header, body, parent);
+                index = addTreeItem(SectionItem, CompressionSection, header, body, parent);
                 // Parse stored file
                 result = parseFile(body, revision, erasePolarity, index);
                 if (result)
@@ -765,7 +766,7 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
             case EFI_STANDARD_COMPRESSION:
                 //Must be Tiano for all revisions, needs checking
                 body  = file.mid(sectionIndex + sizeof(EFI_COMPRESSION_SECTION), sectionSize - sizeof(EFI_COMPRESSION_SECTION));
-                index = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+                index = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
 
                 // Get buffer sizes
                 data = (VOID*) (file.constData() + sectionIndex + sizeof(EFI_COMPRESSION_SECTION));
@@ -794,7 +795,7 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
                 break;
             case EFI_CUSTOMIZED_COMPRESSION:
                 body  = file.mid(sectionIndex + sizeof(EFI_COMPRESSION_SECTION), sectionSize - sizeof(EFI_COMPRESSION_SECTION));
-                index = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+                index = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
 
                 // Get buffer sizes
                 data = (VOID*) (file.constData() + sectionIndex + sizeof(EFI_COMPRESSION_SECTION));
@@ -825,7 +826,7 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
                 break;
             default:
                 body  = file.mid(sectionIndex + sizeof(EFI_COMPRESSION_SECTION), sectionSize - sizeof(EFI_COMPRESSION_SECTION));
-                index = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+                index = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
                 debug(tr("Compressed section with unknown compression type found (%1)").arg(compressedSectionHeader->CompressionType));
             }
 
@@ -833,7 +834,7 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
         case EFI_SECTION_GUID_DEFINED:
             header = file.mid(sectionIndex, sizeof(EFI_GUID_DEFINED_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_GUID_DEFINED_SECTION), sectionSize - sizeof(EFI_GUID_DEFINED_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             // Parse section body as file
             guidDefinedSectionHeader = (EFI_GUID_DEFINED_SECTION*) (header.constData());
             body   = file.mid(sectionIndex + guidDefinedSectionHeader->DataOffset, sectionSize - guidDefinedSectionHeader->DataOffset); 
@@ -844,43 +845,43 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
         case EFI_SECTION_DISPOSABLE:
             header = file.mid(sectionIndex, sizeof(EFI_DISPOSABLE_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_DISPOSABLE_SECTION), sectionSize - sizeof(EFI_DISPOSABLE_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         // Leaf sections
         case EFI_SECTION_PE32:
             header = file.mid(sectionIndex, sizeof(EFI_PE32_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_PE32_SECTION), sectionSize - sizeof(EFI_PE32_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_PIC:
             header = file.mid(sectionIndex, sizeof(EFI_PIC_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_PIC_SECTION), sectionSize - sizeof(EFI_PIC_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_TE:
             header = file.mid(sectionIndex, sizeof(EFI_TE_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_TE_SECTION), sectionSize - sizeof(EFI_TE_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_VERSION:
             header = file.mid(sectionIndex, sizeof(EFI_VERSION_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_VERSION_SECTION), sectionSize - sizeof(EFI_VERSION_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_USER_INTERFACE:
             header = file.mid(sectionIndex, sizeof(EFI_USER_INTERFACE_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_USER_INTERFACE_SECTION), sectionSize - sizeof(EFI_USER_INTERFACE_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_COMPATIBILITY16:
             header = file.mid(sectionIndex, sizeof(EFI_COMPATIBILITY16_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_COMPATIBILITY16_SECTION), sectionSize - sizeof(EFI_COMPATIBILITY16_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
             header = file.mid(sectionIndex, sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION), sectionSize - sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             // Parse section body as BIOS space
             result = parseBios(body, index);
             if (result && result != ERR_VOLUMES_NOT_FOUND)
@@ -889,12 +890,12 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
         case EFI_SECTION_FREEFORM_SUBTYPE_GUID:
             header = file.mid(sectionIndex, sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION), sectionSize - sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_RAW:
             header = file.mid(sectionIndex, sizeof(EFI_RAW_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_RAW_SECTION), sectionSize - sizeof(EFI_RAW_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             // Parse section body as BIOS space
             result = parseBios(body, index);
             if (result && result != ERR_VOLUMES_NOT_FOUND)
@@ -904,23 +905,23 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
         case EFI_SECTION_DXE_DEPEX:
             header = file.mid(sectionIndex, sizeof(EFI_DXE_DEPEX_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_DXE_DEPEX_SECTION), sectionSize - sizeof(EFI_DXE_DEPEX_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_PEI_DEPEX:
             header = file.mid(sectionIndex, sizeof(EFI_PEI_DEPEX_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_PEI_DEPEX_SECTION), sectionSize - sizeof(EFI_PEI_DEPEX_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         case EFI_SECTION_SMM_DEPEX:
             header = file.mid(sectionIndex, sizeof(EFI_SMM_DEPEX_SECTION));
             body   = file.mid(sectionIndex + sizeof(EFI_SMM_DEPEX_SECTION), sectionSize - sizeof(EFI_SMM_DEPEX_SECTION));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
             break;
         default:
             debug(tr("Section with unknown type (%1)").arg(sectionHeader->Type, 2, 16, QChar('0')));
             header = file.mid(sectionIndex, sizeof(EFI_COMMON_SECTION_HEADER));
             body   = file.mid(sectionIndex + sizeof(EFI_COMMON_SECTION_HEADER), sectionSize - sizeof(EFI_COMMON_SECTION_HEADER));
-            index  = addTreeItem(ItemTypes::SectionItem, sectionHeader->Type, header, body, parent);
+            index  = addTreeItem(SectionItem, sectionHeader->Type, header, body, parent);
         }
         
         // Move to next section

@@ -33,10 +33,10 @@
 #include "basetypes.h"
 #include "descriptor.h"
 #include "ffs.h"
-#include "Tiano\EfiTianoCompress.h"
-#include "Tiano\EfiTianoDecompress.h"
-#include "LZMA\LzmaCompress.h"
-#include "LZMA\LzmaDecompress.h"
+#include "Tiano/EfiTianoCompress.h"
+#include "Tiano/EfiTianoDecompress.h"
+#include "LZMA/LzmaCompress.h"
+#include "LZMA/LzmaDecompress.h"
 
 namespace Ui {
 class UEFITool;
@@ -74,11 +74,11 @@ private:
 
     UINT8 parseInputFile(const QByteArray & buffer);
     UINT8* parseRegion(const QByteArray & flashImage, UINT8 regionSubtype, const UINT16 regionBase, const UINT16 regionLimit, QModelIndex & index);
-    UINT8 parseBios(const QByteArray & bios, QModelIndex & parent = QModelIndex());
+    UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     INT32 getNextVolumeIndex(const QByteArray & bios, INT32 volumeIndex = 0);
     UINT32 getVolumeSize(const QByteArray & bios, INT32 volumeIndex);
-    UINT8 parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 revision, bool erasePolarity, QModelIndex & parent = QModelIndex());
-    UINT8 parseFile(const QByteArray & file, UINT8 revision, bool erasePolarity, QModelIndex & parent = QModelIndex());
+    UINT8 parseVolume(const QByteArray & volume, UINT32 volumeBase, UINT8 revision, bool erasePolarity, const QModelIndex & parent = QModelIndex());
+    UINT8 parseFile(const QByteArray & file, UINT8 revision, bool erasePolarity, const QModelIndex & parent = QModelIndex());
 };
 
 #endif
