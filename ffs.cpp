@@ -155,3 +155,42 @@ QString sectionTypeToQString(const UINT8 type)
         return QObject::tr("Unknown");
     }
 }
+
+UINT32 sizeOfSectionHeaderOfType(const UINT8 type)
+{
+	switch (type)
+    {
+    case EFI_SECTION_COMPRESSION:
+        return sizeof(EFI_COMMON_SECTION_HEADER);
+    case EFI_SECTION_GUID_DEFINED:
+        return sizeof(EFI_GUID_DEFINED_SECTION);
+    case EFI_SECTION_DISPOSABLE:
+        return sizeof(EFI_DISPOSABLE_SECTION);
+    case EFI_SECTION_PE32:
+        return sizeof(EFI_PE32_SECTION);
+    case EFI_SECTION_PIC:
+        return sizeof(EFI_PIC_SECTION);
+    case EFI_SECTION_TE:
+        return sizeof(EFI_TE_SECTION);
+    case EFI_SECTION_DXE_DEPEX:
+        return sizeof(EFI_DXE_DEPEX_SECTION);
+    case EFI_SECTION_VERSION:
+        return sizeof(EFI_VERSION_SECTION);
+    case EFI_SECTION_USER_INTERFACE:
+        return sizeof(EFI_USER_INTERFACE_SECTION);
+    case EFI_SECTION_COMPATIBILITY16:
+        return sizeof(EFI_COMPATIBILITY16_SECTION);
+    case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
+        return sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION);
+    case EFI_SECTION_FREEFORM_SUBTYPE_GUID:
+        return sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
+    case EFI_SECTION_RAW:
+        return sizeof(EFI_RAW_SECTION);
+    case EFI_SECTION_PEI_DEPEX:
+        return sizeof(EFI_PEI_DEPEX_SECTION);
+    case EFI_SECTION_SMM_DEPEX:
+        return sizeof(EFI_SMM_DEPEX_SECTION);
+    default:
+        return sizeof(EFI_COMMON_SECTION_HEADER);
+    }
+}

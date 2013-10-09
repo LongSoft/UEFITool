@@ -744,6 +744,8 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
         UINT32 dataSize;
         QModelIndex index;
         UINT32 result;
+		UINT32 shittySectionSize;
+		EFI_COMMON_SECTION_HEADER* shittySectionHeader;
 
         switch (sectionHeader->Type)
         {
@@ -804,8 +806,11 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
                     ||  decompressedSize != compressedSectionHeader->UncompressedLength)
                 {
                     // Shitty file with a section header between COMPRESSED_SECTION_HEADER and LZMA_HEADER
-					data = (VOID*) (file.constData() + sectionIndex + sizeof(EFI_COMPRESSION_SECTION) + sizeof(EFI_COMMON_SECTION_HEADER));
-					dataSize = uint24ToUint32(sectionHeader->Size) - sizeof(EFI_COMPRESSION_SECTION) - sizeof(EFI_COMMON_SECTION_HEADER);
+					// We must determine section header size by checking it's type before we can unpack that non-standard compressed section
+					shittySectionHeader = (EFI_COMMON_SECTION_HEADER*) data;
+					shittySectionSize = sizeOfSectionHeaderOfType(shittySectionHeader->Type);
+					data = (VOID*) (file.constData() + sectionIndex + sizeof(EFI_COMPRESSION_SECTION) + shittySectionSize);
+					dataSize = uint24ToUint32(sectionHeader->Size) - sizeof(EFI_COMPRESSION_SECTION) - shittySectionSize;
 					if (LzmaGetInfo(data, dataSize, &decompressedSize) != ERR_SUCCESS)
 						debug(tr("LzmaGetInfo failed"));
                 }   
