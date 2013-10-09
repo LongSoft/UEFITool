@@ -416,6 +416,9 @@ Returns:
   UINT32      i;
   
   mText       = malloc (WNDSIZ * 2 + MAXMATCH);
+  if (!mText)
+	  return ERR_OUT_OF_MEMORY;
+  
   for (i = 0 ; i < WNDSIZ * 2 + MAXMATCH; i ++) {
     mText[i] = 0;
   }

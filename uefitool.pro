@@ -22,7 +22,8 @@ HEADERS  += uefitool.h \
             basetypes.h \
             descriptor.h \
             ffs.h \
-            treeitem.h \ 
+            treeitem.h \
+            treeitemtypes.h \			
             treemodel.h \
             LZMA/LzmaCompress.h \
             LZMA/LzmaDecompress.h \

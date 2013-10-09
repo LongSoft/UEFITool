@@ -289,7 +289,7 @@ UINT8* UEFITool::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype,
     UINT32 regionSize    = calculateRegionSize(regionBase, regionLimit);
 
     // Populate descriptor map 
-    FLASH_DESCRIPTOR_MAP* descriptor_map = (FLASH_DESCRIPTOR_MAP*) flashImage.constData() + sizeof(FLASH_DESCRIPTOR_HEADER);
+    FLASH_DESCRIPTOR_MAP* descriptor_map = (FLASH_DESCRIPTOR_MAP*) (flashImage.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
     
     // Determine presence of 2 flash chips
     bool twoChips = descriptor_map->NumberOfFlashChips;
@@ -809,7 +809,9 @@ UINT8 UEFITool::parseFile(const QByteArray & file, UINT8 revision, bool erasePol
 					if (LzmaGetInfo(data, dataSize, &decompressedSize) != ERR_SUCCESS)
 						debug(tr("LzmaGetInfo failed"));
                 }   
+
 				decompressed = new UINT8[decompressedSize];
+				
 				// Decompress section data
 				if (LzmaDecompress(data, dataSize, decompressed) != ERR_SUCCESS)
 					debug(tr("LzmaDecompress failed"));
