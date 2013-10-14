@@ -15,7 +15,7 @@
 #define __LZMADECOMPRESS_H__
 
 #include "../basetypes.h"
-#include "Sdk/C/LzmaDec.h"
+#include "SDK/C/LzmaDec.h"
 
 #define LZMA_HEADER_SIZE (LZMA_PROPS_SIZE + 8)
 

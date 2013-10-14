@@ -12,9 +12,9 @@ SOURCES  += main.cpp \
             treemodel.cpp \
             LZMA/LzmaCompress.c \
             LZMA/LzmaDecompress.c \
-            LZMA/Sdk/C/LzFind.c \
-            LZMA/Sdk/C/LzmaDec.c \
-            LZMA/Sdk/C/LzmaEnc.c \
+            LZMA/SDK/C/LzFind.c \
+            LZMA/SDK/C/LzmaDec.c \
+            LZMA/SDK/C/LzmaEnc.c \
             Tiano/EfiTianoDecompress.c \
             Tiano/EfiCompress.c \
             Tiano/TianoCompress.c

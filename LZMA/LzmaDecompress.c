@@ -12,8 +12,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "LzmaDecompress.h"
-#include "Sdk/C/Types.h"
-#include "Sdk/C/7zVersion.h"
+#include "SDK/C/Types.h"
+#include "SDK/C/7zVersion.h"
 
 #include <stdlib.h>
 

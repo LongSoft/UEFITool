@@ -14,7 +14,7 @@
 #ifndef __LZMACOMPRESS_H__
 #define __LZMACOMPRESS_H__
 
-#include "Sdk/C/Types.h"
+#include "SDK/C/Types.h"
 #include "../basetypes.h"
 
 #ifdef __cplusplus
