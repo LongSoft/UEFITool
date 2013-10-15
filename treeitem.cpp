@@ -12,14 +12,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "treeitem.h"
-#include "treeitemtypes.h"
 
-TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const QString & name, const QString & typeName, const QString & subtypeName, 
+TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT32 offset, const QString & name, const QString & typeName, const QString & subtypeName, 
                    const QString & text, const QString & info, const QByteArray & header, const QByteArray & body, TreeItem *parent)
 {
     
     itemType = type;
     itemSubtype = subtype;
+    itemOffset = offset;
     itemName = name;
     itemTypeName = typeName;
     itemSubtypeName = subtypeName;
@@ -132,6 +132,11 @@ UINT8 TreeItem::type()
 UINT8 TreeItem::subtype()
 {
     return itemSubtype;
+}
+
+UINT32 TreeItem::offset()
+{
+    return itemOffset;
 }
 
 QByteArray TreeItem::header()

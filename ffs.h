@@ -15,7 +15,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <QByteArray>
 #include <QString>
-#include <QObject>
 #include "basetypes.h"
 
 // C++ functions

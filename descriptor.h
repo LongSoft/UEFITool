@@ -158,6 +158,9 @@ typedef struct {
 extern UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit);
 // 16 bit base or limit
 extern UINT8* calculateAddress16(UINT8* baseAddress, const UINT16 baseOrLimit);
-//Calculate size of region using its base and limit
+
+// Calculate offset of region using its base
+extern UINT32 calculateRegionOffset(const UINT16 base);
+// Calculate size of region using its base and limit
 extern UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit);
 #endif

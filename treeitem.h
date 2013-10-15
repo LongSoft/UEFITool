@@ -23,13 +23,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class TreeItem
 {
 public:
-    TreeItem(const UINT8 type, const UINT8 subtype = 0, const QString & name = QString(), const QString & typeName = QString(), const QString & subtypeName = QString(), 
+    TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT32 offset = 0, const QString & name = QString(), const QString & typeName = QString(), const QString & subtypeName = QString(), 
         const QString & text = QString(), const QString & info = QString(), const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), TreeItem *parent = 0);
     ~TreeItem();
 
     void appendChild(TreeItem *item);
     void removeChild(TreeItem *item);
-
+    
     TreeItem *child(int row);
     int childCount() const;
     int columnCount() const;
@@ -39,6 +39,7 @@ public:
 
     UINT8 type();
     UINT8 subtype();
+    UINT32 offset();
     QByteArray header();
     QByteArray body();
     QString info();
@@ -55,6 +56,7 @@ private:
     QList<TreeItem*> childItems;
     UINT8 itemType;
     UINT8 itemSubtype;
+    UINT32 itemOffset;
     QByteArray itemHeader;
     QByteArray itemBody;
     QString itemName;

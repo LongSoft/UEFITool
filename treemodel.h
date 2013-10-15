@@ -20,7 +20,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QVariant>
 
 #include "basetypes.h"
-#include "treeitemtypes.h"
 
 class TreeItem;
 
@@ -29,7 +28,7 @@ class TreeModel : public QAbstractItemModel
     Q_OBJECT
 
 public:
-    TreeModel(QObject *parent = 0);
+    TreeModel(TreeItem *root, QObject *parent = 0);
     ~TreeModel();
 
     QVariant data(const QModelIndex &index, int role) const;
@@ -42,18 +41,14 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
-    QModelIndex addItem(UINT8 type, UINT8 subtype = 0, const QByteArray &header = QByteArray(), const QByteArray &body = QByteArray(), const QModelIndex &parent = QModelIndex());
-    bool removeItem(const QModelIndex &index);
-
-    QByteArray header(const QModelIndex& index);
-    bool hasEmptyHeader(const QModelIndex& index);
-    QByteArray body(const QModelIndex& index);
-    bool hasEmptyBody(const QModelIndex& index);
-
-private:
-    QModelIndex findParentOfType(UINT8 type, const QModelIndex& index);
     bool setItemName(const QString &data, const QModelIndex &index);
     bool setItemText(const QString &data, const QModelIndex &index);
+
+    QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT32 offset = 0, const QString & name = QString(), 
+        const QString & typeName = QString(), const QString & subtypeName = QString(), const QString & text = QString(), 
+        const QString & info = QString(), const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QModelIndex & parent = QModelIndex());
+
+private:
     TreeItem *rootItem;
 };
 
