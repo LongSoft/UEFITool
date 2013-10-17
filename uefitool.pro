@@ -8,7 +8,7 @@ SOURCES  += main.cpp \
             uefitool.cpp \
             descriptor.cpp \
             ffs.cpp \
-			ffsengine.cpp \
+            ffsengine.cpp \
             treeitem.cpp \ 
             treemodel.cpp \
             LZMA/LzmaCompress.c \
@@ -22,10 +22,10 @@ SOURCES  += main.cpp \
 HEADERS  += uefitool.h \
             basetypes.h \
             descriptor.h \
-			gbe.h \
-			me.h \
+            gbe.h \
+            me.h \
             ffs.h \
-			ffsengine.h \
+            ffsengine.h \
             treeitem.h \
             treeitemtypes.h \			
             treemodel.h \
