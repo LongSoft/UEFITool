@@ -72,7 +72,7 @@ const QByteArray APTIO_CAPSULE_GUID("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x5
 // FvBlockMap ends with an entry {0x00000000, 0x00000000}
 typedef struct {
   UINT32  NumBlocks;
-  UINT32  BlockLength;
+  UINT32  Length;
 } EFI_FV_BLOCK_MAP_ENTRY;
 
 // Volume header
@@ -85,7 +85,7 @@ typedef struct {
 	UINT16                 HeaderLength;
 	UINT16                 Checksum;
     UINT16                 ExtHeaderOffset;  //Reserved in Revision 1
-    UINT8                  Reserved[1];
+    UINT8                  Reserved;
 	UINT8                  Revision;
 	//EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];	
 } EFI_FIRMWARE_VOLUME_HEADER;
@@ -248,7 +248,7 @@ typedef struct {
 //  UINT12                  ExtendedSize;
 //} EFI_FFS_FILE_HEADER2;
 
-// Standart data checksum, used if FFS_ATTRIB_CHECKSUM is clear
+// Standard data checksum, used if FFS_ATTRIB_CHECKSUM is clear
 #define FFS_FIXED_CHECKSUM   0x5A
 #define FFS_FIXED_CHECKSUM2  0xAA
 
@@ -276,12 +276,12 @@ typedef struct {
 #define EFI_FV_FILETYPE_FFS_MAX                 0xFF
 
 // File attributes
-// Revision 1
-#define FFS_ATTRIB_TAIL_PRESENT       0x01
+#define FFS_ATTRIB_RESERVED           0x80 // ErasePolarity value can be obtained from that bit
 #define FFS_ATTRIB_RECOVERY           0x02
-//#define FFS_ATTRIB_HEADER_EXTENSION   0x04 //Must be set to zero in Revision 1
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
+// Revision 1
+#define FFS_ATTRIB_TAIL_PRESENT       0x01
 // Revision 2
 #define FFS_ATTRIB_LARGE_FILE         0x01
 #define FFS_ATTRIB_FIXED              0x04
@@ -301,7 +301,7 @@ extern const UINT8 ffsAlignmentTable[];
 const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID 
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
 
-// FFS size convertion routines
+// FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(UINT8* ffsSize);
 // FFS file 8bit checksum calculation routine
@@ -324,7 +324,7 @@ typedef struct {
 //} EFI_COMMON_SECTION_HEADER2;
 
 // File section types
-#define EFI_SECTION_ALL 0x00 // Imposible attribute for file in the FS
+#define EFI_SECTION_ALL 0x00 // Impossible attribute for file in the FS
 
 // Encapsulation section types
 #define EFI_SECTION_COMPRESSION     0x01
@@ -355,8 +355,8 @@ typedef struct {
 
 // Compression types
 #define EFI_NOT_COMPRESSED          0x00 
-#define EFI_STANDARD_COMPRESSION    0x01 //Tiano for Revision 2, EFI for Revision 1
-#define EFI_CUSTOMIZED_COMPRESSION  0x02 //LZMA for Revision 2 Tiano for Revision 1
+#define EFI_STANDARD_COMPRESSION    0x01
+#define EFI_CUSTOMIZED_COMPRESSION  0x02
 
 //GUID defined section
 typedef struct {
@@ -376,7 +376,6 @@ typedef struct {
     UINT8    Size[3];
     UINT8    Type;
     UINT16   BuildNumber;
-    //CHAR16   VersionString[1];
 } EFI_VERSION_SECTION;
 
 // Freeform subtype GUID section
@@ -385,13 +384,6 @@ typedef struct {
     UINT8    Type;
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
-
-// User interface section
-typedef struct {
-    UINT8    Size[3];
-    UINT8    Type;
-    //CHAR16   FileNameString[1];
-} EFI_USER_INTERFACE_SECTION;
 
 // Other sections
 typedef EFI_COMMON_SECTION_HEADER EFI_DISPOSABLE_SECTION;
@@ -404,6 +396,7 @@ typedef EFI_COMMON_SECTION_HEADER EFI_PIC_SECTION;
 typedef EFI_COMMON_SECTION_HEADER EFI_TE_SECTION;
 typedef EFI_COMMON_SECTION_HEADER EFI_COMPATIBILITY16_SECTION;
 typedef EFI_COMMON_SECTION_HEADER EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER EFI_USER_INTERFACE_SECTION;
 
 //Section routines
 extern UINT32 sizeOfSectionHeaderOfType(const UINT8 type);

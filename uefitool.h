@@ -46,11 +46,17 @@ public:
 private slots:
     void init();
     void openImageFile();
-    void populateUi(const QModelIndex &current/*, const QModelIndex &previous*/);
-    void resizeTreeViewColums(/*const QModelIndex &index*/);
-    void saveAll();
-    void saveBody();
-    void saveUncompressedFile();
+    void saveImageFile();
+    void populateUi(const QModelIndex &current);
+    void resizeTreeViewColums();
+    void extract();
+    void extractBody();
+    void extractUncompressed();
+    void insertInto();
+    void insertBefore();
+    void insertAfter();
+    void replace();
+    void remove();
 
 private:
     Ui::UEFITool * ui;

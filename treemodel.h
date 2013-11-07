@@ -41,13 +41,15 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
     
-    bool setItemName(const QString &data, const QModelIndex &index);
-    bool setItemText(const QString &data, const QModelIndex &index);
-
-    QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT32 offset = 0, const QString & name = QString(), 
-        const QString & typeName = QString(), const QString & subtypeName = QString(), const QString & text = QString(), 
-        const QString & info = QString(), const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QModelIndex & parent = QModelIndex());
-
+    UINT8 setItemName(const QString &data, const QModelIndex &index);
+    UINT8 setItemText(const QString &data, const QModelIndex &index);
+    UINT8 setItemAction(const UINT8 action, const QModelIndex &index);
+    
+    QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
+        const QString & name = QString(), const QString & text = QString(), const QString & info = QString(), 
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QModelIndex & index = QModelIndex(),
+        const UINT8 mode = ADD_MODE_APPEND);
+    
 private:
     TreeItem *rootItem;
 };

@@ -13,6 +13,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __DESCRIPTOR_H__
 #define __DESCRIPTOR_H__
 
+#include <QString>
 #include "basetypes.h"
 
 // Make sure we use right packing rules
@@ -42,12 +43,12 @@ typedef struct {
     UINT8  PchStrapsBase;           // 0x10 on most machines
     UINT8  NumberOfPchStraps;       // One-based number of UINT32s to read as PCH Straps, min=0, max=255 (1 Kb)
     UINT8  ProcStrapsBase;          // 0x20 on most machines
-    UINT8  NumberOfProcStraps;      // Number of PROC staps to be read, can be 0 or 1
+    UINT8  NumberOfProcStraps;      // Number of PROC straps to be read, can be 0 or 1
     UINT8  IccTableBase;            // 0x21 on most machines
     UINT8  NumberOfIccTableEntries; // 0x00 on most machines
     UINT8  DmiTableBase;            // 0x25 on most machines
     UINT8  NumberOfDmiTableEntries; // 0x00 on most machines
-    UINT16 ReservedZero;            // Still unknown, zeroes in all descriptors I have seen
+    UINT16 ReservedZero;            // Still unknown, zeros in all descriptors I have seen
 } FLASH_DESCRIPTOR_MAP;
 
 
@@ -56,9 +57,9 @@ typedef struct {
 typedef struct {
     UINT8 FirstChipDensity            : 3;
     UINT8 SecondFlashDensity          : 3;
-    UINT8 ReservedZero0               : 2;  // Still unknown, zeroes in all descriptors I have seen
-    UINT8 ReservedZero1               : 8;  // Still unknown, zeroes in all descriptors I have seen
-    UINT8 ReservedZero2               : 4;  // Still unknown, zeroes in all descriptors I have seen
+    UINT8 ReservedZero0               : 2;  // Still unknown, zeros in all descriptors I have seen
+    UINT8 ReservedZero1               : 8;  // Still unknown, zeros in all descriptors I have seen
+    UINT8 ReservedZero2               : 4;  // Still unknown, zeros in all descriptors I have seen
     UINT8 FastReadEnabled             : 1;
     UINT8 FastReadFreqency            : 3;
     UINT8 FlashReadStatusFrequency    : 3;
@@ -152,6 +153,8 @@ typedef struct {
 
 // Restore previous packing rules
 #pragma pack(pop)
+
+extern QString regionTypeToQString(const UINT8 type);
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit

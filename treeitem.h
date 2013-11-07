@@ -17,51 +17,107 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QByteArray>
 #include <QList>
 #include <QString>
+#include <QVariant>
 
 #include "basetypes.h"
+
+extern QString itemTypeToQString(const UINT8 type);
+extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
+extern QString compressionTypeToQString(UINT8 algorithm);
 
 class TreeItem
 {
 public:
-    TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT32 offset = 0, const QString & name = QString(), const QString & typeName = QString(), const QString & subtypeName = QString(), 
-        const QString & text = QString(), const QString & info = QString(), const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), TreeItem *parent = 0);
+    // Action types
+    enum ActionTypes {
+        NoAction,
+        Remove,
+        Reconstruct
+    };
+    
+    // Item types
+    enum ItemTypes {
+        Root,
+        Capsule,
+        Descriptor,
+        Region,
+        Padding,
+        Volume,
+        File,
+        Section
+    };
+
+    // Capsule subtypes
+    enum CapsuleSubtypes {
+        AptioCapsule,
+        UefiCapsule
+    };
+
+    // Region subtypes
+    enum RegionSubtypes {
+        GbeRegion,
+        MeRegion,
+        BiosRegion,
+        PdrRegion
+    };
+    
+    // Constructor
+    TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE, 
+        const QString &name = QString(), const QString &text = QString(), const QString &info = QString(), 
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), TreeItem *parent = 0);
+    // Destructor
     ~TreeItem();
 
+    // Operations with items
     void appendChild(TreeItem *item);
-    void removeChild(TreeItem *item);
-    
+    void prependChild(TreeItem *item);
+    UINT8 insertChildBefore(TreeItem *item, TreeItem *newItem);
+    UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);
+
+    // Model support operations
     TreeItem *child(int row);
     int childCount() const;
     int columnCount() const;
-    QString data(int column) const;
+    QVariant data(int column) const;
     int row() const;
     TreeItem *parent();
 
-    UINT8 type();
-    UINT8 subtype();
-    UINT32 offset();
-    QByteArray header();
-    QByteArray body();
-    QString info();
-    bool hasEmptyHeader();
-    bool hasEmptyBody();
+    // Reading operations for item parameters
+    UINT8 type() const;
+    UINT8 subtype() const;
+    QByteArray header() const;
+    bool hasEmptyHeader() const;
+    QByteArray body() const;
+    bool hasEmptyBody() const;
+    QString info() const;
+    UINT8 compression() const;
 
-    void setName(const QString &text);
-    void setText(const QString &text);
+    // Actions can also be changed
+    UINT8 action() const;
+    void setAction(const UINT8 action); 
+
+    // Text values can be changed after item construction
     void setTypeName(const QString &text);
     void setSubtypeName(const QString &text);
+    void setName(const QString &text);
+    void setText(const QString &text);
     void setInfo(const QString &text);
 
 private:
+    // Set default names after construction
+    // They can later be changed by set* methods
+    void setDefaultNames();
+    
     QList<TreeItem*> childItems;
+    UINT8 itemAction;
     UINT8 itemType;
     UINT8 itemSubtype;
-    UINT32 itemOffset;
+    UINT8 itemCompression;
     QByteArray itemHeader;
     QByteArray itemBody;
-    QString itemName;
     QString itemTypeName;
     QString itemSubtypeName;
+    QString itemName;
     QString itemText;
     QString itemInfo;
     TreeItem *parentItem;

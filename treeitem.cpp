@@ -11,23 +11,97 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+#include <QObject>
 #include "treeitem.h"
+#include "ffs.h"
+#include "descriptor.h"
 
-TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT32 offset, const QString & name, const QString & typeName, const QString & subtypeName, 
-                   const QString & text, const QString & info, const QByteArray & header, const QByteArray & body, TreeItem *parent)
+QString itemTypeToQString(const UINT8 type) 
 {
-    
+    switch (type) {
+    case TreeItem::Root:
+        return QObject::tr("Root");
+    case TreeItem::Capsule:
+        return QObject::tr("Capsule");
+    case TreeItem::Descriptor:
+        return QObject::tr("Flash descriptor");
+    case TreeItem::Region:
+        return QObject::tr("Region");
+    case TreeItem::Volume:
+        return QObject::tr("Volume");
+    case TreeItem::Padding:
+        return QObject::tr("Padding");
+    case TreeItem::File:
+        return QObject::tr("File");
+    case TreeItem::Section:
+        return QObject::tr("Section");
+    default:
+        return QObject::tr("Unknown");
+    }
+}
+
+QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype) 
+{
+    switch (type) {
+    case TreeItem::Root:
+    case TreeItem::Descriptor:
+    case TreeItem::Padding:
+    case TreeItem::Volume:
+        return "";
+    case TreeItem::Capsule:
+        if (subtype == TreeItem::AptioCapsule)
+            return QObject::tr("Aptio extended");
+        else if (subtype == TreeItem::UefiCapsule)
+            return QObject::tr("UEFI 2.0");
+        else
+            return QObject::tr("Unknown");
+    case TreeItem::Region:
+        return regionTypeToQString(subtype);
+    case TreeItem::File:
+        return fileTypeToQString(subtype);
+    case TreeItem::Section:
+        return sectionTypeToQString(subtype);
+    default:
+        return QObject::tr("Unknown");
+    }
+}
+
+QString compressionTypeToQString(UINT8 algorithm)
+{
+    switch (algorithm) {
+    case COMPRESSION_ALGORITHM_NONE:
+        return QObject::tr("None");
+    case COMPRESSION_ALGORITHM_EFI11:
+        return QObject::tr("EFI 1.1");
+    case COMPRESSION_ALGORITHM_TIANO:
+        return QObject::tr("Tiano");
+    case COMPRESSION_ALGORITHM_LZMA:
+        return QObject::tr("LZMA");
+    case COMPRESSION_ALGORITHM_IMLZMA:
+        return QObject::tr("Intel modified LZMA");
+    default:
+        return QObject::tr("Unknown");
+    }
+}
+
+TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
+                   const QString & name, const QString & text, const QString & info, 
+                   const QByteArray & header, const QByteArray & body, 
+                   TreeItem *parent)
+{
+    itemAction = NoAction;
     itemType = type;
     itemSubtype = subtype;
-    itemOffset = offset;
+    itemCompression = compression;
     itemName = name;
-    itemTypeName = typeName;
-    itemSubtypeName = subtypeName;
     itemText = text;
     itemInfo = info;
     itemHeader = header;
     itemBody = body;
     parentItem = parent;
+    
+    // Set default names
+    setDefaultNames();
 }
 
 TreeItem::~TreeItem()
@@ -35,19 +109,43 @@ TreeItem::~TreeItem()
     qDeleteAll(childItems);
 }
 
+void TreeItem::setDefaultNames()
+{
+    itemTypeName = itemTypeToQString(itemType);
+    itemSubtypeName = itemSubtypeToQString(itemType, itemSubtype);
+}
+
 void TreeItem::appendChild(TreeItem *item)
 {
     childItems.append(item);
 }
 
-void TreeItem::removeChild(TreeItem *item)
+void TreeItem::prependChild(TreeItem *item)
 {
-    childItems.removeAll(item);
+    childItems.prepend(item);
+}
+
+UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
+{
+    int index = childItems.indexOf(item);
+    if (index == -1)
+        return ERR_ITEM_NOT_FOUND;
+    childItems.insert(index, newItem);
+    return ERR_SUCCESS;
+}
+
+UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
+{
+    int index = childItems.indexOf(item);
+    if (index == -1)
+        return ERR_ITEM_NOT_FOUND;
+    childItems.insert(index + 1, newItem);
+    return ERR_SUCCESS;
 }
 
 TreeItem *TreeItem::child(int row)
 {
-    return childItems.value(row);
+    return childItems.value(row, NULL);
 }
 
 int TreeItem::childCount() const
@@ -57,27 +155,29 @@ int TreeItem::childCount() const
 
 int TreeItem::columnCount() const
 {
-    return 4;
+    return 5;
 }
 
-QString TreeItem::data(int column) const
+QVariant TreeItem::data(int column) const
 {
     switch(column)
     {
-    case 0: //Object
+    case 0: //Action
+        if (itemAction == TreeItem::Remove)
+            return "X";
+        if (itemAction == TreeItem::Reconstruct)
+            return "R";
+        return QVariant();
+    case 1: //Name
         return itemName;
-        break;
-    case 1: //Type
+    case 2: //Type
         return itemTypeName;
-        break;
-    case 2: //Subtype
+    case 3: //Subtype
         return itemSubtypeName;
-        break;
-    case 3: //Text
+    case 4: //Text
         return itemText;
-        break;
     default:
-        return "";
+        return QVariant();
     }
 }
 
@@ -106,7 +206,7 @@ void TreeItem::setSubtypeName(const QString &text)
     itemSubtypeName = text;
 }
 
-QString TreeItem::info()
+QString TreeItem::info() const
 {
     return itemInfo;
 }
@@ -124,37 +224,46 @@ int TreeItem::row() const
     return 0;
 }
 
-UINT8 TreeItem::type()
+UINT8 TreeItem::type() const
 {
     return itemType;
 }
 
-UINT8 TreeItem::subtype()
+UINT8 TreeItem::subtype() const
 {
     return itemSubtype;
 }
 
-UINT32 TreeItem::offset()
+UINT8 TreeItem::compression() const
 {
-    return itemOffset;
+    return itemCompression;
 }
 
-QByteArray TreeItem::header()
+QByteArray TreeItem::header() const
 {
     return itemHeader;
 }
 
-QByteArray TreeItem::body()
+QByteArray TreeItem::body() const
 {
     return itemBody;
 }
 
-bool TreeItem::hasEmptyHeader()
+bool TreeItem::hasEmptyHeader() const
 {
     return itemHeader.isEmpty();
 }
 
-bool TreeItem::hasEmptyBody()
+bool TreeItem::hasEmptyBody() const
 {
     return itemBody.isEmpty();
+}
+
+UINT8 TreeItem::action() const
+{
+    return itemAction;
+}
+void TreeItem::setAction(const UINT8 action)
+{
+    itemAction = action;
 }

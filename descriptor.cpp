@@ -10,7 +10,26 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
+#include <QObject>
 #include "descriptor.h"
+#include "treeitem.h"
+
+QString regionTypeToQString(const UINT8 type)
+{
+    switch (type)
+    {
+    case TreeItem::GbeRegion:
+        return QObject::tr("GbE");
+    case TreeItem::MeRegion:
+        return QObject::tr("ME");
+    case TreeItem::BiosRegion:
+        return QObject::tr("Bios");
+    case TreeItem::PdrRegion:
+        return QObject::tr("PDR");
+    default:
+        return QObject::tr("Unknown");
+    };
+}
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit

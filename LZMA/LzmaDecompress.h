@@ -17,11 +17,11 @@
 #include "../basetypes.h"
 #include "SDK/C/LzmaDec.h"
 
-#define LZMA_HEADER_SIZE (LZMA_PROPS_SIZE + 8)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define LZMA_HEADER_SIZE (LZMA_PROPS_SIZE + 8)
 
 UINT64
 EFIAPI

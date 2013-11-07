@@ -116,46 +116,84 @@ int TreeModel::rowCount(const QModelIndex &parent) const
     return parentItem->childCount();
 }
 
-bool TreeModel::setItemName(const QString &data, const QModelIndex &index)
+UINT8 TreeModel::setItemName(const QString &data, const QModelIndex &index)
 {
     if(!index.isValid())
-        return false;
+        return ERR_INVALID_PARAMETER;
     
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setName(data);
     emit dataChanged(index, index);
-    return true;
+    return ERR_SUCCESS;
 }
 
-bool TreeModel::setItemText(const QString &data, const QModelIndex &index)
+UINT8 TreeModel::setItemText(const QString &data, const QModelIndex &index)
 {
     if(!index.isValid())
-        return false;
+        return ERR_INVALID_PARAMETER;
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setText(data);
     emit dataChanged(index, index);
-    return true;
+    return ERR_SUCCESS;
 }
 
-QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT32 offset, const QString & name, const QString & typeName, 
-                   const QString & subtypeName, const QString & text, const QString & info, 
-                   const QByteArray & header, const QByteArray & body, const QModelIndex & parent)
+UINT8 TreeModel::setItemAction(const UINT8 action, const QModelIndex &index)
 {
+    if(!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setAction(action);
+    emit dataChanged(index, index);
+    return ERR_SUCCESS;
+}
+
+QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT8 compression, 
+                               const QString & name, const QString & text, const QString & info, 
+                               const QByteArray & header, const QByteArray & body, const QModelIndex & index,
+                               const UINT8 mode)
+{
+    TreeItem *item;
     TreeItem *parentItem;
     int parentColumn = 0;
 
-    if (!parent.isValid())
+    if (!index.isValid())
         parentItem = rootItem;
     else
     {
-        parentItem = static_cast<TreeItem*>(parent.internalPointer());
-        parentColumn = parent.column();
+        if (mode == ADD_MODE_APPEND || mode == ADD_MODE_PREPEND) {
+            parentItem = static_cast<TreeItem*>(index.internalPointer());
+            parentColumn = index.column();
+        }
+        else {
+            item = static_cast<TreeItem*>(index.internalPointer());
+            parentItem = item->parent();
+            parentColumn = index.parent().column();
+        }
     }
     
-    emit layoutAboutToBeChanged();
-    TreeItem *item = new TreeItem(type, subtype, offset, name, typeName, subtypeName, text, info, header, body, parentItem);
-    parentItem->appendChild(item);
+    TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, parentItem);
+    if (mode == ADD_MODE_APPEND) {
+        emit layoutAboutToBeChanged();
+        parentItem->appendChild(newItem);
+    }
+    else if (mode == ADD_MODE_PREPEND) {
+        emit layoutAboutToBeChanged();
+        parentItem->prependChild(newItem);
+    }
+    else if (mode == ADD_MODE_INSERT_BEFORE) {
+        emit layoutAboutToBeChanged();
+        parentItem->insertChildBefore(item, newItem);
+    }
+    else if (mode == ADD_MODE_INSERT_AFTER) {
+        emit layoutAboutToBeChanged();
+        parentItem->insertChildAfter(item, newItem);
+    }
+    else 
+        return QModelIndex();
+    
     emit layoutChanged();
-    return createIndex(parentItem->childCount() - 1, parentColumn, item);
+    
+    return createIndex(newItem->row(), parentColumn, newItem);
 }
