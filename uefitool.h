@@ -52,6 +52,7 @@ private slots:
     void extract();
     void extractBody();
     void extractUncompressed();
+    void insert(const UINT8 mode);
     void insertInto();
     void insertBefore();
     void insertAfter();

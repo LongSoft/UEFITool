@@ -162,14 +162,14 @@ QVariant TreeItem::data(int column) const
 {
     switch(column)
     {
-    case 0: //Action
+    case 0: //Name
+        return itemName;
+    case 1: //Action
         if (itemAction == TreeItem::Remove)
             return "X";
         if (itemAction == TreeItem::Reconstruct)
             return "R";
         return QVariant();
-    case 1: //Name
-        return itemName;
     case 2: //Type
         return itemTypeName;
     case 3: //Subtype

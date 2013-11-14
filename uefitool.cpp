@@ -32,10 +32,11 @@ UEFITool::UEFITool(QWidget *parent) :
     connect(ui->actionReplace, SIGNAL(triggered()), this, SLOT(replace()));
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
+    
     // Enable Drag-and-Drop actions
     this->setAcceptDrops(true);
 
-    // Initialise non-persistent data
+    // Initialize non-persistent data
     init();
 }
 
@@ -71,11 +72,12 @@ void UEFITool::init()
     connect(ui->structureTreeView, SIGNAL(expanded(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
+
+    resizeTreeViewColums();
 }
 
-void UEFITool::populateUi(const QModelIndex &current/*, const QModelIndex &previous*/)
+void UEFITool::populateUi(const QModelIndex &current)
 {
-    //!TODO: make widget
     currentIndex = current;
     ui->infoEdit->setPlainText(current.data(Qt::UserRole).toString());
     ui->actionExtract->setDisabled(ffsEngine->hasEmptyBody(current) && ffsEngine->hasEmptyHeader(current));
@@ -84,10 +86,14 @@ void UEFITool::populateUi(const QModelIndex &current/*, const QModelIndex &previ
     ui->actionRemove->setEnabled(ffsEngine->isOfType(TreeItem::Volume, current) 
         || ffsEngine->isOfType(TreeItem::File, current) 
         || ffsEngine->isOfType(TreeItem::Section, current));
-    ui->actionInsertInto->setEnabled(ffsEngine->isOfType(TreeItem::Volume, current));
-    ui->actionInsertBefore->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
-    ui->actionInsertAfter->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
-    ui->actionReplace->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
+    ui->actionInsertInto->setEnabled(ffsEngine->isOfType(TreeItem::Volume, current) 
+        || ffsEngine->isOfType(TreeItem::File, current)
+        || ffsEngine->isOfType(TreeItem::Section, current));
+    ui->actionInsertBefore->setEnabled(ffsEngine->isOfType(TreeItem::File, current) 
+        || ffsEngine->isOfType(TreeItem::Section, current));
+    ui->actionInsertAfter->setEnabled(ffsEngine->isOfType(TreeItem::File, current)
+        || ffsEngine->isOfType(TreeItem::Section, current));
+    //ui->actionReplace->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
 }
 
 void UEFITool::remove()
@@ -98,109 +104,87 @@ void UEFITool::remove()
     }
     else
         ui->actionSaveImageFile->setEnabled(true);
-     resizeTreeViewColums();
+    
+    resizeTreeViewColums();
+}
 
+void UEFITool::insert(const UINT8 mode)
+{
+    QString path;
+    TreeItem* item = static_cast<TreeItem*>(currentIndex.internalPointer());
+    
+    UINT8 type;
+	UINT8 objectType;
+    if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_BEFORE)
+        type = item->parent()->type();
+    else
+        type = item->type();
+
+    switch (type) {
+    case TreeItem::Volume:
+        path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS file (*.ffs *.bin);;All files (*.*)");
+		objectType = TreeItem::File;
+    break;
+    case TreeItem::File:
+    case TreeItem::Section:
+        path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"),".","Section file (*.sec *.bin);;All files (*.*)");
+		objectType = TreeItem::Section;
+    break;
+    default:
+        return;
+    }
+
+    QFileInfo fileInfo = QFileInfo(path);
+    if (!fileInfo.exists())
+    {
+        ui->statusBar->showMessage(tr("Please select existing file"));
+        return;
+    }
+
+    QFile inputFile;
+    inputFile.setFileName(path);
+
+    if (!inputFile.open(QFile::ReadOnly))
+    {
+        ui->statusBar->showMessage(tr("Can't open file for reading"));
+        return;
+    }
+
+    QByteArray buffer = inputFile.readAll();
+    inputFile.close();
+
+    UINT8 result = ffsEngine->insert(currentIndex, buffer, objectType, mode);
+    if (result)
+        ui->statusBar->showMessage(tr("File can't be inserted (%1)").arg(result));
+    else
+        ui->actionSaveImageFile->setEnabled(true);
+    
+    resizeTreeViewColums();
 }
 
 void UEFITool::insertInto()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS file (*.ffs *.bin);;All files (*.*)");
-    QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists())
-    {
-        ui->statusBar->showMessage(tr("Please select existing FFS file"));
-        return;
-    }
-
-    QFile inputFile;
-    inputFile.setFileName(path);
-
-    if (!inputFile.open(QFile::ReadOnly))
-    {
-        ui->statusBar->showMessage(tr("Can't open file for reading"));
-        return;
-    }
-
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
-
-    UINT8 result = ffsEngine->insert(currentIndex, buffer, TreeItem::File, ADD_MODE_PREPEND);
-    if (result)
-        ui->statusBar->showMessage(tr("FFS file can't be inserted (%1)").arg(result));
-    else
-        ui->actionSaveImageFile->setEnabled(true);
-    resizeTreeViewColums();
+    insert(INSERT_MODE_PREPEND);
 }
 
 void UEFITool::insertBefore()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS file (*.ffs *.bin);;All files (*.*)");
-    QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists())
-    {
-        ui->statusBar->showMessage(tr("Please select existing FFS file"));
-        return;
-    }
-
-    QFile inputFile;
-    inputFile.setFileName(path);
-
-    if (!inputFile.open(QFile::ReadOnly))
-    {
-        ui->statusBar->showMessage(tr("Can't open file for reading"));
-        return;
-    }
-
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
-
-    UINT8 result = ffsEngine->insert(currentIndex, buffer, TreeItem::File, ADD_MODE_INSERT_BEFORE);
-    if (result)
-        ui->statusBar->showMessage(tr("FFS file can't be inserted (%1)").arg(result));
-    else
-        ui->actionSaveImageFile->setEnabled(true);
-    resizeTreeViewColums();
+    insert(INSERT_MODE_BEFORE);
 }
 
 void UEFITool::insertAfter()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS file (*.ffs *.bin);;All files (*.*)");
-    QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists())
-    {
-        ui->statusBar->showMessage(tr("Please select existing FFS file"));
-        return;
-    }
-
-    QFile inputFile;
-    inputFile.setFileName(path);
-
-    if (!inputFile.open(QFile::ReadOnly))
-    {
-        ui->statusBar->showMessage(tr("Can't open file for reading"));
-        return;
-    }
-
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
-
-    UINT8 result = ffsEngine->insert(currentIndex, buffer, TreeItem::File, ADD_MODE_INSERT_AFTER);
-    if (result)
-        ui->statusBar->showMessage(tr("FFS file can't be inserted (%1)").arg(result));
-    else
-        ui->actionSaveImageFile->setEnabled(true);
-    resizeTreeViewColums();
+    insert(INSERT_MODE_AFTER);
 }
 
 void UEFITool::replace()
 {
-    remove();
-    insertAfter();
+    
 }
 
 void UEFITool::saveImageFile()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image file (*.rom *.bin *.cap *.fd *.fwh);;All files (*.*)");
+    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image file (*.rom *.bin *.cap *.fd *.wph *.efi);;All files (*.*)");
 
     QFile outputFile;
     outputFile.setFileName(path);
@@ -219,6 +203,7 @@ void UEFITool::saveImageFile()
         return;
     }
 
+    outputFile.resize(0);
     outputFile.write(reconstructed);
     outputFile.close();
     ui->statusBar->showMessage(tr("Reconstructed image written"));
@@ -243,7 +228,7 @@ void UEFITool::openImageFile(QString path)
     QFileInfo fileInfo = QFileInfo(path);
     if (!fileInfo.exists())
     {
-        ui->statusBar->showMessage(tr("Please select existing BIOS image file"));
+        ui->statusBar->showMessage(tr("Please select existing file"));
         return;
     }
 
@@ -262,7 +247,7 @@ void UEFITool::openImageFile(QString path)
     init();
     UINT8 result = ffsEngine->parseInputFile(buffer);
     if (result)
-        ui->statusBar->showMessage(tr("Opened file can't be parsed as UEFI image (%1)").arg(result));
+        ui->statusBar->showMessage(tr("Opened file can't be parsed (%1)").arg(result));
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
     
@@ -279,65 +264,48 @@ void UEFITool::extract()
     outputFile.setFileName(path);
     if (!outputFile.open(QFile::WriteOnly))
     {
-        ui->statusBar->showMessage(tr("Can't open file for writing. Check file permissions."));
+        ui->statusBar->showMessage(tr("Can't open file for rewriting"));
         return;
     }
 
+    outputFile.resize(0);
     outputFile.write(ffsEngine->header(currentIndex) + ffsEngine->body(currentIndex));
     outputFile.close();
 }
 
 void UEFITool::extractBody()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save selected item without header to binary file"),".","Binary files (*.bin);;All files (*.*)");
+    QString path = QFileDialog::getSaveFileName(this, tr("Save selected item without header to file"),".","Binary files (*.bin);;All files (*.*)");
 
     QFile outputFile;
     outputFile.setFileName(path);
     if (!outputFile.open(QFile::WriteOnly))
     {
-        ui->statusBar->showMessage(tr("Can't open file for writing. Check file permissions."));
+        ui->statusBar->showMessage(tr("Can't open file for rewriting"));
         return;
     }
 
+    outputFile.resize(0);
     outputFile.write(ffsEngine->body(currentIndex));
     outputFile.close();
 }
 
 void UEFITool::extractUncompressed()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save selected FFS file as uncompressed to binary file"),".","FFS files (*.ffs);;All files (*.*)");
+    QString path = QFileDialog::getSaveFileName(this, tr("Save selected FFS file as uncompressed to file"),".","FFS files (*.ffs);;All files (*.*)");
     
     QFile outputFile;
     outputFile.setFileName(path);
     if (!outputFile.open(QFile::WriteOnly))
     {
-        ui->statusBar->showMessage(tr("Can't open file for writing. Check file permissions."));
+        ui->statusBar->showMessage(tr("Can't open file for rewriting"));
         return;
     }
-    
+
+    outputFile.resize(0);
     outputFile.write(ffsEngine->decompressFile(currentIndex));
     outputFile.close();
 }
-
-/*void UEFITool::saveImageFile()
-{
-    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image file (*.rom *.bin *.cap *.fd *.fwh);;All files (*.*)");
-
-    QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists())
-    {
-        ui->statusBar->showMessage(tr("Please select existing BIOS image file."));
-        return;
-    }
-
-    QFile outputFile;
-    outputFile.setFileName(path);
-    if (!outputFile.open(QFile::ReadWrite))
-    {
-        ui->statusBar->showMessage(tr("Can't open file for writing. Check file permissions."));
-        return;
-    }
-}*/
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
 {

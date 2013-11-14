@@ -44,15 +44,15 @@ public:
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
-    UINT8 parseVolume(const QByteArray & volume, const QModelIndex & parent = QModelIndex(), const UINT8 mode = ADD_MODE_APPEND);
+    UINT8 parseVolume(const QByteArray & volume, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
-    UINT8 parseFile(const QByteArray & file, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex(), const UINT8 mode = ADD_MODE_APPEND);
+    UINT8 parseFile(const QByteArray & file, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
     UINT8 parseSections(const QByteArray & body, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex());
-    UINT8 parseSection(const QByteArray & section, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex(), const UINT8 mode = ADD_MODE_APPEND);
+    UINT8 parseSection(const QByteArray & section, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
 
     // Compression routines
-    UINT8 decompress(const QByteArray & compressed, const UINT8 compressionType, QByteArray & decompressedSection, UINT8 * algorithm = NULL);
+    UINT8 decompress(const QByteArray & compressed, const UINT8 compressionType, QByteArray & decompressedData, UINT8 * algorithm = NULL);
     UINT8 compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData);
     
     // Construction routines
@@ -74,7 +74,7 @@ public:
     bool        isOfType(UINT8 type, const QModelIndex & index) const;
     bool        isOfSubtype(UINT8 subtype, const QModelIndex & index) const;
     QModelIndex findParentOfType(UINT8 type, const QModelIndex& index) const;
-
+    
     // Will be refactored later
     bool isCompressedFile(const QModelIndex & index) const;
     QByteArray decompressFile(const QModelIndex & index) const;

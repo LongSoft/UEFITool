@@ -162,31 +162,31 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
         parentItem = rootItem;
     else
     {
-        if (mode == ADD_MODE_APPEND || mode == ADD_MODE_PREPEND) {
-            parentItem = static_cast<TreeItem*>(index.internalPointer());
-            parentColumn = index.column();
-        }
-        else {
+        if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER) {
             item = static_cast<TreeItem*>(index.internalPointer());
             parentItem = item->parent();
             parentColumn = index.parent().column();
         }
+        else {
+            parentItem = static_cast<TreeItem*>(index.internalPointer());
+            parentColumn = index.column();
+        }
     }
     
     TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, parentItem);
-    if (mode == ADD_MODE_APPEND) {
+    if (mode == INSERT_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);
     }
-    else if (mode == ADD_MODE_PREPEND) {
+    else if (mode == INSERT_MODE_PREPEND) {
         emit layoutAboutToBeChanged();
         parentItem->prependChild(newItem);
     }
-    else if (mode == ADD_MODE_INSERT_BEFORE) {
+    else if (mode == INSERT_MODE_BEFORE) {
         emit layoutAboutToBeChanged();
         parentItem->insertChildBefore(item, newItem);
     }
-    else if (mode == ADD_MODE_INSERT_AFTER) {
+    else if (mode == INSERT_MODE_AFTER) {
         emit layoutAboutToBeChanged();
         parentItem->insertChildAfter(item, newItem);
     }

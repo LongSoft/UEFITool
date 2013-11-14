@@ -372,11 +372,10 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
     UINT32 prevVolumeOffset;
     UINT8 result;
     result = findNextVolume(bios, 0, prevVolumeOffset);
-    if (result == ERR_VOLUMES_NOT_FOUND)
-    {
-        //msg(tr("No volumes found in BIOS space"));
+    if (result == ERR_VOLUMES_NOT_FOUND) {
         return result;
     }
+
     // First volume is not at the beginning of BIOS space
     QString name;
     QString info;
@@ -514,8 +513,21 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         prevVolumeSize = volumeSize;
 
         result = findNextVolume(bios, volumeOffset + prevVolumeSize, volumeOffset);
-        if (result == ERR_VOLUMES_NOT_FOUND)
+        if (result) {
+            UINT32 endPaddingSize = bios.size() - prevVolumeOffset - prevVolumeSize;
+            // Padding at the end of BIOS space
+            if (endPaddingSize > 0) {
+                QByteArray padding = bios.right(endPaddingSize);
+                // Get info
+                name = tr("Padding");
+                info = tr("Size: %2")
+                    .arg(padding.size(), 8, 16, QChar('0'));
+                // Add tree item
+                treeModel->addItem(TreeItem::Padding, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, parent);
+            }
             break;
+        }
+            
     }
 
     return ERR_SUCCESS;
@@ -576,7 +588,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
         msg(tr("parseBios: Volume header checksum is invalid"));
     }
 
-    // Check for presence of extended header, only if header revision is not 1
+    // Check for presence of extended header, only if header revision is greater then 1
     UINT32 headerSize;
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*) ((UINT8*) volumeHeader + volumeHeader->ExtHeaderOffset);
@@ -598,10 +610,16 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
     QByteArray  body   = volume.mid(headerSize, volumeHeader->FvLength - headerSize);
     QModelIndex index  = treeModel->addItem(TreeItem::Volume, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, parent, mode);
 
+    // Do not parse volumes with unknown FS
+    if (!parseCurrentVolume)
+        return ERR_SUCCESS;
+
     // Search for and parse all files
     UINT32 fileOffset = headerSize;
     UINT32 fileSize;
     UINT8 result;
+    QQueue<QByteArray> files;
+
     while (true) {
         result = getFileSize(volume, fileOffset, fileSize);
         if (result)
@@ -616,9 +634,9 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
         QByteArray file = volume.mid(fileOffset, fileSize);
         QByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
 
-        // We are now at empty space in the end of volume
+        // If we are at empty space in the end of volume
         if (header.count(empty) == header.size())
-            break;
+            break; // Exit from loop
 
         // Check file alignment
         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) header.constData();
@@ -628,6 +646,14 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
             msg(tr("parseVolume: %1, unaligned file").arg(guidToQString(fileHeader->Name)));
         }
 
+        // Check file GUID
+        if (fileHeader->Type != EFI_FV_FILETYPE_PAD && files.indexOf(header.left(sizeof(EFI_GUID))) != -1)
+            msg(tr("%1: file with duplicate GUID").arg(guidToQString(fileHeader->Name)));
+
+        // Add file GUID to queue
+        files.enqueue(header.left(sizeof(EFI_GUID)));
+
+        // Parse file 
         result = parseFile(file, volumeHeader->Revision, empty, index);
         if (result)
             msg(tr("parseVolume: Parse FFS file failed (%1)").arg(result));
@@ -790,13 +816,13 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, UINT8 revision, const char e
         result = parseBios(body, index);
         if (result && result != ERR_VOLUMES_NOT_FOUND)
             msg(tr("parseVolume: Parse file as BIOS failed (%1)").arg(result));
+        return ERR_SUCCESS;
     }
+
     // Parse sections
-    else {
-        result = parseSections(body, revision, empty, index);
-        if (result)
-                return result;
-    }
+    result = parseSections(body, revision, empty, index);
+    if (result)
+        return result;
 
     return ERR_SUCCESS;
 }
@@ -959,11 +985,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const UINT8 revision,
     case EFI_SECTION_PIC:
     case EFI_SECTION_TE:
     case EFI_SECTION_VERSION:
-    case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID:
     case EFI_SECTION_DXE_DEPEX:
     case EFI_SECTION_PEI_DEPEX:
     case EFI_SECTION_SMM_DEPEX:
+    case EFI_SECTION_COMPATIBILITY16:
         headerSize = sizeOfSectionHeaderOfType(sectionHeader->Type);
         header     = section.left(headerSize);
         body       = section.mid(headerSize, sectionSize - headerSize);
@@ -997,6 +1023,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const UINT8 revision,
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
         header = section.left(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
         body   = section.mid(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION), sectionSize - sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
+        
         // Get info
         info = tr("Type: %1\nSize: %2")
             .arg(sectionHeader->Type, 2, 16, QChar('0'))
@@ -1015,6 +1042,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const UINT8 revision,
     case EFI_SECTION_RAW:
         header = section.left(sizeof(EFI_RAW_SECTION));
         body   = section.mid(sizeof(EFI_RAW_SECTION), sectionSize - sizeof(EFI_RAW_SECTION));
+        
         // Get info
         info = tr("Type: %1\nSize: %2")
             .arg(sectionHeader->Type, 2, 16, QChar('0'))
@@ -1055,22 +1083,21 @@ UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, co
     // Only files and sections can now be inserted
     if (type == TreeItem::File) {
         QModelIndex parent;
-        if (mode == ADD_MODE_APPEND || mode == ADD_MODE_PREPEND)
-            parent = index;
-        else
+        if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER)
             parent = index.parent();
+        else
+            parent = index;
         
         // Parent type must be volume
         TreeItem * parentItem = static_cast<TreeItem*>(parent.internalPointer());
         if (parentItem->type() != TreeItem::Volume) {
-            msg(tr("insertInto: file can't be inserted into something that is not volume"));
+            msg(tr("insert: file can't be inserted into something that is not volume"));
             return ERR_INVALID_VOLUME;
         }
 
         EFI_FIRMWARE_VOLUME_HEADER* header = (EFI_FIRMWARE_VOLUME_HEADER*) parentItem->header().constData();
 
         // Parse file
-        //!TODO: add check for same GUIDs
         UINT8 result = parseFile(object, header->Revision, header->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00', index, mode);
         if (result)
             return result;
@@ -1081,7 +1108,40 @@ UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, co
 
     }
     else if (type == TreeItem::Section) {
-        return ERR_NOT_IMPLEMENTED;
+        QModelIndex parent;
+        if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER)
+            parent = index.parent();
+        else
+            parent = index;
+        
+        // Parent type must be file or encapsulation section
+        TreeItem * parentItem = static_cast<TreeItem*>(parent.internalPointer());
+        if (parentItem->type() == TreeItem::File || (parentItem->type() == TreeItem::Section && 
+            (parentItem->subtype() == EFI_SECTION_COMPRESSION || 
+             parentItem->subtype() == EFI_SECTION_GUID_DEFINED || 
+             parentItem->subtype() == EFI_SECTION_DISPOSABLE))) {
+                QModelIndex volumeIndex = findParentOfType(TreeItem::Volume, parent);
+                if (!volumeIndex.isValid()) {
+                    msg(tr("insert: Parent volume not found"));
+                    return ERR_INVALID_VOLUME;
+                }
+
+                TreeItem * volumeItem = static_cast<TreeItem*>(volumeIndex.internalPointer());
+                EFI_FIRMWARE_VOLUME_HEADER* header = (EFI_FIRMWARE_VOLUME_HEADER*) volumeItem->header().constData();
+
+                // Parse section
+                UINT8 result = parseSection(object, header->Revision, header->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00', index, mode);
+                if (result)
+                    return result;
+
+                // Set reconstruct action for all parents
+                for (;parent.isValid(); parent = parent.parent())
+                    treeModel->setItemAction(TreeItem::Reconstruct, parent);
+        }
+        else {
+            msg(tr("insert: section can't be inserted into something that is not file or encapsulation section"));
+            return ERR_INVALID_FILE;
+        }
     }
     else 
         return ERR_NOT_IMPLEMENTED;

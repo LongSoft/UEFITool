@@ -93,11 +93,11 @@ typedef uint16_t  CHAR16;
 #define COMPRESSION_ALGORITHM_LZMA    4
 #define COMPRESSION_ALGORITHM_IMLZMA  5
 
-// Item add modes
-#define ADD_MODE_APPEND        0
-#define ADD_MODE_PREPEND       1
-#define ADD_MODE_INSERT_BEFORE 2
-#define ADD_MODE_INSERT_AFTER  3
+// Item insert modes
+#define INSERT_MODE_APPEND  0
+#define INSERT_MODE_PREPEND 1
+#define INSERT_MODE_BEFORE  2
+#define INSERT_MODE_AFTER   3
 
 // EFI GUID
 typedef struct{

@@ -48,7 +48,7 @@ public:
     QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(), 
         const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QModelIndex & index = QModelIndex(),
-        const UINT8 mode = ADD_MODE_APPEND);
+        const UINT8 mode = INSERT_MODE_APPEND);
     
 private:
     TreeItem *rootItem;
