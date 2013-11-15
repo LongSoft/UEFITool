@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>900</width>
-    <height>600</height>
+    <width>1100</width>
+    <height>700</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.5.0</string>
+   <string>UEFITool 0.6.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -142,6 +142,12 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>120</height>
+       </size>
+      </property>
       <property name="title">
        <string>Debug</string>
       </property>
@@ -153,41 +159,7 @@
         <number>5</number>
        </property>
        <item>
-        <widget class="QPlainTextEdit" name="debugEdit">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>80</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>50</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <family>Consolas</family>
-           <pointsize>10</pointsize>
-          </font>
-         </property>
-         <property name="undoRedoEnabled">
-          <bool>false</bool>
-         </property>
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-         <property name="centerOnScroll">
-          <bool>false</bool>
-         </property>
-        </widget>
+        <widget class="QListWidget" name="debugListWidget"/>
        </item>
       </layout>
      </widget>

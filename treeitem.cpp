@@ -21,10 +21,12 @@ QString itemTypeToQString(const UINT8 type)
     switch (type) {
     case TreeItem::Root:
         return QObject::tr("Root");
+    case TreeItem::Image:
+        return QObject::tr("Image");
     case TreeItem::Capsule:
         return QObject::tr("Capsule");
     case TreeItem::Descriptor:
-        return QObject::tr("Flash descriptor");
+        return QObject::tr("Descriptor");
     case TreeItem::Region:
         return QObject::tr("Region");
     case TreeItem::Volume:
@@ -44,6 +46,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
 {
     switch (type) {
     case TreeItem::Root:
+    case TreeItem::Image:
     case TreeItem::Descriptor:
     case TreeItem::Padding:
     case TreeItem::Volume:

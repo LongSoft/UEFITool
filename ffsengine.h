@@ -21,6 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "basetypes.h"
 #include "treeitem.h"
 #include "treemodel.h"
+#include "debuglistitem.h"
 
 class TreeModel;
 
@@ -32,10 +33,12 @@ public:
     // Default constructor and destructor
     FfsEngine(QObject *parent = 0);
     ~FfsEngine(void);
+    
     // Returns model for Qt view classes
     TreeModel* model() const;
-    // Returns current message
-    QString message() const;
+
+    // Returns debug items queue
+    QQueue<DebugListItem*> debugMessage();
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
@@ -59,7 +62,8 @@ public:
     UINT8 reconstructImage(QByteArray & reconstructed);
     UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const char empty, QByteArray & pad);
     UINT8 reconstruct(TreeItem* item, QQueue<QByteArray> & queue, const UINT8 revision = 2, char empty = '\xFF');
-    
+    UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
+
     // Operations on tree items
     UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 type, const UINT8 mode);
     UINT8 remove(const QModelIndex & index);
@@ -80,11 +84,11 @@ public:
     QByteArray decompressFile(const QModelIndex & index) const;
 
 private:
-    QString   text;
     TreeItem  *rootItem;
     TreeModel *treeModel;
-    // Adds string to message
-    void msg(const QString & message);
+    // Debug window helper
+    QQueue<DebugListItem*> debugItems;
+    void msg(const QString & message, const QModelIndex index = QModelIndex());
     // Internal operations used in insertInTree
     bool setTreeItemName(const QString & data, const QModelIndex & index);
     bool setTreeItemText(const QString & data, const QModelIndex & index);

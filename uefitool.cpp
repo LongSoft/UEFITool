@@ -48,8 +48,8 @@ UEFITool::~UEFITool()
 
 void UEFITool::init()
 {
-    // Clear UI components
-    ui->debugEdit->clear();
+    // Clear components
+    ui->debugListWidget->clear();
     ui->infoEdit->clear();
     
     // Disable all actions except openImageFile
@@ -72,6 +72,7 @@ void UEFITool::init()
     connect(ui->structureTreeView, SIGNAL(expanded(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
+    connect(ui->debugListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
 
     resizeTreeViewColums();
 }
@@ -88,7 +89,10 @@ void UEFITool::populateUi(const QModelIndex &current)
         || ffsEngine->isOfType(TreeItem::Section, current));
     ui->actionInsertInto->setEnabled(ffsEngine->isOfType(TreeItem::Volume, current) 
         || ffsEngine->isOfType(TreeItem::File, current)
-        || ffsEngine->isOfType(TreeItem::Section, current));
+        || (ffsEngine->isOfType(TreeItem::Section, current) 
+           && (ffsEngine->isOfSubtype(EFI_SECTION_COMPRESSION, current) 
+           || ffsEngine->isOfSubtype(EFI_SECTION_GUID_DEFINED, current) 
+           || ffsEngine->isOfSubtype(EFI_SECTION_DISPOSABLE, current))));
     ui->actionInsertBefore->setEnabled(ffsEngine->isOfType(TreeItem::File, current) 
         || ffsEngine->isOfType(TreeItem::Section, current));
     ui->actionInsertAfter->setEnabled(ffsEngine->isOfType(TreeItem::File, current)
@@ -100,7 +104,7 @@ void UEFITool::remove()
 {
     UINT8 result = ffsEngine->remove(currentIndex);
     if (result) {
-        ui->debugEdit->setPlainText(ffsEngine->message());
+        
     }
     else
         ui->actionSaveImageFile->setEnabled(true);
@@ -115,7 +119,7 @@ void UEFITool::insert(const UINT8 mode)
     
     UINT8 type;
 	UINT8 objectType;
-    if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_BEFORE)
+    if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER)
         type = item->parent()->type();
     else
         type = item->type();
@@ -199,7 +203,7 @@ void UEFITool::saveImageFile()
     if (result)
     {
         ui->statusBar->showMessage(tr("Reconstruction failed (%1)").arg(result));
-        ui->debugEdit->setPlainText(ffsEngine->message());
+        showDebugMessage();
         return;
     }
 
@@ -207,7 +211,7 @@ void UEFITool::saveImageFile()
     outputFile.write(reconstructed);
     outputFile.close();
     ui->statusBar->showMessage(tr("Reconstructed image written"));
-    ui->debugEdit->setPlainText(ffsEngine->message());
+    showDebugMessage();
 }
 
 void UEFITool::resizeTreeViewColums()
@@ -251,8 +255,7 @@ void UEFITool::openImageFile(QString path)
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
     
-    ui->debugEdit->appendPlainText(ffsEngine->message());
-    
+    showDebugMessage();
     resizeTreeViewColums();
 }
 
@@ -319,3 +322,22 @@ void UEFITool::dropEvent(QDropEvent* event)
     openImageFile(path);
 }
 
+void UEFITool::showDebugMessage()
+{
+    ui->debugListWidget->clear();
+    QQueue<DebugListItem*> debugItems = ffsEngine->debugMessage();
+    for (int i = 0; i < debugItems.count(); i++) {
+        ui->debugListWidget->addItem((QListWidgetItem*) debugItems.at(i));
+    }
+}
+
+void UEFITool::scrollTreeView(QListWidgetItem* item)
+{
+    DebugListItem* debugItem = (DebugListItem*) item;
+    QModelIndex index = debugItem->index();
+    if (index.isValid()) {
+        ui->structureTreeView->scrollTo(index);
+        ui->structureTreeView->selectionModel()->select(currentIndex, QItemSelectionModel::Clear);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select);
+    }
+}

@@ -38,6 +38,7 @@ public:
     // Item types
     enum ItemTypes {
         Root,
+        Image,
         Capsule,
         Descriptor,
         Region,

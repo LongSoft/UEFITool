@@ -49,7 +49,7 @@ public:
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(), 
         const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QModelIndex & index = QModelIndex(),
         const UINT8 mode = INSERT_MODE_APPEND);
-    
+
 private:
     TreeItem *rootItem;
 };

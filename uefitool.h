@@ -27,6 +27,7 @@
 #include <QUrl>
 
 #include "basetypes.h"
+#include "ffs.h"
 #include "ffsengine.h"
 
 namespace Ui {
@@ -58,6 +59,7 @@ private slots:
     void insertAfter();
     void replace();
     void remove();
+    void scrollTreeView(QListWidgetItem* item);
 
 private:
     Ui::UEFITool * ui;
@@ -66,6 +68,7 @@ private:
     
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
+    void showDebugMessage();
 };
 
 #endif
