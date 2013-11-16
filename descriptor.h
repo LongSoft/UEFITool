@@ -56,7 +56,7 @@ typedef struct {
 // Flash parameters dword structure 
 typedef struct {
     UINT8 FirstChipDensity            : 3;
-    UINT8 SecondFlashDensity          : 3;
+    UINT8 SecondChipDensity           : 3;
     UINT8 ReservedZero0               : 2;  // Still unknown, zeros in all descriptors I have seen
     UINT8 ReservedZero1               : 8;  // Still unknown, zeros in all descriptors I have seen
     UINT8 ReservedZero2               : 4;  // Still unknown, zeros in all descriptors I have seen

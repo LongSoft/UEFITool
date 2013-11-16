@@ -42,8 +42,11 @@ public:
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
-    UINT8 parseRegion(const QByteArray & flashImage, const UINT8 regionSubtype,  const UINT16 regionBase, 
-                      const UINT16 regionLimit, const QModelIndex & parent, QModelIndex & regionIndex);
+    UINT8 parseIntelImage(const QByteArray & flashImage, const QModelIndex & parent = QModelIndex());
+    UINT8 parseGbeRegion(const QByteArray & gbe, const QModelIndex & parent = QModelIndex());
+    UINT8 parseMeRegion(const QByteArray & me, const QModelIndex & parent = QModelIndex());
+    UINT8 parseBiosRegion(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
+    UINT8 parsePdrRegion(const QByteArray & pdr, const QModelIndex & parent = QModelIndex());
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
@@ -92,6 +95,7 @@ private:
     // Internal operations used in insertInTree
     bool setTreeItemName(const QString & data, const QModelIndex & index);
     bool setTreeItemText(const QString & data, const QModelIndex & index);
+    UINT8 hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
 };
 
 #endif

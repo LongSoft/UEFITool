@@ -38,9 +38,9 @@ public:
     // Item types
     enum ItemTypes {
         Root,
-        Image,
         Capsule,
-        Descriptor,
+        IntelImage,
+        Image,
         Region,
         Padding,
         Volume,
@@ -56,6 +56,7 @@ public:
 
     // Region subtypes
     enum RegionSubtypes {
+        DescriptorRegion,
         GbeRegion,
         MeRegion,
         BiosRegion,

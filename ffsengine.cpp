@@ -143,6 +143,19 @@ bool FfsEngine::isOfSubtype(UINT8 subtype, const QModelIndex & index) const
     return (item->subtype() == subtype);
 }
 
+UINT8 FfsEngine::hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2)
+{
+    if (begin1 < begin2 && begin2 < end1)
+        return 1;
+    if (begin1 < end2 && end2 < end1)
+        return 1;
+    if (begin2 < begin1 && begin1 < end2)
+        return 1;
+    if (begin2 < end1 && end1 < end2)
+        return 1;
+    return 0;
+}
+
 // Firmware image parsing
 UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
 {
@@ -150,11 +163,6 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
     FLASH_DESCRIPTOR_HEADER* descriptorHeader = NULL;
     QModelIndex index;
     QByteArray flashImage;
-    QByteArray bios;
-    QByteArray header;
-    QByteArray body;
-    QString name;
-    QString info;
 
     // Check buffer size to be more or equal then sizeof(EFI_CAPSULE_HEADER)
     if (buffer.size() <= sizeof(EFI_CAPSULE_HEADER))
@@ -168,10 +176,10 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
         // Get info
         EFI_CAPSULE_HEADER* capsuleHeader = (EFI_CAPSULE_HEADER*) buffer.constData();
         capsuleHeaderSize = capsuleHeader->HeaderSize;
-        header = buffer.left(capsuleHeaderSize);
-        body   = buffer.right(buffer.size() - capsuleHeaderSize);
-        name = tr("UEFI capsule");
-        info = tr("Header size: %1\nFlags: %2\nImage size: %3")
+        QByteArray header = buffer.left(capsuleHeaderSize);
+        QByteArray body   = buffer.right(buffer.size() - capsuleHeaderSize);
+        QString name = tr("UEFI capsule");
+        QString info = tr("Header size: %1\nFlags: %2\nImage size: %3")
             .arg(capsuleHeader->HeaderSize, 8, 16, QChar('0'))
             .arg(capsuleHeader->Flags, 8, 16, QChar('0'))
             .arg(capsuleHeader->CapsuleImageSize, 8, 16, QChar('0'));
@@ -184,10 +192,10 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
         // Get info
         APTIO_CAPSULE_HEADER* aptioCapsuleHeader = (APTIO_CAPSULE_HEADER*) buffer.constData();
         capsuleHeaderSize = aptioCapsuleHeader->RomImageOffset;
-        header = buffer.left(capsuleHeaderSize);
-        body   = buffer.right(buffer.size() - capsuleHeaderSize);
-        name = tr("AMI Aptio capsule");
-        info = tr("Header size: %1\nFlags: %2\nImage size: %3")
+        QByteArray header = buffer.left(capsuleHeaderSize);
+        QByteArray body   = buffer.right(buffer.size() - capsuleHeaderSize);
+        QString name = tr("AMI Aptio capsule");
+        QString info = tr("Header size: %1\nFlags: %2\nImage size: %3")
             .arg(aptioCapsuleHeader->RomImageOffset, 4, 16, QChar('0'))
             .arg(aptioCapsuleHeader->CapsuleHeader.Flags, 8, 16, QChar('0'))
             .arg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - aptioCapsuleHeader->RomImageOffset, 8, 16, QChar('0'));
@@ -195,81 +203,287 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
         // Add tree item
         index = treeModel->addItem(TreeItem::Capsule, TreeItem::AptioCapsule, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
     }
-    else {
-        // Add tree item
-        name = tr("UEFI image");
-        info = tr("Size: %1")
-            .arg(buffer.size(), 8, 16, QChar('0'));
-        // Add tree item
-        index = treeModel->addItem(TreeItem::Image, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), buffer);
-    }
     
     // Skip capsule header to have flash chip image
     flashImage = buffer.right(buffer.size() - capsuleHeaderSize);
 
-    // Check buffer for being Intel flash descriptor
+    // Check for Intel flash descriptor presence
     descriptorHeader = (FLASH_DESCRIPTOR_HEADER*) flashImage.constData();
+    
     // Check descriptor signature
+    UINT8 result;
     if (descriptorHeader->Signature == FLASH_DESCRIPTOR_SIGNATURE) {
-        FLASH_DESCRIPTOR_MAP*               descriptorMap;
-        FLASH_DESCRIPTOR_REGION_SECTION*    regionSection;
+        // Parse as Intel image
+        result = parseIntelImage(flashImage, index); 
+        if (result != ERR_INVALID_FLASH_DESCRIPTOR)
+            return result;
+    }
 
-        // Store the beginning of descriptor as descriptor base address
-        UINT8* descriptor  = (UINT8*) flashImage.constData();
+    // Get info
+    QString name = tr("BIOS image");
+    QString info = tr("Size: %1")
+        .arg(buffer.size(), 8, 16, QChar('0'));
+    
+    // Add tree item
+    index = treeModel->addItem(TreeItem::Image, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), buffer, index);
+    return parseBios(flashImage, index);
+}
 
-        // Check for buffer size to be greater or equal to descriptor region size
-        if (flashImage.size() < FLASH_DESCRIPTOR_SIZE) {
-            msg(tr("parseInputFile: Input file is smaller then minimum descriptor size of 4096 bytes"));
-            return ERR_INVALID_FLASH_DESCRIPTOR;
-        }
+UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelIndex & parent)
+{
+    FLASH_DESCRIPTOR_MAP*               descriptorMap;
+    FLASH_DESCRIPTOR_REGION_SECTION*    regionSection;
+    FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection;
 
-        // Parse descriptor map
-        descriptorMap = (FLASH_DESCRIPTOR_MAP*) (descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
-        regionSection = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8(descriptor, descriptorMap->RegionBase);
+    // Store the beginning of descriptor as descriptor base address
+    UINT8* descriptor  = (UINT8*) flashImage.constData();
+    UINT32 descriptorBegin = 0;
+    UINT32 descriptorEnd   = FLASH_DESCRIPTOR_SIZE;
 
-        // Get info
-        QByteArray header = flashImage.left(sizeof(FLASH_DESCRIPTOR_HEADER));
-        QByteArray body   = flashImage.mid(sizeof(FLASH_DESCRIPTOR_HEADER), FLASH_DESCRIPTOR_SIZE - sizeof(FLASH_DESCRIPTOR_HEADER));
-        name = tr("Descriptor");
-        info = tr("Flash chips: %1\nRegions: %2\nMasters: %3\nPCH straps:%4\nPROC straps: %5\nICC table entries: %6")
-            .arg(descriptorMap->NumberOfFlashChips + 1) //
-            .arg(descriptorMap->NumberOfRegions + 1)    // Zero-based numbers in storage
-            .arg(descriptorMap->NumberOfMasters + 1)    //
-            .arg(descriptorMap->NumberOfPchStraps)
-            .arg(descriptorMap->NumberOfProcStraps)
-            .arg(descriptorMap->NumberOfIccTableEntries);
-        //!TODO: more info about descriptor
-        // Add tree item
-        index = treeModel->addItem(TreeItem::Descriptor, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, index);
+    // Check for buffer size to be greater or equal to descriptor region size
+    if (flashImage.size() < FLASH_DESCRIPTOR_SIZE) {
+        msg(tr("parseInputFile: Input file is smaller then minimum descriptor size of %1 bytes").arg(FLASH_DESCRIPTOR_SIZE));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
 
-        // Parse regions
-        QModelIndex regionIndex;
-        // Parse non-BIOS regions
-        parseRegion(flashImage, TreeItem::GbeRegion,  regionSection->GbeBase,  regionSection->GbeLimit,  index, regionIndex);
-        parseRegion(flashImage, TreeItem::MeRegion,   regionSection->MeBase,   regionSection->MeLimit,   index, regionIndex);
-        parseRegion(flashImage, TreeItem::PdrRegion,  regionSection->PdrBase,  regionSection->PdrLimit,  index, regionIndex);
-        // Parse BIOS region
-        UINT8 result = parseRegion(flashImage, TreeItem::BiosRegion, regionSection->BiosBase, regionSection->BiosLimit, index, regionIndex);
-        // Exit if no BIOS region found
-        if (result != ERR_SUCCESS) {
-            msg(tr("parseInputFile: BIOS region not found"));
-            return ERR_BIOS_REGION_NOT_FOUND;
-        }
-
-        index = regionIndex;
-        bios = QByteArray((const char*)(descriptor + calculateRegionOffset(regionSection->BiosBase)), calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit));
+    // Parse descriptor map
+    descriptorMap    = (FLASH_DESCRIPTOR_MAP*) (descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
+    regionSection    = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8(descriptor, descriptorMap->RegionBase);
+    componentSection = (FLASH_DESCRIPTOR_COMPONENT_SECTION*) calculateAddress8(descriptor, descriptorMap->ComponentBase);
+      
+    // GbE region
+    QByteArray gbe;
+    UINT32 gbeBegin = 0;
+    UINT32 gbeEnd   = 0; 
+    if (regionSection->GbeLimit) {
+        gbeBegin = calculateRegionOffset(regionSection->GbeBase);
+        gbeEnd   = calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
+        gbe = flashImage.mid(gbeBegin, gbeEnd);
+        gbeEnd += gbeBegin;
+    }
+    // ME region
+    QByteArray me;
+    UINT32 meBegin = 0;
+    UINT32 meEnd   = 0; 
+    if (regionSection->MeLimit) {
+        meBegin = calculateRegionOffset(regionSection->MeBase);
+        meEnd   = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+        me = flashImage.mid(meBegin, meEnd);
+        meEnd += meBegin;
+    }
+    // PDR region
+    QByteArray pdr;
+    UINT32 pdrBegin = 0;
+    UINT32 pdrEnd   = 0; 
+    if (regionSection->PdrLimit) {
+        pdrBegin = calculateRegionOffset(regionSection->PdrBase);
+        pdrEnd   = calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
+        pdr = flashImage.mid(pdrBegin, pdrEnd);
+        pdrEnd += pdrBegin;
+    }
+    // BIOS region
+    QByteArray bios;
+    UINT32 biosBegin = 0;
+    UINT32 biosEnd   = 0; 
+    if (regionSection->BiosLimit) {
+        biosBegin = calculateRegionOffset(regionSection->BiosBase);
+        biosEnd   = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+        bios = flashImage.mid(biosBegin, biosEnd);
+        biosEnd += biosBegin;
     }
     else {
-        bios = buffer;
+        msg(tr("parseInputFile: descriptor parsing failed, BIOS region not found in descriptor"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
     }
 
-    // We are in the beginning of BIOS space, where firmware volumes are
-    // Parse BIOS space
+    // Check for intersections between regions
+    if (hasIntersection(descriptorBegin, descriptorEnd, gbeBegin, gbeEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with GbE region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(descriptorBegin, descriptorEnd, meBegin, meEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with ME region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(descriptorBegin, descriptorEnd, biosBegin, biosEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with BIOS region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(descriptorBegin, descriptorEnd, pdrBegin, pdrEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with PDR region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(gbeBegin, gbeEnd, meBegin, meEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, GbE region has intersection with ME region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(gbeBegin, gbeEnd, biosBegin, biosEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, GbE region has intersection with BIOS region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(gbeBegin, gbeEnd, pdrBegin, pdrEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, GbE region has intersection with PDR region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(meBegin, meEnd, biosBegin, biosEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, ME region has intersection with BIOS region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(meBegin, meEnd, pdrBegin, pdrEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, ME region has intersection with PDR region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (hasIntersection(biosBegin, biosEnd, pdrBegin, pdrEnd)) {
+        msg(tr("parseInputFile: descriptor parsing failed, BIOS region has intersection with PDR region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+
+    // Region map is consistent
+    QByteArray body;
+    QString    name;
+    QString    info;
+    // Intel image
+    name = tr("Intel image");
+    info = tr("Size: %1").arg(flashImage.size(), 4, 16, QChar('0'));
+    // Add tree item
+    QModelIndex index = treeModel->addItem(TreeItem::IntelImage, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), flashImage, parent);
+
+    // Descriptor
+    // Get descriptor info
+    body = flashImage.left(FLASH_DESCRIPTOR_SIZE);
+    name = tr("Descriptor region");
+    info = tr("Size: %1\nFlash chips: %2\nRegions: %3\nMasters: %4\nPCH straps: %5\nPROC straps: %6\nICC table entries: %7")
+        .arg(FLASH_DESCRIPTOR_SIZE, 8, 16, QChar('0'))
+        .arg(descriptorMap->NumberOfFlashChips + 1) //
+        .arg(descriptorMap->NumberOfRegions + 1)    // Zero-based numbers in storage
+        .arg(descriptorMap->NumberOfMasters + 1)    //
+        .arg(descriptorMap->NumberOfPchStraps)
+        .arg(descriptorMap->NumberOfProcStraps)
+        .arg(descriptorMap->NumberOfIccTableEntries);
+    // Add tree item
+    treeModel->addItem(TreeItem::Region, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), body, index);
+    
+    // Sort rest of regions in ascending order
+    QVector<UINT32> offsets;
+    if (regionSection->GbeLimit)  offsets.append(gbeBegin);
+    if (regionSection->MeLimit)   offsets.append(meBegin);
+    if (regionSection->BiosLimit) offsets.append(biosBegin);
+    if (regionSection->PdrLimit)  offsets.append(pdrBegin);
+    qSort(offsets);
+    UINT8 result;
+    for (int i = 0; i < offsets.count(); i++) {
+        // Parse GbE region
+        if (offsets.at(i) == gbeBegin) {
+            result = parseGbeRegion(gbe, index);
+        }
+        // Parse ME region
+        else if (offsets.at(i) == meBegin) {
+            result = parseMeRegion(me, index);
+        }
+        // Parse BIOS region
+        else if (offsets.at(i) == biosBegin) {
+            result = parseBiosRegion(bios, index);
+        }
+        // Parse PDR region
+        else if (offsets.at(i) == pdrBegin) {
+            result = parsePdrRegion(pdr, index);
+        }
+        if (result)
+            return result;
+    }
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, const QModelIndex & parent)
+{
+    if (gbe.isEmpty())
+        return ERR_EMPTY_REGION;
+
+    // Get info
+    QString      name = tr("GbE region");
+    GBE_MAC*     mac = (GBE_MAC*) gbe.constData();
+    GBE_VERSION* version = (GBE_VERSION*) (gbe.constData() + GBE_VERSION_OFFSET);
+    QString      info = tr("Size: %1\nMAC: %2:%3:%4:%5:%6:%7\nVersion: %8.%9")
+        .arg(gbe.size(), 8, 16, QChar('0'))
+        .arg(mac->vendor[0], 2, 16, QChar('0'))
+        .arg(mac->vendor[1], 2, 16, QChar('0'))
+        .arg(mac->vendor[2], 2, 16, QChar('0'))
+        .arg(mac->device[0], 2, 16, QChar('0'))
+        .arg(mac->device[1], 2, 16, QChar('0'))
+        .arg(mac->device[2], 2, 16, QChar('0'))
+        .arg(version->major)
+        .arg(version->minor);
+    
+    // Add tree item
+    treeModel->addItem(TreeItem::Region, TreeItem::GbeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), gbe, parent);
+
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::parseMeRegion(const QByteArray & me, const QModelIndex & parent)
+{
+    if (me.isEmpty())
+        return ERR_EMPTY_REGION;
+    
+    // Get info
+    QString name = tr("ME region");
+    QString info = tr("Size: %1").
+        arg(me.size(), 8, 16, QChar('0'));
+
+    ME_VERSION* version;
+    UINT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
+    if (versionOffset < 0){
+        info += tr("\nVersion: unknown");
+        msg(tr("parseRegion: ME region version is unknown, it can be damaged"), parent);
+    }
+    else {
+        version = (ME_VERSION*) (me.constData() + versionOffset);
+        info += tr("\nVersion: %1.%2.%3.%4")
+            .arg(version->major)
+            .arg(version->minor)
+            .arg(version->bugfix)
+            .arg(version->build);
+    }
+
+    // Add tree item
+    treeModel->addItem(TreeItem::Region, TreeItem::MeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, parent);
+
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, const QModelIndex & parent)
+{
+    if (pdr.isEmpty())
+        return ERR_EMPTY_REGION;
+    
+    // Get info
+    QString name = tr("PDR region");
+    QString info = tr("Size: %1").
+        arg(pdr.size(), 8, 16, QChar('0'));
+    
+    // Add tree item
+    treeModel->addItem(TreeItem::Region, TreeItem::PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, parent);
+
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, const QModelIndex & parent)
+{
+    if (bios.isEmpty())
+        return ERR_EMPTY_REGION;
+    
+    // Get info
+    QString name = tr("BIOS region");
+    QString info = tr("Size: %1").
+        arg(bios.size(), 8, 16, QChar('0'));
+    
+    // Add tree item
+    QModelIndex index = treeModel->addItem(TreeItem::Region, TreeItem::BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, parent);
 
     return parseBios(bios, index);
 }
 
-UINT8 FfsEngine::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype, const UINT16 regionBase, const UINT16 regionLimit, const QModelIndex & parent, QModelIndex & regionIndex)
+/*UINT8 FfsEngine::parseRegion(const QByteArray & flashImage, const UINT16 regionBase, const UINT16 regionLimit, const QModelIndex & parent, QModelIndex & regionIndex)
 {
     // Check for empty region or flash image
     if (!regionLimit || flashImage.size() <= 0)
@@ -283,11 +497,25 @@ UINT8 FfsEngine::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype,
     UINT32 regionSize   = calculateRegionSize(regionBase, regionLimit);
 
     // Populate descriptor map 
-    FLASH_DESCRIPTOR_MAP* descriptor_map = (FLASH_DESCRIPTOR_MAP*) (flashImage.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
+    FLASH_DESCRIPTOR_MAP* descriptorMap = (FLASH_DESCRIPTOR_MAP*) (flashImage.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
 
     // Determine presence of 2 flash chips
-    bool twoChips = descriptor_map->NumberOfFlashChips;
+    bool twoChips = descriptorMap->NumberOfFlashChips;
 
+    // Determine region subtype
+    UINT8 regionSubtype;
+    FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8((UINT8*)flashImage.constData(), descriptorMap->RegionBase);
+    if (regionBase == regionSection->GbeBase)
+        regionSubtype = TreeItem::GbeRegion;
+    else if (regionBase == regionSection->MeBase)
+        regionSubtype = TreeItem::MeRegion;
+    else if (regionBase == regionSection->BiosBase)
+        regionSubtype = TreeItem::BiosRegion;
+    else if (regionBase == regionSection->PdrBase)
+        regionSubtype = TreeItem::PdrRegion;
+    else 
+        return ERR_UNKNOWN_ITEM_TYPE;
+    
     // Construct region name
     QString regionName = regionTypeToQString(regionSubtype);
 
@@ -327,7 +555,8 @@ UINT8 FfsEngine::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype,
     INT32 meVersionOffset;
     info = tr("Size: %1")
         .arg(body.size(), 8, 16, QChar('0'));
-    switch (regionSubtype) {
+    switch (regionSubtype) 
+    {
     case TreeItem::GbeRegion:
         name = tr("GbE region");
         gbeMac = (GBE_MAC*) body.constData();
@@ -374,7 +603,7 @@ UINT8 FfsEngine::parseRegion(const QByteArray & flashImage, UINT8 regionSubtype,
     regionIndex = treeModel->addItem(TreeItem::Region, regionSubtype, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), body, parent);
 
     return ERR_SUCCESS;
-}
+}*/
 
 UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
 {
@@ -393,7 +622,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         // Get info
         QByteArray padding = bios.left(prevVolumeOffset);
         name = tr("Padding");
-        info = tr("Size: %2")
+        info = tr("Size: %1")
             .arg(padding.size(), 8, 16, QChar('0'));
         // Add tree item
         treeModel->addItem(TreeItem::Padding, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, parent);
@@ -412,7 +641,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
             QByteArray padding = bios.mid(prevVolumeOffset + prevVolumeSize, paddingSize);
             // Get info
             name = tr("Padding");
-            info = tr("Size: %2")
+            info = tr("Size: %1")
                 .arg(padding.size(), 8, 16, QChar('0'));
             // Add tree item
             treeModel->addItem(TreeItem::Padding, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, parent);
@@ -1269,6 +1498,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
                 }
                 else {
                     // Data are same - it's EFI 1.1
+                    msg(tr("EFI1.1"));
                     if (algorithm)
                         *algorithm = COMPRESSION_ALGORITHM_EFI11;
                 }
@@ -1504,14 +1734,106 @@ UINT8 FfsEngine::reconstruct(TreeItem* item, QQueue<QByteArray> & queue, const U
         QQueue<QByteArray> childrenQueue;
 
         switch (item->type()) {
+        case TreeItem::IntelImage:
+            {
+                // Reconstruct Intel image
+                // First child will always be descriptor for this type of image
+                result = reconstruct(item->child(0), childrenQueue);
+                    if (result)
+                        return result;
+                QByteArray descriptor = childrenQueue.dequeue();
+                reconstructed.append(descriptor);
+
+                FLASH_DESCRIPTOR_MAP* descriptorMap = (FLASH_DESCRIPTOR_MAP*) (descriptor.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
+                FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8((UINT8*)descriptor.constData(), descriptorMap->RegionBase);
+                QByteArray gbe;
+                UINT32 gbeBegin = calculateRegionOffset(regionSection->GbeBase);
+                UINT32 gbeEnd   = gbeBegin + calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
+                QByteArray me;
+                UINT32 meBegin = calculateRegionOffset(regionSection->MeBase);
+                UINT32 meEnd   = meBegin + calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+                QByteArray bios;
+                UINT32 biosBegin = calculateRegionOffset(regionSection->BiosBase);
+                UINT32 biosEnd   = biosBegin + calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+                QByteArray pdr;
+                UINT32 pdrBegin = calculateRegionOffset(regionSection->PdrBase);
+                UINT32 pdrEnd   = pdrBegin + calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
+
+                UINT32 offset = descriptor.size();
+                // Reconstruct other regions
+                for (int i = 1; i < item->childCount(); i++) {
+                    result = reconstruct(item->child(i), childrenQueue);
+                    if (result)
+                        return result;
+                    switch(item->child(i)->subtype()) 
+                    {
+                    case TreeItem::GbeRegion:
+                        gbe = childrenQueue.dequeue();
+                        if (gbeBegin > offset)
+                            reconstructed.append(QByteArray(gbeBegin - offset, empty));
+                        reconstructed.append(gbe);
+                        offset = gbeEnd;
+                        break;
+                    case TreeItem::MeRegion:
+                        me = childrenQueue.dequeue();
+                        if (meBegin > offset)
+                            reconstructed.append(QByteArray(meBegin - offset, empty));
+                        reconstructed.append(me);
+                        offset = meEnd;
+                        break;
+                    case TreeItem::BiosRegion:
+                        bios = childrenQueue.dequeue();
+                        if (biosBegin > offset)
+                            reconstructed.append(QByteArray(biosBegin - offset, empty));
+                        reconstructed.append(bios);
+                        offset = biosEnd;
+                        break;
+                    case TreeItem::PdrRegion:
+                        pdr = childrenQueue.dequeue();
+                         if (pdrBegin > offset)
+                            reconstructed.append(QByteArray(pdrBegin - offset, empty));
+                        reconstructed.append(pdr);
+                        offset = pdrEnd;
+                        break;
+                    default:
+                        msg(tr("reconstruct: unknown region type found while reconstructing Intel image"));
+                        return ERR_INVALID_REGION;
+                    }
+                }
+                if ((UINT32)item->body().size() > offset) 
+                    reconstructed.append(QByteArray((UINT32)item->body().size() - offset, empty));
+                
+                if (reconstructed.size() > item->body().size()) {
+                    msg(tr("reconstructed: reconstructed body %1 is bigger then original %2 (Type: %3)")
+                        .arg(reconstructed.size(), 8, 16, QChar('0'))
+                        .arg(item->body().size(), 8, 16, QChar('0'))
+                        .arg(itemTypeToQString(item->type())));
+                    return ERR_INVALID_PARAMETER;
+                }
+                else if (reconstructed.size() < item->body().size()) {
+                    msg(tr("reconstructed: reconstructed body %1 is smaller then original %2 (Type: %3)")
+                        .arg(reconstructed.size(), 8, 16, QChar('0'))
+                        .arg(item->body().size(), 8, 16, QChar('0'))
+                        .arg(itemTypeToQString(item->type())));
+                    return ERR_INVALID_PARAMETER;
+                }
+                
+                // Enqueue reconstructed item
+                queue.enqueue(item->header().append(reconstructed));
+            }
+            break;
+
+        case TreeItem::Padding:
+            // Padding can't be changed
+            queue.enqueue(item->body()); 
+            break;
+
         case TreeItem::Capsule:
             if (item->subtype() == TreeItem::AptioCapsule)
                 msg(tr("reconstruct: Aptio extended header checksum and signature are now invalid"));
         case TreeItem::Root:
         case TreeItem::Image:
-        case TreeItem::Descriptor:
         case TreeItem::Region:
-        case TreeItem::Padding:
             // Reconstruct item body
             if (item->childCount()) {
                 // Reconstruct item children
@@ -1529,6 +1851,24 @@ UINT8 FfsEngine::reconstruct(TreeItem* item, QQueue<QByteArray> & queue, const U
             else
                 reconstructed = item->body();
 
+            // Check size of reconstructed image, it must be the same
+            if (item->type() != TreeItem::Root) {
+                if (reconstructed.size() > item->body().size()) {
+                    msg(tr("reconstructed: reconstructed body %1 is bigger then original %2 (Type: %3)")
+                        .arg(reconstructed.size(), 8, 16, QChar('0'))
+                        .arg(item->body().size(), 8, 16, QChar('0'))
+                        .arg(itemTypeToQString(item->type())));
+                    return ERR_INVALID_PARAMETER;
+                } 
+                else if (reconstructed.size() < item->body().size()) {
+                    msg(tr("reconstructed: reconstructed body %1 is smaller then original %2 (Type: %3)")
+                        .arg(reconstructed.size(), 8, 16, QChar('0'))
+                        .arg(item->body().size(), 8, 16, QChar('0'))
+                        .arg(itemTypeToQString(item->type())));
+                    return ERR_INVALID_PARAMETER;
+                }
+            }
+            
             // Enqueue reconstructed item
             queue.enqueue(item->header().append(reconstructed));  
             break;
