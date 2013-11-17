@@ -154,8 +154,8 @@ UINT8 TreeModel::setItemAction(const UINT8 action, const QModelIndex &index)
 
 QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT8 compression, 
                                const QString & name, const QString & text, const QString & info, 
-                               const QByteArray & header, const QByteArray & body, const QModelIndex & index,
-                               const UINT8 mode)
+                               const QByteArray & header, const QByteArray & body, const QByteArray & tail,
+                               const QModelIndex & index, const UINT8 mode)
 {
     TreeItem *item;
     TreeItem *parentItem;
@@ -176,7 +176,7 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
         }
     }
     
-    TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, parentItem);
+    TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, tail, parentItem);
     if (mode == INSERT_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);

@@ -21,7 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "basetypes.h"
 #include "treeitem.h"
 #include "treemodel.h"
-#include "debuglistitem.h"
+#include "messagelistitem.h"
 
 class TreeModel;
 
@@ -37,8 +37,8 @@ public:
     // Returns model for Qt view classes
     TreeModel* model() const;
 
-    // Returns debug items queue
-    QQueue<DebugListItem*> debugMessage();
+    // Returns message items queue
+    QQueue<MessageListItem*> message();
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
@@ -64,38 +64,25 @@ public:
     // Construction routines
     UINT8 reconstructImage(QByteArray & reconstructed);
     UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const char empty, QByteArray & pad);
-    UINT8 reconstruct(TreeItem* item, QQueue<QByteArray> & queue, const UINT8 revision = 2, char empty = '\xFF');
+    UINT8 reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision = 2, char empty = '\xFF');
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Operations on tree items
-    UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 type, const UINT8 mode);
+    UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
+    UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 objectType, const UINT8 mode);
     UINT8 remove(const QModelIndex & index);
     
-    // Proxies to model operations
-    QByteArray header(const QModelIndex & index) const;
-    bool       hasEmptyHeader(const QModelIndex & index) const;
-    QByteArray body(const QModelIndex & index) const;
-    bool       hasEmptyBody(const QModelIndex & index) const;
-    
-    // Item-related operations
-    bool        isOfType(UINT8 type, const QModelIndex & index) const;
-    bool        isOfSubtype(UINT8 subtype, const QModelIndex & index) const;
-    QModelIndex findParentOfType(UINT8 type, const QModelIndex& index) const;
-    
-    // Will be refactored later
-    bool isCompressedFile(const QModelIndex & index) const;
-    QByteArray decompressFile(const QModelIndex & index) const;
-
 private:
     TreeItem  *rootItem;
     TreeModel *treeModel;
-    // Debug window helper
-    QQueue<DebugListItem*> debugItems;
+    
+    // Message helper
+    QQueue<MessageListItem*> messageItems;
     void msg(const QString & message, const QModelIndex index = QModelIndex());
-    // Internal operations used in insertInTree
-    bool setTreeItemName(const QString & data, const QModelIndex & index);
-    bool setTreeItemText(const QString & data, const QModelIndex & index);
-    UINT8 hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
+    
+    // Internal operations
+    QModelIndex findParentOfType(UINT8 type, const QModelIndex & index) const;
+    bool hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
 };
 
 #endif

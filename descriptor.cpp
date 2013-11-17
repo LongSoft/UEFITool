@@ -25,7 +25,7 @@ QString regionTypeToQString(const UINT8 type)
     case TreeItem::MeRegion:
         return QObject::tr("ME");
     case TreeItem::BiosRegion:
-        return QObject::tr("Bios");
+        return QObject::tr("BIOS");
     case TreeItem::PdrRegion:
         return QObject::tr("PDR");
     default:

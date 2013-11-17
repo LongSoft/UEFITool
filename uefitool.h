@@ -50,7 +50,8 @@ private slots:
     void saveImageFile();
     void populateUi(const QModelIndex &current);
     void resizeTreeViewColums();
-    void extract();
+    void extract(const UINT8 mode);
+    void extractAsIs();
     void extractBody();
     void extractUncompressed();
     void insert(const UINT8 mode);
@@ -64,11 +65,10 @@ private slots:
 private:
     Ui::UEFITool * ui;
     FfsEngine* ffsEngine;
-    QModelIndex currentIndex;
     
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
-    void showDebugMessage();
+    void showMessage();
 };
 
 #endif

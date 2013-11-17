@@ -11,7 +11,7 @@ SOURCES  += main.cpp \
 			ffsengine.cpp \
             treeitem.cpp \ 
             treemodel.cpp \
-			debuglistitem.cpp \
+			messagelistitem.cpp \
             LZMA/LzmaCompress.c \
             LZMA/LzmaDecompress.c \
             LZMA/SDK/C/LzFind.c \
@@ -29,7 +29,7 @@ HEADERS  += uefitool.h \
 			ffsengine.h \
             treeitem.h \
             treemodel.h \
-			debuglistitem.h \
+			messagelistitem.h \
             LZMA/LzmaCompress.h \
             LZMA/LzmaDecompress.h \
             Tiano/EfiTianoDecompress.h \

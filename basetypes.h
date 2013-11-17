@@ -83,6 +83,8 @@ typedef uint16_t  CHAR16;
 #define ERR_STANDARD_DECOMPRESSION_FAILED   24
 #define ERR_CUSTOMIZED_DECOMPRESSION_FAILED 25
 #define ERR_UNKNOWN_COMPRESSION_ALGORITHM   26
+#define ERR_UNKNOWN_EXTRACT_MODE            27
+#define ERR_UNKNOWN_INSERT_MODE             28
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms
@@ -92,6 +94,11 @@ typedef uint16_t  CHAR16;
 #define COMPRESSION_ALGORITHM_TIANO   3
 #define COMPRESSION_ALGORITHM_LZMA    4
 #define COMPRESSION_ALGORITHM_IMLZMA  5
+
+// Item extract modes
+#define EXTRACT_MODE_AS_IS        0
+#define EXTRACT_MODE_BODY_ONLY    1
+#define EXTRACT_MODE_UNCOMPRESSED 2
 
 // Item insert modes
 #define INSERT_MODE_APPEND  0

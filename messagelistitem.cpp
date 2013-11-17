@@ -1,4 +1,4 @@
-/* debuglistitem.cpp
+/* messagelistitem.cpp
 
   Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
@@ -11,37 +11,37 @@
 
 */
 
-#include "debuglistitem.h"
+#include "messagelistitem.h"
 
-DebugListItem::DebugListItem(QListWidget * parent, int type, const QModelIndex & index)
+MessageListItem::MessageListItem(QListWidget * parent, int type, const QModelIndex & index)
     : QListWidgetItem(parent, type)
 {
     itemIndex = index;
 }
 
-DebugListItem::DebugListItem(const QString & text, QListWidget * parent, int type, const QModelIndex & index)
+MessageListItem::MessageListItem(const QString & text, QListWidget * parent, int type, const QModelIndex & index)
     : QListWidgetItem(text, parent, type)
 {
     itemIndex = index;
 }
 
-DebugListItem::DebugListItem(const QIcon & icon, const QString & text, QListWidget * parent, int type, const QModelIndex & index)
+MessageListItem::MessageListItem(const QIcon & icon, const QString & text, QListWidget * parent, int type, const QModelIndex & index)
     : QListWidgetItem(icon, text, parent, type)
 {
     itemIndex = index;
 }
 
-DebugListItem::~DebugListItem()
+MessageListItem::~MessageListItem()
 {
 
 }
 
-QModelIndex DebugListItem::index() const
+QModelIndex MessageListItem::index() const
 {
     return itemIndex;
 }
 
-void DebugListItem::setIndex(QModelIndex & index)
+void MessageListItem::setIndex(QModelIndex & index)
 {
     itemIndex = index;
 }

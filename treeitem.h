@@ -30,33 +30,38 @@ class TreeItem
 public:
     // Action types
     enum ActionTypes {
-        NoAction,
-        Remove,
-        Reconstruct
+        NoAction = 50,
+        Remove,      
+        Reconstruct 
     };
     
     // Item types
     enum ItemTypes {
-        Root,
-        Capsule,
-        IntelImage,
-        Image,
-        Region,
-        Padding,
-        Volume,
-        File,
-        Section
+        Root = 60,
+        Capsule,    
+        Image,      
+        Region,     
+        Padding,    
+        Volume,     
+        File,       
+        Section    
+    };
+
+    // Image subtypes 
+    enum ImageSubtypes{
+        IntelImage = 70,
+        BiosImage
     };
 
     // Capsule subtypes
     enum CapsuleSubtypes {
-        AptioCapsule,
+        AptioCapsule = 80,
         UefiCapsule
     };
 
     // Region subtypes
     enum RegionSubtypes {
-        DescriptorRegion,
+        DescriptorRegion = 90,
         GbeRegion,
         MeRegion,
         BiosRegion,
@@ -66,7 +71,8 @@ public:
     // Constructor
     TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE, 
         const QString &name = QString(), const QString &text = QString(), const QString &info = QString(), 
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), TreeItem *parent = 0);
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
+        TreeItem *parent = 0);
     // Destructor
     ~TreeItem();
 
@@ -91,6 +97,8 @@ public:
     bool hasEmptyHeader() const;
     QByteArray body() const;
     bool hasEmptyBody() const;
+    QByteArray tail() const;
+    bool hasEmptyTail() const;
     QString info() const;
     UINT8 compression() const;
 
@@ -117,6 +125,7 @@ private:
     UINT8 itemCompression;
     QByteArray itemHeader;
     QByteArray itemBody;
+    QByteArray itemTail;
     QString itemTypeName;
     QString itemSubtypeName;
     QString itemName;

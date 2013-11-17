@@ -1,4 +1,4 @@
-/* debuglistitem.h
+/* messagelistitem.h
 
   Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
@@ -11,21 +11,21 @@
 
 */
 
-#ifndef __DEBUGLISTITEM_H__
-#define __DEBUGLISTITEM_H__
+#ifndef __MESSAGELISTITEM_H__
+#define __MESSAGELISTITEM_H__
 
 #include <QModelIndex>
 #include <QListWidgetItem>
 
 #include "basetypes.h"
 
-class DebugListItem : public QListWidgetItem
+class MessageListItem : public QListWidgetItem
 {
 public:
-    DebugListItem(QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
-    DebugListItem(const QString & text, QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
-    DebugListItem(const QIcon & icon, const QString & text, QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
-    ~DebugListItem();
+    MessageListItem(QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
+    MessageListItem(const QString & text, QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
+    MessageListItem(const QIcon & icon, const QString & text, QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
+    ~MessageListItem();
     
     QModelIndex index() const;
     void setIndex(QModelIndex & index);

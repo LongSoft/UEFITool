@@ -21,8 +21,6 @@ QString itemTypeToQString(const UINT8 type)
     switch (type) {
     case TreeItem::Root:
         return QObject::tr("Root");
-    case TreeItem::IntelImage:
-        return QObject::tr("Intel image");
     case TreeItem::Image:
         return QObject::tr("Image");
     case TreeItem::Capsule:
@@ -46,8 +44,13 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
 {
     switch (type) {
     case TreeItem::Root:
-    case TreeItem::IntelImage:
     case TreeItem::Image:
+        if (subtype == TreeItem::IntelImage)
+            return QObject::tr("Intel");
+        else if (subtype == TreeItem::BiosImage)
+            return QObject::tr("BIOS");
+        else
+            return QObject::tr("Unknown");
     case TreeItem::Padding:
     case TreeItem::Volume:
         return "";
@@ -89,7 +92,7 @@ QString compressionTypeToQString(UINT8 algorithm)
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
                    const QString & name, const QString & text, const QString & info, 
-                   const QByteArray & header, const QByteArray & body, 
+                   const QByteArray & header, const QByteArray & body, const QByteArray & tail, 
                    TreeItem *parent)
 {
     itemAction = NoAction;
@@ -101,6 +104,7 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compressio
     itemInfo = info;
     itemHeader = header;
     itemBody = body;
+    itemTail = tail;
     parentItem = parent;
     
     // Set default names
@@ -252,6 +256,12 @@ QByteArray TreeItem::body() const
     return itemBody;
 }
 
+QByteArray TreeItem::tail() const
+{
+    return itemTail;
+}
+
+
 bool TreeItem::hasEmptyHeader() const
 {
     return itemHeader.isEmpty();
@@ -260,6 +270,11 @@ bool TreeItem::hasEmptyHeader() const
 bool TreeItem::hasEmptyBody() const
 {
     return itemBody.isEmpty();
+}
+
+bool TreeItem::hasEmptyTail() const
+{
+    return itemTail.isEmpty();
 }
 
 UINT8 TreeItem::action() const
