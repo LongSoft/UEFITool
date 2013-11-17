@@ -38,7 +38,7 @@ public:
     TreeModel* model() const;
 
     // Returns message items queue
-    QQueue<MessageListItem*> message();
+    QQueue<MessageListItem> message();
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
@@ -77,7 +77,7 @@ private:
     TreeModel *treeModel;
     
     // Message helper
-    QQueue<MessageListItem*> messageItems;
+    QQueue<MessageListItem> messageItems;
     void msg(const QString & message, const QModelIndex index = QModelIndex());
     
     // Internal operations

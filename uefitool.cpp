@@ -64,6 +64,8 @@ void UEFITool::init()
     ui->actionSaveImageFile->setDisabled(true);
 
     // Make new ffsEngine
+	if (ffsEngine)
+		delete ffsEngine;
     ffsEngine = new FfsEngine(this);
     ui->structureTreeView->setModel(ffsEngine->model());
     
@@ -200,10 +202,11 @@ void UEFITool::saveImageFile()
     
     QByteArray reconstructed;
     UINT8 result = ffsEngine->reconstructImage(reconstructed);
+	showMessage();
     if (result)
     {
         ui->statusBar->showMessage(tr("Reconstruction failed (%1)").arg(result));
-        showMessage();
+
         return;
     }
 
@@ -211,7 +214,6 @@ void UEFITool::saveImageFile()
     outputFile.write(reconstructed);
     outputFile.close();
     ui->statusBar->showMessage(tr("Reconstructed image written"));
-    showMessage();
 }
 
 void UEFITool::resizeTreeViewColums()
@@ -250,12 +252,12 @@ void UEFITool::openImageFile(QString path)
 
     init();
     UINT8 result = ffsEngine->parseInputFile(buffer);
-    if (result)
+    showMessage();
+	if (result)
         ui->statusBar->showMessage(tr("Opened file can't be parsed (%1)").arg(result));
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
-    
-    showMessage();
+
     resizeTreeViewColums();
 }
 
@@ -344,9 +346,12 @@ void UEFITool::dropEvent(QDropEvent* event)
 void UEFITool::showMessage()
 {
     ui->messageListWidget->clear();
-    QQueue<MessageListItem*> messageItems = ffsEngine->message();
+	if (!ffsEngine)
+		return;
+
+	messageItems = ffsEngine->message();
     for (int i = 0; i < messageItems.count(); i++) {
-        ui->messageListWidget->addItem(messageItems.at(i));
+        ui->messageListWidget->addItem(new MessageListItem(messageItems.at(i)));
     }
 }
 

@@ -48,10 +48,10 @@ TreeModel* FfsEngine::model() const
 
 void FfsEngine::msg(const QString & message, const QModelIndex index)
 {
-    messageItems.enqueue(new MessageListItem(message, NULL, 0, index));
+    messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 }
 
-QQueue<MessageListItem*> FfsEngine::message()
+QQueue<MessageListItem> FfsEngine::message()
 {
     return messageItems;
 }
@@ -2018,7 +2018,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                             return result;
                         // Check for auth status valid attribute
                         if (guidDefinedHeader->Attributes & EFI_GUIDED_SECTION_AUTH_STATUS_VALID) {
-                            msg(tr("reconstruct: %1: GUID defined section signature can become invalid invalid")
+                            msg(tr("reconstruct: %1: GUID defined section signature can now become invalid")
                                 .arg(guidToQString(guidDefinedHeader->SectionDefinitionGuid)));
                         }
                         // Replace new section body

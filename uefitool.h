@@ -65,7 +65,8 @@ private slots:
 private:
     Ui::UEFITool * ui;
     FfsEngine* ffsEngine;
-    
+    QQueue<MessageListItem> messageItems;
+	
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
     void showMessage();
