@@ -33,6 +33,7 @@ UEFITool::UEFITool(QWidget *parent) :
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
     connect(ui->actionRebuild, SIGNAL(triggered()), this, SLOT(rebuild()));
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
+	connect(ui->actionChangeToNone, SIGNAL(triggered()), this, SLOT(changeToNone()));
     connect(ui->actionChangeToEfi11, SIGNAL(triggered()), this, SLOT(changeToEfi11()));
     connect(ui->actionChangeToTiano, SIGNAL(triggered()), this, SLOT(changeToTiano()));
     connect(ui->actionChangeToLzma, SIGNAL(triggered()), this, SLOT(changeToLzma()));
@@ -107,14 +108,8 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionInsertBefore->setEnabled(type == TreeItem::File || type == TreeItem::Section);
     ui->actionInsertAfter->setEnabled(type == TreeItem::File || type == TreeItem::Section); 
     //ui->actionReplace->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
-    ui->actionChangeToEfi11->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
-        (algorithm == COMPRESSION_ALGORITHM_NONE || algorithm == COMPRESSION_ALGORITHM_TIANO || algorithm == COMPRESSION_ALGORITHM_LZMA));
-    ui->actionChangeToTiano->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
-        (algorithm == COMPRESSION_ALGORITHM_NONE || algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_LZMA));
-    ui->actionChangeToLzma->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
-        (algorithm == COMPRESSION_ALGORITHM_NONE || algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO));
-    ui->menuChangeCompressionTo->setEnabled(ui->actionChangeToEfi11->isEnabled() || 
-        ui->actionChangeToTiano->isEnabled() || ui->actionChangeToLzma->isEnabled());
+	ui->menuChangeCompressionTo->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
+        (algorithm == COMPRESSION_ALGORITHM_NONE || COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO || algorithm == COMPRESSION_ALGORITHM_LZMA));
 }
 
 void UEFITool::rebuild()
@@ -247,6 +242,17 @@ void UEFITool::changeToLzma()
         return;
     
     UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_LZMA);
+    if (result == ERR_SUCCESS)
+        ui->actionSaveImageFile->setEnabled(true);
+}
+
+void UEFITool::changeToNone()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+    
+    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_NONE);
     if (result == ERR_SUCCESS)
         ui->actionSaveImageFile->setEnabled(true);
 }

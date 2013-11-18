@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.9.0</string>
+   <string>UEFITool 0.9.1</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -221,11 +221,12 @@
     </property>
     <widget class="QMenu" name="menuChangeCompressionTo">
      <property name="enabled">
-      <bool>false</bool>
+      <bool>true</bool>
      </property>
      <property name="title">
       <string>Change &amp;compression to</string>
      </property>
+     <addaction name="actionChangeToNone"/>
      <addaction name="actionChangeToTiano"/>
      <addaction name="actionChangeToEfi11"/>
      <addaction name="actionChangeToLzma"/>
@@ -457,6 +458,14 @@
    </property>
    <property name="menuRole">
     <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionChangeToNone">
+   <property name="text">
+    <string>&amp;Uncompressed</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+U</string>
    </property>
   </action>
  </widget>

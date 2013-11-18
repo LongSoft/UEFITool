@@ -61,6 +61,7 @@ private slots:
     void replace();
     void remove();
     void rebuild();
+	void changeToNone();
     void changeToEfi11();
     void changeToTiano();
     void changeToLzma();
