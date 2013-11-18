@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.8.1</string>
+   <string>UEFITool 0.9.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -183,6 +183,10 @@
    <addaction name="actionOpenImageFile"/>
    <addaction name="actionSaveImageFile"/>
    <addaction name="separator"/>
+   <addaction name="actionRebuild"/>
+   <addaction name="separator"/>
+   <addaction name="actionRemove"/>
+   <addaction name="separator"/>
    <addaction name="actionExtract"/>
    <addaction name="actionExtractBody"/>
    <addaction name="actionExtractUncompressed"/>
@@ -192,22 +196,79 @@
    <addaction name="actionInsertAfter"/>
    <addaction name="separator"/>
    <addaction name="actionReplace"/>
-   <addaction name="separator"/>
-   <addaction name="actionRemove"/>
-   <addaction name="separator"/>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1100</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="actionOpenImageFile"/>
+    <addaction name="actionSaveImageFile"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <widget class="QMenu" name="menuAction">
+    <property name="title">
+     <string>A&amp;ction</string>
+    </property>
+    <widget class="QMenu" name="menuChangeCompressionTo">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Change &amp;compression to</string>
+     </property>
+     <addaction name="actionChangeToTiano"/>
+     <addaction name="actionChangeToEfi11"/>
+     <addaction name="actionChangeToLzma"/>
+    </widget>
+    <addaction name="actionRebuild"/>
+    <addaction name="separator"/>
+    <addaction name="actionRemove"/>
+    <addaction name="separator"/>
+    <addaction name="actionExtract"/>
+    <addaction name="actionExtractBody"/>
+    <addaction name="actionExtractUncompressed"/>
+    <addaction name="separator"/>
+    <addaction name="actionInsertInto"/>
+    <addaction name="actionInsertAfter"/>
+    <addaction name="actionInsertBefore"/>
+    <addaction name="separator"/>
+    <addaction name="actionReplace"/>
+    <addaction name="separator"/>
+    <addaction name="menuChangeCompressionTo"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>H&amp;elp</string>
+    </property>
+    <addaction name="actionAbout"/>
+    <addaction name="actionAboutQt"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuAction"/>
+   <addaction name="menuHelp"/>
   </widget>
   <action name="actionInsertAfter">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Insert object after...</string>
+    <string>Insert &amp;after...</string>
    </property>
    <property name="toolTip">
     <string>Insert an object from file after selected object</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+I</string>
+    <string>Ctrl+Shift+I</string>
    </property>
   </action>
   <action name="actionInsertBefore">
@@ -215,13 +276,13 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Insert object before...</string>
+    <string>Insert &amp;before...</string>
    </property>
    <property name="toolTip">
     <string>Insert object from file before selected object</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+I</string>
+    <string>Ctrl+Alt+I</string>
    </property>
   </action>
   <action name="actionReplace">
@@ -229,7 +290,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Replace</string>
+    <string>Rep&amp;lace</string>
    </property>
    <property name="toolTip">
     <string>Replace selected object with an object from file</string>
@@ -243,7 +304,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Extract as is...</string>
+    <string>E&amp;xtract as is...</string>
    </property>
    <property name="toolTip">
     <string>Extract selected object as is to file</string>
@@ -257,7 +318,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Extract without header...</string>
+    <string>Extract &amp;without header...</string>
    </property>
    <property name="toolTip">
     <string>Extract selected object without header to file</string>
@@ -271,7 +332,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Extract uncompressed...</string>
+    <string>Extract &amp;uncompressed...</string>
    </property>
    <property name="toolTip">
     <string>Extract selected FFS file uncompressing it </string>
@@ -285,7 +346,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Remove</string>
+    <string>Re&amp;move</string>
    </property>
    <property name="toolTip">
     <string>Remove selected object</string>
@@ -296,7 +357,7 @@
   </action>
   <action name="actionOpenImageFile">
    <property name="text">
-    <string>Open image file...</string>
+    <string>&amp;Open image file...</string>
    </property>
    <property name="toolTip">
     <string>Open image file</string>
@@ -310,13 +371,13 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Insert object into...</string>
+    <string>Insert &amp;into...</string>
    </property>
    <property name="toolTip">
     <string>Insert object from file into selected object</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Ins</string>
+    <string>Ctrl+I</string>
    </property>
   </action>
   <action name="actionSaveImageFile">
@@ -324,13 +385,78 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Save image file...</string>
+    <string>&amp;Save image file...</string>
    </property>
    <property name="toolTip">
     <string>Save modified image file</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionRebuild">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Rebuild</string>
+   </property>
+   <property name="toolTip">
+    <string>Rebuild selected object</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Space</string>
+   </property>
+  </action>
+  <action name="actionChangeToTiano">
+   <property name="text">
+    <string>&amp;Tiano</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+  </action>
+  <action name="actionChangeToEfi11">
+   <property name="text">
+    <string>&amp;EFI 1.1</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+T</string>
+   </property>
+  </action>
+  <action name="actionChangeToLzma">
+   <property name="text">
+    <string>&amp;LZMA</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>&amp;About UEFITool</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionAboutQt">
+   <property name="text">
+    <string>About &amp;Qt</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
    </property>
   </action>
  </widget>

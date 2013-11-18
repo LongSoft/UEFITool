@@ -60,6 +60,12 @@ private slots:
     void insertAfter();
     void replace();
     void remove();
+    void rebuild();
+    void changeToEfi11();
+    void changeToTiano();
+    void changeToLzma();
+    void about();
+    void aboutQt();
     void scrollTreeView(QListWidgetItem* item);
 
 private:

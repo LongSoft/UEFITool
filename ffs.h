@@ -296,6 +296,7 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_MARKED_FOR_UPDATE      0x08
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
+#define EFI_FILE_ERASE_POLARITY         0x80
 
 // Volume top file
 const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID 

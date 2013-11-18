@@ -148,7 +148,18 @@ UINT8 TreeModel::setItemAction(const UINT8 action, const QModelIndex &index)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setAction(action);
-    emit dataChanged(index, index);
+    emit dataChanged(this->index(0,0), index);
+    return ERR_SUCCESS;
+}
+
+UINT8 TreeModel::setItemCompression(const UINT8 algorithm, const QModelIndex &index)
+{
+    if(!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setCompression(algorithm);
+    emit dataChanged(this->index(0,0), index);
     return ERR_SUCCESS;
 }
 

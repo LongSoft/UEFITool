@@ -31,8 +31,14 @@ UEFITool::UEFITool(QWidget *parent) :
     connect(ui->actionInsertAfter, SIGNAL(triggered()), this, SLOT(insertAfter()));
     connect(ui->actionReplace, SIGNAL(triggered()), this, SLOT(replace()));
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
+    connect(ui->actionRebuild, SIGNAL(triggered()), this, SLOT(rebuild()));
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
-    
+    connect(ui->actionChangeToEfi11, SIGNAL(triggered()), this, SLOT(changeToEfi11()));
+    connect(ui->actionChangeToTiano, SIGNAL(triggered()), this, SLOT(changeToTiano()));
+    connect(ui->actionChangeToLzma, SIGNAL(triggered()), this, SLOT(changeToLzma()));
+    connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
+    connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
+    connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     // Enable Drag-and-Drop actions
     this->setAcceptDrops(true);
 
@@ -58,6 +64,7 @@ void UEFITool::init()
     ui->actionExtractUncompressed->setDisabled(true);
     ui->actionReplace->setDisabled(true);
     ui->actionRemove->setDisabled(true);
+    ui->actionRebuild->setDisabled(true);
     ui->actionInsertInto->setDisabled(true);
     ui->actionInsertBefore->setDisabled(true);
     ui->actionInsertAfter->setDisabled(true);
@@ -87,9 +94,11 @@ void UEFITool::populateUi(const QModelIndex &current)
     TreeItem* item = static_cast<TreeItem*>(current.internalPointer());
     UINT8 type = item->type();
     UINT8 subtype = item->subtype();
+    UINT8 algorithm = item->compression();
 
     ui->infoEdit->setPlainText(item->info());
     ui->actionExtract->setDisabled(item->hasEmptyHeader() && item->hasEmptyBody() && item->hasEmptyTail());
+    ui->actionRebuild->setDisabled(item->hasEmptyHeader() && item->hasEmptyBody() && item->hasEmptyTail());
     ui->actionExtractBody->setDisabled(item->hasEmptyHeader());
     //ui->actionExtractUncompressed->setEnabled(ffsEngine->isCompressedFile(current));
     ui->actionRemove->setEnabled(type == TreeItem::Volume || type == TreeItem::File || type == TreeItem::Section);
@@ -98,6 +107,26 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionInsertBefore->setEnabled(type == TreeItem::File || type == TreeItem::Section);
     ui->actionInsertAfter->setEnabled(type == TreeItem::File || type == TreeItem::Section); 
     //ui->actionReplace->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
+    ui->actionChangeToEfi11->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
+        (algorithm == COMPRESSION_ALGORITHM_NONE || algorithm == COMPRESSION_ALGORITHM_TIANO || algorithm == COMPRESSION_ALGORITHM_LZMA));
+    ui->actionChangeToTiano->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
+        (algorithm == COMPRESSION_ALGORITHM_NONE || algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_LZMA));
+    ui->actionChangeToLzma->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
+        (algorithm == COMPRESSION_ALGORITHM_NONE || algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO));
+    ui->menuChangeCompressionTo->setEnabled(ui->actionChangeToEfi11->isEnabled() || 
+        ui->actionChangeToTiano->isEnabled() || ui->actionChangeToLzma->isEnabled());
+}
+
+void UEFITool::rebuild()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+
+    UINT8 result = ffsEngine->rebuild(index);
+    
+    if (result == ERR_SUCCESS)
+        ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::remove()
@@ -186,6 +215,58 @@ void UEFITool::insertAfter()
 void UEFITool::replace()
 {
     
+}
+
+void UEFITool::changeToEfi11()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+    
+    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_EFI11);
+    
+    if (result == ERR_SUCCESS)
+        ui->actionSaveImageFile->setEnabled(true);
+}
+
+void UEFITool::changeToTiano()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+    
+    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_TIANO);
+    if (result == ERR_SUCCESS)
+        ui->actionSaveImageFile->setEnabled(true);
+}
+
+void UEFITool::changeToLzma()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+    
+    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_LZMA);
+    if (result == ERR_SUCCESS)
+        ui->actionSaveImageFile->setEnabled(true);
+}
+
+void UEFITool::about()
+{
+    QMessageBox::about(this, tr("About UEFITool"), tr(
+    "Copyright (c) 2013, Nikolaj Schlej aka CodeRush.\n\n"
+    "The program is dedicated to RevoGirl. Rest in peace, young genius.\n\n"
+    "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.\n"
+    "The full text of the license may be found at\nhttp://opensource.org/licenses/bsd-license.php\n\n"
+    "THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS,\n"
+    "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND,\n"
+    "EITHER EXPRESS OR IMPLIED."
+    ));
+}
+
+void UEFITool::aboutQt()
+{
+    QMessageBox::aboutQt(this, tr("About Qt"));
 }
 
 void UEFITool::saveImageFile()

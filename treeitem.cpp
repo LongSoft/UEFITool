@@ -174,7 +174,7 @@ QVariant TreeItem::data(int column) const
     case 1: //Action
         if (itemAction == TreeItem::Remove)
             return "X";
-        if (itemAction == TreeItem::Reconstruct)
+        if (itemAction == TreeItem::Rebuild)
             return "R";
         return QVariant();
     case 2: //Type
@@ -261,7 +261,6 @@ QByteArray TreeItem::tail() const
     return itemTail;
 }
 
-
 bool TreeItem::hasEmptyHeader() const
 {
     return itemHeader.isEmpty();
@@ -281,7 +280,20 @@ UINT8 TreeItem::action() const
 {
     return itemAction;
 }
+
 void TreeItem::setAction(const UINT8 action)
 {
     itemAction = action;
+
+    // Set rebuild action for parent
+    if (parentItem)
+        parentItem->setAction(TreeItem::Rebuild);
+}
+
+void TreeItem::setCompression(const UINT8 algorithm)
+{
+    itemCompression = algorithm;
+
+    // Set rebuild action
+    setAction(TreeItem::Rebuild);
 }

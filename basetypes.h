@@ -106,6 +106,11 @@ typedef uint16_t  CHAR16;
 #define INSERT_MODE_BEFORE  2
 #define INSERT_MODE_AFTER   3
 
+// Erase polarity types
+#define ERASE_POLARITY_FALSE   0
+#define ERASE_POLARITY_TRUE    1
+#define ERASE_POLARITY_UNKNOWN 0xFF
+
 // EFI GUID
 typedef struct{
     UINT8 Data[16];

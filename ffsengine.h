@@ -52,10 +52,10 @@ public:
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
     UINT8 parseVolume(const QByteArray & volume, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
-    UINT8 parseFile(const QByteArray & file, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
+    UINT8 parseFile(const QByteArray & file, const UINT8 revision, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
-    UINT8 parseSections(const QByteArray & body, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex());
-    UINT8 parseSection(const QByteArray & section, const UINT8 revision, const char empty = '\xFF', const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
+    UINT8 parseSections(const QByteArray & body, const QModelIndex & parent = QModelIndex());
+    UINT8 parseSection(const QByteArray & section, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
 
     // Compression routines
     UINT8 decompress(const QByteArray & compressed, const UINT8 compressionType, QByteArray & decompressedData, UINT8 * algorithm = NULL);
@@ -63,14 +63,16 @@ public:
     
     // Construction routines
     UINT8 reconstructImage(QByteArray & reconstructed);
-    UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const char empty, QByteArray & pad);
-    UINT8 reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision = 2, char empty = '\xFF');
+    UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
+    UINT8 reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision = 2, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN);
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Operations on tree items
     UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
     UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 objectType, const UINT8 mode);
     UINT8 remove(const QModelIndex & index);
+    UINT8 rebuild(const QModelIndex & index);
+    UINT8 changeCompression(const QModelIndex & index, const UINT8 algorithm);
     
 private:
     TreeItem  *rootItem;

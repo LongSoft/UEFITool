@@ -32,7 +32,7 @@ public:
     enum ActionTypes {
         NoAction = 50,
         Remove,      
-        Reconstruct 
+        Rebuild
     };
     
     // Item types
@@ -100,11 +100,13 @@ public:
     QByteArray tail() const;
     bool hasEmptyTail() const;
     QString info() const;
+    UINT8 action() const;
     UINT8 compression() const;
 
-    // Actions can also be changed
-    UINT8 action() const;
+    // Action can be changed
     void setAction(const UINT8 action); 
+    // Compression can be changed
+    void setCompression(const UINT8 algorithm);
 
     // Text values can be changed after item construction
     void setTypeName(const QString &text);
@@ -123,6 +125,7 @@ private:
     UINT8 itemType;
     UINT8 itemSubtype;
     UINT8 itemCompression;
+    UINT8 itemNewCompression;
     QByteArray itemHeader;
     QByteArray itemBody;
     QByteArray itemTail;
