@@ -662,7 +662,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
     char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
     // Check header checksum by recalculating it
-    if (!calculateChecksum16((UINT8*) volumeHeader, volumeHeader->HeaderLength)) {
+    if (calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength)) {
         msg(tr("parseBios: Volume header checksum is invalid"), parent);
     }
 
@@ -1742,7 +1742,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
 
                 // Recalculate volume header checksum
                 volumeHeader->Checksum = 0;
-                volumeHeader->Checksum = calculateChecksum16((UINT8*) volumeHeader, volumeHeader->HeaderLength);    
+                volumeHeader->Checksum = calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength);    
 
                 // Reconstruct volume body
                 if (item->childCount()) {
@@ -1868,7 +1868,8 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                                     break;
                                 }
                             }
-                            // Append last file and fill the rest with empty char
+                            
+							// Append last file and fill the rest with empty char
                             else {
                                 reconstructed.append(file);
                                 UINT32 volumeBodySize = volumeSize - header.size();
@@ -1896,7 +1897,8 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
 
                         // Append current file to new volume body
                         reconstructed.append(file);
-                        // Change current file offset
+                        
+						// Change current file offset
                         offset += file.size();
                     }
 
@@ -2139,66 +2141,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
         
         return ERR_SUCCESS;
     }
-    /*// Compress object with new compression algorithm
-    else if (item->action() == TreeItem::EfiCompress || item->action() == TreeItem::TianoCompress || item->action() == TreeItem::LzmaCompress) {
-        // Select algorithm
-        UINT8 algorithm;
-        if (item->action() == TreeItem::EfiCompress)
-            algorithm = COMPRESSION_ALGORITHM_EFI11;
-        else if (item->action() == TreeItem::TianoCompress)
-            algorithm = COMPRESSION_ALGORITHM_TIANO;
-        else if (item->action() == TreeItem::LzmaCompress)
-            algorithm = COMPRESSION_ALGORITHM_LZMA;
-        else
-            return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
-        
-        // Possible only for compressed sections with EFI1.1, Tiano or LZMA algorithm
-        if (item->type() == TreeItem::Section && item->subtype() == EFI_SECTION_COMPRESSION && 
-            (item->compression() == COMPRESSION_ALGORITHM_EFI11 || item->compression() == COMPRESSION_ALGORITHM_TIANO || item->compression() == COMPRESSION_ALGORITHM_LZMA)) {
-            QByteArray header = item->header();
-            EFI_COMPRESSION_SECTION* sectionHeader = (EFI_COMPRESSION_SECTION*) header.data();
-            if (!item->childCount()) 
-                return ERR_INVALID_SECTION;
-            
-            QQueue<QByteArray> childrenQueue;
-            for (int i = 0; i < item->childCount(); i++) {
-                // Reconstruct subsections
-                result = reconstruct(index.child(i, index.column()), childrenQueue);
-                if (result)
-                    return result;
-            }
-
-            // Construct new section body
-            UINT32 offset = 0;
-            while (!childrenQueue.isEmpty())
-            {
-                // Align to 4 byte boundary
-                UINT8 alignment = offset % 4;
-                if (alignment) {
-                    alignment = 4 - alignment;
-                    offset += alignment;
-                    reconstructed.append(QByteArray(alignment, '\x00'));
-                }
-
-                // Get section from queue
-                QByteArray section = childrenQueue.dequeue();
-
-                // Append current subsection to new section body
-                reconstructed.append(section);
-
-                // Change current file offset
-                offset += section.size();
-            }
-
-            // Compress new section body using determined compression algorithm
-
-
-        }
-        else
-            return ERR_NOT_IMPLEMENTED;
-        
-    }*/
-
+    
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -2235,7 +2178,8 @@ UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & new
 
     // Recalculate volume header checksum
     volumeHeader->Checksum = 0;
-    volumeHeader->Checksum = calculateChecksum16((UINT8*) volumeHeader, volumeHeader->HeaderLength);
+    volumeHeader->Checksum = calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength);
+
     return ERR_SUCCESS;
 }
 

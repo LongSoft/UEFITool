@@ -213,7 +213,7 @@ typedef struct {
 
 
 // Volume header 16bit checksum calculation routine
-extern UINT16 calculateChecksum16(UINT8* buffer, UINT32 bufferSize);
+extern UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize);
 
 //*****************************************************************************
 // EFI FFS File
