@@ -68,6 +68,7 @@ private slots:
     void about();
     void aboutQt();
     void scrollTreeView(QListWidgetItem* item);
+    void exit();
 
 private:
     Ui::UEFITool * ui;

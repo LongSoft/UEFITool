@@ -277,6 +277,11 @@ void UEFITool::aboutQt()
     QMessageBox::aboutQt(this, tr("About Qt"));
 }
 
+void UEFITool::exit()
+{
+    QCoreApplication::exit(0);
+}
+
 void UEFITool::saveImageFile()
 {
     QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image file (*.rom *.bin *.cap *.fd *.wph *.efi);;All files (*.*)");
