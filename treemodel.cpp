@@ -168,8 +168,8 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
                                const QByteArray & header, const QByteArray & body, const QByteArray & tail,
                                const QModelIndex & index, const UINT8 mode)
 {
-    TreeItem *item;
-    TreeItem *parentItem;
+    TreeItem *item = 0;
+    TreeItem *parentItem = 0;
     int parentColumn = 0;
 
     if (!index.isValid())

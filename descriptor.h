@@ -65,7 +65,7 @@ typedef struct {
     UINT8 FlashReadStatusFrequency    : 3;
     UINT8 FlashWriteFrequency         : 3;
     UINT8 DualOutputFastReadSupported : 1;
-    UINT8 ReservedZero3               : 1; // Still unknown, zero in all descriptors I have seen
+    UINT8 ReservedZero3               : 1;  // Still unknown, zero in all descriptors I have seen
 } FLASH_PARAMETERS;
 
 // Flash densities
@@ -89,14 +89,14 @@ typedef struct {
     UINT8            InvalidInstruction2;  //  
     UINT8            InvalidInstruction3;  //  
     UINT16           PartitionBoundary;    // Upper 16 bit of partition boundary address. Default is 0x0000, which makes the boundary to be 0x00001000
-    UINT16           RezervedZero;         // Still unknown, zero in all descriptors I have seen
+    UINT16           ReservedZero;         // Still unknown, zero in all descriptors I have seen
 } FLASH_DESCRIPTOR_COMPONENT_SECTION;
 
 // Region section
 // All base and limit register are storing upper part of actual UINT32 base and limit
 // If limit is zero - region is not present
 typedef struct {
-    UINT16 RezervedZero;                  // Still unknown, zero in all descriptors I have seen
+    UINT16 ReservedZero;                  // Still unknown, zero in all descriptors I have seen
     UINT16 FlashBlockEraseSize;           // Size of block erased by single BLOCK ERASE command
     UINT16 BiosBase;                      
     UINT16 BiosLimit;                     
@@ -154,6 +154,7 @@ typedef struct {
 // Restore previous packing rules
 #pragma pack(pop)
 
+// Returns name of region by it's type
 extern QString regionTypeToQString(const UINT8 type);
 
 // Calculate address of data structure addressed by descriptor address format
@@ -162,8 +163,8 @@ extern UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit);
 // 16 bit base or limit
 extern UINT8* calculateAddress16(UINT8* baseAddress, const UINT16 baseOrLimit);
 
-// Calculate offset of region using its base
+// Calculate offset of region using it's base
 extern UINT32 calculateRegionOffset(const UINT16 base);
-// Calculate size of region using its base and limit
+// Calculate size of region using it's base and limit
 extern UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit);
 #endif

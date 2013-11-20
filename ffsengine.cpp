@@ -96,7 +96,7 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
     QByteArray flashImage;
 
     // Check buffer size to be more or equal then sizeof(EFI_CAPSULE_HEADER)
-    if (buffer.size() <= sizeof(EFI_CAPSULE_HEADER))
+    if ((UINT32) buffer.size() <= sizeof(EFI_CAPSULE_HEADER))
     {
         msg(tr("parseInputFile: Input file is smaller then minimum size of %1 bytes").arg(sizeof(EFI_CAPSULE_HEADER)));
         return ERR_INVALID_PARAMETER;
@@ -164,7 +164,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelInde
 {
     FLASH_DESCRIPTOR_MAP*               descriptorMap;
     FLASH_DESCRIPTOR_REGION_SECTION*    regionSection;
-    FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection;
+    //FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection;
 
     // Store the beginning of descriptor as descriptor base address
     UINT8* descriptor  = (UINT8*) flashImage.constData();
@@ -180,7 +180,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelInde
     // Parse descriptor map
     descriptorMap    = (FLASH_DESCRIPTOR_MAP*) (descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
     regionSection    = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8(descriptor, descriptorMap->RegionBase);
-    componentSection = (FLASH_DESCRIPTOR_COMPONENT_SECTION*) calculateAddress8(descriptor, descriptorMap->ComponentBase);
+    //componentSection = (FLASH_DESCRIPTOR_COMPONENT_SECTION*) calculateAddress8(descriptor, descriptorMap->ComponentBase);
 
     // GbE region
     QByteArray gbe;
@@ -320,7 +320,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelInde
     qSort(offsets);
 
     // Parse regions
-    UINT8 result;
+    UINT8 result = 0;
     for (int i = 0; i < offsets.count(); i++) {
         // Parse GbE region
         if (offsets.at(i) == gbeBegin) {
@@ -382,7 +382,7 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, const QModelIndex & parent
         arg(me.size(), 8, 16, QChar('0'));
 
     ME_VERSION* version;
-    UINT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
+    INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
     if (versionOffset < 0){
         info += tr("\nVersion: unknown");
         msg(tr("parseRegion: ME region version is unknown, it can be damaged"), parent);
@@ -561,7 +561,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         }
         else if (volumeHeader->Revision == 2) {
             // Acquire alignment
-            alignment = pow(2, (volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
+            alignment = (UINT32) pow(2.0, (int) (volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
 
             // Check alignment
             if (volumeOffset % alignment) {
@@ -734,7 +734,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
         // Check file alignment
         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) header.constData();
         UINT8 alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
-        UINT32 alignment = pow(2, alignmentPower);
+        UINT32 alignment = (UINT32) pow(2.0, alignmentPower);
         if ((fileOffset + sizeof(EFI_FFS_FILE_HEADER)) % alignment) {
             msg(tr("parseVolume: %1, unaligned file").arg(guidToQString(fileHeader->Name)), index);
         }
@@ -1364,8 +1364,8 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
                 // Both algorithms work
                 if(memcmp(decompressed, tianoDecompressed, decompressedSize)) {
                     // If decompressed data are different - it's Tiano for sure
-                    delete decompressed;
-                    delete scratch;
+                    delete[] decompressed;
+                    delete[] scratch;
                     decompressed = tianoDecompressed;
                     scratch = tianoScratch;
                     if (algorithm)
@@ -1482,10 +1482,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         break;
     case COMPRESSION_ALGORITHM_LZMA: 
         {
-            if (LzmaCompress((UINT8*) data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+            if (LzmaCompress((const UINT8*) data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
                 return ERR_CUSTOMIZED_COMPRESSION_FAILED;
             compressed = new UINT8[compressedSize];
-            if (LzmaCompress((UINT8*) data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS)
+            if (LzmaCompress((const UINT8*) data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS)
                 return ERR_CUSTOMIZED_COMPRESSION_FAILED;
             compressedData = QByteArray((const char*) compressed, compressedSize);
             delete[] compressed;
@@ -1791,7 +1791,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         UINT8 alignmentPower;
                         UINT32 base;
                         alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
-                        alignment = pow(2, alignmentPower);
+                        alignment = (UINT32) pow(2.0, alignmentPower);
                         base = header.size() + offset + sizeof(EFI_FFS_FILE_HEADER);
                         if (base % alignment) {
                             // File will be unaligned if added as is, so we must add pad file before it
@@ -1887,6 +1887,8 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                                     // Grow volume to fit new body
                                     UINT32 newSize = header.size() + reconstructed.size();
                                     result = growVolume(header, volumeSize, newSize);
+                                    if (result)
+                                        return result;
                                     // Fill volume end with empty char
                                     reconstructed.append(QByteArray(newSize - header.size() - reconstructed.size(), empty));
                                     volumeSize = newSize;
@@ -1958,7 +1960,6 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                     // File is marked for update, the mark must be removed
                     msg(tr("reconstruct: %1, file MARKED_FOR_UPDATE state cleared")
                         .arg(guidToQString(fileHeader->Name)), index);
-                    state &= ~EFI_FILE_MARKED_FOR_UPDATE;
                 }
                 else if (state & EFI_FILE_DATA_VALID) {
                     // File is in good condition, reconstruct it
@@ -1975,7 +1976,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         .arg(guidToQString(fileHeader->Name)), index);
                     return ERR_SUCCESS;
                 }
-
+                
                 // Reconstruct file body
                 if (item->childCount()) {
                     for (int i = 0; i < item->childCount(); i++) {
@@ -2038,7 +2039,8 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                 state = EFI_FILE_DATA_VALID | EFI_FILE_HEADER_VALID | EFI_FILE_HEADER_CONSTRUCTION;
                 if (erasePolarity == ERASE_POLARITY_TRUE)
                     state = ~state;
-
+                fileHeader->State = state;
+                
                 // Enqueue reconstructed item
                 queue.enqueue(header.append(reconstructed));  
             }

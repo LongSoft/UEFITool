@@ -40,7 +40,8 @@ UEFITool::UEFITool(QWidget *parent) :
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
-    // Enable Drag-and-Drop actions
+    	
+	// Enable Drag-and-Drop actions
     this->setAcceptDrops(true);
 
     // Initialize non-persistent data
@@ -59,7 +60,7 @@ void UEFITool::init()
     ui->messageListWidget->clear();
     ui->infoEdit->clear();
     
-    // Disable all actions except openImageFile
+    // Disable actions and menus
     ui->actionExtract->setDisabled(true);
     ui->actionExtractBody->setDisabled(true);
     ui->actionExtractUncompressed->setDisabled(true);
@@ -70,6 +71,7 @@ void UEFITool::init()
     ui->actionInsertBefore->setDisabled(true);
     ui->actionInsertAfter->setDisabled(true);
     ui->actionSaveImageFile->setDisabled(true);
+	ui->menuChangeCompressionTo->setDisabled(true);
 
     // Make new ffsEngine
 	if (ffsEngine)

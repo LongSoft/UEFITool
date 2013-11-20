@@ -125,7 +125,6 @@ private:
     UINT8 itemType;
     UINT8 itemSubtype;
     UINT8 itemCompression;
-    UINT8 itemNewCompression;
     QByteArray itemHeader;
     QByteArray itemBody;
     QByteArray itemTail;
