@@ -44,8 +44,78 @@ UEFITool::UEFITool(QWidget *parent) :
 	// Enable Drag-and-Drop actions
     this->setAcceptDrops(true);
 
+	// Create menus
+	createMenus();
+
     // Initialize non-persistent data
     init();
+}
+
+void UEFITool::createMenus()
+{
+	// Capsule 
+	capsuleMenu.clear();
+	capsuleMenu.addAction(ui->actionExtract);
+	capsuleMenu.addAction(ui->actionExtractBody);
+	capsuleMenu.addSeparator();
+	capsuleMenu.addAction(ui->actionRebuild);
+
+	// Image 
+	imageMenu.clear();
+	imageMenu.addAction(ui->actionExtract);
+	imageMenu.addSeparator();
+	imageMenu.addAction(ui->actionRebuild);
+	
+	// Region 
+	regionMenu.clear();
+	regionMenu.addAction(ui->actionExtract);
+	regionMenu.addSeparator();
+	regionMenu.addAction(ui->actionRebuild);
+
+	// Padding 
+	paddingMenu.clear();
+	paddingMenu.addAction(ui->actionExtract);
+
+	// Volume 
+	volumeMenu.clear();
+	volumeMenu.addAction(ui->actionExtract);
+	volumeMenu.addAction(ui->actionExtractBody);
+	volumeMenu.addSeparator();
+	volumeMenu.addAction(ui->actionRebuild);
+	volumeMenu.addSeparator();
+	volumeMenu.addAction(ui->actionInsertInto);
+	volumeMenu.addSeparator();
+	volumeMenu.addAction(ui->actionRemove);
+
+	// File 
+	fileMenu.clear();
+	fileMenu.addAction(ui->actionExtract);
+	fileMenu.addAction(ui->actionExtractBody);
+	//fileMenu.addAction(ui->actionExtractUncompressed);
+	fileMenu.addSeparator();
+	fileMenu.addAction(ui->actionRebuild);
+	fileMenu.addSeparator();
+	fileMenu.addAction(ui->actionInsertInto);
+	fileMenu.addAction(ui->actionInsertBefore);
+	fileMenu.addAction(ui->actionInsertAfter);
+	fileMenu.addSeparator();
+	fileMenu.addAction(ui->actionRemove);
+
+	// Section
+	sectionMenu.clear();
+	sectionMenu.addAction(ui->actionExtract);
+	sectionMenu.addAction(ui->actionExtractBody);
+	//sectionMenu.addAction(ui->actionExtractUncompressed);
+	sectionMenu.addSeparator();
+	sectionMenu.addAction(ui->actionRebuild);
+	sectionMenu.addSeparator();
+	sectionMenu.addAction(ui->actionInsertInto);
+	sectionMenu.addAction(ui->actionInsertBefore);
+	sectionMenu.addAction(ui->actionInsertAfter);
+	sectionMenu.addSeparator();
+	sectionMenu.addAction(ui->actionRemove);
+	sectionMenu.addSeparator();
+	sectionMenu.addMenu(ui->menuChangeCompressionTo);
 }
 
 UEFITool::~UEFITool()
@@ -103,13 +173,11 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionExtract->setDisabled(item->hasEmptyHeader() && item->hasEmptyBody() && item->hasEmptyTail());
     ui->actionRebuild->setDisabled(item->hasEmptyHeader() && item->hasEmptyBody() && item->hasEmptyTail());
     ui->actionExtractBody->setDisabled(item->hasEmptyHeader());
-    //ui->actionExtractUncompressed->setEnabled(ffsEngine->isCompressedFile(current));
     ui->actionRemove->setEnabled(type == TreeItem::Volume || type == TreeItem::File || type == TreeItem::Section);
-    ui->actionInsertInto->setEnabled(type == TreeItem::Volume || type == TreeItem::File 
+    ui->actionInsertInto->setEnabled(type == TreeItem::Volume || (type == TreeItem::File && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD)
         || (type == TreeItem::Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
     ui->actionInsertBefore->setEnabled(type == TreeItem::File || type == TreeItem::Section);
     ui->actionInsertAfter->setEnabled(type == TreeItem::File || type == TreeItem::Section); 
-    //ui->actionReplace->setEnabled(ffsEngine->isOfType(TreeItem::File, current));
 	ui->menuChangeCompressionTo->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
         (algorithm == COMPRESSION_ALGORITHM_NONE || COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO || algorithm == COMPRESSION_ALGORITHM_LZMA));
 }
@@ -156,12 +224,12 @@ void UEFITool::insert(const UINT8 mode)
     QString path;
     switch (type) {
     case TreeItem::Volume:
-        path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS file (*.ffs *.bin);;All files (*.*)");
+        path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS files (*.ffs *.bin);;All files (*.*)");
 		objectType = TreeItem::File;
     break;
     case TreeItem::File:
     case TreeItem::Section:
-        path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"),".","Section file (*.sct *.bin);;All files (*.*)");
+        path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"),".","Section files (*.sct *.bin);;All files (*.*)");
 		objectType = TreeItem::Section;
     break;
     default:
@@ -169,8 +237,7 @@ void UEFITool::insert(const UINT8 mode)
     }
 
     QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists())
-    {
+    if (!fileInfo.exists()) {
         ui->statusBar->showMessage(tr("Please select existing file"));
         return;
     }
@@ -178,8 +245,7 @@ void UEFITool::insert(const UINT8 mode)
     QFile inputFile;
     inputFile.setFileName(path);
 
-    if (!inputFile.open(QFile::ReadOnly))
-    {
+    if (!inputFile.open(QFile::ReadOnly)) {
         ui->statusBar->showMessage(tr("Can't open file for reading"));
         return;
     }
@@ -261,15 +327,14 @@ void UEFITool::changeToNone()
 
 void UEFITool::about()
 {
-    QMessageBox::about(this, tr("About UEFITool"), tr(
-    "Copyright (c) 2013, Nikolaj Schlej aka CodeRush.\n\n"
-    "The program is dedicated to RevoGirl. Rest in peace, young genius.\n\n"
-    "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.\n"
-    "The full text of the license may be found at\nhttp://opensource.org/licenses/bsd-license.php\n\n"
-    "THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS,\n"
-    "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND,\n"
-    "EITHER EXPRESS OR IMPLIED."
-    ));
+	QMessageBox::about(this, tr("About UEFITool"), tr(
+		"Copyright (c) 2013, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
+		"The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
+		"The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
+		"The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
+		"<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
+		"WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
+		"EITHER EXPRESS OR IMPLIED.</b>"));
 }
 
 void UEFITool::aboutQt()
@@ -284,12 +349,11 @@ void UEFITool::exit()
 
 void UEFITool::saveImageFile()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image file (*.rom *.bin *.cap *.fd *.wph *.efi);;All files (*.*)");
+    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image files (*.rom *.bin *.cap *.fd *.wph *.efi);;All files (*.*)");
 
     QFile outputFile;
     outputFile.setFileName(path);
-    if (!outputFile.open(QFile::WriteOnly))
-    {
+    if (!outputFile.open(QFile::WriteOnly)) {
         ui->statusBar->showMessage(tr("Can't open file for writing"));
         return;
     }    
@@ -297,10 +361,8 @@ void UEFITool::saveImageFile()
     QByteArray reconstructed;
     UINT8 result = ffsEngine->reconstructImage(reconstructed);
 	showMessage();
-    if (result)
-    {
+    if (result) {
         ui->statusBar->showMessage(tr("Reconstruction failed (%1)").arg(result));
-
         return;
     }
 
@@ -319,15 +381,14 @@ void UEFITool::resizeTreeViewColums()
 
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"),".","BIOS image file (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"),".","BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
     openImageFile(path);
 }
 
 void UEFITool::openImageFile(QString path)
 {
     QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists())
-    {
+    if (!fileInfo.exists()) {
         ui->statusBar->showMessage(tr("Please select existing file"));
         return;
     }
@@ -335,8 +396,7 @@ void UEFITool::openImageFile(QString path)
     QFile inputFile;
     inputFile.setFileName(path);
 
-    if (!inputFile.open(QFile::ReadOnly))
-    {
+    if (!inputFile.open(QFile::ReadOnly)) {
         ui->statusBar->showMessage(tr("Can't open file for reading"));
         return;
     }
@@ -365,36 +425,39 @@ void UEFITool::extract(const UINT8 mode)
     UINT8 type = item->type();
 
     QString path;
-    switch (type) {
-    case TreeItem::Capsule:
-        path = QFileDialog::getSaveFileName(this, tr("Save capsule to binary file"),".","Capsule file (*.cap *.bin);;All files (*.*)");
-        break;
-    case TreeItem::Image:
-        path = QFileDialog::getSaveFileName(this, tr("Save image to binary file"),".","Image file (*.rom *.bin);;All files (*.*)");
-        break;
-    case TreeItem::Region:
-        path = QFileDialog::getSaveFileName(this, tr("Save region to binary file"),".","Region file (*.rgn *.bin);;All files (*.*)");
-        break;
-    case TreeItem::Padding:
-        path = QFileDialog::getSaveFileName(this, tr("Save padding to binary file"),".","Padding file (*.pad *.bin);;All files (*.*)");
-        break;
-    case TreeItem::Volume:
-        path = QFileDialog::getSaveFileName(this, tr("Save volume to binary file"),".","Volume file (*.vol *.bin);;All files (*.*)");
-        break;
-    case TreeItem::File:
-        path = QFileDialog::getSaveFileName(this, tr("Save FFS file to binary file"),".","FFS file (*.ffs *.bin);;All files (*.*)");
-        break;
-    case TreeItem::Section:
-        path = QFileDialog::getSaveFileName(this, tr("Select section file to insert"),".","Section file (*.sct *.bin);;All files (*.*)");
-    break;
-    default:
-        return;
-    }
+	if(mode == EXTRACT_MODE_AS_IS) {
+		switch (type) {
+		case TreeItem::Capsule:
+			path = QFileDialog::getSaveFileName(this, tr("Save capsule to binary file"),".","Capsule files (*.cap *.bin);;All files (*.*)");
+			break;
+		case TreeItem::Image:
+			path = QFileDialog::getSaveFileName(this, tr("Save image to binary file"),".","Image files (*.rom *.bin);;All files (*.*)");
+			break;
+		case TreeItem::Region:
+			path = QFileDialog::getSaveFileName(this, tr("Save region to binary file"),".","Region files (*.rgn *.bin);;All files (*.*)");
+			break;
+		case TreeItem::Padding:
+			path = QFileDialog::getSaveFileName(this, tr("Save padding to binary file"),".","Padding files (*.pad *.bin);;All files (*.*)");
+			break;
+		case TreeItem::Volume:
+			path = QFileDialog::getSaveFileName(this, tr("Save volume to binary file"),".","Volume files (*.vol *.bin);;All files (*.*)");
+			break;
+		case TreeItem::File:
+			path = QFileDialog::getSaveFileName(this, tr("Save FFS file to binary file"),".","FFS files (*.ffs *.bin);;All files (*.*)");
+			break;
+		case TreeItem::Section:
+			path = QFileDialog::getSaveFileName(this, tr("Save section file to binary file"),".","Section files (*.sct *.bin);;All files (*.*)");
+		break;
+		default:
+			return;
+		}
+	}
+	else
+		path = QFileDialog::getSaveFileName(this, tr("Save object to binary file"),".","Binary files (*.bin);;All files (*.*)");
     
     QFile outputFile;
     outputFile.setFileName(path);
-    if (!outputFile.open(QFile::WriteOnly))
-    {
+    if (!outputFile.open(QFile::WriteOnly)) {
         ui->statusBar->showMessage(tr("Can't open file for rewriting"));
         return;
     }
@@ -458,4 +521,41 @@ void UEFITool::scrollTreeView(QListWidgetItem* item)
         ui->structureTreeView->selectionModel()->clearSelection();
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select);
     }
+}
+
+void UEFITool::contextMenuEvent (QContextMenuEvent* event)
+{
+	if(!ui->structureTreeView->underMouse())
+		return;
+	
+	QPoint pt = event->pos();
+	QModelIndex index = ui->structureTreeView->indexAt(ui->structureTreeView->viewport()->mapFrom(this, pt));
+	if(!index.isValid())
+		return;
+
+	TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+	switch(item->type())
+	{
+	case TreeItem::Capsule:
+		capsuleMenu.exec(event->globalPos());
+		break;
+	case TreeItem::Image:
+		imageMenu.exec(event->globalPos());
+		break;
+	case TreeItem::Region:
+		regionMenu.exec(event->globalPos());
+		break;
+	case TreeItem::Padding:
+		paddingMenu.exec(event->globalPos());
+		break;
+	case TreeItem::Volume:
+		volumeMenu.exec(event->globalPos());
+		break;
+	case TreeItem::File:
+		fileMenu.exec(event->globalPos());
+		break;
+	case TreeItem::Section:
+		sectionMenu.exec(event->globalPos());
+		break;
+	}
 }

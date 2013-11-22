@@ -172,6 +172,8 @@ QVariant TreeItem::data(int column) const
     case 0: //Name
         return itemName;
     case 1: //Action
+		if (itemAction == TreeItem::Modify)
+            return "M";
         if (itemAction == TreeItem::Remove)
             return "X";
         if (itemAction == TreeItem::Rebuild)
@@ -293,7 +295,4 @@ void TreeItem::setAction(const UINT8 action)
 void TreeItem::setCompression(const UINT8 algorithm)
 {
     itemCompression = algorithm;
-
-    // Set rebuild action
-    setAction(TreeItem::Rebuild);
 }

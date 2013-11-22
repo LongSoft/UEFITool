@@ -1295,8 +1295,11 @@ UINT8 FfsEngine::changeCompression(const QModelIndex & index, const UINT8 algori
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
 
-    // Set action for the item
+    // Set compression for the item
     treeModel->setItemCompression(algorithm, index);
+
+	// Set action for the item
+    treeModel->setItemAction(TreeItem::Modify, index);
 
     return ERR_SUCCESS;
 }
@@ -1598,7 +1601,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
             return ERR_NOT_IMPLEMENTED;
     }
     // Reconstruct item and it's children recursive
-    else if (item->action() == TreeItem::Rebuild) {
+    else if (item->action() == TreeItem::Modify || item->action() == TreeItem::Rebuild) {
         QQueue<QByteArray> childrenQueue;
 
         switch (item->type()) {

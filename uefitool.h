@@ -21,6 +21,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QString>
@@ -46,38 +47,58 @@ public:
 
 private slots:
     void init();
+	void populateUi(const QModelIndex &current);
     void openImageFile();
     void saveImageFile();
-    void populateUi(const QModelIndex &current);
-    void resizeTreeViewColums();
-    void extract(const UINT8 mode);
+
+	void resizeTreeViewColums();
+    void scrollTreeView(QListWidgetItem* item);
+
+	void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
     void extractUncompressed();
-    void insert(const UINT8 mode);
+    
+	void insert(const UINT8 mode);
     void insertInto();
     void insertBefore();
     void insertAfter();
-    void replace();
-    void remove();
-    void rebuild();
+    
+	void replace();
+    
+	void remove();
+    
+	void rebuild();
+	
 	void changeToNone();
     void changeToEfi11();
     void changeToTiano();
     void changeToLzma();
-    void about();
+    
+	void about();
     void aboutQt();
-    void scrollTreeView(QListWidgetItem* item);
+
     void exit();
 
 private:
     Ui::UEFITool * ui;
     FfsEngine* ffsEngine;
-    QQueue<MessageListItem> messageItems;
+    
+	QQueue<MessageListItem> messageItems;
+	void showMessage();
+
+	QMenu capsuleMenu;
+	QMenu imageMenu;
+	QMenu regionMenu;
+	QMenu paddingMenu;
+	QMenu volumeMenu;
+	QMenu fileMenu;
+	QMenu sectionMenu;
+	void createMenus();
 	
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
-    void showMessage();
+	void contextMenuEvent (QContextMenuEvent* event);
 };
 
 #endif

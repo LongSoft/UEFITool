@@ -31,6 +31,7 @@ public:
     // Action types
     enum ActionTypes {
         NoAction = 50,
+		Modify,
         Remove,      
         Rebuild
     };
