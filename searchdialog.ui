@@ -58,7 +58,7 @@
    <item row="2" column="0" colspan="2">
     <widget class="QStackedWidget" name="stackedWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="hexPage">
       <layout class="QHBoxLayout" name="horizontalLayout_3">
