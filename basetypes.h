@@ -111,6 +111,11 @@ typedef uint16_t  CHAR16;
 #define ERASE_POLARITY_TRUE    1
 #define ERASE_POLARITY_UNKNOWN 0xFF
 
+// Search modes
+#define SEARCH_MODE_HEX     0
+#define SEARCH_MODE_ASCII   1
+#define SEARCH_MODE_UNICODE 2
+
 // EFI GUID
 typedef struct{
     UINT8 Data[16];

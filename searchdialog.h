@@ -1,4 +1,4 @@
-/* main.cpp
+/* searchdialog.h
 
   Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
@@ -11,22 +11,24 @@
 
 */
 
-#include <QApplication>
-#include <QString>
-#include "uefitool.h"
+#ifndef SEARCHDIALOG_H
+#define SEARCHDIALOG_H
 
-int main(int argc, char *argv[])
+#include <QDialog>
+#include "ui_searchdialog.h"
+
+class SearchDialog : public QDialog
 {
-    QApplication a(argc, argv);
-    UEFITool w;
+    Q_OBJECT
 
-	QCoreApplication::setOrganizationName("CodeRush");
-    QCoreApplication::setOrganizationDomain("coderush.me");
-    QCoreApplication::setApplicationName("UEFITool");
+public:
+    SearchDialog(QWidget *parent = 0);
+	~SearchDialog();
+	Ui::SearchDialog* ui;
 
-    if (a.arguments().length() > 1)
-        w.openImageFile(a.arguments().at(1));
-    w.show();
-    
-    return a.exec();
-}
+private slots:
+	//void setEditMask();
+
+};
+
+#endif

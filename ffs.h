@@ -56,7 +56,7 @@ typedef struct {
     UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
                                             // the capsule volume
     //!TODO: Enable certificate and rom layout reading
-	//UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
+    //UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
                                                 // that are included in the signature calculation
     //FW_CERTIFICATE      FWCert;           
     //ROM_AREA			  RomAreaMap[1];
@@ -77,17 +77,17 @@ typedef struct {
 
 // Volume header
 typedef struct {
-	UINT8                  ZeroVector[16];
-	EFI_GUID               FileSystemGuid;
-	UINT64                 FvLength;
-	UINT32                 Signature;
-	UINT32                 Attributes;
-	UINT16                 HeaderLength;
-	UINT16                 Checksum;
+    UINT8                  ZeroVector[16];
+    EFI_GUID               FileSystemGuid;
+    UINT64                 FvLength;
+    UINT32                 Signature;
+    UINT32                 Attributes;
+    UINT16                 HeaderLength;
+    UINT16                 Checksum;
     UINT16                 ExtHeaderOffset;  //Reserved in Revision 1
     UINT8                  Reserved;
-	UINT8                  Revision;
-	//EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];	
+    UINT8                  Revision;
+    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];	
 } EFI_FIRMWARE_VOLUME_HEADER;
 
 // Filesystem GUIDs
@@ -229,12 +229,12 @@ typedef union {
 } EFI_FFS_INTEGRITY_CHECK;
 // File header
 typedef struct {
-	EFI_GUID                Name;
+    EFI_GUID                Name;
     EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
-	UINT8                   Type;
-	UINT8                   Attributes;
-	UINT8                   Size[3];
-	UINT8                   State;
+    UINT8                   Type;
+    UINT8                   Attributes;
+    UINT8                   Size[3];
+    UINT8                   State;
 } EFI_FFS_FILE_HEADER;
 
 // Large file header

@@ -31,8 +31,8 @@ Providing both EFI and Tiano decompress algorithms.
 extern "C" {
 #endif
 typedef struct {
-    UINT32 CompSize;
-    UINT32 OrigSize;
+	UINT32 CompSize;
+	UINT32 OrigSize;
 } EFI_TIANO_HEADER;
 
 UINT32

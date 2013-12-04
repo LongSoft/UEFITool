@@ -21,18 +21,24 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QPlainTextEdit>
+#include <QSettings>
+#include <QSplitter>
 #include <QString>
+#include <QTreeView>
 #include <QUrl>
 
 #include "basetypes.h"
 #include "ffs.h"
 #include "ffsengine.h"
+#include "searchdialog.h"
 
 namespace Ui {
-class UEFITool;
+	class UEFITool;
 }
 
 class UEFITool : public QMainWindow
@@ -47,58 +53,55 @@ public:
 
 private slots:
     void init();
-	void populateUi(const QModelIndex &current);
-    void openImageFile();
-    void saveImageFile();
-
-	void resizeTreeViewColums();
+    void populateUi(const QModelIndex &current);
+	void resizeTreeViewColumns();
     void scrollTreeView(QListWidgetItem* item);
 
-	void extract(const UINT8 mode);
+    void openImageFile();
+    void saveImageFile();
+	void search();
+	
+    void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
     void extractUncompressed();
     
-	void insert(const UINT8 mode);
+    void insert(const UINT8 mode);
     void insertInto();
     void insertBefore();
     void insertAfter();
     
-	void replace();
+    void replace();
     
-	void remove();
+    void remove();
     
-	void rebuild();
-	
-	void changeToNone();
+    void rebuild();
+    
+    void changeToNone();
     void changeToEfi11();
     void changeToTiano();
     void changeToLzma();
     
-	void about();
+	void clearMessages();
+
+    void about();
     void aboutQt();
 
     void exit();
+	void writeSettings();
 
 private:
-    Ui::UEFITool * ui;
+    Ui::UEFITool* ui;
     FfsEngine* ffsEngine;
-    
-	QQueue<MessageListItem> messageItems;
-	void showMessage();
+    SearchDialog* searchDialog;
 
-	QMenu capsuleMenu;
-	QMenu imageMenu;
-	QMenu regionMenu;
-	QMenu paddingMenu;
-	QMenu volumeMenu;
-	QMenu fileMenu;
-	QMenu sectionMenu;
-	void createMenus();
-	
+    QQueue<MessageListItem> messageItems;
+    void showMessages();
+    
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
-	void contextMenuEvent (QContextMenuEvent* event);
+    void contextMenuEvent(QContextMenuEvent* event);
+	void readSettings();
 };
 
 #endif

@@ -172,7 +172,7 @@ QVariant TreeItem::data(int column) const
     case 0: //Name
         return itemName;
     case 1: //Action
-		if (itemAction == TreeItem::Modify)
+        if (itemAction == TreeItem::Modify)
             return "M";
         if (itemAction == TreeItem::Remove)
             return "X";

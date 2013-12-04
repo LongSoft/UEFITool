@@ -51,9 +51,14 @@ void FfsEngine::msg(const QString & message, const QModelIndex index)
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 }
 
-QQueue<MessageListItem> FfsEngine::message()
+QQueue<MessageListItem> FfsEngine::messages()
 {
     return messageItems;
+}
+
+void FfsEngine::clearMessages()
+{
+	messageItems.clear();
 }
 
 QModelIndex FfsEngine::findParentOfType(UINT8 type, const QModelIndex& index) const
@@ -911,7 +916,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, UINT8 revision, const UINT8 
 
     // Add tree item
     QModelIndex index = treeModel->addItem(TreeItem::File, fileHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, tail, parent, mode);
-
+	
     if (!parseCurrentFile)
         return ERR_SUCCESS;
 
@@ -1298,7 +1303,7 @@ UINT8 FfsEngine::changeCompression(const QModelIndex & index, const UINT8 algori
     // Set compression for the item
     treeModel->setItemCompression(algorithm, index);
 
-	// Set action for the item
+    // Set action for the item
     treeModel->setItemAction(TreeItem::Modify, index);
 
     return ERR_SUCCESS;
@@ -1341,46 +1346,20 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
         scratch = new UINT8[scratchSize];
 
         // Decompress section data
-        //!TODO: better check needed
-        // Try EFI1.1 decompression first
-        if (ERR_SUCCESS != EfiDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
-            // Not EFI 1.1, try Tiano
-            if (ERR_SUCCESS != TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
+        // Try Tiano decompression first
+        if (ERR_SUCCESS != TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
+            // Not Tiano, try EFI 1.1
+            if (ERR_SUCCESS != EfiDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
                 if (algorithm)
                     *algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
                 return ERR_STANDARD_DECOMPRESSION_FAILED;
             }
             else if (algorithm)
-                *algorithm = COMPRESSION_ALGORITHM_TIANO;
+                *algorithm = COMPRESSION_ALGORITHM_EFI11;
         }
-        else {
-            // Possible EFI 1.1
-            // Try decompressing it as Tiano
-            UINT8* tianoDecompressed = new UINT8[decompressedSize];
-            UINT8* tianoScratch = new UINT8[scratchSize];
-            if (ERR_SUCCESS != TianoDecompress(data, dataSize, tianoDecompressed, decompressedSize, tianoScratch, scratchSize)) {
-                // Not Tiano, definitely EFI 1.1
-                if (algorithm)
-                    *algorithm = COMPRESSION_ALGORITHM_EFI11;
-            }
-            else {
-                // Both algorithms work
-                if(memcmp(decompressed, tianoDecompressed, decompressedSize)) {
-                    // If decompressed data are different - it's Tiano for sure
-                    delete[] decompressed;
-                    delete[] scratch;
-                    decompressed = tianoDecompressed;
-                    scratch = tianoScratch;
-                    if (algorithm)
-                        *algorithm = COMPRESSION_ALGORITHM_TIANO;
-                }
-                else {
-                    // Data are same - it's EFI 1.1
-                    if (algorithm)
-                        *algorithm = COMPRESSION_ALGORITHM_EFI11;
-                }
-            }
-        }
+        else if (algorithm)
+            *algorithm = COMPRESSION_ALGORITHM_TIANO;
+
         decompressedData = QByteArray((const char*) decompressed, decompressedSize);
 
         // Free allocated memory
@@ -1572,7 +1551,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
     QByteArray reconstructed;
     UINT8 result;
 
-    // No action is needed, just return header + body
+    // No action is needed, just return header + body + tail
     if (item->action() == TreeItem::NoAction) {
         reconstructed = item->header().append(item->body()).append(item->tail());
         queue.enqueue(reconstructed);
@@ -1872,7 +1851,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                                 }
                             }
                             
-							// Append last file and fill the rest with empty char
+                            // Append last file and fill the rest with empty char
                             else {
                                 reconstructed.append(file);
                                 UINT32 volumeBodySize = volumeSize - header.size();
@@ -1903,7 +1882,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         // Append current file to new volume body
                         reconstructed.append(file);
                         
-						// Change current file offset
+                        // Change current file offset
                         offset += file.size();
                     }
 
@@ -2188,85 +2167,93 @@ UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & new
     return ERR_SUCCESS;
 }
 
-// Will be refactored later
-/*QByteArray FfsEngine::decompressFile(const QModelIndex& index) const
+// Search routines
+UINT8 FfsEngine::findHexPattern(const QByteArray & pattern, const bool bodyOnly)
 {
-if (!index.isValid())
-return QByteArray();
-
-// Check index item to be FFS file
-TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-if(item->type() != TreeItem::File)
-return QByteArray();
-
-QByteArray file;
-UINT32 offset = 0;
-// Construct new item body
-for (int i = 0; i < item->childCount(); i++) {
-// If section is not compressed, add it to new body as is
-TreeItem* sectionItem = item->child(i);
-if (sectionItem->subtype() != EFI_SECTION_COMPRESSION) {
-QByteArray section = sectionItem->header().append(sectionItem->body());
-UINT32 align = ALIGN4(offset) - offset;
-file.append(QByteArray(align, '\x00')).append(section);
-offset += align + section.size();
+	return findHexPatternIn(treeModel->index(0,0), pattern, bodyOnly);
 }
-else {
-// Construct new section body by adding all child sections to this new section
-QByteArray section;
-UINT32 subOffset = 0;
-for (int j = 0; j < sectionItem->childCount(); j++)
+
+UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const bool bodyOnly)
 {
-TreeItem* subSectionItem = sectionItem->child(j);
-QByteArray subSection = subSectionItem->header().append(subSectionItem->body());
-UINT32 align = ALIGN4(subOffset) - subOffset;
-section.append(QByteArray(align, '\x00')).append(subSection);
-subOffset += align + subSection.size();
+	if (pattern.isEmpty())
+		return ERR_INVALID_PARAMETER;
+	
+	if (!index.isValid())
+        return ERR_SUCCESS;
+
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+    if (item == rootItem)
+        return ERR_SUCCESS;
+
+	bool hasChildren = (item->childCount() > 0);
+	for (int i = 0; i < item->childCount(); i++) {
+		findHexPatternIn(index.child(i, index.column()), pattern, bodyOnly);
+	}
+	
+	QByteArray data;
+	if (hasChildren) {
+		if(!bodyOnly) 
+			data = item->header();
+	}
+	else {
+		if (bodyOnly)
+			data = item->body();
+		else
+			data = item->header().append(item->body()).append(item->tail());
+	}
+
+	int offset = -1;
+	while ((offset = data.indexOf(pattern, offset + 1)) >= 0) {
+		msg(tr("Hex pattern \"%1\" found in %2 at offset %3")
+			.arg(QString(pattern.toHex()))
+			.arg(item->data(0).toString())
+			.arg(offset, 8, 16, QChar('0')), 
+			index);
+	}
+
+	return ERR_SUCCESS;
 }
-// Add newly constructed section to file body
 
-EFI_COMPRESSION_SECTION sectionHeader;
-sectionHeader.Type = EFI_SECTION_COMPRESSION;
-sectionHeader.CompressionType = EFI_NOT_COMPRESSED;
-sectionHeader.UncompressedLength = section.size();
-uint32ToUint24(section.size() + sizeof(EFI_COMPRESSION_SECTION), sectionHeader.Size);
-UINT32 align = ALIGN4(offset) - offset;
-file.append(QByteArray(align, '\x00'))
-.append(QByteArray((const char*) &sectionHeader, sizeof(EFI_COMPRESSION_SECTION)))
-.append(section);
-offset += align + section.size();
-}
-}
-
-QByteArray header = item->header();
-EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) header.data();
-
-// Correct file data checksum, if needed
-if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
-UINT32 bufferSize = file.size() - sizeof(EFI_FFS_FILE_HEADER);
-fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)(file.data() + sizeof(EFI_FFS_FILE_HEADER)), bufferSize);
-}
-
-// Add file tail, if needed
-if(fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)
-file.append(!fileHeader->IntegrityCheck.TailReference);
-
-return header.append(file);
-}*/
-
-/*bool FfsEngine::isCompressedFile(const QModelIndex& index) const
+UINT8 FfsEngine::findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive)
 {
-if (!index.isValid())
-return false;
-
-TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-if(item->type() != TreeItem::File)
-return false;
-
-for (int i = 0; i < item->childCount(); i++) {
-if (item->child(i)->subtype() == EFI_SECTION_COMPRESSION)
-return true;
+	return findTextPatternIn(treeModel->index(0,0), pattern, unicode, caseSensitive);
 }
 
-return false;
-}*/
+UINT8 FfsEngine::findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive)
+{
+	if (pattern.isEmpty())
+		return ERR_INVALID_PARAMETER;
+	
+	if (!index.isValid())
+        return ERR_SUCCESS;
+
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+    if (item == rootItem)
+        return ERR_SUCCESS;
+
+	bool hasChildren = (item->childCount() > 0);
+	for (int i = 0; i < item->childCount(); i++) {
+		findTextPatternIn(index.child(i, index.column()), pattern, unicode, caseSensitive);
+	}
+	
+	if (hasChildren)
+		return ERR_SUCCESS;
+
+	QString data;
+	if (unicode)
+		data = QString::fromUtf16((const ushort*) item->body().data(), item->body().length()/2);
+	else
+		data = QString::fromAscii((const char*) item->body().data(), item->body().length());
+
+	int offset = -1;
+	while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
+		msg(tr("%1 text pattern \"%2\" found in %3 at offset %4")
+			.arg(unicode ? "Unicode" : "ASCII")
+			.arg(pattern)
+			.arg(item->data(0).toString())
+			.arg(unicode ? offset*2 : offset, 8, 16, QChar('0')), 
+			index);
+	}
+
+	return ERR_SUCCESS;
+}

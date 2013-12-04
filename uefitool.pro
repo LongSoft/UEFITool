@@ -6,6 +6,7 @@ TEMPLATE  = app
 
 SOURCES  += main.cpp \
             uefitool.cpp \
+			searchdialog.cpp \
             descriptor.cpp \
             ffs.cpp \
 			ffsengine.cpp \
@@ -20,7 +21,9 @@ SOURCES  += main.cpp \
             Tiano/EfiTianoDecompress.c \
             Tiano/EfiCompress.c \
             Tiano/TianoCompress.c
+			
 HEADERS  += uefitool.h \
+			searchdialog.h \
             basetypes.h \
             descriptor.h \
 			gbe.h \
@@ -34,6 +37,10 @@ HEADERS  += uefitool.h \
             LZMA/LzmaDecompress.h \
             Tiano/EfiTianoDecompress.h \
             Tiano/EfiTianoCompress.h
-FORMS    += uefitool.ui
+			
+FORMS    += uefitool.ui \
+			searchdialog.ui
+			
 RC_FILE   = uefitool.rc
+
 ICON      = uefitool.icns

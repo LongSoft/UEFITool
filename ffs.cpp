@@ -19,9 +19,9 @@ const UINT8 ffsAlignmentTable[] =
 UINT8 calculateChecksum8(UINT8* buffer, UINT32 bufferSize)
 {
     if(!buffer)
-		return 0;
-	
-	UINT8 counter = 0;
+        return 0;
+    
+    UINT8 counter = 0;
 
     while(bufferSize--)
         counter += buffer[bufferSize];
@@ -32,16 +32,16 @@ UINT8 calculateChecksum8(UINT8* buffer, UINT32 bufferSize)
 UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize)
 {
     if(!buffer)
-		return 0;
+        return 0;
 
-	UINT16 counter = 0;
-	UINT32 index = 0;
+    UINT16 counter = 0;
+    UINT32 index = 0;
 
-	bufferSize /= sizeof(UINT16);
+    bufferSize /= sizeof(UINT16);
 
-	for (; index < bufferSize; index++) {
-		counter = (UINT16) (counter + buffer[index]);
-	}
+    for (; index < bufferSize; index++) {
+        counter = (UINT16) (counter + buffer[index]);
+    }
 
     return (UINT16) 0x10000 - counter;
 }
@@ -167,7 +167,7 @@ QString sectionTypeToQString(const UINT8 type)
 
 UINT32 sizeOfSectionHeaderOfType(const UINT8 type)
 {
-	switch (type)
+    switch (type)
     {
     case EFI_SECTION_COMPRESSION:
         return sizeof(EFI_COMMON_SECTION_HEADER);

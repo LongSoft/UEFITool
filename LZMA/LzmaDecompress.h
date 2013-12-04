@@ -49,12 +49,12 @@ LShiftU64 (
   @param  Source          The source buffer containing the compressed data.
   @param  SourceSize      The size, bytes, of the source buffer.
   @param  DestinationSize A pointer to the size, bytes, of the uncompressed buffer
-                          that will be generated when the compressed buffer specified
-                          by Source and SourceSize is decompressed.
+						  that will be generated when the compressed buffer specified
+						  by Source and SourceSize is decompressed.
 
   @retval  EFI_SUCCESS The size of the uncompressed data was returned 
-                          DestinationSize and the size of the scratch 
-                          buffer was returned ScratchSize.
+						  DestinationSize and the size of the scratch 
+						  buffer was returned ScratchSize.
 
 */
 INT32
@@ -77,12 +77,12 @@ LzmaGetInfo (
   @param  Source      The source buffer containing the compressed data.
   @param  SourceSize  The size of source buffer.
   @param  Destination The destination buffer to store the decompressed data
-                     
+					 
   @retval  EFI_SUCCESS Decompression completed successfully, and 
-                          the uncompressed buffer is returned Destination.
+						  the uncompressed buffer is returned Destination.
   @retval  EFI_INVALID_PARAMETER 
-                          The source buffer specified by Source is corrupted 
-                          (not a valid compressed format).
+						  The source buffer specified by Source is corrupted 
+						  (not a valid compressed format).
 */
 INT32
 EFIAPI

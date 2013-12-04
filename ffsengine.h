@@ -38,7 +38,10 @@ public:
     TreeModel* model() const;
 
     // Returns message items queue
-    QQueue<MessageListItem> message();
+    QQueue<MessageListItem> messages();
+
+	// Clears message items queue
+	void clearMessages();
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
@@ -74,6 +77,11 @@ public:
     UINT8 rebuild(const QModelIndex & index);
     UINT8 changeCompression(const QModelIndex & index, const UINT8 algorithm);
     
+	// Search routines
+	UINT8 findHexPattern(const QByteArray & pattern, const bool bodyOnly);
+	UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const bool bodyOnly);
+	UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+	UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 private:
     TreeItem  *rootItem;
     TreeModel *treeModel;

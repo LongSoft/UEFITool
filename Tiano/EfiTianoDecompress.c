@@ -101,25 +101,25 @@ Sd->mBitBuf = (UINT32) (Sd->mBitBuf << NumOfBits);
 
 while (NumOfBits > Sd->mBitCount) {
 
-    Sd->mBitBuf |= (UINT32) (Sd->mSubBitBuf << (NumOfBits = (UINT16) (NumOfBits - Sd->mBitCount)));
+	Sd->mBitBuf |= (UINT32) (Sd->mSubBitBuf << (NumOfBits = (UINT16) (NumOfBits - Sd->mBitCount)));
 
-    if (Sd->mCompSize > 0) {
-        //
-        // Get 1 byte into SubBitBuf
-        //
-        Sd->mCompSize--;
-        Sd->mSubBitBuf  = 0;
-        Sd->mSubBitBuf  = Sd->mSrcBase[Sd->mInBuf++];
-        Sd->mBitCount   = 8;
+	if (Sd->mCompSize > 0) {
+		//
+		// Get 1 byte into SubBitBuf
+		//
+		Sd->mCompSize--;
+		Sd->mSubBitBuf  = 0;
+		Sd->mSubBitBuf  = Sd->mSrcBase[Sd->mInBuf++];
+		Sd->mBitCount   = 8;
 
-    } else {
-        //
-        // No more bits from the source, just pad zero bit.
-        //
-        Sd->mSubBitBuf  = 0;
-        Sd->mBitCount   = 8;
+	} else {
+		//
+		// No more bits from the source, just pad zero bit.
+		//
+		Sd->mSubBitBuf  = 0;
+		Sd->mBitCount   = 8;
 
-    }
+	}
 }
 
 Sd->mBitCount = (UINT16) (Sd->mBitCount - NumOfBits);
@@ -204,43 +204,43 @@ UINT16  NextCode;
 UINT16  Mask;
 
 for (Index = 1; Index <= 16; Index++) {
-    Count[Index] = 0;
+	Count[Index] = 0;
 }
 
 for (Index = 0; Index < NumOfChar; Index++) {
-    Count[BitLen[Index]]++;
+	Count[BitLen[Index]]++;
 }
 
 Start[1] = 0;
 
 for (Index = 1; Index <= 16; Index++) {
-    Start[Index + 1] = (UINT16) (Start[Index] + (Count[Index] << (16 - Index)));
+	Start[Index + 1] = (UINT16) (Start[Index] + (Count[Index] << (16 - Index)));
 }
 
 if (Start[17] != 0) {
-    /*(1U << 16)*/
-    return (UINT16) BAD_TABLE;
+	/*(1U << 16)*/
+	return (UINT16) BAD_TABLE;
 }
 
 JuBits = (UINT16) (16 - TableBits);
 
 for (Index = 1; Index <= TableBits; Index++) {
-    Start[Index] >>= JuBits;
-    Weight[Index] = (UINT16) (1U << (TableBits - Index));
+	Start[Index] >>= JuBits;
+	Weight[Index] = (UINT16) (1U << (TableBits - Index));
 }
 
 while (Index <= 16) {
-    Weight[Index] = (UINT16) (1U << (16 - Index));
-    Index++;
+	Weight[Index] = (UINT16) (1U << (16 - Index));
+	Index++;
 }
 
 Index = (UINT16) (Start[TableBits + 1] >> JuBits);
 
 if (Index != 0) {
-    Index3 = (UINT16) (1U << TableBits);
-    while (Index != Index3) {
-        Table[Index++] = 0;
-    }
+	Index3 = (UINT16) (1U << TableBits);
+	while (Index != Index3) {
+		Table[Index++] = 0;
+	}
 }
 
 Avail = NumOfChar;
@@ -248,46 +248,46 @@ Mask  = (UINT16) (1U << (15 - TableBits));
 
 for (Char = 0; Char < NumOfChar; Char++) {
 
-    Len = BitLen[Char];
-    if (Len == 0) {
-        continue;
-    }
+	Len = BitLen[Char];
+	if (Len == 0) {
+		continue;
+	}
 
-    NextCode = (UINT16) (Start[Len] + Weight[Len]);
+	NextCode = (UINT16) (Start[Len] + Weight[Len]);
 
-    if (Len <= TableBits) {
+	if (Len <= TableBits) {
 
-        for (Index = Start[Len]; Index < NextCode; Index++) {
-            Table[Index] = Char;
-        }
+		for (Index = Start[Len]; Index < NextCode; Index++) {
+			Table[Index] = Char;
+		}
 
-    } else {
+	} else {
 
-        Index3  = Start[Len];
-        Pointer = &Table[Index3 >> JuBits];
-        Index   = (UINT16) (Len - TableBits);
+		Index3  = Start[Len];
+		Pointer = &Table[Index3 >> JuBits];
+		Index   = (UINT16) (Len - TableBits);
 
-        while (Index != 0) {
-            if (*Pointer == 0) {
-                Sd->mRight[Avail]                     = Sd->mLeft[Avail] = 0;
-                *Pointer = Avail++;
-            }
+		while (Index != 0) {
+			if (*Pointer == 0) {
+				Sd->mRight[Avail]                     = Sd->mLeft[Avail] = 0;
+				*Pointer = Avail++;
+			}
 
-            if (Index3 & Mask) {
-                Pointer = &Sd->mRight[*Pointer];
-            } else {
-                Pointer = &Sd->mLeft[*Pointer];
-            }
+			if (Index3 & Mask) {
+				Pointer = &Sd->mRight[*Pointer];
+			} else {
+				Pointer = &Sd->mLeft[*Pointer];
+			}
 
-            Index3 <<= 1;
-            Index--;
-        }
+			Index3 <<= 1;
+			Index--;
+		}
 
-        *Pointer = Char;
+		*Pointer = Char;
 
-    }
+	}
 
-    Start[Len] = NextCode;
+	Start[Len] = NextCode;
 }
 //
 // Succeeds
@@ -323,18 +323,18 @@ UINT32  Pos;
 Val = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
 
 if (Val >= MAXNP) {
-    Mask = 1U << (BITBUFSIZ - 1 - 8);
+	Mask = 1U << (BITBUFSIZ - 1 - 8);
 
-    do {
+	do {
 
-        if (Sd->mBitBuf & Mask) {
-            Val = Sd->mRight[Val];
-        } else {
-            Val = Sd->mLeft[Val];
-        }
+		if (Sd->mBitBuf & Mask) {
+			Val = Sd->mRight[Val];
+		} else {
+			Val = Sd->mLeft[Val];
+		}
 
-        Mask >>= 1;
-    } while (Val >= MAXNP);
+		Mask >>= 1;
+	} while (Val >= MAXNP);
 }
 //
 // Advance what we have read
@@ -343,7 +343,7 @@ FillBuf (Sd, Sd->mPTLen[Val]);
 
 Pos = Val;
 if (Val > 1) {
-    Pos = (UINT32) ((1U << (Val - 1)) + GetBits (Sd, (UINT16) (Val - 1)));
+	Pos = (UINT32) ((1U << (Val - 1)) + GetBits (Sd, (UINT16) (Val - 1)));
 }
 
 return Pos;
@@ -385,47 +385,47 @@ UINT32  Mask;
 Number = (UINT16) GetBits (Sd, nbit);
 
 if (Number == 0) {
-    CharC = (UINT16) GetBits (Sd, nbit);
+	CharC = (UINT16) GetBits (Sd, nbit);
 
-    for (Index = 0; Index < 256; Index++) {
-        Sd->mPTTable[Index] = CharC;
-    }
+	for (Index = 0; Index < 256; Index++) {
+		Sd->mPTTable[Index] = CharC;
+	}
 
-    for (Index = 0; Index < nn; Index++) {
-        Sd->mPTLen[Index] = 0;
-    }
+	for (Index = 0; Index < nn; Index++) {
+		Sd->mPTLen[Index] = 0;
+	}
 
-    return 0;
+	return 0;
 }
 
 Index = 0;
 
 while (Index < Number) {
 
-    CharC = (UINT16) (Sd->mBitBuf >> (BITBUFSIZ - 3));
+	CharC = (UINT16) (Sd->mBitBuf >> (BITBUFSIZ - 3));
 
-    if (CharC == 7) {
-        Mask = 1U << (BITBUFSIZ - 1 - 3);
-        while (Mask & Sd->mBitBuf) {
-            Mask >>= 1;
-            CharC += 1;
-        }
-    }
+	if (CharC == 7) {
+		Mask = 1U << (BITBUFSIZ - 1 - 3);
+		while (Mask & Sd->mBitBuf) {
+			Mask >>= 1;
+			CharC += 1;
+		}
+	}
 
-    FillBuf (Sd, (UINT16) ((CharC < 7) ? 3 : CharC - 3));
+	FillBuf (Sd, (UINT16) ((CharC < 7) ? 3 : CharC - 3));
 
-    Sd->mPTLen[Index++] = (UINT8) CharC;
+	Sd->mPTLen[Index++] = (UINT8) CharC;
 
-    if (Index == Special) {
-        CharC = (UINT16) GetBits (Sd, 2);
-        while ((INT16) (--CharC) >= 0) {
-            Sd->mPTLen[Index++] = 0;
-        }
-    }
+	if (Index == Special) {
+		CharC = (UINT16) GetBits (Sd, 2);
+		while ((INT16) (--CharC) >= 0) {
+			Sd->mPTLen[Index++] = 0;
+		}
+	}
 }
 
 while (Index < nn) {
-    Sd->mPTLen[Index++] = 0;
+	Sd->mPTLen[Index++] = 0;
 }
 
 return MakeTable (Sd, nn, Sd->mPTLen, 8, Sd->mPTTable);
@@ -458,66 +458,66 @@ UINT32  Mask;
 Number = (UINT16) GetBits (Sd, CBIT);
 
 if (Number == 0) {
-    CharC = (UINT16) GetBits (Sd, CBIT);
+	CharC = (UINT16) GetBits (Sd, CBIT);
 
-    for (Index = 0; Index < NC; Index++) {
-        Sd->mCLen[Index] = 0;
-    }
+	for (Index = 0; Index < NC; Index++) {
+		Sd->mCLen[Index] = 0;
+	}
 
-    for (Index = 0; Index < 4096; Index++) {
-        Sd->mCTable[Index] = CharC;
-    }
+	for (Index = 0; Index < 4096; Index++) {
+		Sd->mCTable[Index] = CharC;
+	}
 
-    return ;
+	return ;
 }
 
 Index = 0;
 while (Index < Number) {
 
-    CharC = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
-    if (CharC >= NT) {
-        Mask = 1U << (BITBUFSIZ - 1 - 8);
+	CharC = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
+	if (CharC >= NT) {
+		Mask = 1U << (BITBUFSIZ - 1 - 8);
 
-        do {
+		do {
 
-            if (Mask & Sd->mBitBuf) {
-                CharC = Sd->mRight[CharC];
-            } else {
-                CharC = Sd->mLeft[CharC];
-            }
+			if (Mask & Sd->mBitBuf) {
+				CharC = Sd->mRight[CharC];
+			} else {
+				CharC = Sd->mLeft[CharC];
+			}
 
-            Mask >>= 1;
+			Mask >>= 1;
 
-        } while (CharC >= NT);
-    }
-    //
-    // Advance what we have read
-    //
-    FillBuf (Sd, Sd->mPTLen[CharC]);
+		} while (CharC >= NT);
+	}
+	//
+	// Advance what we have read
+	//
+	FillBuf (Sd, Sd->mPTLen[CharC]);
 
-    if (CharC <= 2) {
+	if (CharC <= 2) {
 
-        if (CharC == 0) {
-            CharC = 1;
-        } else if (CharC == 1) {
-            CharC = (UINT16) (GetBits (Sd, 4) + 3);
-        } else if (CharC == 2) {
-            CharC = (UINT16) (GetBits (Sd, CBIT) + 20);
-        }
+		if (CharC == 0) {
+			CharC = 1;
+		} else if (CharC == 1) {
+			CharC = (UINT16) (GetBits (Sd, 4) + 3);
+		} else if (CharC == 2) {
+			CharC = (UINT16) (GetBits (Sd, CBIT) + 20);
+		}
 
-        while ((INT16) (--CharC) >= 0) {
-            Sd->mCLen[Index++] = 0;
-        }
+		while ((INT16) (--CharC) >= 0) {
+			Sd->mCLen[Index++] = 0;
+		}
 
-    } else {
+	} else {
 
-        Sd->mCLen[Index++] = (UINT8) (CharC - 2);
+		Sd->mCLen[Index++] = (UINT8) (CharC - 2);
 
-    }
+	}
 }
 
 while (Index < NC) {
-    Sd->mCLen[Index++] = 0;
+	Sd->mCLen[Index++] = 0;
 }
 
 MakeTable (Sd, NC, Sd->mCLen, 12, Sd->mCTable);
@@ -550,38 +550,38 @@ UINT16  Index2;
 UINT32  Mask;
 
 if (Sd->mBlockSize == 0) {
-    //
-    // Starting a new block
-    //
-    Sd->mBlockSize    = (UINT16) GetBits (Sd, 16);
-    Sd->mBadTableFlag = ReadPTLen (Sd, NT, TBIT, 3);
-    if (Sd->mBadTableFlag != 0) {
-        return 0;
-    }
+	//
+	// Starting a new block
+	//
+	Sd->mBlockSize    = (UINT16) GetBits (Sd, 16);
+	Sd->mBadTableFlag = ReadPTLen (Sd, NT, TBIT, 3);
+	if (Sd->mBadTableFlag != 0) {
+		return 0;
+	}
 
-    ReadCLen (Sd);
+	ReadCLen (Sd);
 
-    Sd->mBadTableFlag = ReadPTLen (Sd, MAXNP, Sd->mPBit, (UINT16) (-1));
-    if (Sd->mBadTableFlag != 0) {
-        return 0;
-    }
+	Sd->mBadTableFlag = ReadPTLen (Sd, MAXNP, Sd->mPBit, (UINT16) (-1));
+	if (Sd->mBadTableFlag != 0) {
+		return 0;
+	}
 }
 
 Sd->mBlockSize--;
 Index2 = Sd->mCTable[Sd->mBitBuf >> (BITBUFSIZ - 12)];
 
 if (Index2 >= NC) {
-    Mask = 1U << (BITBUFSIZ - 1 - 12);
+	Mask = 1U << (BITBUFSIZ - 1 - 12);
 
-    do {
-        if (Sd->mBitBuf & Mask) {
-            Index2 = Sd->mRight[Index2];
-        } else {
-            Index2 = Sd->mLeft[Index2];
-        }
+	do {
+		if (Sd->mBitBuf & Mask) {
+			Index2 = Sd->mRight[Index2];
+		} else {
+			Index2 = Sd->mLeft[Index2];
+		}
 
-        Mask >>= 1;
-    } while (Index2 >= NC);
+		Mask >>= 1;
+	} while (Index2 >= NC);
 }
 //
 // Advance what we have read
@@ -619,41 +619,41 @@ BytesRemain = (UINT16) (-1);
 DataIdx     = 0;
 
 for (;;) {
-    CharC = DecodeC (Sd);
-    if (Sd->mBadTableFlag != 0) {
-        return ;
-    }
+	CharC = DecodeC (Sd);
+	if (Sd->mBadTableFlag != 0) {
+		return ;
+	}
 
-    if (CharC < 256) {
-        //
-        // Process an Original character
-        //
-        if (Sd->mOutBuf >= Sd->mOrigSize) {
-            return ;
-        } else {
-            Sd->mDstBase[Sd->mOutBuf++] = (UINT8) CharC;
-        }
+	if (CharC < 256) {
+		//
+		// Process an Original character
+		//
+		if (Sd->mOutBuf >= Sd->mOrigSize) {
+			return ;
+		} else {
+			Sd->mDstBase[Sd->mOutBuf++] = (UINT8) CharC;
+		}
 
-    } else {
-        //
-        // Process a Pointer
-        //
-        CharC       = (UINT16) (CharC - (UINT8_MAX + 1 - THRESHOLD));
+	} else {
+		//
+		// Process a Pointer
+		//
+		CharC       = (UINT16) (CharC - (UINT8_MAX + 1 - THRESHOLD));
 
-        BytesRemain = CharC;
+		BytesRemain = CharC;
 
-        DataIdx     = Sd->mOutBuf - DecodeP (Sd) - 1;
+		DataIdx     = Sd->mOutBuf - DecodeP (Sd) - 1;
 
-        BytesRemain--;
-        while ((INT16) (BytesRemain) >= 0) {
-            Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
-            if (Sd->mOutBuf >= Sd->mOrigSize) {
-                return ;
-            }
+		BytesRemain--;
+		while ((INT16) (BytesRemain) >= 0) {
+			Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
+			if (Sd->mOutBuf >= Sd->mOrigSize) {
+				return ;
+			}
 
-            BytesRemain--;
-        }
-    }
+			BytesRemain--;
+		}
+	}
 }
 
 return ;
@@ -692,7 +692,7 @@ UINT8 *Src;
 
 Src           = Source;
 if (SrcSize < 8) {
-    return ERR_INVALID_PARAMETER;
+	return ERR_INVALID_PARAMETER;
 }
 
 *DstSize = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
@@ -747,13 +747,13 @@ Src     = Source;
 Dst     = Destination;
 
 if (ScratchSize < sizeof (SCRATCH_DATA)) {
-    return ERR_INVALID_PARAMETER;
+	return ERR_INVALID_PARAMETER;
 }
 
 Sd = (SCRATCH_DATA *) Scratch;
 
 if (SrcSize < 8) {
-    return ERR_INVALID_PARAMETER;
+	return ERR_INVALID_PARAMETER;
 }
 
 CompSize  = Src[0] + (Src[1] << 8) + (Src[2] << 16) + (Src[3] << 24);
@@ -763,21 +763,21 @@ OrigSize  = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
 // If compressed file size is 0, return
 //
 if (OrigSize == 0) {
-    return Status;
+	return Status;
 }
 
 if (SrcSize < CompSize + 8) {
-    return ERR_INVALID_PARAMETER;
+	return ERR_INVALID_PARAMETER;
 }
 
 if (DstSize != OrigSize) {
-    return ERR_INVALID_PARAMETER;
+	return ERR_INVALID_PARAMETER;
 }
 
 Src = Src + 8;
 
 for (Index = 0; Index < sizeof (SCRATCH_DATA); Index++) {
-    ((UINT8 *) Sd)[Index] = 0;
+	((UINT8 *) Sd)[Index] = 0;
 }
 //
 // The length of the field 'Position Set Code Length Array Size'Block Header.
@@ -786,18 +786,18 @@ for (Index = 0; Index < sizeof (SCRATCH_DATA); Index++) {
 //
 switch (Version) {
 case 1:
-    Sd->mPBit = 4;
-    break;
+	Sd->mPBit = 4;
+	break;
 
 case 2:
-    Sd->mPBit = 5;
-    break;
+	Sd->mPBit = 5;
+	break;
 
 default:
-    //
-    // Currently, only have 2 versions
-    //
-    return ERR_INVALID_PARAMETER;
+	//
+	// Currently, only have 2 versions
+	//
+	return ERR_INVALID_PARAMETER;
 }
 
 Sd->mSrcBase  = Src;
@@ -816,10 +816,10 @@ FillBuf (Sd, BITBUFSIZ);
 Decode (Sd);
 
 if (Sd->mBadTableFlag != 0) {
-    //
-    // Something wrong with the source
-    //
-    Status = ERR_INVALID_PARAMETER;
+	//
+	// Something wrong with the source
+	//
+	Status = ERR_INVALID_PARAMETER;
 }
 
 return Status;
@@ -862,14 +862,14 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 // For EFI 1.1 de/compression algorithm, the version is 1.
 //
 return Decompress (
-    Source,
-    SrcSize,
-    Destination,
-    DstSize,
-    Scratch,
-    ScratchSize,
-    1
-    );
+	Source,
+	SrcSize,
+	Destination,
+	DstSize,
+	Scratch,
+	ScratchSize,
+	1
+	);
 }
 
 UINT32
@@ -909,13 +909,13 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 // For Tiano de/compression algorithm, the version is 2.
 //
 return Decompress (
-    Source,
-    SrcSize,
-    Destination,
-    DstSize,
-    Scratch,
-    ScratchSize,
-    2
-    );
+	Source,
+	SrcSize,
+	Destination,
+	DstSize,
+	Scratch,
+	ScratchSize,
+	2
+	);
 }
 
