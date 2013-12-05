@@ -85,8 +85,8 @@ void UEFITool::init()
     ui->structureTreeView->setModel(ffsEngine->model());
     
     // Connect
-    connect(ui->structureTreeView, SIGNAL(collapsed(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
-    connect(ui->structureTreeView, SIGNAL(expanded(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
+    //connect(ui->structureTreeView, SIGNAL(collapsed(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
+    //connect(ui->structureTreeView, SIGNAL(expanded(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->messageListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
@@ -134,7 +134,7 @@ void UEFITool::search()
 
 	int index = searchDialog->ui->dataTypeComboBox->currentIndex();
 	if (index == 0) { // Hex pattern
-		QByteArray pattern = QByteArray::fromHex(searchDialog->ui->searchEdit->text().toAscii());
+        QByteArray pattern = QByteArray::fromHex(searchDialog->ui->searchEdit->text().toLatin1());
 		if (pattern.isEmpty())
 			return;
 		ffsEngine->findHexPattern(pattern, searchDialog->ui->dataOnlyRadioButton->isChecked());

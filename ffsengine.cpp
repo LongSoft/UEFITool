@@ -2243,7 +2243,7 @@ UINT8 FfsEngine::findTextPatternIn(const QModelIndex & index, const QString & pa
 	if (unicode)
 		data = QString::fromUtf16((const ushort*) item->body().data(), item->body().length()/2);
 	else
-		data = QString::fromAscii((const char*) item->body().data(), item->body().length());
+        data = QString::fromLatin1((const char*) item->body().data(), item->body().length());
 
 	int offset = -1;
 	while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
