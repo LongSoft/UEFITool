@@ -29,17 +29,13 @@ UEFITool::UEFITool(QWidget *parent) :
 	connect(ui->actionSearch, SIGNAL(triggered()), this, SLOT(search()));
     connect(ui->actionExtract, SIGNAL(triggered()), this, SLOT(extractAsIs()));
     connect(ui->actionExtractBody, SIGNAL(triggered()), this, SLOT(extractBody()));
-    connect(ui->actionExtractUncompressed, SIGNAL(triggered()), this, SLOT(extractUncompressed()));
     connect(ui->actionInsertInto, SIGNAL(triggered()), this, SLOT(insertInto()));
     connect(ui->actionInsertBefore, SIGNAL(triggered()), this, SLOT(insertBefore()));
     connect(ui->actionInsertAfter, SIGNAL(triggered()), this, SLOT(insertAfter()));
-    connect(ui->actionReplace, SIGNAL(triggered()), this, SLOT(replace()));
+    connect(ui->actionReplace, SIGNAL(triggered()), this, SLOT(replaceAsIs()));
+	connect(ui->actionReplaceBody, SIGNAL(triggered()), this, SLOT(replaceBody()));
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
     connect(ui->actionRebuild, SIGNAL(triggered()), this, SLOT(rebuild()));
-    connect(ui->actionChangeToNone, SIGNAL(triggered()), this, SLOT(changeToNone()));
-    connect(ui->actionChangeToEfi11, SIGNAL(triggered()), this, SLOT(changeToEfi11()));
-    connect(ui->actionChangeToTiano, SIGNAL(triggered()), this, SLOT(changeToTiano()));
-    connect(ui->actionChangeToLzma, SIGNAL(triggered()), this, SLOT(changeToLzma()));
     connect(ui->actionMessagesClear, SIGNAL(triggered()), this, SLOT(clearMessages()));
 	connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
@@ -85,8 +81,6 @@ void UEFITool::init()
     ui->structureTreeView->setModel(ffsEngine->model());
     
     // Connect
-    //connect(ui->structureTreeView, SIGNAL(collapsed(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
-    //connect(ui->structureTreeView, SIGNAL(expanded(const QModelIndex &)), this, SLOT(resizeTreeViewColums(void)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->messageListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
@@ -100,7 +94,6 @@ void UEFITool::populateUi(const QModelIndex &current)
     TreeItem* item = static_cast<TreeItem*>(current.internalPointer());
     UINT8 type = item->type();
     UINT8 subtype = item->subtype();
-    UINT8 algorithm = item->compression();
     
     // Set info text
     ui->infoEdit->setPlainText(item->info());
@@ -119,12 +112,11 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionRebuild->setDisabled(item->hasEmptyHeader() && item->hasEmptyBody() && item->hasEmptyTail());
     ui->actionExtractBody->setDisabled(item->hasEmptyHeader());
     ui->actionRemove->setEnabled(type == TreeItem::Volume || type == TreeItem::File || type == TreeItem::Section);
-    ui->actionInsertInto->setEnabled(type == TreeItem::Volume || (type == TreeItem::File && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD)
-        || (type == TreeItem::Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
+    ui->actionInsertInto->setEnabled(type == TreeItem::Volume || (type == TreeItem::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD));
     ui->actionInsertBefore->setEnabled(type == TreeItem::File || type == TreeItem::Section);
-    ui->actionInsertAfter->setEnabled(type == TreeItem::File || type == TreeItem::Section); 
-    ui->menuChangeCompressionTo->setEnabled(type == TreeItem::Section && subtype == EFI_SECTION_COMPRESSION &&
-        (algorithm == COMPRESSION_ALGORITHM_NONE || COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO || algorithm == COMPRESSION_ALGORITHM_LZMA));
+    ui->actionInsertAfter->setEnabled(type == TreeItem::File || type == TreeItem::Section);
+	ui->actionReplace->setEnabled(type == TreeItem::File || type == TreeItem::Section);
+	ui->actionReplaceBody->setEnabled(type == TreeItem::File || type == TreeItem::Section);
 }
 
 void UEFITool::search()
@@ -137,7 +129,14 @@ void UEFITool::search()
         QByteArray pattern = QByteArray::fromHex(searchDialog->ui->searchEdit->text().toLatin1());
 		if (pattern.isEmpty())
 			return;
-		ffsEngine->findHexPattern(pattern, searchDialog->ui->dataOnlyRadioButton->isChecked());
+		UINT8 mode;
+		if (searchDialog->ui->headerOnlyRadioButton->isChecked())
+			mode = SEARCH_MODE_HEADER;
+		else if (searchDialog->ui->bodyOnlyRadioButton->isChecked())
+			mode = SEARCH_MODE_BODY;
+		else
+			mode = SEARCH_MODE_ALL;
+		ffsEngine->findHexPattern(pattern, mode);
 		showMessages();
 	}
 	else if (index == 1) { // Text string
@@ -184,7 +183,7 @@ void UEFITool::insert(const UINT8 mode)
     UINT8 type;
     UINT8 objectType;
 
-    if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER)
+    if (mode == CREATE_MODE_BEFORE || mode == CREATE_MODE_AFTER)
         type = item->parent()->type();
     else
         type = item->type();
@@ -221,7 +220,7 @@ void UEFITool::insert(const UINT8 mode)
     QByteArray buffer = inputFile.readAll();
     inputFile.close();
 
-    UINT8 result = ffsEngine->insert(index, buffer, objectType, mode);
+    UINT8 result = ffsEngine->insert(index, buffer, mode);
     if (result)
         ui->statusBar->showMessage(tr("File can't be inserted (%1)").arg(result));
     else
@@ -230,67 +229,189 @@ void UEFITool::insert(const UINT8 mode)
 
 void UEFITool::insertInto()
 {
-    insert(INSERT_MODE_PREPEND);
+    insert(CREATE_MODE_PREPEND);
 }
 
 void UEFITool::insertBefore()
 {
-    insert(INSERT_MODE_BEFORE);
+    insert(CREATE_MODE_BEFORE);
 }
 
 void UEFITool::insertAfter()
 {
-    insert(INSERT_MODE_AFTER);
+    insert(CREATE_MODE_AFTER);
 }
 
-void UEFITool::replace()
+void UEFITool::replaceAsIs()
 {
-    
+    replace(REPLACE_MODE_AS_IS);
 }
 
-void UEFITool::changeToEfi11()
+void UEFITool::replaceBody()
+{
+    replace(REPLACE_MODE_BODY);
+}
+
+void UEFITool::replace(const UINT8 mode)
+{
+	QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+
+	TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+	QString path;
+	if (item->type() == TreeItem::File) {
+		if (mode == REPLACE_MODE_AS_IS) {
+			path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace selected object"),".","FFS files (*.ffs *.bin);;All files (*.*)");
+		}
+		else if (mode == REPLACE_MODE_BODY) {
+			if (item->subtype() == EFI_FV_FILETYPE_ALL || item->subtype() == EFI_FV_FILETYPE_RAW)
+				path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"),".","Raw files (*.raw *.bin);;All files (*.*)");
+			else if (item->subtype() == EFI_FV_FILETYPE_PAD) // Pad file body can't be replaced
+				return;
+			else
+				path = QFileDialog::getOpenFileName(this, tr("Select FFS file body to replace body"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
+		}
+		else
+			return;
+	}
+	else if (item->type() == TreeItem::Section) {
+		if (mode == REPLACE_MODE_AS_IS) {
+			path = QFileDialog::getOpenFileName(this, tr("Select section file to replace selected object"),".","Section files (*.sec *.bin);;All files (*.*)");
+		}
+		else if (mode == REPLACE_MODE_BODY) {
+			if (item->subtype() == EFI_SECTION_COMPRESSION || item->subtype() == EFI_SECTION_GUID_DEFINED || item->subtype() == EFI_SECTION_DISPOSABLE)
+				path = QFileDialog::getOpenFileName(this, tr("Select FFS file body file to replace body"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
+			else if (item->subtype() == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
+				path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace body"),".","Volume files (*.vol *.bin);;All files (*.*)");
+			else if (item->subtype() == EFI_SECTION_RAW)
+				path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"),".","Raw files (*.raw *.bin);;All files (*.*)");
+			else
+				path = QFileDialog::getOpenFileName(this, tr("Select file to replace body"),".","Binary files (*.bin);;All files (*.*)");
+		}
+		else
+			return;
+	}
+	else
+		return;
+
+	QFileInfo fileInfo = QFileInfo(path);
+    if (!fileInfo.exists()) {
+        ui->statusBar->showMessage(tr("Please select existing file"));
+        return;
+    }
+
+    QFile inputFile;
+    inputFile.setFileName(path);
+
+    if (!inputFile.open(QFile::ReadOnly)) {
+        ui->statusBar->showMessage(tr("Can't open file for reading"));
+        return;
+    }
+
+    QByteArray buffer = inputFile.readAll();
+    inputFile.close();
+
+    UINT8 result = ffsEngine->replace(index, buffer, mode);
+    if (result)
+        ui->statusBar->showMessage(tr("File can't be replaced (%1)").arg(result));
+    else
+        ui->actionSaveImageFile->setEnabled(true);
+}
+
+void UEFITool::extractAsIs()
+{
+    extract(EXTRACT_MODE_AS_IS);
+}
+
+void UEFITool::extractBody()
+{
+    extract(EXTRACT_MODE_BODY);
+}
+
+void UEFITool::extract(const UINT8 mode)
 {
     QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
     
-    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_EFI11);
-    
-    if (result == ERR_SUCCESS)
-        ui->actionSaveImageFile->setEnabled(true);
-}
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+    UINT8 type = item->type();
 
-void UEFITool::changeToTiano()
-{
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
+    QString path;
+    if (mode == EXTRACT_MODE_AS_IS) {
+        switch (type) {
+        case TreeItem::Capsule:
+            path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),".","Capsule files (*.cap *.bin);;All files (*.*)");
+            break;
+        case TreeItem::Image:
+            path = QFileDialog::getSaveFileName(this, tr("Save image to file"),".","Image files (*.rom *.bin);;All files (*.*)");
+            break;
+        case TreeItem::Region:
+            path = QFileDialog::getSaveFileName(this, tr("Save region to file"),".","Region files (*.rgn *.bin);;All files (*.*)");
+            break;
+        case TreeItem::Padding:
+            path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),".","Padding files (*.pad *.bin);;All files (*.*)");
+            break;
+        case TreeItem::Volume:
+            path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),".","Volume files (*.vol *.bin);;All files (*.*)");
+            break;
+        case TreeItem::File:
+            path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),".","FFS files (*.ffs *.bin);;All files (*.*)");
+            break;
+        case TreeItem::Section:
+            path = QFileDialog::getSaveFileName(this, tr("Save section file to file"),".","Section files (*.sct *.bin);;All files (*.*)");
+        break;
+        default:
+			path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
+        }
+    }
+	else if (mode == EXTRACT_MODE_BODY) {
+        switch (type) {
+        case TreeItem::Capsule:
+            path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"),".","Image files (*.rom *.bin);;All files (*.*)");
+            break;
+        case TreeItem::File: {
+				if (item->subtype() == EFI_FV_FILETYPE_ALL || item->subtype() == EFI_FV_FILETYPE_RAW)
+					path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
+				else
+					path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
+			}
+            break;
+        case TreeItem::Section: {
+			if (item->subtype() == EFI_SECTION_COMPRESSION || item->subtype() == EFI_SECTION_GUID_DEFINED || item->subtype() == EFI_SECTION_DISPOSABLE)
+				path = QFileDialog::getSaveFileName(this, tr("Save encapsulated section body to FFS body file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
+			else if (item->subtype() == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
+				path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"),".","Volume files (*.vol *.bin);;All files (*.*)");
+			else if (item->subtype() == EFI_SECTION_RAW)
+				path = QFileDialog::getOpenFileName(this, tr("Select section body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
+			else
+				path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),".","Binary files (*.bin);;All files (*.*)");
+			}
+        break;
+        default:
+			path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
+        }
+    }
+    else
+        path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
     
-    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_TIANO);
-    if (result == ERR_SUCCESS)
-        ui->actionSaveImageFile->setEnabled(true);
-}
+    QFile outputFile;
+    outputFile.setFileName(path);
+    if (!outputFile.open(QFile::WriteOnly)) {
+        ui->statusBar->showMessage(tr("Can't open file for rewriting"));
+        return;
+    }
 
-void UEFITool::changeToLzma()
-{
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
-    
-    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_LZMA);
-    if (result == ERR_SUCCESS)
-        ui->actionSaveImageFile->setEnabled(true);
-}
-
-void UEFITool::changeToNone()
-{
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
-    
-    UINT8 result = ffsEngine->changeCompression(index, COMPRESSION_ALGORITHM_NONE);
-    if (result == ERR_SUCCESS)
-        ui->actionSaveImageFile->setEnabled(true);
+    QByteArray extracted;
+    UINT8 result = ffsEngine->extract(index, extracted, mode);
+    if (result) 
+        ui->statusBar->showMessage(tr("File can't be extracted (%1)").arg(result));
+    else {
+        outputFile.resize(0);
+        outputFile.write(extracted);
+        outputFile.close();
+    }
 }
 
 void UEFITool::about()
@@ -317,7 +438,7 @@ void UEFITool::exit()
 
 void UEFITool::saveImageFile()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image files (*.rom *.bin *.cap *.fd *.wph *.efi);;All files (*.*)");
+    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
 
     QFile outputFile;
     outputFile.setFileName(path);
@@ -340,12 +461,12 @@ void UEFITool::saveImageFile()
     ui->statusBar->showMessage(tr("Reconstructed image written"));
 }
 
-void UEFITool::resizeTreeViewColumns()
+/*void UEFITool::resizeTreeViewColumns()
 {
     int count = ffsEngine->model()->columnCount();
     for(int i = 0; i < count; i++)
         ui->structureTreeView->resizeColumnToContents(i);
-}
+}*/
 
 void UEFITool::openImageFile()
 {
@@ -389,79 +510,6 @@ void UEFITool::clearMessages()
 	ffsEngine->clearMessages();
 	messageItems.clear();
 	ui->messageListWidget->clear();
-}
-
-void UEFITool::extract(const UINT8 mode)
-{
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
-    
-    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
-    UINT8 type = item->type();
-
-    QString path;
-    if(mode == EXTRACT_MODE_AS_IS) {
-        switch (type) {
-        case TreeItem::Capsule:
-            path = QFileDialog::getSaveFileName(this, tr("Save capsule to binary file"),".","Capsule files (*.cap *.bin);;All files (*.*)");
-            break;
-        case TreeItem::Image:
-            path = QFileDialog::getSaveFileName(this, tr("Save image to binary file"),".","Image files (*.rom *.bin);;All files (*.*)");
-            break;
-        case TreeItem::Region:
-            path = QFileDialog::getSaveFileName(this, tr("Save region to binary file"),".","Region files (*.rgn *.bin);;All files (*.*)");
-            break;
-        case TreeItem::Padding:
-            path = QFileDialog::getSaveFileName(this, tr("Save padding to binary file"),".","Padding files (*.pad *.bin);;All files (*.*)");
-            break;
-        case TreeItem::Volume:
-            path = QFileDialog::getSaveFileName(this, tr("Save volume to binary file"),".","Volume files (*.vol *.bin);;All files (*.*)");
-            break;
-        case TreeItem::File:
-            path = QFileDialog::getSaveFileName(this, tr("Save FFS file to binary file"),".","FFS files (*.ffs *.bin);;All files (*.*)");
-            break;
-        case TreeItem::Section:
-            path = QFileDialog::getSaveFileName(this, tr("Save section file to binary file"),".","Section files (*.sct *.bin);;All files (*.*)");
-        break;
-        default:
-            return;
-        }
-    }
-    else
-        path = QFileDialog::getSaveFileName(this, tr("Save object to binary file"),".","Binary files (*.bin);;All files (*.*)");
-    
-    QFile outputFile;
-    outputFile.setFileName(path);
-    if (!outputFile.open(QFile::WriteOnly)) {
-        ui->statusBar->showMessage(tr("Can't open file for rewriting"));
-        return;
-    }
-
-    QByteArray extracted;
-    UINT8 result = ffsEngine->extract(index, extracted, mode);
-    if (result) 
-        ui->statusBar->showMessage(tr("File can't be extracted (%1)").arg(result));
-    else {
-        outputFile.resize(0);
-        outputFile.write(extracted);
-        outputFile.close();
-    }
-}
-
-void UEFITool::extractAsIs()
-{
-    extract(EXTRACT_MODE_AS_IS);
-}
-
-void UEFITool::extractBody()
-{
-    extract(EXTRACT_MODE_BODY_ONLY);
-}
-
-void UEFITool::extractUncompressed()
-{
-    extract(EXTRACT_MODE_UNCOMPRESSED);
 }
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
@@ -553,7 +601,6 @@ void UEFITool::readSettings()
 	vertList.append(settings.value("mainWindow/messageHeight", 180).toInt());
 	ui->infoSplitter->setSizes(horList);
 	ui->messagesSplitter->setSizes(vertList);
-	resizeTreeViewColumns();
 	ui->structureTreeView->setColumnWidth(0, settings.value("tree/columnWidth0", ui->structureTreeView->columnWidth(0)).toInt());
 	ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
 	ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());

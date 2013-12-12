@@ -172,12 +172,16 @@ QVariant TreeItem::data(int column) const
     case 0: //Name
         return itemName;
     case 1: //Action
-        if (itemAction == TreeItem::Modify)
-            return "M";
+		if (itemAction == TreeItem::Create)
+            return QObject::tr("Create");
+		if (itemAction == TreeItem::Insert)
+            return QObject::tr("Insert");
+        if (itemAction == TreeItem::Replace)
+            return QObject::tr("Replace");
         if (itemAction == TreeItem::Remove)
-            return "X";
+            return QObject::tr("Remove");
         if (itemAction == TreeItem::Rebuild)
-            return "R";
+            return QObject::tr("Rebuild");
         return QVariant();
     case 2: //Type
         return itemTypeName;
@@ -218,11 +222,6 @@ void TreeItem::setSubtypeName(const QString &text)
 QString TreeItem::info() const
 {
     return itemInfo;
-}
-
-void TreeItem::setInfo(const QString &text)
-{
-    itemInfo = text;
 }
 
 int TreeItem::row() const
@@ -287,12 +286,13 @@ void TreeItem::setAction(const UINT8 action)
 {
     itemAction = action;
 
-    // Set rebuild action for parent
-    if (parentItem)
-        parentItem->setAction(TreeItem::Rebuild);
+	// On insert action, set insert action for children
+	if (action == TreeItem::Insert)
+		for(int i = 0; i < childCount(); i++)
+			child(i)->setAction(TreeItem::Insert);
+	
+	// Set rebuild action for parent, if it has no action now
+	if (parentItem && parentItem->type() != TreeItem::Root && parentItem->action() == TreeItem::NoAction)
+			parentItem->setAction(TreeItem::Rebuild);
 }
 
-void TreeItem::setCompression(const UINT8 algorithm)
-{
-    itemCompression = algorithm;
-}

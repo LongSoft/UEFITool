@@ -245,7 +245,7 @@ typedef struct {
 //	UINT8                   Attributes;
 //	UINT8                   Size[3];
 //	UINT8                   State;
-//  UINT12                  ExtendedSize;
+//  UINT32                  ExtendedSize;
 //} EFI_FFS_FILE_HEADER2;
 
 // Standard data checksum, used if FFS_ATTRIB_CHECKSUM is clear
@@ -277,14 +277,12 @@ typedef struct {
 
 // File attributes
 #define FFS_ATTRIB_RESERVED           0x80 // ErasePolarity value can be obtained from that bit
+#define FFS_ATTRIB_TAIL_PRESENT       0x01
 #define FFS_ATTRIB_RECOVERY           0x02
+#define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
-// Revision 1
-#define FFS_ATTRIB_TAIL_PRESENT       0x01
-// Revision 2
-#define FFS_ATTRIB_LARGE_FILE         0x01
-#define FFS_ATTRIB_FIXED              0x04
+//#define FFS_ATTRIB_LARGE_FILE       0x01 //This attribute is removed in new PI 1.3 specification, nice 
 
 // FFS alignment table
 extern const UINT8 ffsAlignmentTable[];

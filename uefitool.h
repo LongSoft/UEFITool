@@ -54,7 +54,7 @@ public:
 private slots:
     void init();
     void populateUi(const QModelIndex &current);
-	void resizeTreeViewColumns();
+	//void resizeTreeViewColumns();
     void scrollTreeView(QListWidgetItem* item);
 
     void openImageFile();
@@ -64,24 +64,20 @@ private slots:
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
-    void extractUncompressed();
     
     void insert(const UINT8 mode);
     void insertInto();
     void insertBefore();
     void insertAfter();
     
-    void replace();
+	void replace(const UINT8 mode);
+    void replaceAsIs();
+    void replaceBody();
+
+	void rebuild();
     
-    void remove();
-    
-    void rebuild();
-    
-    void changeToNone();
-    void changeToEfi11();
-    void changeToTiano();
-    void changeToLzma();
-    
+	void remove();
+        
 	void clearMessages();
 
     void about();

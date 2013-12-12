@@ -28,10 +28,6 @@ FfsEngine::FfsEngine(QObject *parent)
     : QObject(parent)
 {
     rootItem = new TreeItem(TreeItem::Root);
-    rootItem->setName("Name");
-    rootItem->setTypeName("Type");
-    rootItem->setSubtypeName("Subtype");
-    rootItem->setText("Text");
     treeModel = new TreeModel(rootItem);
 }
 
@@ -150,7 +146,8 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
     UINT8 result;
     if (descriptorHeader->Signature == FLASH_DESCRIPTOR_SIGNATURE) {
         // Parse as Intel image
-        result = parseIntelImage(flashImage, index); 
+        QModelIndex imageIndex;
+		result = parseIntelImage(flashImage, imageIndex, index); 
         if (result != ERR_INVALID_FLASH_DESCRIPTOR)
             return result;
     }
@@ -165,7 +162,7 @@ UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
     return parseBios(flashImage, index);
 }
 
-UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelIndex & parent)
+UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, QModelIndex & index, const QModelIndex & parent)
 {
     FLASH_DESCRIPTOR_MAP*               descriptorMap;
     FLASH_DESCRIPTOR_REGION_SECTION*    regionSection;
@@ -291,7 +288,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelInde
         .arg(descriptorMap->NumberOfIccTableEntries);
 
     // Add Intel image tree item
-    QModelIndex index = treeModel->addItem(TreeItem::Image, TreeItem::IntelImage, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), flashImage, QByteArray(), parent);
+    index = treeModel->addItem(TreeItem::Image, TreeItem::IntelImage, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), flashImage, QByteArray(), parent);
 
     // Descriptor
     // Get descriptor info
@@ -329,19 +326,23 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelInde
     for (int i = 0; i < offsets.count(); i++) {
         // Parse GbE region
         if (offsets.at(i) == gbeBegin) {
-            result = parseGbeRegion(gbe, index);
+			QModelIndex gbeIndex;
+            result = parseGbeRegion(gbe, gbeIndex, index);
         }
         // Parse ME region
         else if (offsets.at(i) == meBegin) {
-            result = parseMeRegion(me, index);
+			QModelIndex meIndex;
+            result = parseMeRegion(me, meIndex, index);
         }
         // Parse BIOS region
         else if (offsets.at(i) == biosBegin) {
-            result = parseBiosRegion(bios, index);
+			QModelIndex biosIndex;
+            result = parseBiosRegion(bios, biosIndex, index);
         }
         // Parse PDR region
         else if (offsets.at(i) == pdrBegin) {
-            result = parsePdrRegion(pdr, index);
+			QModelIndex pdrIndex;
+            result = parsePdrRegion(pdr, pdrIndex, index);
         }
         if (result)
             return result;
@@ -350,7 +351,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, const QModelInde
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, const QModelIndex & parent)
+UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, QModelIndex & index, const QModelIndex & parent)
 {
     if (gbe.isEmpty())
         return ERR_EMPTY_REGION;
@@ -371,12 +372,12 @@ UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, const QModelIndex & pare
         .arg(version->minor);
 
     // Add tree item
-    treeModel->addItem(TreeItem::Region, TreeItem::GbeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), gbe, QByteArray(), parent);
+    index = treeModel->addItem(TreeItem::Region, TreeItem::GbeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), gbe, QByteArray(), parent);
 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseMeRegion(const QByteArray & me, const QModelIndex & parent)
+UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent)
 {
     if (me.isEmpty())
         return ERR_EMPTY_REGION;
@@ -402,12 +403,12 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, const QModelIndex & parent
     }
 
     // Add tree item
-    treeModel->addItem(TreeItem::Region, TreeItem::MeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, QByteArray(), parent);
+    index = treeModel->addItem(TreeItem::Region, TreeItem::MeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, QByteArray(), parent);
 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, const QModelIndex & parent)
+UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent)
 {
     if (pdr.isEmpty())
         return ERR_EMPTY_REGION;
@@ -418,12 +419,12 @@ UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, const QModelIndex & pare
         arg(pdr.size(), 8, 16, QChar('0'));
 
     // Add tree item
-    treeModel->addItem(TreeItem::Region, TreeItem::PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, QByteArray(), parent);
+    index = treeModel->addItem(TreeItem::Region, TreeItem::PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, QByteArray(), parent);
 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, const QModelIndex & parent)
+UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent)
 {
     if (bios.isEmpty())
         return ERR_EMPTY_REGION;
@@ -434,14 +435,14 @@ UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, const QModelIndex & pa
         arg(bios.size(), 8, 16, QChar('0'));
 
     // Add tree item
-    QModelIndex index = treeModel->addItem(TreeItem::Region, TreeItem::BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, QByteArray(), parent);
+    index = treeModel->addItem(TreeItem::Region, TreeItem::BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, QByteArray(), parent);
 
     return parseBios(bios, index);
 }
 
 UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
 {
-    // Search for first volume
+	// Search for first volume
     UINT32 prevVolumeOffset;
     UINT8 result;
     result = findNextVolume(bios, 0, prevVolumeOffset);
@@ -577,7 +578,8 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
             msg(tr("parseBios: Unknown volume revision (%1)").arg(volumeHeader->Revision), parent);
 
         // Parse volume
-        UINT8 result = parseVolume(bios.mid(volumeOffset, volumeSize), parent);
+        QModelIndex index;
+		UINT8 result = parseVolume(bios.mid(volumeOffset, volumeSize), index, parent);
         if (result)
             msg(tr("parseBios: Volume parsing failed (%1)").arg(result), parent);
 
@@ -640,7 +642,7 @@ UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UIN
     return ERR_SUCCESS;
 }
 
-UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & parent, const UINT8 mode)
+UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     // Populate volume header
     EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) (volume.constData());
@@ -707,7 +709,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
     // Add tree item
     QByteArray  header = volume.left(headerSize);
     QByteArray  body   = volume.mid(headerSize, volumeSize - headerSize);
-    QModelIndex index  = treeModel->addItem(TreeItem::Volume, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+    index  = treeModel->addItem(TreeItem::Volume, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
 
     // Do not parse volumes with unknown FS
     if (!parseCurrentVolume)
@@ -751,8 +753,9 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, const QModelIndex & par
         // Add file GUID to queue
         files.enqueue(header.left(sizeof(EFI_GUID)));
 
-        // Parse file 
-        result = parseFile(file, volumeHeader->Revision, empty, index);
+        // Parse file
+		QModelIndex fileIndex;
+        result = parseFile(file, fileIndex, empty == '\xFF' ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index);
         if (result)
             msg(tr("parseVolume: Parse FFS file failed (%1)").arg(result), index);
 
@@ -775,7 +778,7 @@ UINT8 FfsEngine::getFileSize(const QByteArray & volume, const UINT32 fileOffset,
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseFile(const QByteArray & file, UINT8 revision, const UINT8 erasePolarity, const QModelIndex & parent, const UINT8 mode)
+UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const UINT8 erasePolarity, const QModelIndex & parent, const UINT8 mode)
 {
     // Populate file header
     EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) file.constData();
@@ -812,7 +815,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, UINT8 revision, const UINT8 
     if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
         UINT32 bufferSize = file.size() - sizeof(EFI_FFS_FILE_HEADER);
         // Exclude file tail from data checksum calculation
-        if(revision == 1 && fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)
+        if(fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)
             bufferSize -= sizeof(UINT16);
         calculated = calculateChecksum8((UINT8*)(file.constData() + sizeof(EFI_FFS_FILE_HEADER)), bufferSize);
         if (fileHeader->IntegrityCheck.Checksum.File != calculated) {
@@ -833,16 +836,17 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, UINT8 revision, const UINT8 
 
     // Get file body
     QByteArray body = file.right(file.size() - sizeof(EFI_FFS_FILE_HEADER));
-    // For files in Revision 1 volumes, check for file tail presence
+    // Check for file tail presence
     QByteArray tail;
-    if (revision == 1 && fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)
+    if (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)
     {
         //Check file tail;
         tail = body.right(sizeof(UINT16));
-        if (!fileHeader->IntegrityCheck.TailReference == *(UINT16*)tail.constData())
-            msg(tr("parseFile: %1, file tail value %2 is not a bitwise not of %3 stored in file header")
+		UINT16 tailValue = *(UINT16*) tail.constData();
+        if (fileHeader->IntegrityCheck.TailReference != (UINT16)~tailValue)
+            msg(tr("parseFile: %1, bitwise not of tail value %2 differs from %3 stored in file header")
             .arg(guidToQString(fileHeader->Name))
-            .arg(*tail, 4, 16, QChar('0'))
+            .arg(~tailValue, 4, 16, QChar('0'))
             .arg(fileHeader->IntegrityCheck.TailReference, 4, 16, QChar('0')), parent);
 
         // Remove tail from file body
@@ -915,7 +919,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, UINT8 revision, const UINT8 
         .arg(fileHeader->State, 2, 16, QChar('0'));
 
     // Add tree item
-    QModelIndex index = treeModel->addItem(TreeItem::File, fileHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, tail, parent, mode);
+    index = treeModel->addItem(TreeItem::File, fileHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, tail, parent, mode);
 	
     if (!parseCurrentFile)
         return ERR_SUCCESS;
@@ -951,14 +955,16 @@ UINT8 FfsEngine::parseSections(const QByteArray & body, const QModelIndex & pare
     UINT32 sectionSize;
     UINT32 bodySize = body.size();
     UINT8  result;
-    while (true) {
+
+	while (true) {
         // Get section size
         result = getSectionSize(body, sectionOffset, sectionSize);
         if (result)
             return result;
 
         // Parse section
-        result = parseSection(body.mid(sectionOffset, sectionSize), parent);
+		QModelIndex sectionIndex;
+        result = parseSection(body.mid(sectionOffset, sectionSize), sectionIndex, parent);
         if (result)
             return result;
 
@@ -974,7 +980,7 @@ UINT8 FfsEngine::parseSections(const QByteArray & body, const QModelIndex & pare
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseSection(const QByteArray & section, const QModelIndex & parent, const UINT8 mode)
+UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     EFI_COMMON_SECTION_HEADER* sectionHeader = (EFI_COMMON_SECTION_HEADER*) (section.constData());
     UINT32 sectionSize = uint24ToUint32(sectionHeader->Size);
@@ -984,11 +990,9 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const QModelIndex & pa
     QByteArray body;
     UINT32 headerSize;
     UINT8 result;
-    QModelIndex index;
-
 
     switch (sectionHeader->Type) {
-        // Encapsulated sections
+    // Encapsulated sections
     case EFI_SECTION_COMPRESSION:
         {
             bool parseCurrentSection = true;
@@ -1047,7 +1051,6 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const QModelIndex & pa
                         parseCurrentSection = false;
                     }
                 }
-
             }
 
             // Get info
@@ -1090,7 +1093,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const QModelIndex & pa
         }
         break;
 
-        // Leaf sections
+    // Leaf sections
     case EFI_SECTION_PE32:
     case EFI_SECTION_PIC:
     case EFI_SECTION_TE:
@@ -1184,6 +1187,248 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, const QModelIndex & pa
 }
 
 // Operations on tree items
+UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByteArray & header, const QByteArray & body, const UINT8 mode, const UINT8 action, const UINT8 algorithm)
+{
+	QByteArray created;
+	UINT8 result;
+
+	if (!index.isValid() || !index.parent().isValid())
+        return ERR_INVALID_PARAMETER;
+
+	QModelIndex parent;
+	if (mode == CREATE_MODE_BEFORE || mode == CREATE_MODE_AFTER)
+		parent = index.parent();
+	else
+		parent = index;
+	TreeItem * parentItem = static_cast<TreeItem*>(parent.internalPointer());
+
+	// Create item
+	if (type == TreeItem::File) {
+		if (parentItem->type() != TreeItem::Volume)
+			return ERR_INVALID_FILE;
+		
+		EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) parentItem->header().constData();
+		UINT8 revision = volumeHeader->Revision;
+		bool erasePolarity = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY;
+
+		if (header.size() != sizeof(EFI_FFS_FILE_HEADER))
+			return ERR_INVALID_FILE;
+		
+		QByteArray newHeader = header;
+		EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) newHeader.data();
+				
+		// Correct file size
+		UINT8 tailSize = fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT ? sizeof(UINT16) : 0;
+		uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER) + body.size() + tailSize, fileHeader->Size);
+
+		// Recalculate header checksum
+		fileHeader->IntegrityCheck.Checksum.Header = 0;
+		fileHeader->IntegrityCheck.Checksum.File = 0;
+		fileHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*) fileHeader, sizeof(EFI_FFS_FILE_HEADER) - 1);
+		
+		// Recalculate data checksum, if needed
+		if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
+			fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*) body.constData(), body.size());
+		}
+		else if (revision == 1)
+			fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
+		else 
+			fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
+		
+		// Append body
+		created.append(body);
+
+		// Append tail, if needed
+		if (tailSize)
+			created.append(~fileHeader->IntegrityCheck.TailReference);
+
+		// Set file state
+		UINT8 state = EFI_FILE_DATA_VALID | EFI_FILE_HEADER_VALID | EFI_FILE_HEADER_CONSTRUCTION;
+		if (erasePolarity)
+			state = ~state;
+		fileHeader->State = state;
+
+		// Prepend header
+		created.prepend(newHeader);
+
+		// Parse file
+		QModelIndex fileIndex;
+        result = parseFile(created, fileIndex, erasePolarity ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index, mode);
+        if (result)
+            return result;
+
+		// Set action
+		treeModel->setItemAction(action, fileIndex);
+
+	}
+	else if (type == TreeItem::Section) {
+		if (parentItem->type() != TreeItem::File && parentItem->type() != TreeItem::Section)
+			return ERR_INVALID_SECTION;
+		
+		if (header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
+			return ERR_INVALID_SECTION;
+
+		QByteArray newHeader = header;
+		EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*) newHeader.data();
+		
+		switch (commonHeader->Type) 
+		{
+		case EFI_SECTION_COMPRESSION: {
+				EFI_COMPRESSION_SECTION* sectionHeader = (EFI_COMPRESSION_SECTION*) newHeader.data();
+				// Correct uncompressed size
+				sectionHeader->UncompressedLength = body.size();
+				// Set compression type
+				if (algorithm == COMPRESSION_ALGORITHM_NONE)
+					sectionHeader->CompressionType = EFI_NOT_COMPRESSED;
+				else if (algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO)
+					sectionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+				else if (algorithm == COMPRESSION_ALGORITHM_LZMA || algorithm == COMPRESSION_ALGORITHM_IMLZMA)
+					sectionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
+				else
+					return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
+				// Compress body
+				QByteArray compressed;
+				result = compress(body, algorithm, compressed);
+				if (result)
+					return result;
+
+				// Correct section size
+				uint32ToUint24(header.size() + compressed.size(), commonHeader->Size);
+
+				// Append header and body
+				created.append(newHeader).append(compressed);
+
+				// Parse section
+				QModelIndex sectionIndex;
+				result = parseSection(created, sectionIndex, index, mode);
+				if (result)
+					return result;
+
+				// Set create action
+				treeModel->setItemAction(action, sectionIndex);
+			}
+			break;
+		case EFI_SECTION_GUID_DEFINED:{
+				// Compress body
+				QByteArray compressed;
+				result = compress(body, algorithm, compressed);
+				if (result)
+					return result;
+
+				// Correct section size
+				uint32ToUint24(header.size() + compressed.size(), commonHeader->Size);
+
+				// Append header and body
+				created.append(newHeader).append(compressed);
+
+				// Parse section
+				QModelIndex sectionIndex;
+				result = parseSection(created, sectionIndex, index, mode);
+				if (result)
+					return result;
+
+				// Set create action
+				treeModel->setItemAction(action, sectionIndex);			  
+			}
+			break;
+		default:
+			// Correct section size
+			uint32ToUint24(header.size() + body.size(), commonHeader->Size);
+
+			// Append header and body
+			created.append(newHeader).append(body);
+
+			// Parse section
+            QModelIndex sectionIndex;
+			result = parseSection(created, sectionIndex, index, mode);
+            if (result)
+                return result;
+
+			// Set create action
+			treeModel->setItemAction(action, sectionIndex);
+		}
+	}
+	else
+		return ERR_NOT_IMPLEMENTED;
+
+	return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode)
+{
+    if (!index.isValid() || !index.parent().isValid())
+        return ERR_INVALID_PARAMETER;
+
+	QModelIndex parent;
+	if (mode == CREATE_MODE_BEFORE || mode == CREATE_MODE_AFTER)
+		parent = index.parent();
+	else
+		parent = index;
+	TreeItem * parentItem = static_cast<TreeItem*>(parent.internalPointer());
+
+	// Determine type of item to insert
+	UINT8 type;
+	UINT32 headerSize;
+	if (parentItem->type() == TreeItem::Volume) {
+		type = TreeItem::File;
+		headerSize = sizeof(EFI_FFS_FILE_HEADER);
+	}
+	else if (parentItem->type() == TreeItem::File) {
+		type = TreeItem::Section;
+		EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*) object.constData();
+		headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+	}
+	else
+		return ERR_NOT_IMPLEMENTED;
+
+	return create(index, type, object.left(headerSize), object.right(object.size() - headerSize), mode, TreeItem::Insert);
+}
+
+UINT8 FfsEngine::replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode)
+{
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+	TreeItem * parentItem = static_cast<TreeItem*>(index.internalPointer());
+
+	// Determine type of item to replace
+	UINT32 headerSize;
+	UINT8 result;
+	if (parentItem->type() == TreeItem::File) {
+		if (mode == REPLACE_MODE_AS_IS) {
+			headerSize = sizeof(EFI_FFS_FILE_HEADER);
+			result = create(index, TreeItem::File, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER, TreeItem::Replace);
+		}
+		else if (mode == REPLACE_MODE_BODY)
+			result = create(index, TreeItem::File, parentItem->header(), object, CREATE_MODE_AFTER, TreeItem::Replace);
+		else
+			return ERR_NOT_IMPLEMENTED;
+	}
+	else if (parentItem->type() == TreeItem::Section) {
+		if (mode == REPLACE_MODE_AS_IS) {
+			EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*) object.constData();
+			headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+			result = create(index, TreeItem::Section, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER, TreeItem::Replace);
+		}
+		else if (mode == REPLACE_MODE_BODY)
+			result = create(index, TreeItem::Section, parentItem->header(), object, CREATE_MODE_AFTER, TreeItem::Replace);
+		else
+			return ERR_NOT_IMPLEMENTED;
+	}
+	else
+		return ERR_NOT_IMPLEMENTED;
+
+	// Check create result
+	if (result)
+		return result;
+
+	// Set remove action to replaced item
+	treeModel->setItemAction(TreeItem::Remove, index);
+	
+	return ERR_SUCCESS;
+}
+
+
 UINT8 FfsEngine::extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode)
 {
     if (!index.isValid())
@@ -1198,77 +1443,43 @@ UINT8 FfsEngine::extract(const QModelIndex & index, QByteArray & extracted, cons
         extracted.append(item->body());
         extracted.append(item->tail());
     }
-    else if (mode == EXTRACT_MODE_BODY_ONLY) {
+    else if (mode == EXTRACT_MODE_BODY) {
         // Extract without header and tail
         extracted.clear();
-        extracted.append(item->body());
-    }
-    else if (mode == EXTRACT_MODE_UNCOMPRESSED) {
-        // Only possible for files with compressed sections
-        return ERR_NOT_IMPLEMENTED;
+		// Special case of compressed bodies
+		if (item->type() == TreeItem::Section) {
+			QByteArray decompressed;
+			UINT8 result;
+			if (item->subtype() == EFI_SECTION_COMPRESSION) {
+				EFI_COMPRESSION_SECTION* compressedHeader = (EFI_COMPRESSION_SECTION*) item->header().constData();
+				result = decompress(item->body(), compressedHeader->CompressionType, decompressed);
+				if (result) 
+					return result;
+				extracted.append(decompressed);
+				return ERR_SUCCESS;
+			}
+			else if (item->subtype() == EFI_SECTION_GUID_DEFINED) {
+				QByteArray decompressed;
+				// Check if section requires processing
+				EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (EFI_GUID_DEFINED_SECTION*) item->header().constData();
+				if (guidDefinedSectionHeader->Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) {
+					// Try to decompress section body using both known compression algorithms
+					result = decompress(item->body(), EFI_STANDARD_COMPRESSION, decompressed);
+					if (result) {
+						result = decompress(item->body(), EFI_CUSTOMIZED_COMPRESSION, decompressed);
+						if (result)
+							return result;
+					}
+					extracted.append(decompressed);
+					return ERR_SUCCESS;
+				}
+			}
+		}
+
+		extracted.append(item->body());
     }
     else
         return ERR_UNKNOWN_EXTRACT_MODE;
-
-    return ERR_SUCCESS;
-}
-
-UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, const UINT8 type, const UINT8 mode)
-{
-    if (!index.isValid())
-        return ERR_INVALID_PARAMETER;
-
-    // Only files and sections can now be inserted
-    if (type == TreeItem::File) {
-        QModelIndex parent;
-        if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER)
-            parent = index.parent();
-        else
-            parent = index;
-
-        // Parent type must be volume
-        TreeItem * parentItem = static_cast<TreeItem*>(parent.internalPointer());
-        if (parentItem->type() != TreeItem::Volume) {
-            msg(tr("insert: file can't be inserted into something that is not volume"), parent);
-            return ERR_INVALID_VOLUME;
-        }
-
-        EFI_FIRMWARE_VOLUME_HEADER* header = (EFI_FIRMWARE_VOLUME_HEADER*) parentItem->header().constData();
-
-        // Parse file
-        UINT8 result = parseFile(object, header->Revision, ERASE_POLARITY_UNKNOWN, index, mode);
-        if (result)
-            return result;
-        // Set rebuild action for parent
-        treeModel->setItemAction(TreeItem::Rebuild, parent);
-    }
-    else if (type == TreeItem::Section) {
-        QModelIndex parent;
-        if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER)
-            parent = index.parent();
-        else
-            parent = index;
-
-        // Parent type must be file or encapsulation section
-        TreeItem * parentItem = static_cast<TreeItem*>(parent.internalPointer());
-        if (parentItem->type() == TreeItem::File || (parentItem->type() == TreeItem::Section && 
-            (parentItem->subtype() == EFI_SECTION_COMPRESSION || 
-            parentItem->subtype() == EFI_SECTION_GUID_DEFINED || 
-            parentItem->subtype() == EFI_SECTION_DISPOSABLE))) {
-                // Parse section
-                UINT8 result = parseSection(object, index, mode);
-                if (result)
-                    return result;
-                // Set rebuild action for parent
-                treeModel->setItemAction(TreeItem::Rebuild, parent);
-        }
-        else {
-            msg(tr("insert: section can't be inserted into something that is not file or encapsulation section"), parent);
-            return ERR_INVALID_FILE;
-        }
-    }
-    else 
-        return ERR_NOT_IMPLEMENTED;
 
     return ERR_SUCCESS;
 }
@@ -1291,20 +1502,6 @@ UINT8 FfsEngine::rebuild(const QModelIndex & index)
 
     // Set action for the item
     treeModel->setItemAction(TreeItem::Rebuild, index);
-
-    return ERR_SUCCESS;
-}
-
-UINT8 FfsEngine::changeCompression(const QModelIndex & index, const UINT8 algorithm)
-{
-    if (!index.isValid())
-        return ERR_INVALID_PARAMETER;
-
-    // Set compression for the item
-    treeModel->setItemCompression(algorithm, index);
-
-    // Set action for the item
-    treeModel->setItemAction(TreeItem::Modify, index);
 
     return ERR_SUCCESS;
 }
@@ -1580,7 +1777,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
             return ERR_NOT_IMPLEMENTED;
     }
     // Reconstruct item and it's children recursive
-    else if (item->action() == TreeItem::Modify || item->action() == TreeItem::Rebuild) {
+    else if (item->action() == TreeItem::Create || item->action() == TreeItem::Insert || item->action() == TreeItem::Replace || item->action() == TreeItem::Rebuild) {
         QQueue<QByteArray> childrenQueue;
 
         switch (item->type()) {
@@ -1914,7 +2111,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                 }
 
                 // Construct empty char for this file
-                char empty = erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00';
+                char empty = (erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
 
                 // Check file state
                 // Invert it first if erase polarity is true
@@ -2015,7 +2212,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
 
                 // Append tail, if needed
                 if (!item->hasEmptyTail())
-                    reconstructed.append(!fileHeader->IntegrityCheck.TailReference);
+                    reconstructed.append(~fileHeader->IntegrityCheck.TailReference);
 
                 // Set file state
                 state = EFI_FILE_DATA_VALID | EFI_FILE_HEADER_VALID | EFI_FILE_HEADER_CONSTRUCTION;
@@ -2075,13 +2272,16 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         result = compress(reconstructed, item->compression(), compressed);
                         if (result)
                             return result;
-                        // Correct compression type
+						// Correct compression type
                         if (item->compression() == COMPRESSION_ALGORITHM_NONE)
                             compessionHeader->CompressionType = EFI_NOT_COMPRESSED;
                         else if (item->compression() == COMPRESSION_ALGORITHM_LZMA || item->compression() == COMPRESSION_ALGORITHM_IMLZMA)
                             compessionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
-                        else
+                        else if (item->compression() == COMPRESSION_ALGORITHM_EFI11 || item->compression() == COMPRESSION_ALGORITHM_TIANO)
                             compessionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+						else 
+							return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
+
                         // Replace new section body
                         reconstructed = compressed;
                     }
@@ -2101,7 +2301,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         reconstructed = compressed;
                     }
                     else if (item->compression() != COMPRESSION_ALGORITHM_NONE) {
-                        msg(tr("reconstruct: compression required for section of type %1")
+                        msg(tr("reconstruct: incorreclty required compression for section of type %1")
                             .arg(item->subtype()));
                         return ERR_INVALID_SECTION;
                     }
@@ -2168,12 +2368,12 @@ UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & new
 }
 
 // Search routines
-UINT8 FfsEngine::findHexPattern(const QByteArray & pattern, const bool bodyOnly)
+UINT8 FfsEngine::findHexPattern(const QByteArray & pattern, const UINT8 mode)
 {
-	return findHexPatternIn(treeModel->index(0,0), pattern, bodyOnly);
+	return findHexPatternIn(treeModel->index(0,0), pattern, mode);
 }
 
-UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const bool bodyOnly)
+UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode)
 {
 	if (pattern.isEmpty())
 		return ERR_INVALID_PARAMETER;
@@ -2187,19 +2387,21 @@ UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & 
 
 	bool hasChildren = (item->childCount() > 0);
 	for (int i = 0; i < item->childCount(); i++) {
-		findHexPatternIn(index.child(i, index.column()), pattern, bodyOnly);
+		findHexPatternIn(index.child(i, index.column()), pattern, mode);
 	}
 	
 	QByteArray data;
 	if (hasChildren) {
-		if(!bodyOnly) 
+		if(mode != SEARCH_MODE_BODY) 
 			data = item->header();
 	}
 	else {
-		if (bodyOnly)
-			data = item->body();
+		if (mode == SEARCH_MODE_HEADER)
+			data.append(item->header()).append(item->tail());
+		else if (mode == SEARCH_MODE_BODY)
+			data.append(item->body());
 		else
-			data = item->header().append(item->body()).append(item->tail());
+			data.append(item->header()).append(item->body()).append(item->tail());
 	}
 
 	int offset = -1;

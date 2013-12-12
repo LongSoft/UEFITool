@@ -45,20 +45,20 @@ public:
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
-    UINT8 parseIntelImage(const QByteArray & flashImage, const QModelIndex & parent = QModelIndex());
-    UINT8 parseGbeRegion(const QByteArray & gbe, const QModelIndex & parent = QModelIndex());
-    UINT8 parseMeRegion(const QByteArray & me, const QModelIndex & parent = QModelIndex());
-    UINT8 parseBiosRegion(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
-    UINT8 parsePdrRegion(const QByteArray & pdr, const QModelIndex & parent = QModelIndex());
+    UINT8 parseIntelImage(const QByteArray & flashImage, QModelIndex & index, const QModelIndex & parent = QModelIndex());
+    UINT8 parseGbeRegion(const QByteArray & gbe, QModelIndex & index, const QModelIndex & parent);
+    UINT8 parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent);
+    UINT8 parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent);
+    UINT8 parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent);
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
-    UINT8 parseVolume(const QByteArray & volume, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
+    UINT8 parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
-    UINT8 parseFile(const QByteArray & file, const UINT8 revision, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
+    UINT8 parseFile(const QByteArray & file, QModelIndex & index, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
     UINT8 parseSections(const QByteArray & body, const QModelIndex & parent = QModelIndex());
-    UINT8 parseSection(const QByteArray & section, const QModelIndex & parent = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
+    UINT8 parseSection(const QByteArray & section, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     // Compression routines
     UINT8 decompress(const QByteArray & compressed, const UINT8 compressionType, QByteArray & decompressedData, UINT8 * algorithm = NULL);
@@ -71,22 +71,26 @@ public:
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Operations on tree items
-    UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
-    UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 objectType, const UINT8 mode);
-    UINT8 remove(const QModelIndex & index);
-    UINT8 rebuild(const QModelIndex & index);
-    UINT8 changeCompression(const QModelIndex & index, const UINT8 algorithm);
+	UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
+	
+	UINT8 create(const QModelIndex & index, const UINT8 type, const QByteArray & header, const QByteArray & body, const UINT8 mode, const UINT8 action, const UINT8 algorithm = COMPRESSION_ALGORITHM_NONE);
+	UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
+	UINT8 replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
+	    
+	UINT8 remove(const QModelIndex & index);
+    
+	UINT8 rebuild(const QModelIndex & index);
     
 	// Search routines
-	UINT8 findHexPattern(const QByteArray & pattern, const bool bodyOnly);
-	UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const bool bodyOnly);
+	UINT8 findHexPattern(const QByteArray & pattern, const UINT8 mode);
+	UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
 	UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 	UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 private:
     TreeItem  *rootItem;
     TreeModel *treeModel;
     
-    // Message helper
+	// Message helper
     QQueue<MessageListItem> messageItems;
     void msg(const QString & message, const QModelIndex index = QModelIndex());
     

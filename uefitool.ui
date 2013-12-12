@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.11.0</string>
+   <string>UEFITool 0.12.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -222,21 +222,15 @@
      <addaction name="actionInsertBefore"/>
      <addaction name="actionInsertAfter"/>
      <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
+     <addaction name="separator"/>
      <addaction name="actionRemove"/>
     </widget>
     <widget class="QMenu" name="menuSectionActions">
      <property name="title">
       <string>&amp;Section</string>
      </property>
-     <widget class="QMenu" name="menuChangeCompressionTo">
-      <property name="title">
-       <string>Change compression to</string>
-      </property>
-      <addaction name="actionChangeToNone"/>
-      <addaction name="actionChangeToTiano"/>
-      <addaction name="actionChangeToEfi11"/>
-      <addaction name="actionChangeToLzma"/>
-     </widget>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
      <addaction name="separator"/>
@@ -246,9 +240,11 @@
      <addaction name="actionInsertBefore"/>
      <addaction name="actionInsertAfter"/>
      <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
+     <addaction name="separator"/>
      <addaction name="actionRemove"/>
      <addaction name="separator"/>
-     <addaction name="menuChangeCompressionTo"/>
     </widget>
     <widget class="QMenu" name="menuMessages">
      <property name="title">
@@ -289,7 +285,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Insert &amp;before...</string>
+    <string>Insert b&amp;efore...</string>
    </property>
    <property name="toolTip">
     <string>Insert object from file before selected object</string>
@@ -303,10 +299,10 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Rep&amp;lace</string>
+    <string>Rep&amp;lace as is...</string>
    </property>
    <property name="toolTip">
-    <string>Replace selected object with an object from file</string>
+    <string>Replace selected object as is with an object from file</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+R</string>
@@ -331,27 +327,13 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Extract &amp;without header...</string>
+    <string>Extract &amp;body...</string>
    </property>
    <property name="toolTip">
-    <string>Extract selected object without header to file</string>
+    <string>Extract body of selected object to file</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
-   </property>
-  </action>
-  <action name="actionExtractUncompressed">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Extract &amp;uncompressed...</string>
-   </property>
-   <property name="toolTip">
-    <string>Extract selected FFS file uncompressing it </string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+E</string>
    </property>
   </action>
   <action name="actionRemove">
@@ -421,30 +403,6 @@
     <string>Ctrl+Space</string>
    </property>
   </action>
-  <action name="actionChangeToTiano">
-   <property name="text">
-    <string>&amp;Tiano</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+T</string>
-   </property>
-  </action>
-  <action name="actionChangeToEfi11">
-   <property name="text">
-    <string>&amp;EFI 1.1</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+T</string>
-   </property>
-  </action>
-  <action name="actionChangeToLzma">
-   <property name="text">
-    <string>&amp;LZMA</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+L</string>
-   </property>
-  </action>
   <action name="actionAbout">
    <property name="text">
     <string>&amp;About UEFITool</string>
@@ -472,14 +430,6 @@
     <enum>QAction::QuitRole</enum>
    </property>
   </action>
-  <action name="actionChangeToNone">
-   <property name="text">
-    <string>&amp;Uncompressed</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+U</string>
-   </property>
-  </action>
   <action name="actionSearch">
    <property name="enabled">
     <bool>false</bool>
@@ -495,8 +445,25 @@
    <property name="text">
     <string>&amp;Clear</string>
    </property>
+   <property name="toolTip">
+    <string>Clear messages</string>
+   </property>
    <property name="shortcut">
     <string>Ctrl+Backspace</string>
+   </property>
+  </action>
+  <action name="actionReplaceBody">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Replace b&amp;ody...</string>
+   </property>
+   <property name="toolTip">
+    <string>Replace body of selected object with a data from file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+R</string>
    </property>
   </action>
  </widget>

@@ -45,16 +45,7 @@ typedef uint16_t  CHAR16;
 #define NULL  ((VOID *) 0)
 #endif
 
-#if _MSC_EXTENSIONS
-  //
-  // Microsoft* compiler requires _EFIAPI usage, __cdecl is Microsoft* specific C.
-  // 
-  #define EFIAPI __cdecl  
-#endif
-
-#if __GNUC__
-  #define EFIAPI __attribute__((cdecl))    
-#endif
+#define EFIAPI
 
 #define ERR_SUCCESS                         0
 #define ERR_INVALID_PARAMETER               1
@@ -95,16 +86,19 @@ typedef uint16_t  CHAR16;
 #define COMPRESSION_ALGORITHM_LZMA    4
 #define COMPRESSION_ALGORITHM_IMLZMA  5
 
-// Item extract modes
-#define EXTRACT_MODE_AS_IS        0
-#define EXTRACT_MODE_BODY_ONLY    1
-#define EXTRACT_MODE_UNCOMPRESSED 2
+// Item create modes
+#define CREATE_MODE_APPEND    0
+#define CREATE_MODE_PREPEND   1
+#define CREATE_MODE_BEFORE    2
+#define CREATE_MODE_AFTER     3
 
-// Item insert modes
-#define INSERT_MODE_APPEND  0
-#define INSERT_MODE_PREPEND 1
-#define INSERT_MODE_BEFORE  2
-#define INSERT_MODE_AFTER   3
+// Item extract modes
+#define EXTRACT_MODE_AS_IS    0
+#define EXTRACT_MODE_BODY     1
+
+// Item replace modes
+#define REPLACE_MODE_AS_IS    0
+#define REPLACE_MODE_BODY     1
 
 // Erase polarity types
 #define ERASE_POLARITY_FALSE   0
@@ -112,9 +106,9 @@ typedef uint16_t  CHAR16;
 #define ERASE_POLARITY_UNKNOWN 0xFF
 
 // Search modes
-#define SEARCH_MODE_HEX     0
-#define SEARCH_MODE_ASCII   1
-#define SEARCH_MODE_UNICODE 2
+#define SEARCH_MODE_HEADER  1
+#define SEARCH_MODE_BODY    2
+#define SEARCH_MODE_ALL     3         
 
 // EFI GUID
 typedef struct{

@@ -44,12 +44,11 @@ public:
     UINT8 setItemName(const QString &data, const QModelIndex &index);
     UINT8 setItemText(const QString &data, const QModelIndex &index);
     UINT8 setItemAction(const UINT8 action, const QModelIndex &index);
-    UINT8 setItemCompression(const UINT8 algorithm, const QModelIndex &index);
 
     QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(), 
         const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
-        const QModelIndex & index = QModelIndex(), const UINT8 mode = INSERT_MODE_APPEND);
+        const QModelIndex & index = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
 private:
     TreeItem *rootItem;

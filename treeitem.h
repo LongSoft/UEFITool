@@ -31,7 +31,9 @@ public:
     // Action types
     enum ActionTypes {
         NoAction = 50,
-        Modify,
+		Create,
+        Insert,
+		Replace,
         Remove,      
         Rebuild
     };
@@ -104,17 +106,12 @@ public:
     UINT8 action() const;
     UINT8 compression() const;
 
-    // Action can be changed
-    void setAction(const UINT8 action); 
-    // Compression can be changed
-    void setCompression(const UINT8 algorithm);
-
-    // Text values can be changed after item construction
-    void setTypeName(const QString &text);
+    // Some values can be changed after item construction
+	void setAction(const UINT8 action); 
+	void setTypeName(const QString &text);
     void setSubtypeName(const QString &text);
     void setName(const QString &text);
     void setText(const QString &text);
-    void setInfo(const QString &text);
 
 private:
     // Set default names after construction
@@ -129,9 +126,9 @@ private:
     QByteArray itemHeader;
     QByteArray itemBody;
     QByteArray itemTail;
-    QString itemTypeName;
+	QString itemName;
+	QString itemTypeName;
     QString itemSubtypeName;
-    QString itemName;
     QString itemText;
     QString itemInfo;
     TreeItem *parentItem;

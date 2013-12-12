@@ -61,8 +61,21 @@ Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
 QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
                                int role) const
 {
-    if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
-        return rootItem->data(section);
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+		switch(section) 
+		{
+		case 0:
+			return tr("Name");
+		case 1:
+			return tr("Action");
+		case 2:
+			return tr("Type");
+		case 3:
+			return tr("Subtype");
+		case 4:
+			return tr("Text");
+		}
+	}
 
     return QVariant();
 }
@@ -152,17 +165,6 @@ UINT8 TreeModel::setItemAction(const UINT8 action, const QModelIndex &index)
     return ERR_SUCCESS;
 }
 
-UINT8 TreeModel::setItemCompression(const UINT8 algorithm, const QModelIndex &index)
-{
-    if(!index.isValid())
-        return ERR_INVALID_PARAMETER;
-
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    item->setCompression(algorithm);
-    emit dataChanged(this->index(0,0), index);
-    return ERR_SUCCESS;
-}
-
 QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT8 compression, 
                                const QString & name, const QString & text, const QString & info, 
                                const QByteArray & header, const QByteArray & body, const QByteArray & tail,
@@ -176,7 +178,7 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
         parentItem = rootItem;
     else
     {
-        if (mode == INSERT_MODE_BEFORE || mode == INSERT_MODE_AFTER) {
+        if (mode == CREATE_MODE_BEFORE || mode == CREATE_MODE_AFTER) {
             item = static_cast<TreeItem*>(index.internalPointer());
             parentItem = item->parent();
             parentColumn = index.parent().column();
@@ -188,19 +190,19 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
     }
     
     TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, tail, parentItem);
-    if (mode == INSERT_MODE_APPEND) {
+    if (mode == CREATE_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);
     }
-    else if (mode == INSERT_MODE_PREPEND) {
+    else if (mode == CREATE_MODE_PREPEND) {
         emit layoutAboutToBeChanged();
         parentItem->prependChild(newItem);
     }
-    else if (mode == INSERT_MODE_BEFORE) {
+    else if (mode == CREATE_MODE_BEFORE) {
         emit layoutAboutToBeChanged();
         parentItem->insertChildBefore(item, newItem);
     }
-    else if (mode == INSERT_MODE_AFTER) {
+    else if (mode == CREATE_MODE_AFTER) {
         emit layoutAboutToBeChanged();
         parentItem->insertChildAfter(item, newItem);
     }
