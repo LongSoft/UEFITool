@@ -47,7 +47,7 @@ void FfsEngine::msg(const QString & message, const QModelIndex index)
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 }
 
-QQueue<MessageListItem> FfsEngine::messages()
+QQueue<MessageListItem> FfsEngine::messages() const
 {
     return messageItems;
 }
@@ -89,14 +89,14 @@ bool FfsEngine::hasIntersection(const UINT32 begin1, const UINT32 end1, const UI
 }
 
 // Firmware image parsing
-UINT8  FfsEngine::parseInputFile(const QByteArray & buffer)
+UINT8 FfsEngine::parseInputFile(const QByteArray & buffer)
 {
     UINT32 capsuleHeaderSize = 0;
     FLASH_DESCRIPTOR_HEADER* descriptorHeader = NULL;
     QModelIndex index;
     QByteArray flashImage;
 
-    // Check buffer size to be more or equal then sizeof(EFI_CAPSULE_HEADER)
+    // Check buffer size to be more then or equal to sizeof(EFI_CAPSULE_HEADER)
     if ((UINT32) buffer.size() <= sizeof(EFI_CAPSULE_HEADER))
     {
         msg(tr("parseInputFile: Input file is smaller then minimum size of %1 bytes").arg(sizeof(EFI_CAPSULE_HEADER)));
@@ -169,7 +169,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & flashImage, QModelIndex & in
     //FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection;
 
     // Store the beginning of descriptor as descriptor base address
-    UINT8* descriptor  = (UINT8*) flashImage.constData();
+    UINT8* descriptor      = (UINT8*) flashImage.constData();
     UINT32 descriptorBegin = 0;
     UINT32 descriptorEnd   = FLASH_DESCRIPTOR_SIZE;
 
@@ -446,9 +446,9 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
     UINT32 prevVolumeOffset;
     UINT8 result;
     result = findNextVolume(bios, 0, prevVolumeOffset);
-    if (result) {
+    if (result)
         return result;
-    }
+
 
     // First volume is not at the beginning of BIOS space
     QString name;
@@ -632,9 +632,9 @@ UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UIN
     EFI_FV_BLOCK_MAP_ENTRY* entry = (EFI_FV_BLOCK_MAP_ENTRY*) (bios.constData() + volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
     volumeSize = 0;
     while(entry->NumBlocks != 0 && entry->Length != 0) {
-        if ((void*) entry > bios.constData() + bios.size()) {
+        if ((void*) entry > bios.constData() + bios.size())
             return ERR_INVALID_VOLUME;
-        }
+
         volumeSize += entry->NumBlocks * entry->Length;
         entry += 1;
     }
@@ -1227,10 +1227,9 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 		fileHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*) fileHeader, sizeof(EFI_FFS_FILE_HEADER) - 1);
 		
 		// Recalculate data checksum, if needed
-		if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
+        if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM)
 			fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*) body.constData(), body.size());
-		}
-		else if (revision == 1)
+        else if (revision == 1)
 			fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
 		else 
 			fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
@@ -1259,8 +1258,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 
 		// Set action
 		treeModel->setItemAction(action, fileIndex);
-
-	}
+    }
 	else if (type == TreeItem::Section) {
 		if (parentItem->type() != TreeItem::File && parentItem->type() != TreeItem::Section)
 			return ERR_INVALID_SECTION;
@@ -1410,8 +1408,9 @@ UINT8 FfsEngine::replace(const QModelIndex & index, const QByteArray & object, c
 			headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
 			result = create(index, TreeItem::Section, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER, TreeItem::Replace);
 		}
-		else if (mode == REPLACE_MODE_BODY)
-			result = create(index, TreeItem::Section, parentItem->header(), object, CREATE_MODE_AFTER, TreeItem::Replace);
+        else if (mode == REPLACE_MODE_BODY) {
+            result = create(index, TreeItem::Section, parentItem->header(), object, CREATE_MODE_AFTER, TreeItem::Replace, parentItem->compression());
+        }
 		else
 			return ERR_NOT_IMPLEMENTED;
 	}
@@ -1937,11 +1936,24 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                     }
 
                     // Remove all pad files, they will be recreated later
-                    foreach(const QByteArray & child, childrenQueue)
-                    {
+                    foreach(const QByteArray & child, childrenQueue) {
                         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) child.constData();
                         if (fileHeader->Type == EFI_FV_FILETYPE_PAD)
                             childrenQueue.removeAll(child);
+                    }
+
+                    // Ensure that Volume Top File is the last file of the volume
+                    foreach(const QByteArray & child, childrenQueue) {
+                        // Check for VTF
+                        if (child.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
+                            // If VTF is not the last file in the volume
+                            if(childrenQueue.indexOf(child) + 1 != childrenQueue.length()) {
+                                // Remove VTF and add it to the end of the volume
+                                QByteArray vtf = child;
+                                childrenQueue.removeAll(child);
+                                childrenQueue.append(vtf);
+                            }
+                        }
                     }
 
                     // Get volume size

@@ -384,7 +384,7 @@ void UEFITool::extract(const UINT8 mode)
 			else if (item->subtype() == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
 				path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"),".","Volume files (*.vol *.bin);;All files (*.*)");
 			else if (item->subtype() == EFI_SECTION_RAW)
-				path = QFileDialog::getOpenFileName(this, tr("Select section body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
+				path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
 			else
 				path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),".","Binary files (*.bin);;All files (*.*)");
 			}

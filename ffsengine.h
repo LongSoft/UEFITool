@@ -38,7 +38,7 @@ public:
     TreeModel* model() const;
 
     // Returns message items queue
-    QQueue<MessageListItem> messages();
+    QQueue<MessageListItem> messages() const;
 
 	// Clears message items queue
 	void clearMessages();
@@ -86,6 +86,7 @@ public:
 	UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
 	UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 	UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+
 private:
     TreeItem  *rootItem;
     TreeModel *treeModel;
