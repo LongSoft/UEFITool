@@ -18,15 +18,15 @@ QString regionTypeToQString(const UINT8 type)
 {
     switch (type)
     {
-    case TreeItem::DescriptorRegion:
+    case DescriptorRegion:
         return QObject::tr("Descriptor");
-    case TreeItem::GbeRegion:
+    case GbeRegion:
         return QObject::tr("GbE");
-    case TreeItem::MeRegion:
+    case MeRegion:
         return QObject::tr("ME");
-    case TreeItem::BiosRegion:
+    case BiosRegion:
         return QObject::tr("BIOS");
-    case TreeItem::PdrRegion:
+    case PdrRegion:
         return QObject::tr("PDR");
     default:
         return QObject::tr("Unknown");

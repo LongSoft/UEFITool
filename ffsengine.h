@@ -19,7 +19,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QQueue>
 
 #include "basetypes.h"
-#include "treeitem.h"
 #include "treemodel.h"
 #include "messagelistitem.h"
 
@@ -33,15 +32,15 @@ public:
     // Default constructor and destructor
     FfsEngine(QObject *parent = 0);
     ~FfsEngine(void);
-    
+
     // Returns model for Qt view classes
-    TreeModel* model() const;
+    TreeModel* treeModel() const;
 
     // Returns message items queue
     QQueue<MessageListItem> messages() const;
 
-	// Clears message items queue
-	void clearMessages();
+    // Clears message items queue
+    void clearMessages();
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
@@ -63,7 +62,7 @@ public:
     // Compression routines
     UINT8 decompress(const QByteArray & compressed, const UINT8 compressionType, QByteArray & decompressedData, UINT8 * algorithm = NULL);
     UINT8 compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData);
-    
+
     // Construction routines
     UINT8 reconstructImage(QByteArray & reconstructed);
     UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
@@ -71,32 +70,30 @@ public:
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Operations on tree items
-	UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
-	
-	UINT8 create(const QModelIndex & index, const UINT8 type, const QByteArray & header, const QByteArray & body, const UINT8 mode, const UINT8 action, const UINT8 algorithm = COMPRESSION_ALGORITHM_NONE);
-	UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
-	UINT8 replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
-	    
-	UINT8 remove(const QModelIndex & index);
-    
-	UINT8 rebuild(const QModelIndex & index);
-    
-	// Search routines
-	UINT8 findHexPattern(const QByteArray & pattern, const UINT8 mode);
-	UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
-	UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
-	UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+    UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
+
+    UINT8 create(const QModelIndex & index, const UINT8 type, const QByteArray & header, const QByteArray & body, const UINT8 mode, const UINT8 action, const UINT8 algorithm = COMPRESSION_ALGORITHM_NONE);
+    UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
+    UINT8 replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
+
+    UINT8 remove(const QModelIndex & index);
+
+    UINT8 rebuild(const QModelIndex & index);
+
+    // Search routines
+    UINT8 findHexPattern(const QByteArray & pattern, const UINT8 mode);
+    UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
+    UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+    UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 
 private:
-    TreeItem  *rootItem;
-    TreeModel *treeModel;
-    
-	// Message helper
+    TreeModel *model;
+
+    // Message helper
     QQueue<MessageListItem> messageItems;
     void msg(const QString & message, const QModelIndex index = QModelIndex());
-    
+
     // Internal operations
-    QModelIndex findParentOfType(UINT8 type, const QModelIndex & index) const;
     bool hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
 };
 

@@ -1,13 +1,13 @@
 /* basetypes.h
 
 Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
-This program and the accompanying materials                          
-are licensed and made available under the terms and conditions of the BSD License         
-which accompanies this distribution.  The full text of the license may be found at        
-http://opensource.org/licenses/bsd-license.php                                            
+This program and the accompanying materials
+are licensed and made available under the terms and conditions of the BSD License
+which accompanies this distribution.  The full text of the license may be found at
+http://opensource.org/licenses/bsd-license.php
 
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,                     
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.             
+THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
@@ -108,12 +108,52 @@ typedef uint16_t  CHAR16;
 // Search modes
 #define SEARCH_MODE_HEADER  1
 #define SEARCH_MODE_BODY    2
-#define SEARCH_MODE_ALL     3         
+#define SEARCH_MODE_ALL     3
+
+// Actions
+enum ActionTypes {
+    NoAction = 50,
+    Create,
+    Insert,
+    Replace,
+    Remove,
+    Rebuild
+};
+
+// Types
+enum ItemTypes {
+    Root = 60,
+    Capsule,
+    Image,
+    Region,
+    Padding,
+    Volume,
+    File,
+    Section
+};
+// Subtypes
+enum ImageSubtypes{
+    IntelImage = 70,
+    BiosImage
+};
+
+enum CapsuleSubtypes {
+    AptioCapsule = 80,
+    UefiCapsule
+};
+
+enum RegionSubtypes {
+    DescriptorRegion = 90,
+    GbeRegion,
+    MeRegion,
+    BiosRegion,
+    PdrRegion
+};
 
 // EFI GUID
 typedef struct{
     UINT8 Data[16];
-} EFI_GUID; 
+} EFI_GUID;
 
 #define ALIGN4(Value) (((Value)+3) & ~3)
 #define ALIGN8(Value) (((Value)+7) & ~7)

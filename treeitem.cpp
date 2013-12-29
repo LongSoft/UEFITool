@@ -1,13 +1,13 @@
 /* treeitem.cpp
 
 Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
-This program and the accompanying materials                          
-are licensed and made available under the terms and conditions of the BSD License         
-which accompanies this distribution.  The full text of the license may be found at        
-http://opensource.org/licenses/bsd-license.php                                            
+This program and the accompanying materials
+are licensed and made available under the terms and conditions of the BSD License
+which accompanies this distribution. The full text of the license may be found at
+http://opensource.org/licenses/bsd-license.php
 
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,                     
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.             
+THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
@@ -16,56 +16,56 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffs.h"
 #include "descriptor.h"
 
-QString itemTypeToQString(const UINT8 type) 
+QString itemTypeToQString(const UINT8 type)
 {
     switch (type) {
-    case TreeItem::Root:
+    case Root:
         return QObject::tr("Root");
-    case TreeItem::Image:
+    case Image:
         return QObject::tr("Image");
-    case TreeItem::Capsule:
+    case Capsule:
         return QObject::tr("Capsule");
-    case TreeItem::Region:
+    case Region:
         return QObject::tr("Region");
-    case TreeItem::Volume:
+    case Volume:
         return QObject::tr("Volume");
-    case TreeItem::Padding:
+    case Padding:
         return QObject::tr("Padding");
-    case TreeItem::File:
+    case File:
         return QObject::tr("File");
-    case TreeItem::Section:
+    case Section:
         return QObject::tr("Section");
     default:
         return QObject::tr("Unknown");
     }
 }
 
-QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype) 
+QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
 {
     switch (type) {
-    case TreeItem::Root:
-    case TreeItem::Image:
-        if (subtype == TreeItem::IntelImage)
+    case Root:
+    case Image:
+        if (subtype == IntelImage)
             return QObject::tr("Intel");
-        else if (subtype == TreeItem::BiosImage)
+        else if (subtype == BiosImage)
             return QObject::tr("BIOS");
         else
             return QObject::tr("Unknown");
-    case TreeItem::Padding:
-    case TreeItem::Volume:
+    case Padding:
+    case Volume:
         return "";
-    case TreeItem::Capsule:
-        if (subtype == TreeItem::AptioCapsule)
+    case Capsule:
+        if (subtype == AptioCapsule)
             return QObject::tr("Aptio extended");
-        else if (subtype == TreeItem::UefiCapsule)
+        else if (subtype == UefiCapsule)
             return QObject::tr("UEFI 2.0");
         else
             return QObject::tr("Unknown");
-    case TreeItem::Region:
+    case Region:
         return regionTypeToQString(subtype);
-    case TreeItem::File:
+    case File:
         return fileTypeToQString(subtype);
-    case TreeItem::Section:
+    case Section:
         return sectionTypeToQString(subtype);
     default:
         return QObject::tr("Unknown");
@@ -91,8 +91,8 @@ QString compressionTypeToQString(UINT8 algorithm)
 }
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
-                   const QString & name, const QString & text, const QString & info, 
-                   const QByteArray & header, const QByteArray & body, const QByteArray & tail, 
+                   const QString & name, const QString & text, const QString & info,
+                   const QByteArray & header, const QByteArray & body, const QByteArray & tail,
                    TreeItem *parent)
 {
     itemAction = NoAction;
@@ -106,7 +106,7 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compressio
     itemBody = body;
     itemTail = tail;
     parentItem = parent;
-    
+
     // Set default names
     setDefaultNames();
 }
@@ -172,15 +172,15 @@ QVariant TreeItem::data(int column) const
     case 0: //Name
         return itemName;
     case 1: //Action
-		if (itemAction == TreeItem::Create)
+        if (itemAction == Create)
             return QObject::tr("Create");
-		if (itemAction == TreeItem::Insert)
+        if (itemAction == Insert)
             return QObject::tr("Insert");
-        if (itemAction == TreeItem::Replace)
+        if (itemAction == Replace)
             return QObject::tr("Replace");
-        if (itemAction == TreeItem::Remove)
+        if (itemAction == Remove)
             return QObject::tr("Remove");
-        if (itemAction == TreeItem::Rebuild)
+        if (itemAction == Rebuild)
             return QObject::tr("Rebuild");
         return QVariant();
     case 2: //Type
@@ -286,13 +286,14 @@ void TreeItem::setAction(const UINT8 action)
 {
     itemAction = action;
 
-	// On insert action, set insert action for children
-	if (action == TreeItem::Insert)
-		for(int i = 0; i < childCount(); i++)
-			child(i)->setAction(TreeItem::Insert);
-	
-	// Set rebuild action for parent, if it has no action now
-	if (parentItem && parentItem->type() != TreeItem::Root && parentItem->action() == TreeItem::NoAction)
-			parentItem->setAction(TreeItem::Rebuild);
+    // On insert action, set insert action for children
+    if (action == Insert)
+        for(int i = 0; i < childCount(); i++)
+            child(i)->setAction(Insert);
+
+    // Set rebuild action for parent, if it has no action now
+    if (parentItem && parentItem->type() != Root
+     && parentItem->action() == NoAction)
+            parentItem->setAction(Rebuild);
 }
 
