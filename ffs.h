@@ -1,4 +1,4 @@
-/* ffs.h 
+/* ffs.h
 
 Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
@@ -52,18 +52,19 @@ const QByteArray EFI_CAPSULE_GUID("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\
 
 // AMI Aptio extended capsule header
 typedef struct {
-    EFI_CAPSULE_HEADER    CapsuleHeader;           
+    EFI_CAPSULE_HEADER    CapsuleHeader;
     UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
                                             // the capsule volume
     //!TODO: Enable certificate and rom layout reading
     //UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
                                                 // that are included in the signature calculation
-    //FW_CERTIFICATE      FWCert;           
+    //FW_CERTIFICATE      FWCert;
     //ROM_AREA			  RomAreaMap[1];
 } APTIO_CAPSULE_HEADER;
 
 // AMI Aptio extended capsule GUID
-const QByteArray APTIO_CAPSULE_GUID("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16); 
+const QByteArray APTIO_CAPSULE_GUID
+("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
 
 //*****************************************************************************
 // EFI Firmware Volume
@@ -87,12 +88,12 @@ typedef struct {
     UINT16                 ExtHeaderOffset;  //Reserved in Revision 1
     UINT8                  Reserved;
     UINT8                  Revision;
-    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];	
+    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];
 } EFI_FIRMWARE_VOLUME_HEADER;
 
 // Filesystem GUIDs
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
-("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16); 
+("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
 ("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
 
@@ -188,7 +189,7 @@ typedef struct {
 } EFI_FIRMWARE_VOLUME_EXT_HEADER;
 
 // Extended header entry
-// The extended header entries follow each other and are 
+// The extended header entries follow each other and are
 // terminated by ExtHeaderType EFI_FV_EXT_TYPE_END
 #define EFI_FV_EXT_TYPE_END        0x00
 typedef struct {
@@ -218,7 +219,7 @@ extern UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize);
 //*****************************************************************************
 // EFI FFS File
 //*****************************************************************************
-// Integrity check 
+// Integrity check
 typedef union {
     struct {
         UINT8	Header;
@@ -282,7 +283,7 @@ typedef struct {
 #define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
-//#define FFS_ATTRIB_LARGE_FILE       0x01 //This attribute is removed in new PI 1.3 specification, nice 
+//#define FFS_ATTRIB_LARGE_FILE       0x01 //This attribute is removed in new PI 1.3 specification, nice
 
 // FFS alignment table
 extern const UINT8 ffsAlignmentTable[];
@@ -297,8 +298,15 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_ERASE_POLARITY         0x80
 
 // Volume top file
-const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID 
+const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
+
+// AMI volume top file
+// This file must also be located near the end volume, right before VTF
+const QByteArray EFI_AMI_FFS_FILE_BEFORE_VTF_GUID
+("\x50\x9F\xE5\xD1\xC3\xE8\x45\x45\xBF\x61\x11\xF0\x02\x23\x3C\x97", 16);
+// Offset of this file
+#define EFI_AMI_FFS_FILE_BEFORE_VTF_OFFSET 0xEF0
 
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
@@ -318,7 +326,7 @@ typedef struct {
 // Large file common section header
 //typedef struct {
 //    UINT8    Size[3];    //Must be 0xFFFFFF for this header to be used
-//    UINT8    Type;      
+//    UINT8    Type;
 //    UINT32 ExtendedSize;
 //} EFI_COMMON_SECTION_HEADER2;
 
@@ -353,7 +361,7 @@ typedef struct {
 } EFI_COMPRESSION_SECTION;
 
 // Compression types
-#define EFI_NOT_COMPRESSED          0x00 
+#define EFI_NOT_COMPRESSED          0x00
 #define EFI_STANDARD_COMPRESSION    0x01
 #define EFI_CUSTOMIZED_COMPRESSION  0x02
 

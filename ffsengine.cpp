@@ -1929,6 +1929,19 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         }
                     }
 
+                    // Ensure that AMI file before VTF is the second latest file of the volume
+                    foreach(const QByteArray & child, childrenQueue) {
+                        // Check for AMI before VTF file
+                        if (child.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
+                            if(childrenQueue.indexOf(child) + 2 != childrenQueue.length()) {
+                                // Remove file and add it to the end of the volume
+                                QByteArray amiBeforeVtf = child;
+                                childrenQueue.removeAll(child);
+                                childrenQueue.insert(--childrenQueue.end(), amiBeforeVtf);
+                            }
+                        }
+                    }
+
                     // Get volume size
                     UINT32 volumeSize;
                     result = getVolumeSize(header, 0, volumeSize);
@@ -1950,6 +1963,32 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         // Get file from queue
                         QByteArray file = childrenQueue.dequeue();
                         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) file.data();
+
+                        // This is the second latest file in the volume
+                        if (childrenQueue.count() == 1) {
+                            // This file can be AMI file before VTF
+                            if (file.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
+                                // Determine correct offset
+                                UINT32 amiOffset = volumeSize - header.size() - file.size() - EFI_AMI_FFS_FILE_BEFORE_VTF_OFFSET;
+                                // Insert pad file to fill the gap
+                                if (amiOffset > offset) {
+                                    // Determine pad file size
+                                    UINT32 size = amiOffset - offset;
+                                    // Construct pad file
+                                    QByteArray pad;
+                                    result = constructPadFile(size, revision, polarity, pad);
+                                    if (result)
+                                        return result;
+                                    // Append constructed pad file to volume body
+                                    reconstructed.append(pad);
+                                    offset = amiOffset;
+                                }
+                                if (amiOffset < offset) {
+                                    msg(tr("%1: volume has no free space left").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                                    return ERR_INVALID_VOLUME;
+                                }
+                            }
+                        }
 
                         // Check alignment
                         UINT8 alignmentPower;
