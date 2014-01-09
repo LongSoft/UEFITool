@@ -1242,7 +1242,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         if (model->type(parent) !=  File && model->type(parent) !=  Section)
             return ERR_INVALID_SECTION;
 
-        if (header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
+        if (header.size() < (int) sizeof(EFI_COMMON_SECTION_HEADER))
             return ERR_INVALID_SECTION;
 
         QByteArray newHeader = header;

@@ -509,20 +509,20 @@ Returns: (VOID)
 {
   NODE i;
 
-  for (i = WNDSIZ; i <= WNDSIZ + UINT8_MAX; i++) {
+  for (i = (NODE) WNDSIZ; i <= (NODE) WNDSIZ + UINT8_MAX; i++) {
 	mLevel[i] = 1;
 	mPosition[i] = NIL;  /* sentinel */
   }
-  for (i = WNDSIZ; i < WNDSIZ * 2; i++) {
+  for (i = (NODE) WNDSIZ; i < (NODE) WNDSIZ * 2; i++) {
 	mParent[i] = NIL;
   }  
   mAvail = 1;
-  for (i = 1; i < WNDSIZ - 1; i++) {
+  for (i = 1; i < (NODE) WNDSIZ - 1; i++) {
 	mNext[i] = (NODE)(i + 1);
   }
   
   mNext[WNDSIZ - 1] = NIL;
-  for (i = WNDSIZ * 2; i <= MAX_HASH_VAL; i++) {
+  for (i = (NODE) WNDSIZ * 2; i <= (NODE) MAX_HASH_VAL; i++) {
 	mNext[i] = NIL;
   }  
 }
@@ -675,7 +675,7 @@ Returns: (VOID)
 	  mPosition[t] = mPos;
 	  t = mParent[t];
 	}
-	if (t < WNDSIZ) {
+    if (t < (NODE) WNDSIZ) {
 	  mPosition[t] = (NODE)(mPos | PERC_FLAG);
 	}    
   } else {
@@ -701,7 +701,7 @@ Returns: (VOID)
   //
   
   for ( ; ; ) {
-	if (r >= WNDSIZ) {
+    if (r >= (NODE) WNDSIZ) {
 	  j = MAXMATCH;
 	  mMatchPos = r;
 	} else {
@@ -777,7 +777,7 @@ Returns: (VOID)
   mPrev[s] = r;
   r = mParent[mPos];
   mParent[mPos] = NIL;
-  if (r >= WNDSIZ || --mChildCount[r] > 1) {
+  if (r >= (NODE) WNDSIZ || --mChildCount[r] > 1) {
 	return;
   }
   t = (NODE)(mPosition[r] & ~PERC_FLAG);
@@ -797,7 +797,7 @@ Returns: (VOID)
 	mPosition[q] = (INT16)(s | WNDSIZ);
 	q = mParent[q];
   }
-  if (q < WNDSIZ) {
+  if (q < (NODE) WNDSIZ) {
 	if (u >= mPos) {
 	  u -= WNDSIZ;
 	}

@@ -522,22 +522,22 @@ STATIC
 {
 	NODE  Index;
 
-	for (Index = WNDSIZ; Index <= WNDSIZ + UINT8_MAX; Index++) {
+    for (Index = (NODE) WNDSIZ; Index <= (NODE) WNDSIZ + UINT8_MAX; Index++) {
 		mLevel[Index]     = 1;
 		mPosition[Index]  = NIL;  // sentinel 
 	}
 
-	for (Index = WNDSIZ; Index < WNDSIZ * 2; Index++) {
+    for (Index = (NODE) WNDSIZ; Index < (NODE) WNDSIZ * 2; Index++) {
 		mParent[Index] = NIL;
 	}
 
 	mAvail = 1;
-	for (Index = 1; Index < WNDSIZ - 1; Index++) {
+    for (Index = 1; Index < (NODE) WNDSIZ - 1; Index++) {
 		mNext[Index] = (NODE) (Index + 1);
 	}
 
 	mNext[WNDSIZ - 1] = NIL;
-	for (Index = WNDSIZ * 2; Index <= MAX_HASH_VAL; Index++) {
+    for (Index = (NODE) WNDSIZ * 2; Index <= (NODE) MAX_HASH_VAL; Index++) {
 		mNext[Index] = NIL;
 	}
 }
@@ -705,7 +705,7 @@ STATIC
 			NodeT             = mParent[NodeT];
 		}
 
-		if (NodeT < WNDSIZ) {
+        if (NodeT < (NODE) WNDSIZ) {
 			mPosition[NodeT] = (NODE) (mPos | (UINT32) PERC_FLAG);
 		}
 	} else {
@@ -729,7 +729,7 @@ STATIC
 	// Node split or creation is involved.
 	//
 	for (;;) {
-		if (NodeR >= WNDSIZ) {
+        if (NodeR >= (NODE) WNDSIZ) {
 			Index2    = MAXMATCH;
 			mMatchPos = NodeR;
 		} else {
@@ -819,7 +819,7 @@ STATIC
 	mPrev[NodeS]  = NodeR;
 	NodeR         = mParent[mPos];
 	mParent[mPos] = NIL;
-	if (NodeR >= WNDSIZ) {
+    if (NodeR >= (NODE) WNDSIZ) {
 		return ;
 	}
 
@@ -851,7 +851,7 @@ STATIC
 		NodeU             = mPosition[NodeQ];
 	}
 
-	if (NodeQ < WNDSIZ) {
+    if (NodeQ < (NODE) WNDSIZ) {
 		if (NodeU >= mPos) {
 			NodeU -= WNDSIZ;
 		}
