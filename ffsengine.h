@@ -21,6 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "basetypes.h"
 #include "treemodel.h"
 #include "messagelistitem.h"
+#include "peimage.h"
 
 class TreeModel;
 
@@ -66,7 +67,7 @@ public:
     // Construction routines
     UINT8 reconstructImage(QByteArray & reconstructed);
     UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
-    UINT8 reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision = 2, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN);
+    UINT8 reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision = 2, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const UINT32 base = 0);
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Operations on tree items
@@ -85,6 +86,9 @@ public:
     UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
     UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
     UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+
+    // Rebase routines
+    UINT8 rebase(QByteArray & executable, const UINT32 base);
 
 private:
     TreeModel *model;

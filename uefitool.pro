@@ -36,7 +36,8 @@ HEADERS  += uefitool.h \
             LZMA/LzmaCompress.h \
             LZMA/LzmaDecompress.h \
             Tiano/EfiTianoDecompress.h \
-            Tiano/EfiTianoCompress.h
+            Tiano/EfiTianoCompress.h \
+    peimage.h
 			
 FORMS    += uefitool.ui \
 			searchdialog.ui

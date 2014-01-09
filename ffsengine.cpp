@@ -1709,7 +1709,7 @@ UINT8 FfsEngine::constructPadFile(const UINT32 size, const UINT8 revision, const
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision, const UINT8 erasePolarity)
+UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base)
 {
     if (!index.isValid())
         return ERR_SUCCESS;
@@ -1718,13 +1718,13 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
     UINT8 result;
 
     // No action is needed, just return header + body + tail
-    if (model->action(index) ==  NoAction) {
+    if (!base && model->action(index) == NoAction) {
         reconstructed = model->header(index).append(model->body(index)).append(model->tail(index));
         queue.enqueue(reconstructed);
         return ERR_SUCCESS;
     }
     // Remove item
-    else if (model->action(index) ==  Remove) {
+    if (model->action(index) ==  Remove) {
         // Volume can be removed by replacing all it's contents with empty bytes
         if (model->type(index) ==  Volume) {
             EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) model->header(index).constData();
@@ -1746,10 +1746,10 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
             return ERR_NOT_IMPLEMENTED;
     }
     // Reconstruct item and it's children recursive
-    else if (model->action(index) ==  Create
-          || model->action(index) ==  Insert
-          || model->action(index) ==  Replace
-          || model->action(index) ==  Rebuild) {
+    if (base || model->action(index) == Create
+          || model->action(index) == Insert
+          || model->action(index) == Replace
+          || model->action(index) == Rebuild) {
         QQueue<QByteArray> childrenQueue;
 
         switch (model->type(index)) {
@@ -1887,7 +1887,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
 
         case  Volume:
             {
-                //!TODO: add check for weak aligned volumes
+                //!TODO: add check for weak aligned volume
                 QByteArray header = model->header(index);
                 EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) header.data();
 
@@ -1895,63 +1895,35 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                 volumeHeader->Checksum = 0;
                 volumeHeader->Checksum = calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength);
 
+                // Get volume size
+                UINT32 volumeSize;
+                result = getVolumeSize(header, 0, volumeSize);
+                if (result)
+                    return result;
+
                 // Reconstruct volume body
                 if (model->rowCount(index)) {
                     UINT8 polarity = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE;
                     char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
+                    bool bootVolume = false;
+
+                    // Check for boot volume
+                    for (int i = 0; i < model->rowCount(index); i++) {
+                        QByteArray hdr = model->header(index.child(i, index.column()));
+                        EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) hdr.data();
+                        if (fileHeader->Type == EFI_FV_FILETYPE_PEI_CORE) {
+                            bootVolume = true;
+                            break;
+                        }
+                    }
 
                     // Reconstruct files in volume
-                    for (int i = 0; i < model->rowCount(index); i++) {
-                        // Reconstruct files
-                        result = reconstruct(index.child(i, index.column()), childrenQueue, volumeHeader->Revision, polarity);
-                        if (result)
-                            return result;
-                    }
-
-                    // Remove all pad files, they will be recreated later
-                    foreach(const QByteArray & child, childrenQueue) {
-                        EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) child.constData();
-                        if (fileHeader->Type == EFI_FV_FILETYPE_PAD)
-                            childrenQueue.removeAll(child);
-                    }
-
-                    // Ensure that Volume Top File is the last file of the volume
-                    foreach(const QByteArray & child, childrenQueue) {
-                        // Check for VTF
-                        if (child.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
-                            // If VTF is not the last file in the volume
-                            if(childrenQueue.indexOf(child) + 1 != childrenQueue.length()) {
-                                // Remove VTF and add it to the end of the volume
-                                QByteArray vtf = child;
-                                childrenQueue.removeAll(child);
-                                childrenQueue.append(vtf);
-                            }
-                        }
-                    }
-
-                    // Ensure that AMI file before VTF is the second latest file of the volume
-                    foreach(const QByteArray & child, childrenQueue) {
-                        // Check for AMI before VTF file
-                        if (child.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
-                            if(childrenQueue.indexOf(child) + 2 != childrenQueue.length()) {
-                                // Remove file and add it to the end of the volume
-                                QByteArray amiBeforeVtf = child;
-                                childrenQueue.removeAll(child);
-                                childrenQueue.insert(--childrenQueue.end(), amiBeforeVtf);
-                            }
-                        }
-                    }
-
-                    // Get volume size
-                    UINT32 volumeSize;
-                    result = getVolumeSize(header, 0, volumeSize);
-                    if (result)
-                        return result;
-
-                    // Construct new volume body
                     UINT32 offset = 0;
-                    while (!childrenQueue.isEmpty())
-                    {
+                    QByteArray vtf;
+                    QModelIndex vtfIndex;
+                    QByteArray amiBeforeVtf;
+                    QModelIndex amiBeforeVtfIndex;
+                    for (int i = 0; i < model->rowCount(index); i++) {
                         // Align to 8 byte boundary
                         UINT32 alignment = offset % 8;
                         if (alignment) {
@@ -1959,47 +1931,55 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                             offset += alignment;
                             reconstructed.append(QByteArray(alignment, empty));
                         }
+						
+                        // Calculate file base
+                        UINT32 newbase = 0;
+                        if (bootVolume) {
+                            newbase = (UINT32) 0x100000000 - volumeSize + header.size() + offset;
+						}
 
-                        // Get file from queue
+						// Reconstruct file
+                        result = reconstruct(index.child(i, index.column()), childrenQueue, volumeHeader->Revision, polarity, newbase);
+                        if (result)
+                            return result;
+
+						// Check for empty queue
+						if (childrenQueue.isEmpty())
+							continue;
+                        
+						// Get file from queue
                         QByteArray file = childrenQueue.dequeue();
                         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) file.data();
 
-                        // This is the second latest file in the volume
-                        if (childrenQueue.count() == 1) {
-                            // This file can be AMI file before VTF
-                            if (file.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
-                                // Determine correct offset
-                                UINT32 amiOffset = volumeSize - header.size() - file.size() - EFI_AMI_FFS_FILE_BEFORE_VTF_OFFSET;
-                                // Insert pad file to fill the gap
-                                if (amiOffset > offset) {
-                                    // Determine pad file size
-                                    UINT32 size = amiOffset - offset;
-                                    // Construct pad file
-                                    QByteArray pad;
-                                    result = constructPadFile(size, revision, polarity, pad);
-                                    if (result)
-                                        return result;
-                                    // Append constructed pad file to volume body
-                                    reconstructed.append(pad);
-                                    offset = amiOffset;
-                                }
-                                if (amiOffset < offset) {
-                                    msg(tr("%1: volume has no free space left").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                                    return ERR_INVALID_VOLUME;
-                                }
-                            }
+                        // Pad file
+                        if (fileHeader->Type == EFI_FV_FILETYPE_PAD)
+                            continue;
+
+						// AMI file before VTF
+                        if (file.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
+                            amiBeforeVtf = file;
+                            amiBeforeVtfIndex = index.child(i, index.column());
+                            continue;
                         }
 
-                        // Check alignment
+                        // Volume Top File
+                        if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
+                            vtf = file;
+                            vtfIndex = index.child(i, index.column());
+                            continue;
+                        }
+						                        
+                        // Normal file
+						// Ensure correct alignment
                         UINT8 alignmentPower;
-                        UINT32 base;
+                        UINT32 alignmentBase;
                         alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
                         alignment = (UINT32) pow(2.0, alignmentPower);
-                        base = header.size() + offset + sizeof(EFI_FFS_FILE_HEADER);
-                        if (base % alignment) {
+                        alignmentBase = header.size() + offset + sizeof(EFI_FFS_FILE_HEADER);
+                        if (alignmentBase % alignment) {
                             // File will be unaligned if added as is, so we must add pad file before it
                             // Determine pad file size
-                            UINT32 size = alignment - (base % alignment);
+                            UINT32 size = alignment - (alignmentBase % alignment);
                             // Required padding is smaler then minimal pad file size
                             while (size < sizeof(EFI_FFS_FILE_HEADER)) {
                                 size += alignment;
@@ -2014,98 +1994,138 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                             offset += size;
                         }
 
-                        // If this is the last file in volume
-                        if (childrenQueue.isEmpty())
-                        {
-                            // Last file of the volume can be Volume Top File
-                            if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
-                                // Determine correct VTF offset
-                                UINT32 vtfOffset = volumeSize - header.size() - file.size();
-                                if (vtfOffset % 8) {
-                                    msg(tr("reconstruct: %1: Wrong size of Volume Top File")
-                                        .arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                                    return ERR_INVALID_FILE;
-                                }
-                                // Insert pad file to fill the gap
-                                if (vtfOffset > offset) {
-                                    // Determine pad file size
-                                    UINT32 size = vtfOffset - offset;
-                                    // Construct pad file
-                                    QByteArray pad;
-                                    result = constructPadFile(size, revision, polarity, pad);
-                                    if (result)
-                                        return result;
-                                    // Append constructed pad file to volume body
-                                    reconstructed.append(pad);
-                                    offset = vtfOffset;
-                                }
-                                // No more space left in volume
-                                else if (vtfOffset < offset) {
-                                    // Check if volume can be grown
-                                    UINT8 parentType = model->type(index.parent());
-                                    if(parentType !=  File && parentType !=  Section) {
-                                        msg(tr("%1: can't grow root volume").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                                        return ERR_INVALID_VOLUME;
-                                    }
-                                    // Grow volume to fit VTF
-                                    UINT32 newSize = volumeSize + (offset - vtfOffset) + sizeof(EFI_FFS_FILE_HEADER);
-                                    result = growVolume(header, volumeSize, newSize);
-                                    if (result)
-                                        return result;
-                                    // Determine new VTF offset
-                                    vtfOffset = newSize - header.size() - file.size();
-                                    if (vtfOffset % 8) {
-                                        msg(tr("reconstruct: %1: Wrong size of Volume Top File")
-                                            .arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                                        return ERR_INVALID_FILE;
-                                    }
-                                    // Construct pad file
-                                    QByteArray pad;
-                                    result = constructPadFile(vtfOffset - offset, revision, polarity, pad);
-                                    if (result)
-                                        return result;
-                                    // Append constructed pad file to volume body
-                                    reconstructed.append(pad);
-                                    reconstructed.append(file);
-                                    volumeSize = newSize;
-                                    break;
-                                }
-                            }
-
-                            // Append last file and fill the rest with empty char
-                            else {
-                                reconstructed.append(file);
-                                UINT32 volumeBodySize = volumeSize - header.size();
-                                if (volumeBodySize > (UINT32) reconstructed.size()) {
-                                    // Fill volume end with empty char
-                                    reconstructed.append(QByteArray(volumeBodySize - reconstructed.size(), empty));
-                                }
-                                else {
-                                    // Check if volume can be grown
-                                    UINT8 parentType = model->type(index.parent());
-                                    if(parentType !=  File && parentType !=  Section) {
-                                        msg(tr("%1: can't grow root volume").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                                        return ERR_INVALID_VOLUME;
-                                    }
-                                    // Grow volume to fit new body
-                                    UINT32 newSize = header.size() + reconstructed.size();
-                                    result = growVolume(header, volumeSize, newSize);
-                                    if (result)
-                                        return result;
-                                    // Fill volume end with empty char
-                                    reconstructed.append(QByteArray(newSize - header.size() - reconstructed.size(), empty));
-                                    volumeSize = newSize;
-                                }
-                                break;
-                            }
-                        }
-
                         // Append current file to new volume body
                         reconstructed.append(file);
 
                         // Change current file offset
                         offset += file.size();
                     }
+
+                    // Insert AMI file before VTF to it's correct place
+                    if (!amiBeforeVtf.isEmpty()) {
+                        // Determine correct offset
+                        UINT32 amiOffset = volumeSize - header.size() - amiBeforeVtf.size() - EFI_AMI_FFS_FILE_BEFORE_VTF_OFFSET;
+
+                        // Insert pad file to fill the gap
+                        if (amiOffset > offset) {
+                            // Determine pad file size
+                            UINT32 size = amiOffset - offset;
+                            // Construct pad file
+                            QByteArray pad;
+                            result = constructPadFile(size, revision, polarity, pad);
+                            if (result)
+                                return result;
+                            // Append constructed pad file to volume body
+                            reconstructed.append(pad);
+                            offset = amiOffset;
+                        }
+                        if (amiOffset < offset) {
+                            msg(tr("reconstruct: %1: volume has no free space left").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                            return ERR_INVALID_VOLUME;
+                        }
+
+                        // Calculate file base
+                        UINT32 newbase = 0;
+                        if (bootVolume) {
+                            newbase = (UINT32) 0x100000000 - volumeSize + header.size() + amiOffset;
+                        }
+
+                        // Reconstruct file again
+                        result = reconstruct(amiBeforeVtfIndex, childrenQueue, volumeHeader->Revision, polarity, newbase);
+                        if (result)
+                            return result;
+
+                        // Get file from queue
+                        amiBeforeVtf = childrenQueue.dequeue();
+
+                        // Append AMI file before VTF
+                        reconstructed.append(amiBeforeVtf);
+
+						// Change current file offset
+                        offset += amiBeforeVtf.size();
+
+                        // Align to 8 byte boundary
+                        UINT32 alignment = offset % 8;
+                        if (alignment) {
+                            alignment = 8 - alignment;
+                            offset += alignment;
+                            reconstructed.append(QByteArray(alignment, empty));
+                        }
+                    }
+
+                    // Insert VTF to it's correct place
+                    if (!vtf.isEmpty()) {
+                        // Determine correct VTF offset
+                        UINT32 vtfOffset = volumeSize - header.size() - vtf.size();
+
+                        if (vtfOffset % 8) {
+                            msg(tr("reconstruct: %1: Wrong size of Volume Top File")
+                                .arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                            return ERR_INVALID_FILE;
+                        }
+                        // Insert pad file to fill the gap
+                        if (vtfOffset > offset) {
+                            // Determine pad file size
+                            UINT32 size = vtfOffset - offset;
+                            // Construct pad file
+                            QByteArray pad;
+                            result = constructPadFile(size, revision, polarity, pad);
+                            if (result)
+                                return result;
+                            // Append constructed pad file to volume body
+                            reconstructed.append(pad);
+                            offset = vtfOffset;
+                        }
+                        // No more space left in volume
+                        else if (vtfOffset < offset) {
+                            msg(tr("reconstruct: %1: volume has no free space left").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                            return ERR_INVALID_VOLUME;
+                        }
+
+                        // Calculate file base
+                        UINT32 newbase = 0;
+                        if (bootVolume) {
+                            newbase = (UINT32) 0x100000000 - volumeSize + header.size() + vtfOffset;
+                        }
+
+                        // Reconstruct file
+                        result = reconstruct(vtfIndex, childrenQueue, volumeHeader->Revision, polarity, newbase);
+                        if (result)
+                            return result;
+
+                        // Get file from queue
+                        vtf = childrenQueue.dequeue();
+
+						// Append VTF
+						reconstructed.append(vtf);
+                    }
+					else {
+						// Fill the rest of volume space with empty char
+						UINT32 volumeBodySize = volumeSize - header.size();
+						if (volumeBodySize > (UINT32) reconstructed.size()) {
+							// Fill volume end with empty char
+							reconstructed.append(QByteArray(volumeBodySize - reconstructed.size(), empty));
+						}
+						else if (volumeBodySize < (UINT32) reconstructed.size()) {
+							// Check if volume can be grown
+							// Root volume can't be grown yet
+							UINT8 parentType = model->type(index.parent());
+							if(parentType != File && parentType != Section) {
+								msg(tr("reconstruct: %1: can't grow root volume").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+								return ERR_INVALID_VOLUME;
+							}
+
+							// Grow volume to fit new body
+							UINT32 newSize = header.size() + reconstructed.size();
+							result = growVolume(header, volumeSize, newSize);
+							if (result)
+								return result;
+
+							// Fill volume end with empty char
+							reconstructed.append(QByteArray(newSize - header.size() - reconstructed.size(), empty));
+							volumeSize = newSize;
+						}
+					}
 
                     // Check new volume size
                     if ((UINT32)(header.size() + reconstructed.size()) > volumeSize)
@@ -2182,17 +2202,9 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
 
                 // Reconstruct file body
                 if (model->rowCount(index)) {
-                    for (int i = 0; i < model->rowCount(index); i++) {
-                        // Reconstruct sections
-                        result = reconstruct(index.child(i, index.column()), childrenQueue, revision, empty);
-                        if (result)
-                            return result;
-                    }
-
                     // Construct new file body
                     UINT32 offset = 0;
-                    while (!childrenQueue.isEmpty())
-                    {
+                    for (int i = 0; i < model->rowCount(index); i++) {
                         // Align to 4 byte boundary
                         UINT8 alignment = offset % 4;
                         if (alignment) {
@@ -2201,11 +2213,27 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                             reconstructed.append(QByteArray(alignment, empty));
                         }
 
+                        // Correct base, if needed
+                        UINT32 newbase = 0;
+                        if (base) {
+							newbase = base + header.size() + offset;
+                        }
+
+                        // Reconstruct section
+                        result = reconstruct(index.child(i, index.column()), childrenQueue, revision, empty, newbase);
+                        if (result)
+                            return result;
+
+                        // Check for empty queue
+                        if (childrenQueue.isEmpty())
+                            continue;
+
                         // Get section from queue
                         QByteArray section = childrenQueue.dequeue();
 
                         // Append current section to new file body
                         reconstructed.append(section);
+
                         // Change current file offset
                         offset += section.size();
                     }
@@ -2256,18 +2284,11 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
 
                 // Section with children
                 if (model->rowCount(index)) {
-                    // Reconstruct section body
-                    for (int i = 0; i < model->rowCount(index); i++) {
-                        // Reconstruct subsections
-                        result = reconstruct(index.child(i, index.column()), childrenQueue);
-                        if (result)
-                            return result;
-                    }
-
                     // Construct new section body
                     UINT32 offset = 0;
-                    while (!childrenQueue.isEmpty())
-                    {
+
+                    // Reconstruct section body
+                    for (int i = 0; i < model->rowCount(index); i++) {
                         // Align to 4 byte boundary
                         UINT8 alignment = offset % 4;
                         if (alignment) {
@@ -2275,6 +2296,22 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                             offset += alignment;
                             reconstructed.append(QByteArray(alignment, '\x00'));
                         }
+
+                        // No rebase needed for subsections
+                        /*// Correct base, if needed
+                        UINT32 newbase = 0;
+                        if (base) {
+                            newbase += offset;
+                        }*/
+
+                        // Reconstruct subsections
+                        result = reconstruct(index.child(i, index.column()), childrenQueue/*, revision, erasePolarity, newbase*/);
+                        if (result)
+                            return result;
+
+                        // Check for empty queue
+                        if (childrenQueue.isEmpty())
+                            continue;
 
                         // Get section from queue
                         QByteArray section = childrenQueue.dequeue();
@@ -2325,7 +2362,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                         reconstructed = compressed;
                     }
                     else if (model->compression(index) != COMPRESSION_ALGORITHM_NONE) {
-                        msg(tr("reconstruct: incorreclty required compression for section of type %1")
+                        msg(tr("reconstruct: incorrectly required compression for section of type %1")
                             .arg(model->subtype(index)));
                         return ERR_INVALID_SECTION;
                     }
@@ -2336,6 +2373,15 @@ UINT8 FfsEngine::reconstruct(const QModelIndex & index, QQueue<QByteArray> & que
                 // Leaf section
                 else
                     reconstructed = model->body(index);
+
+				// Rebase executable section, if needed
+				if (base && (model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE)) {
+					result = rebase(reconstructed, base + header.size());
+					if (result) {
+						msg(tr("reconstruct: can't rebase executable"));
+						return result;
+					}
+				}
 
                 // Enqueue reconstructed item
                 queue.enqueue(header.append(reconstructed));
@@ -2473,5 +2519,143 @@ UINT8 FfsEngine::findTextPatternIn(const QModelIndex & index, const QString & pa
             index);
     }
 
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
+{
+    // Relocation data
+    UINT32 delta; // Delta between old and new bases
+    UINT32 relocOffset; // Offset of relocation region
+    UINT32 relocSize;   // Size of relocation region
+    UINT32 teFixup = 0;
+    // Copy input data to local storage
+    QByteArray file = executable;
+
+    // Populate DOS header
+    EFI_IMAGE_DOS_HEADER* dosHeader = (EFI_IMAGE_DOS_HEADER*) file.data();
+
+    // Check signature
+    if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
+        UINT32 offset = dosHeader->e_lfanew;
+        EFI_IMAGE_PE_HEADER* peHeader = (EFI_IMAGE_PE_HEADER*) (file.data() + offset);
+        if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
+            return ERR_UNKNOWN_IMAGE_TYPE;
+        offset += sizeof(EFI_IMAGE_PE_HEADER);
+        // Skip file header
+        offset += sizeof(EFI_IMAGE_FILE_HEADER);
+        // Check optional header magic
+        UINT16 magic = *(UINT16*) (file.data() + offset);
+        if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (EFI_IMAGE_OPTIONAL_HEADER32*) (file.data() + offset);
+            // Get relocation data
+            delta = base - optHeader->ImageBase;
+			if (!delta)
+				// No need to rebase
+				return ERR_SUCCESS;
+            relocOffset = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+            relocSize   = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+            // Set new base
+            optHeader->ImageBase = base;
+        }
+        else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (EFI_IMAGE_OPTIONAL_HEADER64*) (file.data() + offset);
+            // Get relocation data
+            delta = base - optHeader->ImageBase;
+			if (!delta)
+				// No need to rebase
+				return ERR_SUCCESS;
+            relocOffset = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+            relocSize   = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+            // Set new base
+            optHeader->ImageBase = base;
+            }
+        else
+            return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+    }
+    else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
+        // Populate TE header
+        EFI_IMAGE_TE_HEADER* teHeader = (EFI_IMAGE_TE_HEADER*) file.data();
+        // Get relocation data
+        delta = base - teHeader->ImageBase;
+		if (!delta)
+			// No need to rebase
+			return ERR_SUCCESS;
+        relocOffset = teHeader->DataDirectory[EFI_IMAGE_TE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress ;
+        teFixup     = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+        relocSize   = teHeader->DataDirectory[EFI_IMAGE_TE_DIRECTORY_ENTRY_BASERELOC].Size;
+        // Set new base
+        teHeader->ImageBase = base;
+    }
+    else
+        return ERR_UNKNOWN_IMAGE_TYPE;
+	
+	// No relocations
+	if (relocOffset == 0)
+		// No need to rebase
+		return ERR_SUCCESS;
+
+    // Locate relocation section using data directory
+    EFI_IMAGE_BASE_RELOCATION   *RelocBase;
+    EFI_IMAGE_BASE_RELOCATION   *RelocBaseEnd;
+    UINT16                      *Reloc;
+    UINT16                      *RelocEnd;
+    UINT16                      *F16;
+    UINT32                      *F32;
+    UINT64                      *F64;
+
+    // Run the whole relocation block
+    RelocBase = (EFI_IMAGE_BASE_RELOCATION*) (file.data() + relocOffset - teFixup);
+    RelocBaseEnd = (EFI_IMAGE_BASE_RELOCATION*) (file.data() + relocOffset - teFixup + relocSize);
+
+    while (RelocBase < RelocBaseEnd) {
+        Reloc = (UINT16*) ((UINT8*) RelocBase + sizeof(EFI_IMAGE_BASE_RELOCATION));
+        RelocEnd = (UINT16*) ((UINT8*) RelocBase + RelocBase->SizeOfBlock);
+
+        // Run this relocation record
+        while (Reloc < RelocEnd) {
+            UINT8* data = (UINT8*) (file.data() + RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF));
+            switch ((*Reloc) >> 12) {
+            case EFI_IMAGE_REL_BASED_ABSOLUTE:
+                // Do nothing
+                break;
+
+            case EFI_IMAGE_REL_BASED_HIGH:
+                // Add second 16 bits of delta
+                F16  = (UINT16*) data;
+                *F16 = (UINT16)(*F16 + (UINT16)(((UINT32) delta) >> 16));
+                break;
+
+            case EFI_IMAGE_REL_BASED_LOW:
+                // Add first 16 bits of delta
+                F16  = (UINT16*) data;
+                *F16 = (UINT16) (*F16 + (UINT16) delta);
+                break;
+
+            case EFI_IMAGE_REL_BASED_HIGHLOW:
+                // Add first 32 bits of delta
+                F32  = (UINT32*) data;
+                *F32 = *F32 + (UINT32) delta;
+                break;
+
+            case EFI_IMAGE_REL_BASED_DIR64:
+                // Add all 64 bits of delta
+                F64  = (UINT64*) data;
+                *F64 = *F64 + (UINT64) delta;
+                break;
+
+            default:
+                return ERR_UNKNOWN_RELOCATION_TYPE;
+            }
+
+            // Next reloc record
+            Reloc += 1;
+        }
+
+        // Next reloc block
+        RelocBase = (EFI_IMAGE_BASE_RELOCATION*)RelocEnd;
+    }
+
+    executable = file;
     return ERR_SUCCESS;
 }

@@ -76,6 +76,9 @@ typedef uint16_t  CHAR16;
 #define ERR_UNKNOWN_COMPRESSION_ALGORITHM   26
 #define ERR_UNKNOWN_EXTRACT_MODE            27
 #define ERR_UNKNOWN_INSERT_MODE             28
+#define ERR_UNKNOWN_IMAGE_TYPE              29
+#define ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 30
+#define ERR_UNKNOWN_RELOCATION_TYPE         31
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms
