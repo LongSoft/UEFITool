@@ -1,6 +1,6 @@
 /* basetypes.h
 
-Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #ifndef __BASETYPES_H__
 #define __BASETYPES_H__
+
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -79,6 +80,9 @@ typedef uint16_t  CHAR16;
 #define ERR_UNKNOWN_IMAGE_TYPE              29
 #define ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 30
 #define ERR_UNKNOWN_RELOCATION_TYPE         31
+#define ERR_GENERIC_CALL_NOT_SUPPORTED      32
+#define ERR_VOLUME_BASE_NOT_FOUND           33
+#define ERR_PEI_CORE_ENTRY_POINT_NOT_FOUND  34
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms
@@ -120,7 +124,8 @@ enum ActionTypes {
     Insert,
     Replace,
     Remove,
-    Rebuild
+    Rebuild,
+    Rebase
 };
 
 // Types
@@ -134,6 +139,7 @@ enum ItemTypes {
     File,
     Section
 };
+
 // Subtypes
 enum ImageSubtypes{
     IntelImage = 70,
@@ -145,8 +151,12 @@ enum CapsuleSubtypes {
     UefiCapsule
 };
 
+enum VolumeSubtypes {
+    BootVolume = 90
+};
+
 enum RegionSubtypes {
-    DescriptorRegion = 90,
+    DescriptorRegion = 100,
     GbeRegion,
     MeRegion,
     BiosRegion,

@@ -1,6 +1,6 @@
 /* treeitem.cpp
 
-Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution. The full text of the license may be found at
@@ -52,8 +52,12 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         else
             return QObject::tr("Unknown");
     case Padding:
-    case Volume:
         return "";
+    case Volume:
+        if (subtype == BootVolume)
+            return QObject::tr("Boot");
+        else
+            return "";
     case Capsule:
         if (subtype == AptioCapsule)
             return QObject::tr("Aptio extended");
@@ -182,6 +186,8 @@ QVariant TreeItem::data(int column) const
             return QObject::tr("Remove");
         if (itemAction == Rebuild)
             return QObject::tr("Rebuild");
+        if (itemAction == Rebase)
+            return QObject::tr("Rebase");
         return QVariant();
     case 2: //Type
         return itemTypeName;
@@ -297,3 +303,8 @@ void TreeItem::setAction(const UINT8 action)
             parentItem->setAction(Rebuild);
 }
 
+void TreeItem::setSubtype(const UINT8 subtype)
+{
+    itemSubtype = subtype;
+    itemSubtypeName = itemSubtypeToQString(itemType, itemSubtype);
+}

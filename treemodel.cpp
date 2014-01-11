@@ -1,6 +1,6 @@
 /* treemodel.cpp
 
-Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -218,6 +218,16 @@ UINT8 TreeModel::compression(const QModelIndex &index) const
         return COMPRESSION_ALGORITHM_UNKNOWN;
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     return item->compression();
+}
+
+void TreeModel::setSubtype(const QModelIndex & index, UINT8 subtype)
+{
+    if(!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setSubtype(subtype);
+    emit dataChanged(index, index);
 }
 
 void TreeModel::setNameString(const QModelIndex &index, const QString &data)

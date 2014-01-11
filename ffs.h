@@ -1,6 +1,6 @@
 /* ffs.h
 
-Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -94,8 +94,12 @@ typedef struct {
 // Filesystem GUIDs
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
 ("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
+const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
+("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
 ("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
+
+
 
 // Firmware volume signature
 const QByteArray EFI_FV_SIGNATURE("_FVH", 4);

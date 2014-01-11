@@ -1,6 +1,6 @@
 /* uefitool.cpp
 
-  Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+  Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -448,7 +448,7 @@ void UEFITool::saveImageFile()
     }
 
     QByteArray reconstructed;
-    UINT8 result = ffsEngine->reconstructImage(reconstructed);
+    UINT8 result = ffsEngine->reconstruct(ffsEngine->treeModel()->index(0,0), reconstructed);
     showMessages();
     if (result) {
         ui->statusBar->showMessage(tr("Reconstruction failed (%1)").arg(result));
@@ -460,13 +460,6 @@ void UEFITool::saveImageFile()
     outputFile.close();
     ui->statusBar->showMessage(tr("Reconstructed image written"));
 }
-
-/*void UEFITool::resizeTreeViewColumns()
-{
-    int count = ffsEngine->model()->columnCount();
-    for(int i = 0; i < count; i++)
-        ui->structureTreeView->resizeColumnToContents(i);
-}*/
 
 void UEFITool::openImageFile()
 {
@@ -591,7 +584,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 
 void UEFITool::readSettings()
 {
-    QSettings settings("UEFITool.ini", QSettings::IniFormat, this);
+    QSettings settings(this);
     resize(settings.value("mainWindow/size", QSize(800, 600)).toSize());
     move(settings.value("mainWindow/position", QPoint(0, 0)).toPoint());
     QList<int> horList, vertList;
@@ -610,7 +603,7 @@ void UEFITool::readSettings()
 
 void UEFITool::writeSettings()
 {
-    QSettings settings("UEFITool.ini", QSettings::IniFormat, this);
+    QSettings settings(this);
     settings.setValue("mainWindow/size", size());
     settings.setValue("mainWindow/position", pos());
     settings.setValue("mainWindow/treeWidth", ui->structureGroupBox->width());

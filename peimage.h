@@ -1,12 +1,4 @@
-/** peimage.h
-
-  EFI image format for PE32, PE32+ and TE. Please note some data structures are
-  different for PE32 and PE32+. EFI_IMAGE_NT_HEADERS32 is for PE32 and 
-  EFI_IMAGE_NT_HEADERS64 is for PE32+. 
-
-  This file is coded to the Visual Studio, Microsoft Portable Executable and 
-  Common Object File Format Specification, Revision 8.0 - May 16, 2006. 
-  This file also includes some definitions in PI Specification, Revision 1.0.
+/* peimage.h
 
 Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 Copyright (c) 2006 - 2010, Intel Corporation. All rights reserved.
@@ -19,7 +11,7 @@ http://opensource.org/licenses/bsd-license.php.
 THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,                     
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.             
 
-**/
+*/
 
 #ifndef __PE_IMAGE_H__
 #define __PE_IMAGE_H__
@@ -699,10 +691,10 @@ typedef struct {
 //
 typedef struct {
   UINT16                    Signature;            // The signature for TE format = "VZ"
-  UINT16                    Machine;              // From the original file header
-  UINT8                     NumberOfSections;     // From the original file header
+  UINT16                    Machine;              // From original file header
+  UINT8                     NumberOfSections;     // From original file header
   UINT8                     Subsystem;            // From original optional header
-  UINT16                    StrippedSize;         // Number of bytes we removed from the header
+  UINT16                    StrippedSize;         // Number of bytes we removed from header
   UINT32                    AddressOfEntryPoint;  // Offset to entry point -- from original optional header
   UINT32                    BaseOfCode;           // From original image -- required for ITP debug
   UINT64                    ImageBase;            // From original file header

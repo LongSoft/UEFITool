@@ -1,6 +1,6 @@
 /* ffsengine.h
 
-Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -45,7 +45,7 @@ public:
 
     // Firmware image parsing
     UINT8 parseInputFile(const QByteArray & buffer);
-    UINT8 parseIntelImage(const QByteArray & flashImage, QModelIndex & index, const QModelIndex & parent = QModelIndex());
+    UINT8 parseIntelImage(const QByteArray & intelImage, QModelIndex & index, const QModelIndex & parent = QModelIndex());
     UINT8 parseGbeRegion(const QByteArray & gbe, QModelIndex & index, const QModelIndex & parent);
     UINT8 parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent);
     UINT8 parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent);
@@ -65,10 +65,15 @@ public:
     UINT8 compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData);
 
     // Construction routines
-    UINT8 reconstructImage(QByteArray & reconstructed);
     UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
-    UINT8 reconstruct(const QModelIndex & index, QQueue<QByteArray> & queue, const UINT8 revision = 2, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const UINT32 base = 0);
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
+    UINT8 reconstruct(const QModelIndex &index, QByteArray & reconstructed);
+    UINT8 reconstructIntelImage(const QModelIndex& index, QByteArray & reconstructed);
+    UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed);
+    UINT8 reconstructBios(const QModelIndex& index, QByteArray & reconstructed);
+    UINT8 reconstructVolume(const QModelIndex& index, QByteArray & reconstructed);
+    UINT8 reconstructFile(const QModelIndex& index, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base, QByteArray& reconstructed);
+    UINT8 reconstructSection(const QModelIndex& index, const UINT32 base, QByteArray & reconstructed);
 
     // Operations on tree items
     UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
@@ -87,11 +92,20 @@ public:
     UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
     UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 
-    // Rebase routines
-    UINT8 rebase(QByteArray & executable, const UINT32 base);
-
 private:
     TreeModel *model;
+	
+	// PEI Core entry point
+    UINT32 oldPeiCoreEntryPoint;
+    UINT32 newPeiCoreEntryPoint;
+
+    // Rebase routines
+	UINT8 getBase(const QByteArray& file, UINT32& base);
+	UINT8 getEntryPoint(const QByteArray& file, UINT32 &peiCoreEntryPoint);
+    UINT8 rebase(QByteArray & executable, const UINT32 base);
+
+    // Patch routines
+    UINT8 patchVtf(QByteArray &vtf);
 
     // Message helper
     QQueue<MessageListItem> messageItems;
