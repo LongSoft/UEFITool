@@ -29,9 +29,9 @@ class TreeItem
 {
 public:
     TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
-        const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
-        TreeItem *parent = 0);
+             const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
+             const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
+             TreeItem *parent = 0);
     ~TreeItem();
 
     // Operations with items

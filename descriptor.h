@@ -85,9 +85,9 @@ typedef struct {
 typedef struct {
     FLASH_PARAMETERS FlashParameters;
     UINT8            InvalidInstruction0;  // Instructions for SPI chip, that must not be executed, like FLASH ERASE
-    UINT8            InvalidInstruction1;  //  
-    UINT8            InvalidInstruction2;  //  
-    UINT8            InvalidInstruction3;  //  
+    UINT8            InvalidInstruction1;  //
+    UINT8            InvalidInstruction2;  //
+    UINT8            InvalidInstruction3;  //
     UINT16           PartitionBoundary;    // Upper 16 bit of partition boundary address. Default is 0x0000, which makes the boundary to be 0x00001000
     UINT16           ReservedZero;         // Still unknown, zero in all descriptors I have seen
 } FLASH_DESCRIPTOR_COMPONENT_SECTION;
@@ -98,8 +98,8 @@ typedef struct {
 typedef struct {
     UINT16 ReservedZero;                  // Still unknown, zero in all descriptors I have seen
     UINT16 FlashBlockEraseSize;           // Size of block erased by single BLOCK ERASE command
-    UINT16 BiosBase;                      
-    UINT16 BiosLimit;                     
+    UINT16 BiosBase;
+    UINT16 BiosLimit;
     UINT16 MeBase;
     UINT16 MeLimit;
     UINT16 GbeBase;

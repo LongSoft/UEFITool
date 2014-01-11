@@ -23,11 +23,11 @@ class SearchDialog : public QDialog
 
 public:
     SearchDialog(QWidget *parent = 0);
-	~SearchDialog();
-	Ui::SearchDialog* ui;
+    ~SearchDialog();
+    Ui::SearchDialog* ui;
 
 private slots:
-	//void setEditMask();
+    //void setEditMask();
 
 };
 

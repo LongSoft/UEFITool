@@ -55,9 +55,9 @@ VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 
 UINT32 uint24ToUint32(UINT8* ffsSize)
 {
-    return (ffsSize[2] << 16) + 
-        (ffsSize[1] << 8)  + 
-        ffsSize[0];
+    return (ffsSize[2] << 16) +
+            (ffsSize[1] << 8)  +
+            ffsSize[0];
 }
 
 QString guidToQString(const EFI_GUID guid)
@@ -76,17 +76,17 @@ QString guidToQString(const EFI_GUID guid)
     UINT8 i8_7    = *(UINT8*)baGuid.mid(15, 1).constData();
     
     return QString("%1-%2-%3-%4%5-%6%7%8%9%10%11")
-        .arg(i32, 8,   16, QChar('0'))
-        .arg(i16_0, 4, 16, QChar('0'))
-        .arg(i16_1, 4, 16, QChar('0'))
-        .arg(i8_0, 2,  16, QChar('0'))
-        .arg(i8_1, 2,  16, QChar('0'))
-        .arg(i8_2, 2,  16, QChar('0'))
-        .arg(i8_3, 2,  16, QChar('0'))
-        .arg(i8_4, 2,  16, QChar('0'))
-        .arg(i8_5, 2,  16, QChar('0'))
-        .arg(i8_6, 2,  16, QChar('0'))
-        .arg(i8_7, 2,  16, QChar('0')).toUpper();
+            .arg(i32, 8,   16, QChar('0'))
+            .arg(i16_0, 4, 16, QChar('0'))
+            .arg(i16_1, 4, 16, QChar('0'))
+            .arg(i8_0, 2,  16, QChar('0'))
+            .arg(i8_1, 2,  16, QChar('0'))
+            .arg(i8_2, 2,  16, QChar('0'))
+            .arg(i8_3, 2,  16, QChar('0'))
+            .arg(i8_4, 2,  16, QChar('0'))
+            .arg(i8_5, 2,  16, QChar('0'))
+            .arg(i8_6, 2,  16, QChar('0'))
+            .arg(i8_7, 2,  16, QChar('0')).toUpper();
 }
 
 QString fileTypeToQString(const UINT8 type)

@@ -38,7 +38,7 @@
 #include "searchdialog.h"
 
 namespace Ui {
-	class UEFITool;
+class UEFITool;
 }
 
 class UEFITool : public QMainWindow
@@ -54,13 +54,13 @@ public:
 private slots:
     void init();
     void populateUi(const QModelIndex &current);
-	//void resizeTreeViewColumns();
+    //void resizeTreeViewColumns();
     void scrollTreeView(QListWidgetItem* item);
 
     void openImageFile();
     void saveImageFile();
-	void search();
-	
+    void search();
+
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
@@ -70,21 +70,21 @@ private slots:
     void insertBefore();
     void insertAfter();
     
-	void replace(const UINT8 mode);
+    void replace(const UINT8 mode);
     void replaceAsIs();
     void replaceBody();
 
-	void rebuild();
+    void rebuild();
     
-	void remove();
-        
-	void clearMessages();
+    void remove();
+
+    void clearMessages();
 
     void about();
     void aboutQt();
 
     void exit();
-	void writeSettings();
+    void writeSettings();
 
 private:
     Ui::UEFITool* ui;
@@ -97,7 +97,7 @@ private:
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
     void contextMenuEvent(QContextMenuEvent* event);
-	void readSettings();
+    void readSettings();
 };
 
 #endif

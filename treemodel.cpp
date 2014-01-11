@@ -82,7 +82,7 @@ QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
 }
 
 QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent)
-            const
+const
 {
     if (!hasIndex(row, column, parent))
         return QModelIndex();

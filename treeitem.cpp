@@ -299,8 +299,8 @@ void TreeItem::setAction(const UINT8 action)
 
     // Set rebuild action for parent, if it has no action now
     if (parentItem && parentItem->type() != Root
-     && parentItem->action() == NoAction)
-            parentItem->setAction(Rebuild);
+            && parentItem->action() == NoAction)
+        parentItem->setAction(Rebuild);
 }
 
 void TreeItem::setSubtype(const UINT8 subtype)

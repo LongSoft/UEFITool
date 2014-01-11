@@ -82,7 +82,7 @@ void UEFITool::init()
 
     // Connect
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
-        this, SLOT(populateUi(const QModelIndex &)));
+            this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->messageListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
 }
 
@@ -121,6 +121,9 @@ void UEFITool::populateUi(const QModelIndex &current)
 
 void UEFITool::search()
 {
+    // Set focus to edit box
+    searchDialog->ui->searchEdit->setFocus();
+
     if (searchDialog->exec() != QDialog::Accepted)
         return;
 
@@ -144,7 +147,7 @@ void UEFITool::search()
         if (pattern.isEmpty())
             return;
         ffsEngine->findTextPattern(pattern, searchDialog->ui->unicodeCheckBox->isChecked(),
-            (Qt::CaseSensitivity) searchDialog->ui->caseSensitiveCheckBox->isChecked());
+                                   (Qt::CaseSensitivity) searchDialog->ui->caseSensitiveCheckBox->isChecked());
         showMessages();
     }
 }
@@ -193,12 +196,12 @@ void UEFITool::insert(const UINT8 mode)
     case Volume:
         path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS files (*.ffs *.bin);;All files (*.*)");
         objectType = File;
-    break;
+        break;
     case File:
     case Section:
         path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"),".","Section files (*.sct *.bin);;All files (*.*)");
         objectType = Section;
-    break;
+        break;
     default:
         return;
     }
@@ -361,7 +364,7 @@ void UEFITool::extract(const UINT8 mode)
             break;
         case Section:
             path = QFileDialog::getSaveFileName(this, tr("Save section file to file"),".","Section files (*.sct *.bin);;All files (*.*)");
-        break;
+            break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
         }
@@ -372,11 +375,11 @@ void UEFITool::extract(const UINT8 mode)
             path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"),".","Image files (*.rom *.bin);;All files (*.*)");
             break;
         case File: {
-                if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
-                    path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
-                else
-                    path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
-            }
+            if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
+                path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
+            else
+                path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
+        }
             break;
         case Section: {
             if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
@@ -387,8 +390,8 @@ void UEFITool::extract(const UINT8 mode)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),".","Binary files (*.bin);;All files (*.*)");
-            }
-        break;
+        }
+            break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
         }
@@ -417,13 +420,13 @@ void UEFITool::extract(const UINT8 mode)
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2013, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
-        "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
-        "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
-        "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
-        "<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
-        "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
-        "EITHER EXPRESS OR IMPLIED.</b>"));
+                           "Copyright (c) 2013, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
+                           "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
+                           "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
+                           "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
+                           "<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
+                           "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
+                           "EITHER EXPRESS OR IMPLIED.</b>"));
 }
 
 void UEFITool::aboutQt()
@@ -508,7 +511,7 @@ void UEFITool::clearMessages()
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
 {
     if (event->mimeData()->hasFormat("text/uri-list"))
-             event->acceptProposedAction();
+        event->acceptProposedAction();
 }
 
 void UEFITool::dropEvent(QDropEvent* event)

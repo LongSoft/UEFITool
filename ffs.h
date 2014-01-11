@@ -36,10 +36,10 @@ extern "C" {
 //*****************************************************************************
 // Capsule header
 typedef struct {
-  EFI_GUID  CapsuleGuid;
-  UINT32    HeaderSize;
-  UINT32    Flags;
-  UINT32    CapsuleImageSize;
+    EFI_GUID  CapsuleGuid;
+    UINT32    HeaderSize;
+    UINT32    Flags;
+    UINT32    CapsuleImageSize;
 } EFI_CAPSULE_HEADER;
 
 // Capsule flags
@@ -54,10 +54,10 @@ const QByteArray EFI_CAPSULE_GUID("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\
 typedef struct {
     EFI_CAPSULE_HEADER    CapsuleHeader;
     UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
-                                            // the capsule volume
+    // the capsule volume
     //!TODO: Enable certificate and rom layout reading
     //UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
-                                                // that are included in the signature calculation
+    // that are included in the signature calculation
     //FW_CERTIFICATE      FWCert;
     //ROM_AREA			  RomAreaMap[1];
 } APTIO_CAPSULE_HEADER;
@@ -72,8 +72,8 @@ const QByteArray APTIO_CAPSULE_GUID
 // Firmware block map entry
 // FvBlockMap ends with an entry {0x00000000, 0x00000000}
 typedef struct {
-  UINT32  NumBlocks;
-  UINT32  Length;
+    UINT32  NumBlocks;
+    UINT32  Length;
 } EFI_FV_BLOCK_MAP_ENTRY;
 
 // Volume header
@@ -188,8 +188,8 @@ const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
 
 // Extended firmware volume header
 typedef struct {
-  EFI_GUID          FvName;
-  UINT32            ExtHeaderSize;
+    EFI_GUID          FvName;
+    UINT32            ExtHeaderSize;
 } EFI_FIRMWARE_VOLUME_EXT_HEADER;
 
 // Extended header entry
@@ -197,23 +197,23 @@ typedef struct {
 // terminated by ExtHeaderType EFI_FV_EXT_TYPE_END
 #define EFI_FV_EXT_TYPE_END        0x00
 typedef struct {
-  UINT16  ExtEntrySize;
-  UINT16  ExtEntryType;
+    UINT16  ExtEntrySize;
+    UINT16  ExtEntryType;
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY;
 
 // GUID that maps OEM file types to GUIDs
 #define EFI_FV_EXT_TYPE_OEM_TYPE   0x01
 typedef struct {
-  EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
-  UINT32                           TypeMask;
-  //EFI_GUID                         Types[1];
+    EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
+    UINT32                           TypeMask;
+    //EFI_GUID                         Types[1];
 } EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE;
 
 #define EFI_FV_EXT_TYPE_GUID_TYPE  0x02
 typedef struct {
- EFI_FIRMWARE_VOLUME_EXT_ENTRY Header;
- EFI_GUID FormatType;
- //UINT8 Data[];
+    EFI_FIRMWARE_VOLUME_EXT_ENTRY Header;
+    EFI_GUID FormatType;
+    //UINT8 Data[];
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE;
 
 

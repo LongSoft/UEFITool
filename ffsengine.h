@@ -94,14 +94,14 @@ public:
 
 private:
     TreeModel *model;
-	
-	// PEI Core entry point
+
+    // PEI Core entry point
     UINT32 oldPeiCoreEntryPoint;
     UINT32 newPeiCoreEntryPoint;
 
     // Rebase routines
-	UINT8 getBase(const QByteArray& file, UINT32& base);
-	UINT8 getEntryPoint(const QByteArray& file, UINT32 &peiCoreEntryPoint);
+    UINT8 getBase(const QByteArray& file, UINT32& base);
+    UINT8 getEntryPoint(const QByteArray& file, UINT32 &peiCoreEntryPoint);
     UINT8 rebase(QByteArray & executable, const UINT32 base);
 
     // Patch routines
