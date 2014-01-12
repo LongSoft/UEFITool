@@ -101,8 +101,9 @@ private:
 
     // Rebase routines
     UINT8 getBase(const QByteArray& file, UINT32& base);
-    UINT8 getEntryPoint(const QByteArray& file, UINT32 &peiCoreEntryPoint);
+    UINT8 getEntryPoint(const QByteArray& file, UINT32 &entryPoint);
     UINT8 rebase(QByteArray & executable, const UINT32 base);
+    void rebasePeiFiles(const QModelIndex & index);
 
     // Patch routines
     UINT8 patchVtf(QByteArray &vtf);

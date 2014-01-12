@@ -1188,6 +1188,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 {
     QByteArray created;
     UINT8 result;
+    QModelIndex fileIndex;
 
     if (!index.isValid() || !index.parent().isValid())
         return ERR_INVALID_PARAMETER;
@@ -1247,29 +1248,12 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         created.prepend(newHeader);
 
         // Parse file
-        QModelIndex fileIndex;
         result = parseFile(created, fileIndex, erasePolarity ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index, mode);
         if (result)
             return result;
 
         // Set action
         model->setAction(fileIndex, action);
-
-        // If inside boot volume, rebase all PE32 and TE sections, that follow
-        if (model->subtype(fileIndex.parent()) == BootVolume) {
-            for(int i = fileIndex.row(); i < model->rowCount(fileIndex.parent()); i++) {
-                // File inside boot volume
-                QModelIndex currentFileIndex = fileIndex.parent().child(i, index.column());
-                for(int j = 0; j < model->rowCount(currentFileIndex); j++) {
-                    // Section in that file
-                    QModelIndex currentSectionIndex = currentFileIndex.child(j, currentFileIndex.column());
-                    // If section stores PE32 or TE image
-                    if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
-                        // Set rebase action
-                        model->setAction(currentSectionIndex, Rebase);
-                }
-            }
-        }
     }
     else if (type ==  Section) {
         if (model->type(parent) != File && model->type(parent) != Section)
@@ -1319,22 +1303,8 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Set create action
             model->setAction(sectionIndex, action);
 
-            // If inside boot volume, rebase all PE32 and TE sections, that follow
-            QModelIndex fileIndex = model->findParentOfType(parent, File);
-            if (model->subtype(fileIndex.parent()) == BootVolume) {
-                for(int i = fileIndex.row(); i < model->rowCount(fileIndex.parent()); i++) {
-                    // File inside boot volume
-                    QModelIndex currentFileIndex = fileIndex.parent().child(i, index.column());
-                    for(int j = 0; j < model->rowCount(currentFileIndex); j++) {
-                        // Section in that file
-                        QModelIndex currentSectionIndex = currentFileIndex.child(j, currentFileIndex.column());
-                        // If section stores PE32 or TE image
-                        if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
-                            // Set rebase action
-                            model->setAction(currentSectionIndex, Rebase);
-                    }
-                }
-            }
+            // Find parent file for rebase
+            fileIndex = model->findParentOfType(parent, File);
         }
             break;
         case EFI_SECTION_GUID_DEFINED:{
@@ -1359,22 +1329,8 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Set create action
             model->setAction(sectionIndex, action);
 
-            // If inside boot volume, rebase all PE32 and TE sections, that follow
-            QModelIndex fileIndex = model->findParentOfType(parent, File);
-            if (model->subtype(fileIndex.parent()) == BootVolume) {
-                for(int i = fileIndex.row(); i < model->rowCount(fileIndex.parent()); i++) {
-                    // File inside boot volume
-                    QModelIndex currentFileIndex = fileIndex.parent().child(i, index.column());
-                    for(int j = 0; j < model->rowCount(currentFileIndex); j++) {
-                        // Section in that file
-                        QModelIndex currentSectionIndex = currentFileIndex.child(j, currentFileIndex.column());
-                        // If section stores PE32 or TE image
-                        if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
-                            // Set rebase action
-                            model->setAction(currentSectionIndex, Rebase);
-                    }
-                }
-            }
+            // Find parent file for rebase
+            fileIndex = model->findParentOfType(parent, File);
         }
             break;
         default:
@@ -1393,28 +1349,41 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Set create action
             model->setAction(sectionIndex, action);
 
-            // If inside boot volume, rebase all PE32 and TE sections, that follow
-            QModelIndex fileIndex = model->findParentOfType(parent, File);
-            if (model->subtype(fileIndex.parent()) == BootVolume) {
-                for(int i = fileIndex.row(); i < model->rowCount(fileIndex.parent()); i++) {
-                    // File inside boot volume
-                    QModelIndex currentFileIndex = fileIndex.parent().child(i, index.column());
-                    for(int j = 0; j < model->rowCount(currentFileIndex); j++) {
-                        // Section in that file
-                        QModelIndex currentSectionIndex = currentFileIndex.child(j, currentFileIndex.column());
-                        // If section stores PE32 or TE image
-                        if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
-                            // Set rebase action
-                            model->setAction(currentSectionIndex, Rebase);
-                    }
-                }
-            }
+            // Find parent file for rebase
+            fileIndex = model->findParentOfType(parent, File);
         }
     }
     else
         return ERR_NOT_IMPLEMENTED;
 
+    if (!fileIndex.isValid())
+        return ERR_INVALID_FILE;
+
+    // Rebase all PEI-files that follow
+    rebasePeiFiles(fileIndex);
+
     return ERR_SUCCESS;
+}
+
+void FfsEngine::rebasePeiFiles(const QModelIndex & index)
+{
+    // Rebase all PE32 and TE sections in PEI-files after modified file
+    for (int i = index.row(); i < model->rowCount(index.parent()); i++) {
+        // PEI-file
+        QModelIndex currentFileIndex = index.parent().child(i, 0);
+        if (model->subtype(currentFileIndex) == EFI_FV_FILETYPE_PEI_CORE ||
+            model->subtype(currentFileIndex) == EFI_FV_FILETYPE_PEIM ||
+            model->subtype(currentFileIndex) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER) {
+            for (int j = 0; j < model->rowCount(currentFileIndex); j++) {
+                // Section in that file
+                QModelIndex currentSectionIndex = currentFileIndex.child(j, 0);
+                // If section stores PE32 or TE image
+                if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
+                    // Set rebase action
+                    model->setAction(currentSectionIndex, Rebase);
+            }
+        }
+    }
 }
 
 UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode)
@@ -1560,21 +1529,8 @@ UINT8 FfsEngine::remove(const QModelIndex & index)
     else
         return ERR_SUCCESS;
 
-    // If inside boot volume, rebase all PE32 and TE sections, that follow
-    if (model->subtype(fileIndex.parent()) == BootVolume) {
-        for(int i = fileIndex.row(); i < model->rowCount(fileIndex.parent()); i++) {
-            // File inside boot volume
-            QModelIndex currentFileIndex = fileIndex.parent().child(i, index.column());
-            for(int j = 0; j < model->rowCount(currentFileIndex); j++) {
-                // Section in that file
-                QModelIndex currentSectionIndex = currentFileIndex.child(j, currentFileIndex.column());
-                // If section stores PE32 or TE image
-                if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
-                    // Set rebase action
-                    model->setAction(currentSectionIndex, Rebase);
-            }
-        }
-    }
+    // Rebase all PEI-files that follow
+    rebasePeiFiles(fileIndex);
 
     return ERR_SUCCESS;
 }
@@ -1586,6 +1542,18 @@ UINT8 FfsEngine::rebuild(const QModelIndex & index)
 
     // Set action for the item
     model->setAction(index,  Rebuild);
+
+    QModelIndex fileIndex;
+
+    if (model->type(index) == File)
+        fileIndex = index;
+    else if (model->type(index) == Section)
+        fileIndex = model->findParentOfType(index, File);
+    else
+        return ERR_SUCCESS;
+
+    // Rebase all PEI-files that follow
+    rebasePeiFiles(fileIndex);
 
     return ERR_SUCCESS;
 }
@@ -1907,7 +1875,7 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
             return ERR_INVALID_PARAMETER;
         }
 
-        // Reconstruction successfull
+        // Reconstruction successful
         return ERR_SUCCESS;
     }
 
@@ -1958,7 +1926,7 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
             return ERR_INVALID_PARAMETER;
         }
 
-        // Reconstruction successfull
+        // Reconstruction successful
         return ERR_SUCCESS;
     }
 
@@ -2007,74 +1975,70 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex& index, QByteArray& reconst
             UINT8 polarity = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE;
             char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
-            // Calculate volume base for boot volume
-            UINT32 volumeBase = 0;
-            if (model->subtype(index) == BootVolume) {
-                QByteArray file;
-                bool baseFound = false;
-                // Search for VTF
-                for (int i = 0; i < model->rowCount(index); i++) {
-                    file = model->header(index.child(i, 0));
-                    // VTF found
-                    if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
-                        baseFound = true;
-                        volumeBase = (UINT32) 0x100000000 - volumeSize + header.size();
-                        break;
-                    }
+            // Calculate volume base for volume
+            UINT32 volumeBase;
+            QByteArray file;
+            bool baseFound = false;
+            
+            // Search for VTF
+            for (int i = 0; i < model->rowCount(index); i++) {
+                file = model->header(index.child(i, 0));
+                // VTF found
+                if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
+                    baseFound = true;
+                    volumeBase = (UINT32) 0x100000000 - volumeSize;
+                    break;
                 }
+            }
 
-                // VTF not found
-                if (!baseFound) {
-                    // Search for first PEI-file and use it as base source
-                    UINT32 fileOffset = header.size();
-                    for (int i = 0; i < model->rowCount(index); i++) {
-                        if ((model->subtype(index.child(i, 0)) == EFI_FV_FILETYPE_PEI_CORE ||
-                             model->subtype(index.child(i, 0)) == EFI_FV_FILETYPE_PEIM ||
-                             model->subtype(index.child(i, 0)) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)){
+            // VTF not found
+            if (!baseFound) {
+                // Search for first PEI-file and use it as base source
+                UINT32 fileOffset = header.size();
+                for (int i = 0; i < model->rowCount(index); i++) {
+                    if ((model->subtype(index.child(i, 0)) == EFI_FV_FILETYPE_PEI_CORE ||
+                        model->subtype(index.child(i, 0)) == EFI_FV_FILETYPE_PEIM ||
+                        model->subtype(index.child(i, 0)) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)){
                             QModelIndex peiFile = index.child(i, 0);
                             UINT32 sectionOffset = sizeof(EFI_FFS_FILE_HEADER);
                             // Search for PE32 or TE section
                             for(int j = 0; j < model->rowCount(peiFile); j++) {
                                 if (model->subtype(peiFile.child(j,0)) == EFI_SECTION_PE32 ||
-                                        model->subtype(peiFile.child(j,0)) == EFI_SECTION_TE) {
-                                    QModelIndex image = peiFile.child(j,0);
-                                    // Check for correct action
-                                    if (model->action(image) == Remove || model->action(image) == Insert)
-                                        continue;
-                                    // Calculate relative base address
-                                    UINT32 relbase = fileOffset + sectionOffset + model->header(image).size();
-                                    // Calculate offset of image relative to file base
-                                    UINT32 imagebase;
-                                    result = getBase(model->body(image), imagebase);
-                                    if (!result) {
-                                        // Calculate volume base
-                                        volumeBase = imagebase - relbase;
-                                        baseFound = true;
-                                    }
-                                    goto out;
+                                    model->subtype(peiFile.child(j,0)) == EFI_SECTION_TE) {
+                                        QModelIndex image = peiFile.child(j,0);
+                                        // Check for correct action
+                                        if (model->action(image) == Remove || model->action(image) == Insert)
+                                            continue;
+                                        // Calculate relative base address
+                                        UINT32 relbase = fileOffset + sectionOffset + model->header(image).size();
+                                        // Calculate offset of image relative to file base
+                                        UINT32 imagebase;
+                                        result = getBase(model->body(image), imagebase);
+                                        if (!result) {
+                                            // Calculate volume base
+                                            volumeBase = imagebase - relbase;
+                                            baseFound = true;
+                                        }
+                                        goto out;
                                 }
                                 sectionOffset += model->header(peiFile.child(j,0)).size() + model->body(peiFile.child(j,0)).size();
                                 sectionOffset = ALIGN4(sectionOffset);
                             }
 
-                        }
-                        fileOffset += model->header(index.child(i, 0)).size() + model->body(index.child(i, 0)).size() + model->tail(index.child(i, 0)).size();
-                        fileOffset = ALIGN8(fileOffset);
                     }
-                }
-out:
-                if (!baseFound) {
-                    msg(tr("reconstructVolume: %1: base address of boot volume can't be found").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                    return ERR_VOLUME_BASE_NOT_FOUND;
+                    fileOffset += model->header(index.child(i, 0)).size() + model->body(index.child(i, 0)).size() + model->tail(index.child(i, 0)).size();
+                    fileOffset = ALIGN8(fileOffset);
                 }
             }
-
+out:
+            // Do not set volume base
+            if (!baseFound)
+                volumeBase = 0;
+            
             // Reconstruct files in volume
             UINT32 offset = 0;
             QByteArray vtf;
             QModelIndex vtfIndex;
-            //QByteArray amiBeforeVtf;
-            //QModelIndex amiBeforeVtfIndex;
             for (int i = 0; i < model->rowCount(index); i++) {
                 // Align to 8 byte boundary
                 UINT32 alignment = offset % 8;
@@ -2084,9 +2048,11 @@ out:
                     reconstructed.append(QByteArray(alignment, empty));
                 }
 
+                // Calculate file base
+                UINT32 fileBase = volumeBase ? volumeBase + header.size() + offset : 0; 
+
                 // Reconstruct file
-                QByteArray file;
-                result = reconstructFile(index.child(i, 0), volumeHeader->Revision, polarity, volumeBase + offset, file);
+                result = reconstructFile(index.child(i, 0), volumeHeader->Revision, polarity, fileBase, file);
                 if (result)
                     return result;
 
@@ -2099,13 +2065,6 @@ out:
                 // Pad file
                 if (fileHeader->Type == EFI_FV_FILETYPE_PAD)
                     continue;
-
-                // AMI file before VTF
-                //if (file.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
-                //    amiBeforeVtf = file;
-                //    amiBeforeVtfIndex = index.child(i, 0);
-                //    continue;
-                //}
 
                 // Volume Top File
                 if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
@@ -2167,7 +2126,6 @@ out:
                         return result;
                     // Append constructed pad file to volume body
                     reconstructed.append(pad);
-                    offset = vtfOffset;
                 }
                 // No more space left in volume
                 else if (vtfOffset < offset) {
@@ -2175,8 +2133,11 @@ out:
                     return ERR_INVALID_VOLUME;
                 }
 
-                // Reconstruct file again
-                result = reconstructFile(vtfIndex, volumeHeader->Revision, polarity, volumeBase + vtfOffset, vtf);
+                // Calculate VTF base
+                UINT32 vtfBase = volumeBase ? volumeBase + vtfOffset : 0; 
+
+                // Reconstruct VTF again
+                result = reconstructFile(vtfIndex, volumeHeader->Revision, polarity, vtfBase, vtf);
                 if (result)
                     return result;
 
@@ -2227,7 +2188,7 @@ out:
         else
             reconstructed = model->body(index);
 
-        // Reconstruction successfull
+        // Reconstruction successful
         reconstructed = header.append(reconstructed);
         return ERR_SUCCESS;
     }
@@ -2323,9 +2284,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
                 }
 
                 // Calculate section base
-                UINT32 sectionBase = 0;
-                if (base)
-                    sectionBase = base + sizeof(EFI_FFS_FILE_HEADER) + offset;
+                UINT32 sectionBase = base ? base + sizeof(EFI_FFS_FILE_HEADER) + offset : 0; 
 
                 // Reconstruct section
                 QByteArray section;
@@ -2378,7 +2337,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
             state = ~state;
         fileHeader->State = state;
 
-        // Reconstruction successfull
+        // Reconstruction successful
         reconstructed = header.append(reconstructed);
         return ERR_SUCCESS;
     }
@@ -2495,22 +2454,30 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
             reconstructed = model->body(index);
 
         // Rebase PE32 or TE image, if needed
-        if (base && (model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE)) {
-            result = rebase(reconstructed, base + header.size());
-            if (result) {
-                msg(tr("reconstructSection: executable section rebase failed"), index);
-                return result;
-            }
+        if ((model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE) &&
+            (model->subtype(index.parent()) == EFI_FV_FILETYPE_PEI_CORE ||
+             model->subtype(index.parent()) == EFI_FV_FILETYPE_PEIM ||
+             model->subtype(index.parent()) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)) {
+            
+            if (base) {
+                result = rebase(reconstructed, base + header.size());
+                if (result) {
+                    msg(tr("reconstructSection: executable section rebase failed"), index);
+                    return result;
+                }
 
-            // Special case of PEI Core rebase
-            if (model->subtype(index.parent()) == EFI_FV_FILETYPE_PEI_CORE) {
-                result = getEntryPoint(reconstructed, newPeiCoreEntryPoint);
-                if (result)
-                    msg(tr("reconstructSection: can't get entry point of image file"), index);
+                // Special case of PEI Core rebase
+                if (model->subtype(index.parent()) == EFI_FV_FILETYPE_PEI_CORE) {
+                    result = getEntryPoint(reconstructed, newPeiCoreEntryPoint);
+                    if (result)
+                        msg(tr("reconstructSection: can't get entry point of PEI core"), index);
+                }
             }
+            else
+                msg(tr("reconstructSection: volume base is unknown, section can't be rebased"), index);
         }
 
-        // Reconstruction successfull
+        // Reconstruction successful
         reconstructed = header.append(reconstructed);
         return ERR_SUCCESS;
     }
@@ -2869,7 +2836,7 @@ UINT8 FfsEngine::patchVtf(QByteArray &vtf)
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& peiCoreEntryPoint)
+UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& entryPoint)
 {
     if(file.isEmpty())
         return ERR_INVALID_FILE;
@@ -2892,11 +2859,11 @@ UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& peiCoreEntryPoint
         UINT16 magic = *(UINT16*) (file.data() + offset);
         if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
             EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (EFI_IMAGE_OPTIONAL_HEADER32*) (file.data() + offset);
-            peiCoreEntryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
+            entryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
         }
         else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
             EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (EFI_IMAGE_OPTIONAL_HEADER64*) (file.data() + offset);
-            peiCoreEntryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
+            entryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
         }
         else
             return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
@@ -2905,7 +2872,7 @@ UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& peiCoreEntryPoint
         // Populate TE header
         EFI_IMAGE_TE_HEADER* teHeader = (EFI_IMAGE_TE_HEADER*) file.data();
         UINT32 teFixup    = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
-        peiCoreEntryPoint = teHeader->ImageBase + teHeader->AddressOfEntryPoint - teFixup;
+        entryPoint = teHeader->ImageBase + teHeader->AddressOfEntryPoint - teFixup;
     }
     return ERR_SUCCESS;
 }
