@@ -2073,8 +2073,8 @@ out:
             UINT32 offset = 0;
             QByteArray vtf;
             QModelIndex vtfIndex;
-            QByteArray amiBeforeVtf;
-            QModelIndex amiBeforeVtfIndex;
+            //QByteArray amiBeforeVtf;
+            //QModelIndex amiBeforeVtfIndex;
             for (int i = 0; i < model->rowCount(index); i++) {
                 // Align to 8 byte boundary
                 UINT32 alignment = offset % 8;
@@ -2101,11 +2101,11 @@ out:
                     continue;
 
                 // AMI file before VTF
-                if (file.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
-                    amiBeforeVtf = file;
-                    amiBeforeVtfIndex = index.child(i, 0);
-                    continue;
-                }
+                //if (file.left(sizeof(EFI_GUID)) == EFI_AMI_FFS_FILE_BEFORE_VTF_GUID) {
+                //    amiBeforeVtf = file;
+                //    amiBeforeVtfIndex = index.child(i, 0);
+                //    continue;
+                //}
 
                 // Volume Top File
                 if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
@@ -2144,49 +2144,6 @@ out:
 
                 // Change current file offset
                 offset += file.size();
-            }
-
-            // Insert AMI file before VTF to it's correct place
-            if (!amiBeforeVtf.isEmpty()) {
-                // Determine correct offset
-                UINT32 amiOffset = volumeSize - header.size() - amiBeforeVtf.size() - EFI_AMI_FFS_FILE_BEFORE_VTF_OFFSET;
-
-                // Insert pad file to fill the gap
-                if (amiOffset > offset) {
-                    // Determine pad file size
-                    UINT32 size = amiOffset - offset;
-                    // Construct pad file
-                    QByteArray pad;
-                    result = constructPadFile(size, volumeHeader->Revision, polarity, pad);
-                    if (result)
-                        return result;
-                    // Append constructed pad file to volume body
-                    reconstructed.append(pad);
-                    offset = amiOffset;
-                }
-                if (amiOffset < offset) {
-                    msg(tr("reconstructVolume: %1: volume has no free space left").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-                    return ERR_INVALID_VOLUME;
-                }
-
-                // Reconstruct file again
-                result = reconstructFile(amiBeforeVtfIndex, volumeHeader->Revision, polarity, volumeBase + amiOffset, amiBeforeVtf);
-                if (result)
-                    return result;
-
-                // Append AMI file before VTF
-                reconstructed.append(amiBeforeVtf);
-
-                // Change current file offset
-                offset += amiBeforeVtf.size();
-
-                // Align to 8 byte boundary
-                UINT32 alignment = offset % 8;
-                if (alignment) {
-                    alignment = 8 - alignment;
-                    offset += alignment;
-                    reconstructed.append(QByteArray(alignment, empty));
-                }
             }
 
             // Insert VTF to it's correct place
@@ -2307,9 +2264,6 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
             return ERR_INVALID_PARAMETER;
         }
 
-        // Construct empty char for this file
-        char empty = (erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
-
         // Check file state
         // Invert it first if erase polarity is true
         UINT8 state = fileHeader->State;
@@ -2365,7 +2319,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
                 if (alignment) {
                     alignment = 4 - alignment;
                     offset += alignment;
-                    reconstructed.append(QByteArray(alignment, empty));
+                    reconstructed.append(QByteArray(alignment, '\x00'));
                 }
 
                 // Calculate section base

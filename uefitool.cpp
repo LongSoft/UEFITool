@@ -184,7 +184,6 @@ void UEFITool::insert(const UINT8 mode)
 
     TreeModel* model = ffsEngine->treeModel();
     UINT8 type;
-    UINT8 objectType;
 
     if (mode == CREATE_MODE_BEFORE || mode == CREATE_MODE_AFTER)
         type = model->type(index.parent());
@@ -195,12 +194,10 @@ void UEFITool::insert(const UINT8 mode)
     switch (type) {
     case Volume:
         path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS files (*.ffs *.bin);;All files (*.*)");
-        objectType = File;
         break;
     case File:
     case Section:
         path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"),".","Section files (*.sct *.bin);;All files (*.*)");
-        objectType = Section;
         break;
     default:
         return;
@@ -601,7 +598,6 @@ void UEFITool::readSettings()
     ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
     ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
     ui->structureTreeView->setColumnWidth(3, settings.value("tree/columnWidth3", ui->structureTreeView->columnWidth(3)).toInt());
-    //ui->structureTreeView->setColumnWidth(4, settings.value("tree/columnWidth4", 10).toInt());
 }
 
 void UEFITool::writeSettings()
@@ -617,5 +613,4 @@ void UEFITool::writeSettings()
     settings.setValue("tree/columnWidth1", ui->structureTreeView->columnWidth(1));
     settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
     settings.setValue("tree/columnWidth3", ui->structureTreeView->columnWidth(3));
-    //settings.setValue("tree/columnWidth4", ui->structureTreeView->columnWidth(4));
 }

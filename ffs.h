@@ -99,8 +99,6 @@ const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
 ("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
 
-
-
 // Firmware volume signature
 const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
 #define EFI_FV_SIGNATURE_OFFSET 0x28
@@ -216,7 +214,6 @@ typedef struct {
     //UINT8 Data[];
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE;
 
-
 // Volume header 16bit checksum calculation routine
 extern UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize);
 
@@ -304,13 +301,6 @@ extern const UINT8 ffsAlignmentTable[];
 // Volume top file
 const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
-
-// AMI volume top file
-// This file must also be located near the end volume, right before VTF
-const QByteArray EFI_AMI_FFS_FILE_BEFORE_VTF_GUID
-("\x50\x9F\xE5\xD1\xC3\xE8\x45\x45\xBF\x61\x11\xF0\x02\x23\x3C\x97", 16);
-// Offset of this file
-#define EFI_AMI_FFS_FILE_BEFORE_VTF_OFFSET 0xEF0
 
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
