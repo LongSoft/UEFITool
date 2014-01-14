@@ -417,7 +417,7 @@ void UEFITool::extract(const UINT8 mode)
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-                           "Copyright (c) 2013, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
+                           "Copyright (c) 2013-2014, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
                            "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
                            "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
                            "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
@@ -448,7 +448,7 @@ void UEFITool::saveImageFile()
     }
 
     QByteArray reconstructed;
-    UINT8 result = ffsEngine->reconstruct(ffsEngine->treeModel()->index(0,0), reconstructed);
+    UINT8 result = ffsEngine->reconstructImageFile(reconstructed);
     showMessages();
     if (result) {
         ui->statusBar->showMessage(tr("Reconstruction failed (%1)").arg(result));
@@ -487,7 +487,7 @@ void UEFITool::openImageFile(QString path)
     inputFile.close();
 
     init();
-    UINT8 result = ffsEngine->parseInputFile(buffer);
+    UINT8 result = ffsEngine->parseImageFile(buffer);
     showMessages();
     if (result)
         ui->statusBar->showMessage(tr("Opened file can't be parsed (%1)").arg(result));

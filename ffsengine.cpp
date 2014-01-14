@@ -69,7 +69,7 @@ bool FfsEngine::hasIntersection(const UINT32 begin1, const UINT32 end1, const UI
 }
 
 // Firmware image parsing
-UINT8 FfsEngine::parseInputFile(const QByteArray & buffer)
+UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
 {
     oldPeiCoreEntryPoint = 0;
     newPeiCoreEntryPoint = 0;
@@ -81,7 +81,7 @@ UINT8 FfsEngine::parseInputFile(const QByteArray & buffer)
     // Check buffer size to be more then or equal to sizeof(EFI_CAPSULE_HEADER)
     if ((UINT32) buffer.size() <= sizeof(EFI_CAPSULE_HEADER))
     {
-        msg(tr("parseInputFile: Input file is smaller then minimum size of %1 bytes").arg(sizeof(EFI_CAPSULE_HEADER)));
+        msg(tr("parseImageFile: Image file is smaller then minimum size of %1 bytes").arg(sizeof(EFI_CAPSULE_HEADER)));
         return ERR_INVALID_PARAMETER;
     }
 
@@ -2501,7 +2501,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex &index, QByteArray& reconstructed
                 return result;
         }
         else {
-            //Other images types can be reconstructed like region
+            //Other images types can be reconstructed like regions
             result = reconstructRegion(index, reconstructed);
             if (result)
                 return result;
@@ -2589,6 +2589,11 @@ UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & new
     volumeHeader->Checksum = calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength);
 
     return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::reconstructImageFile(QByteArray & reconstructed)
+{
+    return reconstruct(model->index(0,0), reconstructed);
 }
 
 // Search routines

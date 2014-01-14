@@ -44,19 +44,15 @@ public:
     void clearMessages();
 
     // Firmware image parsing
-    UINT8 parseInputFile(const QByteArray & buffer);
+    UINT8 parseImageFile(const QByteArray & buffer);
     UINT8 parseIntelImage(const QByteArray & intelImage, QModelIndex & index, const QModelIndex & parent = QModelIndex());
     UINT8 parseGbeRegion(const QByteArray & gbe, QModelIndex & index, const QModelIndex & parent);
     UINT8 parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent);
     UINT8 parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent);
     UINT8 parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent);
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
-    UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
-    UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
     UINT8 parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
-    UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
     UINT8 parseFile(const QByteArray & file, QModelIndex & index, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
-    UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
     UINT8 parseSections(const QByteArray & body, const QModelIndex & parent = QModelIndex());
     UINT8 parseSection(const QByteArray & section, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
@@ -65,8 +61,7 @@ public:
     UINT8 compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData);
 
     // Construction routines
-    UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
-    UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
+    UINT8 reconstructImageFile(QByteArray &reconstructed);
     UINT8 reconstruct(const QModelIndex &index, QByteArray & reconstructed);
     UINT8 reconstructIntelImage(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed);
@@ -77,13 +72,10 @@ public:
 
     // Operations on tree items
     UINT8 extract(const QModelIndex & index, QByteArray & extracted, const UINT8 mode);
-
     UINT8 create(const QModelIndex & index, const UINT8 type, const QByteArray & header, const QByteArray & body, const UINT8 mode, const UINT8 action, const UINT8 algorithm = COMPRESSION_ALGORITHM_NONE);
     UINT8 insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
     UINT8 replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
-
     UINT8 remove(const QModelIndex & index);
-
     UINT8 rebuild(const QModelIndex & index);
 
     // Search routines
@@ -98,6 +90,16 @@ private:
     // PEI Core entry point
     UINT32 oldPeiCoreEntryPoint;
     UINT32 newPeiCoreEntryPoint;
+
+    // Parsing helpers
+    UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
+    UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
+    UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
+    UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
+
+    // Reconstruction helpers
+    UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
+    UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Rebase routines
     UINT8 getBase(const QByteArray& file, UINT32& base);
