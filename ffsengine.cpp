@@ -1927,6 +1927,7 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
         }
 
         // Reconstruction successful
+        reconstructed = model->header(index).append(reconstructed);
         return ERR_SUCCESS;
     }
 
@@ -2272,35 +2273,44 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
         if (model->rowCount(index)) {
             reconstructed.clear();
             // Construct new file body
-            UINT32 offset = 0;
+            // File contains raw data, must be parsed as region
+            if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW) {
+                result = reconstructRegion(index, reconstructed);
+                    if (result)
+                        return result;
+            }
+            // File contains sections
+            else {
+                UINT32 offset = 0;
             
-            for (int i = 0; i < model->rowCount(index); i++) {
-                // Align to 4 byte boundary
-                UINT8 alignment = offset % 4;
-                if (alignment) {
-                    alignment = 4 - alignment;
-                    offset += alignment;
-                    reconstructed.append(QByteArray(alignment, '\x00'));
+                for (int i = 0; i < model->rowCount(index); i++) {
+                    // Align to 4 byte boundary
+                    UINT8 alignment = offset % 4;
+                    if (alignment) {
+                        alignment = 4 - alignment;
+                        offset += alignment;
+                        reconstructed.append(QByteArray(alignment, '\x00'));
+                    }
+
+                    // Calculate section base
+                    UINT32 sectionBase = base ? base + sizeof(EFI_FFS_FILE_HEADER) + offset : 0; 
+
+                    // Reconstruct section
+                    QByteArray section;
+                    result = reconstructSection(index.child(i, 0), sectionBase, section);
+                    if (result)
+                        return result;
+
+                    // Check for empty section
+                    if (section.isEmpty())
+                        continue;
+
+                    // Append current section to new file body
+                    reconstructed.append(section);
+
+                    // Change current file offset
+                    offset += section.size();
                 }
-
-                // Calculate section base
-                UINT32 sectionBase = base ? base + sizeof(EFI_FFS_FILE_HEADER) + offset : 0; 
-
-                // Reconstruct section
-                QByteArray section;
-                result = reconstructSection(index.child(i, 0), sectionBase, section);
-                if (result)
-                    return result;
-
-                // Check for empty section
-                if (section.isEmpty())
-                    continue;
-
-                // Append current section to new file body
-                reconstructed.append(section);
-
-                // Change current file offset
-                offset += section.size();
             }
 
             // Correct file size
