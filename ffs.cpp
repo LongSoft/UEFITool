@@ -60,7 +60,7 @@ UINT32 uint24ToUint32(UINT8* ffsSize)
             ffsSize[0];
 }
 
-QString guidToQString(const EFI_GUID guid)
+QString guidToQString(const EFI_GUID& guid)
 {
     QByteArray baGuid = QByteArray::fromRawData((const char*) guid.Data, sizeof(EFI_GUID));
     UINT32 i32    = *(UINT32*)baGuid.left(4).constData();

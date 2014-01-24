@@ -369,14 +369,13 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const
     QString info = tr("Size: %1").
             arg(me.size(), 8, 16, QChar('0'));
 
-    ME_VERSION* version;
     INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
     if (versionOffset < 0){
         info += tr("\nVersion: unknown");
         msg(tr("parseRegion: ME region version is unknown, it can be damaged"), parent);
     }
     else {
-        version = (ME_VERSION*) (me.constData() + versionOffset);
+        ME_VERSION* version = (ME_VERSION*) (me.constData() + versionOffset);
         info += tr("\nVersion: %1.%2.%3.%4")
                 .arg(version->major)
                 .arg(version->minor)

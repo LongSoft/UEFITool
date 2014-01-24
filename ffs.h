@@ -19,7 +19,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 // C++ functions
 // GUID to QString routine
-extern QString guidToQString(const EFI_GUID guid);
+extern QString guidToQString(const EFI_GUID& guid);
 // File type to QString routine
 extern QString fileTypeToQString(const UINT8 type);
 // Section type to QString routine

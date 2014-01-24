@@ -531,7 +531,7 @@ void UEFITool::showMessages()
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)
 {
-    MessageListItem* messageItem = (MessageListItem*) item;
+    MessageListItem* messageItem = static_cast<MessageListItem*>(item);
     QModelIndex index = messageItem->index();
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index);
