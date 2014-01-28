@@ -152,7 +152,8 @@ enum CapsuleSubtypes {
 };
 
 enum VolumeSubtypes {
-    BootVolume = 90
+    BootVolume = 90,
+    UnknownVolume
 };
 
 enum RegionSubtypes {

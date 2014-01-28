@@ -56,11 +56,13 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
     case Volume:
         if (subtype == BootVolume)
             return QObject::tr("Boot");
+        else if (subtype == UnknownVolume)
+            return QObject::tr("Unknown");
         else
             return "";
     case Capsule:
         if (subtype == AptioCapsule)
-            return QObject::tr("Aptio extended");
+            return QObject::tr("AMI Aptio");
         else if (subtype == UefiCapsule)
             return QObject::tr("UEFI 2.0");
         else

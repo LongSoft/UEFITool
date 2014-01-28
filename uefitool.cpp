@@ -109,13 +109,15 @@ void UEFITool::populateUi(const QModelIndex &current)
 
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
-    ui->actionRebuild->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
+    ui->actionRebuild->setEnabled(type == Volume || type == File || type == Section);
     ui->actionExtractBody->setDisabled(model->hasEmptyHeader(current));
     ui->actionRemove->setEnabled(type == Volume || type == File || type == Section);
-    ui->actionInsertInto->setEnabled(type == Volume || (type == File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD));
+    ui->actionInsertInto->setEnabled((type == Volume && subtype != UnknownVolume) || 
+        (type == File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
+        (type == Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
     ui->actionInsertBefore->setEnabled(type == File || type == Section);
     ui->actionInsertAfter->setEnabled(type == File || type == Section);
-    ui->actionReplace->setEnabled(type == File || type == Section);
+    ui->actionReplace->setEnabled((type == Region && subtype != DescriptorRegion) || type == File || type == Section);
     ui->actionReplaceBody->setEnabled(type == File || type == Section);
 }
 
@@ -222,7 +224,7 @@ void UEFITool::insert(const UINT8 mode)
 
     UINT8 result = ffsEngine->insert(index, buffer, mode);
     if (result)
-        QMessageBox::critical(this, tr("Insertion failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Insertion failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
     else
         ui->actionSaveImageFile->setEnabled(true);
 }
@@ -260,7 +262,14 @@ void UEFITool::replace(const UINT8 mode)
 
     TreeModel* model = ffsEngine->treeModel();
     QString path;
-    if (model->type(index) == File) {
+    if (model->type(index) == Region) {
+        if (mode == REPLACE_MODE_AS_IS) {
+            path = QFileDialog::getOpenFileName(this, tr("Select region file to replace selected object"), ".", "Region files (*.rgn *.bin);;All files (*.*)");
+        }
+        else
+            return;
+    }
+    else if (model->type(index) == File) {
         if (mode == REPLACE_MODE_AS_IS) {
             path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace selected object"),".","FFS files (*.ffs *.bin);;All files (*.*)");
         }
@@ -314,7 +323,7 @@ void UEFITool::replace(const UINT8 mode)
 
     UINT8 result = ffsEngine->replace(index, buffer, mode);
     if (result)
-        QMessageBox::critical(this, tr("Replacing failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Replacing failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
     else
         ui->actionSaveImageFile->setEnabled(true);
 }
@@ -399,7 +408,7 @@ void UEFITool::extract(const UINT8 mode)
     QByteArray extracted;
     UINT8 result = ffsEngine->extract(index, extracted, mode);
     if (result) {
-        QMessageBox::critical(this, tr("Extraction failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Extraction failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
         return;
     }
 
@@ -440,14 +449,15 @@ void UEFITool::exit()
 void UEFITool::saveImageFile()
 {
     QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
-
-
+    
+    if (path.isEmpty())
+        return;
 
     QByteArray reconstructed;
     UINT8 result = ffsEngine->reconstructImageFile(reconstructed);
     showMessages();
     if (result) {
-        QMessageBox::critical(this, tr("Image reconstruction failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Image reconstruction failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
         return;
     }
 
@@ -495,7 +505,7 @@ void UEFITool::openImageFile(QString path)
     UINT8 result = ffsEngine->parseImageFile(buffer);
     showMessages();
     if (result)
-        QMessageBox::critical(this, tr("Image parsing failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Image parsing failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
 

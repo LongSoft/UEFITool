@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.16.6</string>
+   <string>UEFITool 0.17.0</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -226,16 +226,12 @@
      </property>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
-     <addaction name="separator"/>
-     <addaction name="actionRebuild"/>
     </widget>
     <widget class="QMenu" name="menuImageActions">
      <property name="title">
       <string>&amp;Image</string>
      </property>
      <addaction name="actionExtract"/>
-     <addaction name="separator"/>
-     <addaction name="actionRebuild"/>
     </widget>
     <widget class="QMenu" name="menuRegionActions">
      <property name="title">
@@ -243,7 +239,7 @@
      </property>
      <addaction name="actionExtract"/>
      <addaction name="separator"/>
-     <addaction name="actionRebuild"/>
+     <addaction name="actionReplace"/>
     </widget>
     <widget class="QMenu" name="menuPaddingActions">
      <property name="title">

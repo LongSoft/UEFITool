@@ -299,7 +299,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Region access settings
     info += tr("\nRegion access settings:");
-    info += tr("\nBIOS %1%2 ME %2%3 GbE %4%5")
+    info += tr("\nBIOS:%1%2  ME:%2%3  GbE:%4%5")
         .arg(masterSection->BiosRead, 2, 16, QChar('0'))
         .arg(masterSection->BiosWrite, 2, 16, QChar('0'))
         .arg(masterSection->MeRead, 2, 16, QChar('0'))
@@ -315,20 +315,19 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
     info += tr("\nBIOS  Yes   Yes");
     info += tr("\nME    %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME   ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME   ? "Yes " : "No  ");
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
     info += tr("\nGbE   %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE  ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE  ? "Yes " : "No  ");
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
     info += tr("\nPDR   %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ");
-    
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
+
     // VSCC table
 
     // Add descriptor tree item
     model->addItem(Region, DescriptorRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), body, QByteArray(), index);
-
     // Sort regions in ascending order
     qSort(offsets);
 
@@ -362,7 +361,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, QModelIndex & index, const QModelIndex & parent)
+UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     if (gbe.isEmpty())
         return ERR_EMPTY_REGION;
@@ -383,12 +382,12 @@ UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, QModelIndex & index, con
             .arg(version->minor);
 
     // Add tree item
-    index = model->addItem( Region,  GbeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), gbe, QByteArray(), parent);
+    index = model->addItem(Region, GbeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), gbe, QByteArray(), parent, mode);
 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent)
+UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     if (me.isEmpty())
         return ERR_EMPTY_REGION;
@@ -413,12 +412,12 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const
     }
 
     // Add tree item
-    index = model->addItem( Region,  MeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, QByteArray(), parent);
+    index = model->addItem(Region, MeRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, QByteArray(), parent, mode);
 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent)
+UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     if (pdr.isEmpty())
         return ERR_EMPTY_REGION;
@@ -429,12 +428,12 @@ UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, con
             arg(pdr.size(), 8, 16, QChar('0'));
 
     // Add tree item
-    index = model->addItem( Region,  PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, QByteArray(), parent);
+    index = model->addItem(Region, PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, QByteArray(), parent, mode);
 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent)
+UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     if (bios.isEmpty())
         return ERR_EMPTY_REGION;
@@ -445,7 +444,7 @@ UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, QModelIndex & index, c
             arg(bios.size(), 8, 16, QChar('0'));
 
     // Add tree item
-    index = model->addItem( Region,  BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, QByteArray(), parent);
+    index = model->addItem(Region, BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, QByteArray(), parent, mode);
 
     return parseBios(bios, index);
 }
@@ -458,8 +457,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
     result = findNextVolume(bios, 0, prevVolumeOffset);
     if (result)
         return result;
-
-
+    
     // First volume is not at the beginning of BIOS space
     QString name;
     QString info;
@@ -674,7 +672,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     }
     // Other GUID
     else {
-        msg(tr("parseBios: Unknown file system (%1)").arg(guidToQString(volumeHeader->FileSystemGuid)), parent);
+        msg(tr("parseVolume: Unknown file system (%1)").arg(guidToQString(volumeHeader->FileSystemGuid)), parent);
         parseCurrentVolume = false;
     }
 
@@ -684,7 +682,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
     // Check header checksum by recalculating it
     if (calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength)) {
-        msg(tr("parseBios: Volume header checksum is invalid"), parent);
+        msg(tr("parseVolume: Volume header checksum is invalid"), parent);
     }
 
     // Check for presence of extended header, only if header revision is greater then 1
@@ -706,7 +704,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
     // Check reported size
     if (volumeSize != volumeHeader->FvLength) {
-        msg(tr("%1: volume size stored in header %2 differs from calculated size %3")
+        msg(tr("parseVolume: %1: volume size stored in header %2 differs from calculated size %3")
             .arg(guidToQString(volumeHeader->FileSystemGuid))
             .arg(volumeHeader->FvLength, 8, 16, QChar('0'))
             .arg(volumeSize, 8, 16, QChar('0')), parent);
@@ -723,11 +721,15 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Add tree item
     QByteArray  header = volume.left(headerSize);
     QByteArray  body   = volume.mid(headerSize, volumeSize - headerSize);
-    index  = model->addItem( Volume, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+    
 
     // Do not parse volumes with unknown FS
-    if (!parseCurrentVolume)
+    if (!parseCurrentVolume) {
+        index = model->addItem(Volume, UnknownVolume, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
         return ERR_SUCCESS;
+    }
+    else
+        index = model->addItem(Volume, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
 
     // Search for and parse all files
     UINT32 fileOffset = headerSize;
@@ -1228,7 +1230,32 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         parent = index;
 
     // Create item
-    if (type ==  File) {
+    if (type == Region) {
+        UINT8 subtype = model->subtype(index);
+        switch (subtype) {
+        case BiosRegion:
+            result = parseBiosRegion(body, fileIndex, index, mode);
+            break;
+        case MeRegion:
+            result = parseMeRegion(body, fileIndex, index, mode);
+            break;
+        case GbeRegion:
+            result = parseGbeRegion(body, fileIndex, index, mode);
+            break;
+        case PdrRegion:
+            result = parsePdrRegion(body, fileIndex, index, mode);
+            break;
+        default:
+            return ERR_NOT_IMPLEMENTED;
+        }
+
+        if (result)
+            return result;
+
+        // Set action
+        model->setAction(fileIndex, action);
+    }
+    else if (type == File) {
         if (model->type(parent) != Volume)
             return ERR_INVALID_FILE;
 
@@ -1263,8 +1290,11 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         created.append(body);
 
         // Append tail, if needed
-        if (tailSize)
-            created.append(~fileHeader->IntegrityCheck.TailReference);
+        if (tailSize) {
+            UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
+            UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
+            created.append(ht).append(ft);
+        }
 
         // Set file state
         UINT8 state = EFI_FILE_DATA_VALID | EFI_FILE_HEADER_VALID | EFI_FILE_HEADER_CONSTRUCTION;
@@ -1282,8 +1312,11 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 
         // Set action
         model->setAction(fileIndex, action);
+
+        // Rebase all PEI-files that follow
+        rebasePeiFiles(fileIndex);
     }
-    else if (type ==  Section) {
+    else if (type == Section) {
         if (model->type(parent) != File && model->type(parent) != Section)
             return ERR_INVALID_SECTION;
 
@@ -1380,15 +1413,12 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Find parent file for rebase
             fileIndex = model->findParentOfType(parent, File);
         }
+
+        // Rebase all PEI-files that follow
+        rebasePeiFiles(fileIndex);
     }
     else
         return ERR_NOT_IMPLEMENTED;
-
-    if (!fileIndex.isValid())
-        return ERR_INVALID_FILE;
-
-    // Rebase all PEI-files that follow
-    rebasePeiFiles(fileIndex);
 
     return ERR_SUCCESS;
 }
@@ -1428,12 +1458,17 @@ UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, co
     // Determine type of item to insert
     UINT8 type;
     UINT32 headerSize;
-    if (model->type(parent) ==  Volume) {
-        type =  File;
+    if (model->type(parent) == Volume) {
+        type = File;
         headerSize = sizeof(EFI_FFS_FILE_HEADER);
     }
-    else if (model->type(parent) ==  File) {
-        type =  Section;
+    else if (model->type(parent) == File) {
+        type = Section;
+        EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*) object.constData();
+        headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+    }
+    else if (model->type(parent) == Section) {
+        type = Section;
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*) object.constData();
         headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
     }
@@ -1451,24 +1486,30 @@ UINT8 FfsEngine::replace(const QModelIndex & index, const QByteArray & object, c
     // Determine type of item to replace
     UINT32 headerSize;
     UINT8 result;
-    if (model->type(index) ==  File) {
-        if (mode == REPLACE_MODE_AS_IS) {
-            headerSize = sizeof(EFI_FFS_FILE_HEADER);
-            result = create(index,  File, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER,  Replace);
-        }
-        else if (mode == REPLACE_MODE_BODY)
-            result = create(index,  File, model->header(index), object, CREATE_MODE_AFTER,  Replace);
+    if (model->type(index) == Region) {
+        if (mode == REPLACE_MODE_AS_IS) 
+            result = create(index, Region, QByteArray(), object, CREATE_MODE_AFTER, Replace);
         else
             return ERR_NOT_IMPLEMENTED;
     }
-    else if (model->type(index) ==  Section) {
+    else if (model->type(index) == File) {
+        if (mode == REPLACE_MODE_AS_IS) {
+            headerSize = sizeof(EFI_FFS_FILE_HEADER);
+            result = create(index, File, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER,  Replace);
+        }
+        else if (mode == REPLACE_MODE_BODY)
+            result = create(index, File, model->header(index), object, CREATE_MODE_AFTER,  Replace);
+        else
+            return ERR_NOT_IMPLEMENTED;
+    }
+    else if (model->type(index) == Section) {
         if (mode == REPLACE_MODE_AS_IS) {
             EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*) object.constData();
             headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
-            result = create(index,  Section, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER,  Replace);
+            result = create(index, Section, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER,  Replace);
         }
         else if (mode == REPLACE_MODE_BODY) {
-            result = create(index,  Section, model->header(index), object, CREATE_MODE_AFTER,  Replace, model->compression(index));
+            result = create(index, Section, model->header(index), object, CREATE_MODE_AFTER,  Replace, model->compression(index));
         }
         else
             return ERR_NOT_IMPLEMENTED;
@@ -1923,8 +1964,12 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
         reconstructed = model->header(index).append(model->body(index)).append(model->tail(index));
         return ERR_SUCCESS;
     }
-
-    else if (model->action(index) == Rebuild) {
+    else if (model->action(index) == Remove) {
+        reconstructed.clear();
+        return ERR_SUCCESS;
+    }
+    else if (model->action(index) == Rebuild ||
+             model->action(index) == Replace) {
         if (model->rowCount(index)) {
             reconstructed.clear();
             // Reconstruct children
