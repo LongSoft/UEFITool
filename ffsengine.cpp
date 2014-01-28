@@ -148,7 +148,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 {
     FLASH_DESCRIPTOR_MAP*               descriptorMap;
     FLASH_DESCRIPTOR_REGION_SECTION*    regionSection;
-    //FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection;
+    FLASH_DESCRIPTOR_MASTER_SECTION*    masterSection;
 
     // Store the beginning of descriptor as descriptor base address
     UINT8* descriptor      = (UINT8*) intelImage.constData();
@@ -162,9 +162,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     }
 
     // Parse descriptor map
-    descriptorMap    = (FLASH_DESCRIPTOR_MAP*) (descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
-    regionSection    = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8(descriptor, descriptorMap->RegionBase);
-    //componentSection = (FLASH_DESCRIPTOR_COMPONENT_SECTION*) calculateAddress8(descriptor, descriptorMap->ComponentBase);
+    descriptorMap = (FLASH_DESCRIPTOR_MAP*) (descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
+    regionSection = (FLASH_DESCRIPTOR_REGION_SECTION*) calculateAddress8(descriptor, descriptorMap->RegionBase);
+    masterSection = (FLASH_DESCRIPTOR_MASTER_SECTION*) calculateAddress8(descriptor, descriptorMap->MasterBase);
 
     // GbE region
     QByteArray gbe;
@@ -282,11 +282,11 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     QVector<UINT32> offsets;
     if (regionSection->GbeLimit) {
         offsets.append(gbeBegin);
-        info += tr("\nGbE region offset: %1").arg(gbeBegin, 8, 16, QChar('0'));
+        info += tr("\nGbE region offset:  %1").arg(gbeBegin, 8, 16, QChar('0'));
     }
     if (regionSection->MeLimit) {
         offsets.append(meBegin);
-        info += tr("\nME region offset: %1").arg(meBegin, 8, 16, QChar('0'));
+        info += tr("\nME region offset:   %1").arg(meBegin, 8, 16, QChar('0'));
     }
     if (regionSection->BiosLimit) {
         offsets.append(biosBegin);
@@ -294,8 +294,37 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     }
     if (regionSection->PdrLimit) {
         offsets.append(pdrBegin);
-        info += tr("\nPDR region offset: %1").arg(pdrBegin, 8, 16, QChar('0'));
+        info += tr("\nPDR region offset:  %1").arg(pdrBegin, 8, 16, QChar('0'));
     }
+
+    // Region access settings
+    info += tr("\nRegion access settings:");
+    info += tr("\nBIOS %1%2 ME %2%3 GbE %4%5")
+        .arg(masterSection->BiosRead, 2, 16, QChar('0'))
+        .arg(masterSection->BiosWrite, 2, 16, QChar('0'))
+        .arg(masterSection->MeRead, 2, 16, QChar('0'))
+        .arg(masterSection->MeWrite, 2, 16, QChar('0'))
+        .arg(masterSection->GbeRead, 2, 16, QChar('0'))
+        .arg(masterSection->GbeWrite, 2, 16, QChar('0'));
+
+    // BIOS access table
+    info += tr("\nBIOS access table:");
+    info += tr("\n      Read  Write");
+    info += tr("\nDesc  %1  %2")
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
+    info += tr("\nBIOS  Yes   Yes");
+    info += tr("\nME    %1  %2")
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME   ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME   ? "Yes " : "No  ");
+    info += tr("\nGbE   %1  %2")
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE  ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE  ? "Yes " : "No  ");
+    info += tr("\nPDR   %1  %2")
+        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ")
+        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ");
+    
+    // VSCC table
 
     // Add descriptor tree item
     model->addItem(Region, DescriptorRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), body, QByteArray(), index);
@@ -2213,11 +2242,11 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
         reconstructed.clear();
         return ERR_SUCCESS;
     }
-    else if (model->action(index) == Insert  ||
-             model->action(index) == Replace ||
-             model->action(index) == Rebuild) {
+    else if (model->action(index) == Insert ||
+        model->action(index) == Replace ||
+        model->action(index) == Rebuild) {
         QByteArray header = model->header(index);
-        EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) header.data();
+        EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)header.data();
 
         // Check erase polarity
         if (erasePolarity == ERASE_POLARITY_UNKNOWN) {
@@ -2275,13 +2304,13 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
             // File contains raw data, must be parsed as region
             if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW) {
                 result = reconstructRegion(index, reconstructed);
-                    if (result)
-                        return result;
+                if (result)
+                    return result;
             }
             // File contains sections
             else {
                 UINT32 offset = 0;
-            
+
                 for (int i = 0; i < model->rowCount(index); i++) {
                     // Align to 4 byte boundary
                     UINT8 alignment = offset % 4;
@@ -2292,7 +2321,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
                     }
 
                     // Calculate section base
-                    UINT32 sectionBase = base ? base + sizeof(EFI_FFS_FILE_HEADER) + offset : 0; 
+                    UINT32 sectionBase = base ? base + sizeof(EFI_FFS_FILE_HEADER) + offset : 0;
 
                     // Reconstruct section
                     QByteArray section;
@@ -2320,7 +2349,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
             // Recalculate header checksum
             fileHeader->IntegrityCheck.Checksum.Header = 0;
             fileHeader->IntegrityCheck.Checksum.File = 0;
-            fileHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*) fileHeader, sizeof(EFI_FFS_FILE_HEADER) - 1);
+            fileHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*)fileHeader, sizeof(EFI_FFS_FILE_HEADER)-1);
 
         }
         // Use current file body
@@ -2329,7 +2358,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
 
         // Recalculate data checksum, if needed
         if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
-            fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*) reconstructed.constData(), reconstructed.size());
+            fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)reconstructed.constData(), reconstructed.size());
         }
         else if (revision == 1)
             fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
@@ -2337,9 +2366,11 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
             fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
 
         // Append tail, if needed
-        if (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)
-            reconstructed.append(~fileHeader->IntegrityCheck.TailReference);
-
+        if (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
+            UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
+            UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
+            reconstructed.append(ht).append(ft);
+        }
         // Set file state
         state = EFI_FILE_DATA_VALID | EFI_FILE_HEADER_VALID | EFI_FILE_HEADER_CONSTRUCTION;
         if (erasePolarity == ERASE_POLARITY_TRUE)

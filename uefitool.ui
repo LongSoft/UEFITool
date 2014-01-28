@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.16.5</string>
+   <string>UEFITool 0.16.6</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -33,7 +33,16 @@
     <property name="spacing">
      <number>0</number>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
@@ -53,7 +62,16 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
           <number>5</number>
          </property>
          <item>
@@ -63,6 +81,12 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <family>Consolas</family>
+             <pointsize>9</pointsize>
+            </font>
            </property>
            <property name="indentation">
             <number>10</number>
@@ -91,11 +115,26 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
           <number>5</number>
          </property>
          <item>
           <widget class="QPlainTextEdit" name="infoEdit">
+           <property name="font">
+            <font>
+             <family>Consolas</family>
+             <pointsize>9</pointsize>
+            </font>
+           </property>
            <property name="acceptDrops">
             <bool>false</bool>
            </property>
@@ -121,11 +160,27 @@
         <property name="spacing">
          <number>0</number>
         </property>
-        <property name="margin">
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
          <number>5</number>
         </property>
         <item>
-         <widget class="QListWidget" name="messageListWidget"/>
+         <widget class="QListWidget" name="messageListWidget">
+          <property name="font">
+           <font>
+            <family>Consolas</family>
+            <pointsize>9</pointsize>
+           </font>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

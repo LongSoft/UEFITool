@@ -213,7 +213,7 @@ void UEFITool::insert(const UINT8 mode)
     inputFile.setFileName(path);
 
     if (!inputFile.open(QFile::ReadOnly)) {
-        ui->statusBar->showMessage(tr("Can't open file for reading"));
+        QMessageBox::critical(this, tr("Insertion failed"), tr("Can't open output file for reading"), QMessageBox::Ok);
         return;
     }
 
@@ -222,7 +222,7 @@ void UEFITool::insert(const UINT8 mode)
 
     UINT8 result = ffsEngine->insert(index, buffer, mode);
     if (result)
-        ui->statusBar->showMessage(tr("File can't be inserted (%1)").arg(result));
+        QMessageBox::critical(this, tr("Insertion failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
     else
         ui->actionSaveImageFile->setEnabled(true);
 }
@@ -305,7 +305,7 @@ void UEFITool::replace(const UINT8 mode)
     inputFile.setFileName(path);
 
     if (!inputFile.open(QFile::ReadOnly)) {
-        ui->statusBar->showMessage(tr("Can't open file for reading"));
+        QMessageBox::critical(this, tr("Replacing failed"), tr("Can't open input file for reading"), QMessageBox::Ok);
         return;
     }
 
@@ -314,7 +314,7 @@ void UEFITool::replace(const UINT8 mode)
 
     UINT8 result = ffsEngine->replace(index, buffer, mode);
     if (result)
-        ui->statusBar->showMessage(tr("File can't be replaced (%1)").arg(result));
+        QMessageBox::critical(this, tr("Replacing failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
     else
         ui->actionSaveImageFile->setEnabled(true);
 }
@@ -380,7 +380,7 @@ void UEFITool::extract(const UINT8 mode)
             break;
         case Section: {
             if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
-                path = QFileDialog::getSaveFileName(this, tr("Save encapsulated section body to FFS body file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
             else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"),".","Volume files (*.vol *.bin);;All files (*.*)");
             else if (model->subtype(index) == EFI_SECTION_RAW)
@@ -396,22 +396,23 @@ void UEFITool::extract(const UINT8 mode)
     else
         path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
 
-    QFile outputFile;
-    outputFile.setFileName(path);
-    if (!outputFile.open(QFile::WriteOnly)) {
-        ui->statusBar->showMessage(tr("Can't open file for rewriting"));
+    QByteArray extracted;
+    UINT8 result = ffsEngine->extract(index, extracted, mode);
+    if (result) {
+        QMessageBox::critical(this, tr("Extraction failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
         return;
     }
 
-    QByteArray extracted;
-    UINT8 result = ffsEngine->extract(index, extracted, mode);
-    if (result)
-        ui->statusBar->showMessage(tr("File can't be extracted (%1)").arg(result));
-    else {
-        outputFile.resize(0);
-        outputFile.write(extracted);
-        outputFile.close();
+    QFile outputFile;
+    outputFile.setFileName(path);
+    if (!outputFile.open(QFile::WriteOnly)) {
+        QMessageBox::critical(this, tr("Extraction failed"), tr("Can't open output file for rewriting"), QMessageBox::Ok);
+        return;
     }
+    outputFile.resize(0);
+    outputFile.write(extracted);
+    outputFile.close();
+
 }
 
 void UEFITool::about()
@@ -440,25 +441,29 @@ void UEFITool::saveImageFile()
 {
     QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"),".","BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
 
-    QFile outputFile;
-    outputFile.setFileName(path);
-    if (!outputFile.open(QFile::WriteOnly)) {
-        ui->statusBar->showMessage(tr("Can't open file for writing"));
-        return;
-    }
+
 
     QByteArray reconstructed;
     UINT8 result = ffsEngine->reconstructImageFile(reconstructed);
     showMessages();
     if (result) {
-        ui->statusBar->showMessage(tr("Reconstruction failed (%1)").arg(result));
+        QMessageBox::critical(this, tr("Image reconstruction failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
+        return;
+    }
+
+    QFile outputFile;
+    outputFile.setFileName(path);
+    if (!outputFile.open(QFile::WriteOnly)) {
+        QMessageBox::critical(this, tr("Image reconstruction failed"), tr("Can't open output file for rewriting"), QMessageBox::Ok);
         return;
     }
 
     outputFile.resize(0);
     outputFile.write(reconstructed);
     outputFile.close();
-    ui->statusBar->showMessage(tr("Reconstructed image written"));
+    if (QMessageBox::information(this, tr("Image reconstruction successful"), tr("Open reconstructed file?"), QMessageBox::Yes, QMessageBox::No)
+        == QMessageBox::Yes)
+        openImageFile(path);
 }
 
 void UEFITool::openImageFile()
@@ -479,7 +484,7 @@ void UEFITool::openImageFile(QString path)
     inputFile.setFileName(path);
 
     if (!inputFile.open(QFile::ReadOnly)) {
-        ui->statusBar->showMessage(tr("Can't open file for reading"));
+        QMessageBox::critical(this, tr("Image parsing failed"), tr("Can't open input file for reading"), QMessageBox::Ok);
         return;
     }
 
@@ -490,7 +495,7 @@ void UEFITool::openImageFile(QString path)
     UINT8 result = ffsEngine->parseImageFile(buffer);
     showMessages();
     if (result)
-        ui->statusBar->showMessage(tr("Opened file can't be parsed (%1)").arg(result));
+        QMessageBox::critical(this, tr("Image parsing failed"), tr("Error code: %d").arg(result), QMessageBox::Ok);
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
 

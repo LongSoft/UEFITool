@@ -53,7 +53,7 @@ typedef struct {
 
 
 // Component section
-// Flash parameters dword structure 
+// Flash parameters DWORD structure 
 typedef struct {
     UINT8 FirstChipDensity            : 3;
     UINT8 SecondChipDensity           : 3;
@@ -125,6 +125,13 @@ typedef struct {
     UINT8 GbeRead;
     UINT8 GbeWrite;
 } FLASH_DESCRIPTOR_MASTER_SECTION;
+
+// Region access bits in master section
+#define FLASH_DESCRIPTOR_REGION_ACCESS_DESC 0x01
+#define FLASH_DESCRIPTOR_REGION_ACCESS_BIOS 0x02
+#define FLASH_DESCRIPTOR_REGION_ACCESS_ME   0x04
+#define FLASH_DESCRIPTOR_REGION_ACCESS_GBE  0x08
+#define FLASH_DESCRIPTOR_REGION_ACCESS_PDR  0x10
 
 //!TODO: Describe PCH and PROC straps sections, as well as ICC and DMI tables
 
