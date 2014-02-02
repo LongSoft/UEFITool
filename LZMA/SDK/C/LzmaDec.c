@@ -1,5 +1,5 @@
 /* LzmaDec.c -- LZMA Decoder
-2009-09-20 : Igor Pavlov : Public doma*/
+2009-09-20 : Igor Pavlov : Public domain*/
 
 #include "LzmaDec.h"
 
@@ -116,7 +116,7 @@ StopCompilingDueBUG
 #define LZMA_DIC_MIN (1 << 12)
 
 /* First LZMA-symbol is always decoded.
-And it decodes new LZMA-symbols while (buf < bufLimit), but "buf" is withlast normalization
+And it decodes new LZMA-symbols while (buf < bufLimit), but "buf" is with last normalization
 Out:
   Result:
 	SZ_OK - OK

@@ -47,7 +47,7 @@ UINT32                  *ScratchSize
 
 Routine Description:
 
-The implementation is same as that  of EFI_DECOMPRESS_PROTOCOL.GetInfo().
+The implementation is same as that of EFI_DECOMPRESS_PROTOCOL.GetInfo().
 
 Arguments:
 
@@ -59,7 +59,7 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successull retrieved.
+EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successfully retrieved.
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
@@ -93,7 +93,7 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - Decompression is successfull
+EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
@@ -127,7 +127,7 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - Decompression is successfull
+EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/

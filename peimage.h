@@ -66,7 +66,7 @@ typedef struct {
     UINT16  e_oemid;    // OEM identifier (for e_oeminfo)
     UINT16  e_oeminfo;  // OEM information; e_oemid specific
     UINT16  e_res2[10]; // Reserved words
-    UINT32  e_lfanew;   // File address of new exe header
+    UINT32  e_lfanew;   // File address of new header
 } EFI_IMAGE_DOS_HEADER;
 
 //
@@ -91,8 +91,8 @@ typedef struct {
 // Characteristics
 //
 #define EFI_IMAGE_FILE_RELOCS_STRIPPED      0x0001  // Relocation info stripped from file
-#define EFI_IMAGE_FILE_EXECUTABLE_IMAGE     0x0002  // File is executable  (i.e. no unresolved externel references)
-#define EFI_IMAGE_FILE_LINE_NUMS_STRIPPED   0x0004  // Line nunbers stripped from file
+#define EFI_IMAGE_FILE_EXECUTABLE_IMAGE     0x0002  // File is executable  (i.e. no unresolved external references)
+#define EFI_IMAGE_FILE_LINE_NUMS_STRIPPED   0x0004  // Line numbers stripped from file
 #define EFI_IMAGE_FILE_LOCAL_SYMS_STRIPPED  0x0008  // Local symbols stripped from file
 #define EFI_IMAGE_FILE_BYTES_REVERSED_LO    0x0080  // Bytes of machine word are reversed
 #define EFI_IMAGE_FILE_32BIT_MACHINE        0x0100  // 32 bit word machine
@@ -478,7 +478,7 @@ typedef struct {
 //
 typedef struct {
     union {
-        UINT32  SymbolTableIndex; // Symbol table index of function name if Linenumber is 0
+        UINT32  SymbolTableIndex; // Symbol table index of function name if line number is 0
         UINT32  VirtualAddress;   // Virtual address of line number
     } Type;
     UINT16  Linenumber;         // Line number
@@ -622,7 +622,7 @@ typedef struct {
 
 
 //
-// Debug Data Structure defined by Apple Mach-O to Coff utility.
+// Debug Data Structure defined by Apple Mach-O to COFF utility.
 //
 #define CODEVIEW_SIGNATURE_MTOC  0x434F544D // MTOC
 typedef struct {

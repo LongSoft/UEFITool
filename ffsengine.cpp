@@ -78,7 +78,7 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
     QModelIndex index;
     QByteArray flashImage;
 
-    // Check buffer size to be more then or equal to sizeof(EFI_CAPSULE_HEADER)
+    // Check buffer size to be more then or equal to size of EFI_CAPSULE_HEADER
     if ((UINT32) buffer.size() <= sizeof(EFI_CAPSULE_HEADER))
     {
         msg(tr("parseImageFile: Image file is smaller then minimum size of %1 bytes").arg(sizeof(EFI_CAPSULE_HEADER)));
@@ -627,7 +627,7 @@ UINT8 FfsEngine::findNextVolume(const QByteArray & bios, UINT32 volumeOffset, UI
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize)
+UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize, bool fromHeader)
 {
     // Populate volume header
     EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) (bios.constData() + volumeOffset);
@@ -636,15 +636,21 @@ UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UIN
     if (QByteArray((const char*) &volumeHeader->Signature, sizeof(volumeHeader->Signature)) != EFI_FV_SIGNATURE)
         return ERR_INVALID_VOLUME;
 
-    // Use BlockMap to determine volume size
-    EFI_FV_BLOCK_MAP_ENTRY* entry = (EFI_FV_BLOCK_MAP_ENTRY*) (bios.constData() + volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
-    volumeSize = 0;
-    while(entry->NumBlocks != 0 && entry->Length != 0) {
-        if ((void*) entry > bios.constData() + bios.size())
-            return ERR_INVALID_VOLUME;
+    if (fromHeader) {
+        // Use header field
+        volumeSize = volumeHeader->FvLength;
+    }
+    else {
+        // Use BlockMap
+        EFI_FV_BLOCK_MAP_ENTRY* entry = (EFI_FV_BLOCK_MAP_ENTRY*)(bios.constData() + volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
+        volumeSize = 0;
+        while (entry->NumBlocks != 0 && entry->Length != 0) {
+            if ((void*)entry > bios.constData() + bios.size())
+                return ERR_INVALID_VOLUME;
 
-        volumeSize += entry->NumBlocks * entry->Length;
-        entry += 1;
+            volumeSize += entry->NumBlocks * entry->Length;
+            entry += 1;
+        }
     }
 
     return ERR_SUCCESS;
@@ -655,9 +661,19 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Populate volume header
     EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) (volume.constData());
 
-    // Check filesystem GUID to be known
-    // Do not parse volume with unknown FFS, because parsing will fail
-    bool parseCurrentVolume = true;
+    // Calculate volume header size
+    UINT32 headerSize;
+    if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
+        EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)((UINT8*)volumeHeader + volumeHeader->ExtHeaderOffset);
+        headerSize = volumeHeader->ExtHeaderOffset + extendedHeader->ExtHeaderSize;
+    }
+    else {
+        headerSize = volumeHeader->HeaderLength;
+    }
+
+    // Check for volume structure to be known
+    // Default volume subtype is "normal"
+    UINT8 subtype = NormalVolume;
     // FFS GUID v1
     if (QByteArray((const char*) &volumeHeader->FileSystemGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_FILE_SYSTEM_GUID) {
         // Code can be added here
@@ -670,35 +686,25 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     else if (QByteArray((const char*) &volumeHeader->FileSystemGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_FILE_SYSTEM2_GUID) {
         // Code can be added here
     }
+    // NVRAM volume
+    else if (QByteArray((const char*)volumeHeader + headerSize, EFI_FIRMWARE_VOLUME_NVRAM_SIGNATURE.length()) == EFI_FIRMWARE_VOLUME_NVRAM_SIGNATURE) {
+        subtype = NvramVolume;
+    }
     // Other GUID
     else {
         msg(tr("parseVolume: Unknown file system (%1)").arg(guidToQString(volumeHeader->FileSystemGuid)), parent);
-        parseCurrentVolume = false;
+        subtype = UnknownVolume;
     }
 
     // Check attributes
     // Determine value of empty byte
     char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
-    // Check header checksum by recalculating it
-    if (calculateChecksum16((UINT16*) volumeHeader, volumeHeader->HeaderLength)) {
-        msg(tr("parseVolume: Volume header checksum is invalid"), parent);
-    }
-
-    // Check for presence of extended header, only if header revision is greater then 1
-    UINT32 headerSize;
-    if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
-        EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*) ((UINT8*) volumeHeader + volumeHeader->ExtHeaderOffset);
-        headerSize = volumeHeader->ExtHeaderOffset + extendedHeader->ExtHeaderSize;
-    } else {
-        headerSize = volumeHeader->HeaderLength;
-    }
-
     // Get volume size
     UINT8 result;
     UINT32 volumeSize;
 
-    result = getVolumeSize(volume, 0, volumeSize);
+    result = getVolumeSize(volume, 0, volumeSize, false);
     if (result)
         return result;
 
@@ -708,6 +714,14 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
             .arg(guidToQString(volumeHeader->FileSystemGuid))
             .arg(volumeHeader->FvLength, 8, 16, QChar('0'))
             .arg(volumeSize, 8, 16, QChar('0')), parent);
+    }
+    // Trust header size
+    else
+        volumeSize = volumeHeader->FvLength;
+    
+    // Check header checksum by recalculating it
+    if (subtype == NormalVolume && calculateChecksum16((UINT16*)volumeHeader, volumeHeader->HeaderLength)) {
+        msg(tr("parseVolume: Volume header checksum is invalid"), parent);
     }
 
     // Get info
@@ -721,16 +735,12 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Add tree item
     QByteArray  header = volume.left(headerSize);
     QByteArray  body   = volume.mid(headerSize, volumeSize - headerSize);
-    
+    index = model->addItem(Volume, subtype, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
 
-    // Do not parse volumes with unknown FS
-    if (!parseCurrentVolume) {
-        index = model->addItem(Volume, UnknownVolume, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+    // Do not parse the contents of volumes other then normal
+    if (subtype != NormalVolume)
         return ERR_SUCCESS;
-    }
-    else
-        index = model->addItem(Volume, 0, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
-
+    
     // Search for and parse all files
     UINT32 fileOffset = headerSize;
     UINT32 fileSize;
@@ -741,7 +751,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         if (result)
             return result;
 
-        // Check file size to be at least sizeof(EFI_FFS_FILE_HEADER)
+        // Check file size to be at least size of EFI_FFS_FILE_HEADER
         if (fileSize < sizeof(EFI_FFS_FILE_HEADER)) {
             msg(tr("parseVolume: File with invalid size"), index);
             return ERR_INVALID_FILE;
@@ -939,7 +949,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
             .arg(fileHeader->State, 2, 16, QChar('0'));
 
     // Add tree item
-    index = model->addItem( File, fileHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, tail, parent, mode);
+    index = model->addItem(File, fileHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, tail, parent, mode);
 
     if (!parseCurrentFile)
         return ERR_SUCCESS;
@@ -2158,7 +2168,7 @@ out:
                     // File will be unaligned if added as is, so we must add pad file before it
                     // Determine pad file size
                     UINT32 size = alignment - (alignmentBase % alignment);
-                    // Required padding is smaler then minimal pad file size
+                    // Required padding is smaller then minimal pad file size
                     while (size < sizeof(EFI_FFS_FILE_HEADER)) {
                         size += alignment;
                     }
@@ -2235,7 +2245,7 @@ out:
                     // Root volume can't be grown yet
                     UINT8 parentType = model->type(index.parent());
                     if(parentType != File && parentType != Section) {
-                        msg(tr("reconstructVolume: %1: can't grow root volume").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                        msg(tr("reconstructVolume: %1: root volume can't be grown").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
                         return ERR_INVALID_VOLUME;
                     }
 
@@ -2517,7 +2527,7 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                 result = compress(reconstructed, model->compression(index), compressed);
                 if (result)
                     return result;
-                // Check for auth status valid attribute
+                // Check for authentication status valid attribute
                 if (guidDefinedHeader->Attributes & EFI_GUIDED_SECTION_AUTH_STATUS_VALID) {
                     msg(tr("reconstructSection: %1: GUID defined section signature can now become invalid")
                         .arg(guidToQString(guidDefinedHeader->SectionDefinitionGuid)), index);
@@ -2890,11 +2900,11 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
                 return ERR_UNKNOWN_RELOCATION_TYPE;
             }
 
-            // Next reloc record
+            // Next relocation record
             Reloc += 1;
         }
 
-        // Next reloc block
+        // Next relocation block
         RelocBase = (EFI_IMAGE_BASE_RELOCATION*)RelocEnd;
     }
 
@@ -2913,7 +2923,7 @@ UINT8 FfsEngine::patchVtf(QByteArray &vtf)
         // No need to patch anything
         return ERR_SUCCESS;
 
-    // Replace last occurence of oldPeiCoreEntryPoint with newPeiCoreEntryPoint
+    // Replace last occurrence of oldPeiCoreEntryPoint with newPeiCoreEntryPoint
     QByteArray old((char*) &oldPeiCoreEntryPoint, sizeof(oldPeiCoreEntryPoint));
     int i = vtf.lastIndexOf(old);
     if (i == -1) {

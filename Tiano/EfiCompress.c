@@ -339,7 +339,7 @@ Returns:
   }
   
   //
-  // Fillcompressed size and original size
+  // Fill compressed size and original size
   //
   mDst = DstBuffer;
   PutDword(mCompSize+1);
@@ -368,11 +368,11 @@ PutDword(
 
 Routine Description:
 
-  Put a dword to output stream
+  Put a DWORD to output stream
   
 Arguments:
 
-  Data    - the dword to put
+  Data    - the DWORD to put
   
 Returns: (VOID)
   
@@ -402,9 +402,9 @@ AllocateMemory ()
 
 Routine Description:
 
-  Allocate memory spaces for data structures usedcompression process
+  Allocate memory spaces for data structures used in compression process
   
-Argements: (VOID)
+Arguments: (VOID)
 
 Returns:
 
@@ -656,7 +656,7 @@ Returns: (VOID)
 	
 	//
 	// We have just got a long match, the target tree
-	// can be located by MatchPos + 1. Travese the tree
+	// can be located by MatchPos + 1. Traverse the tree
 	// from bottom up to get to a proper starting point.
 	// The usage of PERC_FLAG ensures proper node deletion
 	//DeleteNode() later.
@@ -830,7 +830,7 @@ GetNextMatch ()
 
 Routine Description:
 
-  Advance the current position (readnew data if needed).
+  Advance the current position (read new data if needed).
   Delete outdated string info. Find a match string for current position.
 
 Arguments: (VOID)
@@ -1285,7 +1285,7 @@ Routine Description:
 
   Outputs rightmost n bits of x
 
-Argments:
+Arguments:
 
   n   - the rightmost n bits of the data is used
   x   - the data 
@@ -1331,7 +1331,7 @@ FreadCrc (
 
 Routine Description:
 
-  Readsource data
+  Read source data
   
 Arguments:
 

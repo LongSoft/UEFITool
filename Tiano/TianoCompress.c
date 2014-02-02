@@ -374,11 +374,11 @@ STATIC
 
 	Routine Description:
 
-	Put a dword to output stream
+	Put a DWORD to output stream
 
 	Arguments:
 
-	Data    - the dword to put
+	Data    - the DWORD to put
 
 	Returns: (VOID)
 
@@ -412,7 +412,7 @@ STATIC
 
 	Allocate memory spaces for data structures used compression process
 
-	Argements: 
+	Arguments: 
 	VOID
 
 	Returns:
@@ -681,7 +681,7 @@ STATIC
 	if (mMatchLen >= 4) {
 		//
 		// We have just got a long match, the target tree
-		// can be located by MatchPos + 1. Travese the tree
+		// can be located by MatchPos + 1. Traverse the tree
 		// from bottom up to get to a proper starting point.
 		// The usage of PERC_FLAG ensures proper node deletion
 		// DeleteNode() later.
@@ -922,7 +922,7 @@ STATIC
 
 	Routine Description:
 
-	The macontrolling routine for compression process.
+	The mac controlling routine for compression process.
 
 	Arguments: (VOID)
 
@@ -1314,7 +1314,7 @@ STATIC
 	if ((mOutputMask >>= 1) == 0) {
 		mOutputMask = 1U << (UINT8_BIT - 1);
 		//
-		// Check the buffer overflow per outputing UINT8_BIT symbols
+		// Check the buffer overflow per outputting UINT8_BIT symbols
 		// which is an Original Character or a Pointer. The biggest
 		// symbol is a Pointer which occupies 5 bytes.
 		//

@@ -55,7 +55,7 @@ typedef struct {
     EFI_CAPSULE_HEADER    CapsuleHeader;
     UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
     // the capsule volume
-    //!TODO: Enable certificate and rom layout reading
+    //!TODO: Enable certificate and ROM layout reading
     //UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
     // that are included in the signature calculation
     //FW_CERTIFICATE      FWCert;
@@ -91,7 +91,7 @@ typedef struct {
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];
 } EFI_FIRMWARE_VOLUME_HEADER;
 
-// Filesystem GUIDs
+// File system GUIDs
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
 ("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
 const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
@@ -213,6 +213,9 @@ typedef struct {
     EFI_GUID FormatType;
     //UINT8 Data[];
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE;
+
+// NVRAM volume signature
+const QByteArray EFI_FIRMWARE_VOLUME_NVRAM_SIGNATURE("$VSS", 4);
 
 // Volume header 16bit checksum calculation routine
 extern UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize);

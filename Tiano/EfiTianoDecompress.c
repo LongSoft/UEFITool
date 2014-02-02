@@ -178,7 +178,7 @@ Creates Huffman Code mapping table according to code length array.
 Arguments:
 
 Sd        - The global scratch data
-NumOfChar - Number of symbolsthe symbol set
+NumOfChar - Number of symbols in the symbol set
 BitLen    - Code length array
 TableBits - The width of the mapping table
 Table     - The table
@@ -681,7 +681,7 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successull retrieved.
+EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successfully retrieved.
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
@@ -729,7 +729,7 @@ Version 2 for Tiano de/compression algorithm.
 
 Returns:
 
-EFI_SUCCESS           - Decompression is successfull
+EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
@@ -853,7 +853,7 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - Decompression is successfull
+EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
@@ -900,7 +900,7 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - Decompression is successfull
+EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/

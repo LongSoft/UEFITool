@@ -76,7 +76,7 @@ typedef struct {
 #define FLASH_DENSITY_8MB     0x04
 #define FLASH_DENSITY_16MB    0x05
 
-// Flash frequences
+// Flash frequencies
 #define FLASH_FREQUENCY_20MHZ  0x00
 #define FLASH_FREQUENCY_33MHZ  0x01
 #define FLASH_FREQUENCY_50MHZ  0x04

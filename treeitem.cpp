@@ -58,6 +58,8 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Boot");
         else if (subtype == UnknownVolume)
             return QObject::tr("Unknown");
+        else if (subtype == NvramVolume)
+            return QObject::tr("NVRAM");
         else
             return "";
     case Capsule:

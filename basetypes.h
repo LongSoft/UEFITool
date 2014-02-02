@@ -152,8 +152,10 @@ enum CapsuleSubtypes {
 };
 
 enum VolumeSubtypes {
-    BootVolume = 90,
-    UnknownVolume
+    NormalVolume = 90,
+    BootVolume,
+    UnknownVolume,
+    NvramVolume
 };
 
 enum RegionSubtypes {
@@ -165,7 +167,7 @@ enum RegionSubtypes {
 };
 
 // EFI GUID
-typedef struct{
+typedef struct {
     UINT8 Data[16];
 } EFI_GUID;
 

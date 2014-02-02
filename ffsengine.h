@@ -93,7 +93,7 @@ private:
 
     // Parsing helpers
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
-    UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
+    UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, bool fromHeader = true);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
 
