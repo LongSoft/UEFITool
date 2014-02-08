@@ -25,7 +25,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "LZMA/LzmaDecompress.h"
 
 FfsEngine::FfsEngine(QObject *parent)
-    : QObject(parent)
+: QObject(parent)
 {
     model = new TreeModel();
 }
@@ -753,7 +753,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
         // Check file size to be at least size of EFI_FFS_FILE_HEADER
         if (fileSize < sizeof(EFI_FFS_FILE_HEADER)) {
-            msg(tr("parseVolume: File with invalid size"), index);
+            msg(tr("parseVolume: FFS file with invalid size"), index);
             return ERR_INVALID_FILE;
         }
 
@@ -774,7 +774,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
         // Check file GUID
         if (fileHeader->Type != EFI_FV_FILETYPE_PAD && files.indexOf(header.left(sizeof(EFI_GUID))) != -1)
-            msg(tr("%1: file with duplicate GUID").arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("parseVolume: %1, file with duplicate GUID").arg(guidToQString(fileHeader->Name)), index);
 
         // Add file GUID to queue
         files.enqueue(header.left(sizeof(EFI_GUID)));
@@ -783,7 +783,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         QModelIndex fileIndex;
         result = parseFile(file, fileIndex, empty == '\xFF' ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index);
         if (result)
-            msg(tr("parseVolume: Parse FFS file failed (%1)").arg(result), index);
+            msg(tr("parseVolume: FFS file parse failed (%1)").arg(result), index);
 
         // Move to next file
         fileOffset += fileSize;
@@ -1826,12 +1826,13 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
 }
 
 // Construction routines
-UINT8 FfsEngine::constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad)
+UINT8 FfsEngine::constructPadFile(const QByteArray guid, const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad)
 {
     if (size < sizeof(EFI_FFS_FILE_HEADER) || erasePolarity == ERASE_POLARITY_UNKNOWN)
         return ERR_INVALID_PARAMETER;
 
-    pad = QByteArray(size, erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
+    pad = QByteArray(size - guid.size(), erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
+    pad.prepend(guid);
     EFI_FFS_FILE_HEADER* header = (EFI_FFS_FILE_HEADER*) pad.data();
     uint32ToUint24(size, header->Size);
     header->Attributes = 0x00;
@@ -2121,6 +2122,7 @@ out:
             
             // Reconstruct files in volume
             UINT32 offset = 0;
+            QByteArray padFileGuid = EFI_FFS_PAD_FILE_GUID;
             QByteArray vtf;
             QModelIndex vtfIndex;
             for (int i = 0; i < model->rowCount(index); i++) {
@@ -2147,9 +2149,11 @@ out:
                 EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*) file.data();
 
                 // Pad file
-                if (fileHeader->Type == EFI_FV_FILETYPE_PAD)
+                if (fileHeader->Type == EFI_FV_FILETYPE_PAD) {
+                    padFileGuid = file.left(sizeof(EFI_GUID));
                     continue;
-
+                }
+                
                 // Volume Top File
                 if (file.left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
                     vtf = file;
@@ -2174,7 +2178,7 @@ out:
                     }
                     // Construct pad file
                     QByteArray pad;
-                    result = constructPadFile(size, volumeHeader->Revision, polarity, pad);
+                    result = constructPadFile(padFileGuid, size, volumeHeader->Revision, polarity, pad);
                     if (result)
                         return result;
                     // Append constructed pad file to volume body
@@ -2205,7 +2209,7 @@ out:
                     UINT32 size = vtfOffset - offset;
                     // Construct pad file
                     QByteArray pad;
-                    result = constructPadFile(size, volumeHeader->Revision, polarity, pad);
+                    result = constructPadFile(padFileGuid, size, volumeHeader->Revision, polarity, pad);
                     if (result)
                         return result;
                     // Append constructed pad file to volume body

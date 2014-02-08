@@ -98,7 +98,7 @@ private:
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
 
     // Reconstruction helpers
-    UINT8 constructPadFile(const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
+    UINT8 constructPadFile(const QByteArray guid, const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad);
     UINT8 growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize);
 
     // Rebase routines

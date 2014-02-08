@@ -305,6 +305,10 @@ extern const UINT8 ffsAlignmentTable[];
 const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
 
+// Pad file GUID
+const QByteArray EFI_FFS_PAD_FILE_GUID
+("\x85\x65\x53\xE4\x09\x79\x60\x4A\xB5\xC6\xEC\xDE\xA6\xEB\xFB\x54", 16);
+
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(UINT8* ffsSize);
