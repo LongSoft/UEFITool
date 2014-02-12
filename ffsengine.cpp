@@ -299,7 +299,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Region access settings
     info += tr("\nRegion access settings:");
-    info += tr("\nBIOS:%1%2  ME:%2%3  GbE:%4%5")
+    info += tr("\nBIOS:%1%2  ME:%3%4  GbE:%5%6")
         .arg(masterSection->BiosRead, 2, 16, QChar('0'))
         .arg(masterSection->BiosWrite, 2, 16, QChar('0'))
         .arg(masterSection->MeRead, 2, 16, QChar('0'))
