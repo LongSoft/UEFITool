@@ -623,11 +623,11 @@ UINT8 FfsEngine::findNextVolume(const QByteArray & bios, UINT32 volumeOffset, UI
         return ERR_VOLUMES_NOT_FOUND;
     }
 
-    nextVolumeOffset  = nextIndex - EFI_FV_SIGNATURE_OFFSET;
+    nextVolumeOffset = nextIndex - EFI_FV_SIGNATURE_OFFSET;
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize, bool fromHeader)
+UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize)
 {
     // Populate volume header
     EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*) (bios.constData() + volumeOffset);
@@ -636,22 +636,29 @@ UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UIN
     if (QByteArray((const char*) &volumeHeader->Signature, sizeof(volumeHeader->Signature)) != EFI_FV_SIGNATURE)
         return ERR_INVALID_VOLUME;
 
-    if (fromHeader) {
-        // Use header field
-        volumeSize = volumeHeader->FvLength;
-    }
-    else {
-        // Use BlockMap
-        EFI_FV_BLOCK_MAP_ENTRY* entry = (EFI_FV_BLOCK_MAP_ENTRY*)(bios.constData() + volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
-        volumeSize = 0;
-        while (entry->NumBlocks != 0 && entry->Length != 0) {
-            if ((void*)entry > bios.constData() + bios.size())
-                return ERR_INVALID_VOLUME;
+    // Calculate volume size using BlockMap
+    EFI_FV_BLOCK_MAP_ENTRY* entry = (EFI_FV_BLOCK_MAP_ENTRY*)(bios.constData() + volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
+    UINT32 bmVolumeSize = 0;
+    while (entry->NumBlocks != 0 && entry->Length != 0) {
+        if ((void*)entry > bios.constData() + bios.size())
+            return ERR_INVALID_VOLUME;
 
-            volumeSize += entry->NumBlocks * entry->Length;
-            entry += 1;
-        }
+        bmVolumeSize += entry->NumBlocks * entry->Length;
+        entry += 1;
     }
+    
+    // Check calculated and stored volume sizes to be the same
+    if (volumeHeader->FvLength != bmVolumeSize) {
+        msg(tr("getVolumeSize: %1, volume size in header (%2) differs from calculated using BlockMap (%3). Smaller value is used.")
+            .arg(guidToQString(volumeHeader->FileSystemGuid))
+            .arg(volumeHeader->FvLength, 8, 16, QChar('0'))
+            .arg(bmVolumeSize, 8, 16, QChar('0')));
+
+        // Use smaller value as volume size
+        volumeSize = volumeHeader->FvLength < bmVolumeSize ? volumeHeader->FvLength : bmVolumeSize;
+    }
+    else
+        volumeSize = bmVolumeSize;
 
     return ERR_SUCCESS;
 }
@@ -704,7 +711,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     UINT8 result;
     UINT32 volumeSize;
 
-    result = getVolumeSize(volume, 0, volumeSize, false);
+    result = getVolumeSize(volume, 0, volumeSize);
     if (result)
         return result;
 
@@ -1601,7 +1608,9 @@ UINT8 FfsEngine::remove(const QModelIndex & index)
 
     QModelIndex fileIndex;
 
-    if (model->type(index) == File)
+    if (model->type(index) == Volume && model->rowCount(index) > 0)
+        fileIndex = index.child(0, 0);
+    else if(model->type(index) == File)
         fileIndex = index;
     else if (model->type(index) == Section)
         fileIndex = model->findParentOfType(index, File);
@@ -1624,7 +1633,9 @@ UINT8 FfsEngine::rebuild(const QModelIndex & index)
 
     QModelIndex fileIndex;
 
-    if (model->type(index) == File)
+    if (model->type(index) == Volume && model->rowCount(index) > 0)
+        fileIndex = index.child(0, 0);
+    else if (model->type(index) == File)
         fileIndex = index;
     else if (model->type(index) == Section)
         fileIndex = model->findParentOfType(index, File);
@@ -2019,7 +2030,7 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
     return ERR_NOT_IMPLEMENTED;
 }
 
-UINT8 FfsEngine::reconstructVolume(const QModelIndex& index, QByteArray& reconstructed)
+UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & reconstructed)
 {
     if (!index.isValid())
         return ERR_SUCCESS;
@@ -2075,8 +2086,20 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex& index, QByteArray& reconst
                     break;
                 }
             }
+                        
+            // Determine if volume is inside compressed item
+            if (!baseFound) {
+                // Iterate up to the root, checking for compression type to be other then none
+                for (QModelIndex parentIndex = index.parent(); model->type(parentIndex) != Root; parentIndex = parentIndex.parent())
+                    if (model->compression(parentIndex) != COMPRESSION_ALGORITHM_NONE) {
+                        // No rebase needed for compressed PEI files
+                        baseFound = true;
+                        volumeBase = 0;
+                        break;
+                    }
+            }
 
-            // VTF not found
+            // Find volume base address using first PEI file in it
             if (!baseFound) {
                 // Search for first PEI-file and use it as base source
                 UINT32 fileOffset = header.size();
@@ -2103,13 +2126,12 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex& index, QByteArray& reconst
                                             // Calculate volume base
                                             volumeBase = imagebase - relbase;
                                             baseFound = true;
+                                            goto out;
                                         }
-                                        goto out;
                                 }
                                 sectionOffset += model->header(peiFile.child(j,0)).size() + model->body(peiFile.child(j,0)).size();
                                 sectionOffset = ALIGN4(sectionOffset);
                             }
-
                     }
                     fileOffset += model->header(index.child(i, 0)).size() + model->body(index.child(i, 0)).size() + model->tail(index.child(i, 0)).size();
                     fileOffset = ALIGN8(fileOffset);
@@ -2572,8 +2594,6 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                         msg(tr("reconstructSection: can't get entry point of PEI core"), index);
                 }
             }
-            else
-                msg(tr("reconstructSection: volume base is unknown, section can't be rebased"), index);
         }
 
         // Reconstruction successful
