@@ -14,7 +14,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __BASETYPES_H__
 #define __BASETYPES_H__
 
-
 #include <stdarg.h>
 #include <stdint.h>
 
@@ -116,55 +115,6 @@ typedef uint16_t  CHAR16;
 #define SEARCH_MODE_HEADER  1
 #define SEARCH_MODE_BODY    2
 #define SEARCH_MODE_ALL     3
-
-// Actions
-enum ActionTypes {
-    NoAction = 50,
-    Create,
-    Insert,
-    Replace,
-    Remove,
-    Rebuild,
-    Rebase
-};
-
-// Types
-enum ItemTypes {
-    Root = 60,
-    Capsule,
-    Image,
-    Region,
-    Padding,
-    Volume,
-    File,
-    Section
-};
-
-// Subtypes
-enum ImageSubtypes{
-    IntelImage = 70,
-    BiosImage
-};
-
-enum CapsuleSubtypes {
-    AptioCapsule = 80,
-    UefiCapsule
-};
-
-enum VolumeSubtypes {
-    NormalVolume = 90,
-    BootVolume,
-    UnknownVolume,
-    NvramVolume
-};
-
-enum RegionSubtypes {
-    DescriptorRegion = 100,
-    GbeRegion,
-    MeRegion,
-    BiosRegion,
-    PdrRegion
-};
 
 // EFI GUID
 typedef struct {

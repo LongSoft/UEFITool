@@ -99,26 +99,26 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->infoEdit->setPlainText(model->info(current));
 
     // Enable menus
-    ui->menuCapsuleActions->setEnabled(type == Capsule);
-    ui->menuImageActions->setEnabled(type == Image);
-    ui->menuRegionActions->setEnabled(type == Region);
-    ui->menuPaddingActions->setEnabled(type == Padding);
-    ui->menuVolumeActions->setEnabled(type == Volume);
-    ui->menuFileActions->setEnabled(type == File);
-    ui->menuSectionActions->setEnabled(type == Section);
+    ui->menuCapsuleActions->setEnabled(type == Types::Capsule);
+    ui->menuImageActions->setEnabled(type == Types::Image);
+    ui->menuRegionActions->setEnabled(type == Types::Region);
+    ui->menuPaddingActions->setEnabled(type == Types::Padding);
+    ui->menuVolumeActions->setEnabled(type == Types::Volume);
+    ui->menuFileActions->setEnabled(type == Types::File);
+    ui->menuSectionActions->setEnabled(type == Types::Section);
 
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
-    ui->actionRebuild->setEnabled(type == Volume || type == File || type == Section);
+    ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionExtractBody->setDisabled(model->hasEmptyHeader(current));
-    ui->actionRemove->setEnabled(type == Volume || type == File || type == Section);
-    ui->actionInsertInto->setEnabled((type == Volume && subtype != UnknownVolume) || 
-        (type == File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
-        (type == Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
-    ui->actionInsertBefore->setEnabled(type == File || type == Section);
-    ui->actionInsertAfter->setEnabled(type == File || type == Section);
-    ui->actionReplace->setEnabled((type == Region && subtype != DescriptorRegion) || type == File || type == Section);
-    ui->actionReplaceBody->setEnabled(type == File || type == Section);
+    ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
+    ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
+        (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
+        (type == Types::Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
+    ui->actionInsertBefore->setEnabled(type == Types::File || type == Types::Section);
+    ui->actionInsertAfter->setEnabled(type == Types::File || type == Types::Section);
+    ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion) || type == Types::File || type == Types::Section);
+    ui->actionReplaceBody->setEnabled(type == Types::File || type == Types::Section);
 }
 
 void UEFITool::search()
@@ -194,11 +194,11 @@ void UEFITool::insert(const UINT8 mode)
 
     QString path;
     switch (type) {
-    case Volume:
+    case Types::Volume:
         path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"),".","FFS files (*.ffs *.bin);;All files (*.*)");
         break;
-    case File:
-    case Section:
+    case Types::File:
+    case Types::Section:
         path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"),".","Section files (*.sct *.bin);;All files (*.*)");
         break;
     default:
@@ -262,14 +262,14 @@ void UEFITool::replace(const UINT8 mode)
 
     TreeModel* model = ffsEngine->treeModel();
     QString path;
-    if (model->type(index) == Region) {
+    if (model->type(index) == Types::Region) {
         if (mode == REPLACE_MODE_AS_IS) {
             path = QFileDialog::getOpenFileName(this, tr("Select region file to replace selected object"), ".", "Region files (*.rgn *.bin);;All files (*.*)");
         }
         else
             return;
     }
-    else if (model->type(index) == File) {
+    else if (model->type(index) == Types::File) {
         if (mode == REPLACE_MODE_AS_IS) {
             path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace selected object"),".","FFS files (*.ffs *.bin);;All files (*.*)");
         }
@@ -284,7 +284,7 @@ void UEFITool::replace(const UINT8 mode)
         else
             return;
     }
-    else if (model->type(index) == Section) {
+    else if (model->type(index) == Types::Section) {
         if (mode == REPLACE_MODE_AS_IS) {
             path = QFileDialog::getOpenFileName(this, tr("Select section file to replace selected object"),".","Section files (*.sec *.bin);;All files (*.*)");
         }
@@ -350,25 +350,25 @@ void UEFITool::extract(const UINT8 mode)
     QString path;
     if (mode == EXTRACT_MODE_AS_IS) {
         switch (type) {
-        case Capsule:
+        case Types::Capsule:
             path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),".","Capsule files (*.cap *.bin);;All files (*.*)");
             break;
-        case Image:
+        case Types::Image:
             path = QFileDialog::getSaveFileName(this, tr("Save image to file"),".","Image files (*.rom *.bin);;All files (*.*)");
             break;
-        case Region:
+        case Types::Region:
             path = QFileDialog::getSaveFileName(this, tr("Save region to file"),".","Region files (*.rgn *.bin);;All files (*.*)");
             break;
-        case Padding:
+        case Types::Padding:
             path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),".","Padding files (*.pad *.bin);;All files (*.*)");
             break;
-        case Volume:
+        case Types::Volume:
             path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),".","Volume files (*.vol *.bin);;All files (*.*)");
             break;
-        case File:
+        case Types::File:
             path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),".","FFS files (*.ffs *.bin);;All files (*.*)");
             break;
-        case Section:
+        case Types::Section:
             path = QFileDialog::getSaveFileName(this, tr("Save section file to file"),".","Section files (*.sct *.bin);;All files (*.*)");
             break;
         default:
@@ -377,17 +377,17 @@ void UEFITool::extract(const UINT8 mode)
     }
     else if (mode == EXTRACT_MODE_BODY) {
         switch (type) {
-        case Capsule:
+        case Types::Capsule:
             path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"),".","Image files (*.rom *.bin);;All files (*.*)");
             break;
-        case File: {
+        case Types::File: {
             if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
                 path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),".","Raw files (*.raw *.bin);;All files (*.*)");
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
         }
             break;
-        case Section: {
+        case Types::Section: {
             if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
                 path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"),".","FFS file body files (*.fbd *.bin);;All files (*.*)");
             else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
@@ -427,7 +427,7 @@ void UEFITool::extract(const UINT8 mode)
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-                           "Copyright (c) 2013-2014, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
+                           "Copyright (c) 2014, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
                            "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
                            "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
                            "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
@@ -573,25 +573,25 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     TreeModel* model = ffsEngine->treeModel();
     switch(model->type(index))
     {
-    case Capsule:
+    case Types::Capsule:
         ui->menuCapsuleActions->exec(event->globalPos());
         break;
-    case Image:
+    case Types::Image:
         ui->menuImageActions->exec(event->globalPos());
         break;
-    case Region:
+    case Types::Region:
         ui->menuRegionActions->exec(event->globalPos());
         break;
-    case Padding:
+    case Types::Padding:
         ui->menuPaddingActions->exec(event->globalPos());
         break;
-    case Volume:
+    case Types::Volume:
         ui->menuVolumeActions->exec(event->globalPos());
         break;
-    case File:
+    case Types::File:
         ui->menuFileActions->exec(event->globalPos());
         break;
-    case Section:
+    case Types::Section:
         ui->menuSectionActions->exec(event->globalPos());
         break;
     }

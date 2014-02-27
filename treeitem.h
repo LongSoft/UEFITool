@@ -21,10 +21,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "basetypes.h"
 
-extern QString itemTypeToQString(const UINT8 type);
-extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
-extern QString compressionTypeToQString(UINT8 algorithm);
-
 class TreeItem
 {
 public:

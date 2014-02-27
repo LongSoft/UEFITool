@@ -17,7 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 TreeModel::TreeModel(QObject *parent)
     : QAbstractItemModel(parent)
 {
-    rootItem = new TreeItem(Root);
+    rootItem = new TreeItem(Types::Root);
 }
 
 TreeModel::~TreeModel()
@@ -207,7 +207,7 @@ QString TreeModel::info(const QModelIndex &index) const
 UINT8 TreeModel::action(const QModelIndex &index) const
 {
     if(!index.isValid())
-        return NoAction;
+        return Actions::NoAction;
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     return item->action();
 }

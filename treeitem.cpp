@@ -13,97 +13,17 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <QObject>
 #include "treeitem.h"
-#include "ffs.h"
-#include "descriptor.h"
+#include "types.h"
 
-QString itemTypeToQString(const UINT8 type)
-{
-    switch (type) {
-    case Root:
-        return QObject::tr("Root");
-    case Image:
-        return QObject::tr("Image");
-    case Capsule:
-        return QObject::tr("Capsule");
-    case Region:
-        return QObject::tr("Region");
-    case Volume:
-        return QObject::tr("Volume");
-    case Padding:
-        return QObject::tr("Padding");
-    case File:
-        return QObject::tr("File");
-    case Section:
-        return QObject::tr("Section");
-    default:
-        return QObject::tr("Unknown");
-    }
-}
 
-QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
-{
-    switch (type) {
-    case Root:
-    case Image:
-        if (subtype == IntelImage)
-            return QObject::tr("Intel");
-        else if (subtype == BiosImage)
-            return QObject::tr("BIOS");
-        else
-            return QObject::tr("Unknown");
-    case Padding:
-        return "";
-    case Volume:
-        if (subtype == BootVolume)
-            return QObject::tr("Boot");
-        else if (subtype == UnknownVolume)
-            return QObject::tr("Unknown");
-        else if (subtype == NvramVolume)
-            return QObject::tr("NVRAM");
-        else
-            return "";
-    case Capsule:
-        if (subtype == AptioCapsule)
-            return QObject::tr("AMI Aptio");
-        else if (subtype == UefiCapsule)
-            return QObject::tr("UEFI 2.0");
-        else
-            return QObject::tr("Unknown");
-    case Region:
-        return regionTypeToQString(subtype);
-    case File:
-        return fileTypeToQString(subtype);
-    case Section:
-        return sectionTypeToQString(subtype);
-    default:
-        return QObject::tr("Unknown");
-    }
-}
 
-QString compressionTypeToQString(UINT8 algorithm)
-{
-    switch (algorithm) {
-    case COMPRESSION_ALGORITHM_NONE:
-        return QObject::tr("None");
-    case COMPRESSION_ALGORITHM_EFI11:
-        return QObject::tr("EFI 1.1");
-    case COMPRESSION_ALGORITHM_TIANO:
-        return QObject::tr("Tiano");
-    case COMPRESSION_ALGORITHM_LZMA:
-        return QObject::tr("LZMA");
-    case COMPRESSION_ALGORITHM_IMLZMA:
-        return QObject::tr("Intel modified LZMA");
-    default:
-        return QObject::tr("Unknown");
-    }
-}
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
                    const QString & name, const QString & text, const QString & info,
                    const QByteArray & header, const QByteArray & body, const QByteArray & tail,
                    TreeItem *parent)
 {
-    itemAction = NoAction;
+    itemAction = Actions::NoAction;
     itemType = type;
     itemSubtype = subtype;
     itemCompression = compression;
@@ -180,19 +100,7 @@ QVariant TreeItem::data(int column) const
     case 0: //Name
         return itemName;
     case 1: //Action
-        if (itemAction == Create)
-            return QObject::tr("Create");
-        if (itemAction == Insert)
-            return QObject::tr("Insert");
-        if (itemAction == Replace)
-            return QObject::tr("Replace");
-        if (itemAction == Remove)
-            return QObject::tr("Remove");
-        if (itemAction == Rebuild)
-            return QObject::tr("Rebuild");
-        if (itemAction == Rebase)
-            return QObject::tr("Rebase");
-        return QVariant();
+        return actionTypeToQString(itemAction);
     case 2: //Type
         return itemTypeName;
     case 3: //Subtype
@@ -297,14 +205,14 @@ void TreeItem::setAction(const UINT8 action)
     itemAction = action;
 
     // On insert action, set insert action for children
-    if (action == Insert)
+    if (action == Actions::Insert)
         for(int i = 0; i < childCount(); i++)
-            child(i)->setAction(Insert);
+            child(i)->setAction(Actions::Insert);
 
     // Set rebuild action for parent, if it has no action now
-    if (parentItem && parentItem->type() != Root
-            && parentItem->action() == NoAction)
-        parentItem->setAction(Rebuild);
+    if (parentItem && parentItem->type() != Types::Root
+        && parentItem->action() == Actions::NoAction)
+        parentItem->setAction(Actions::Rebuild);
 }
 
 void TreeItem::setSubtype(const UINT8 subtype)

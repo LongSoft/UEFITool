@@ -161,9 +161,6 @@ typedef struct {
 // Restore previous packing rules
 #pragma pack(pop)
 
-// Returns name of region by it's type
-extern QString regionTypeToQString(const UINT8 type);
-
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
 extern UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit);

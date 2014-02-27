@@ -12,26 +12,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <QObject>
 #include "descriptor.h"
-#include "treeitem.h"
-
-QString regionTypeToQString(const UINT8 type)
-{
-    switch (type)
-    {
-    case DescriptorRegion:
-        return QObject::tr("Descriptor");
-    case GbeRegion:
-        return QObject::tr("GbE");
-    case MeRegion:
-        return QObject::tr("ME");
-    case BiosRegion:
-        return QObject::tr("BIOS");
-    case PdrRegion:
-        return QObject::tr("PDR");
-    default:
-        return QObject::tr("Unknown");
-    };
-}
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
