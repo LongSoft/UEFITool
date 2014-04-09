@@ -255,10 +255,14 @@ for (Char = 0; Char < NumOfChar; Char++) {
 
 	NextCode = (UINT16) (Start[Len] + Weight[Len]);
 
-	if (Len <= TableBits) {
+    if (Len <= TableBits) {
 
 		for (Index = Start[Len]; Index < NextCode; Index++) {
-			Table[Index] = Char;
+            // Check to prevent possible heap corruption
+            if (Index >= (UINT16) (1U << TableBits))
+                return (UINT16)BAD_TABLE;
+
+            Table[Index] = Char;
 		}
 
 	} else {
@@ -643,7 +647,11 @@ for (;;) {
 		BytesRemain = CharC;
 
 		DataIdx     = Sd->mOutBuf - DecodeP (Sd) - 1;
-
+        if (DataIdx >= Sd->mOrigSize) {
+            Sd->mBadTableFlag = 1;
+            return;
+        }
+        
 		BytesRemain--;
 		while ((INT16) (BytesRemain) >= 0) {
 			Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];

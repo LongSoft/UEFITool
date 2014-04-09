@@ -671,12 +671,15 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Calculate volume header size
     UINT32 headerSize;
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
-        EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)((UINT8*)volumeHeader + volumeHeader->ExtHeaderOffset);
+        EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
         headerSize = volumeHeader->ExtHeaderOffset + extendedHeader->ExtHeaderSize;
     }
     else {
         headerSize = volumeHeader->HeaderLength;
     }
+
+    // Sanity check after some new crazy MSI images
+    headerSize = ALIGN8(headerSize);
 
     // Check for volume structure to be known
     // Default volume subtype is "normal"
@@ -737,7 +740,14 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
             .arg(volumeSize, 8, 16, QChar('0'))
             .arg(volumeHeader->Revision)
             .arg(volumeHeader->Attributes, 8, 16, QChar('0'))
-            .arg(volumeHeader->HeaderLength, 4, 16, QChar('0'));
+            .arg(headerSize, 4, 16, QChar('0'));
+    // Extended header present
+    if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
+        EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
+        info += tr("\nExtended header size: %1\nVolume name: %2")
+            .arg(extendedHeader->ExtHeaderSize, 8, 16, QChar('0'))
+            .arg(guidToQString(extendedHeader->FvName));
+    }
 
     // Add tree item
     QByteArray  header = volume.left(headerSize);
@@ -1685,6 +1695,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
         scratch = new UINT8[scratchSize];
 
         // Decompress section data
+        //TODO: separate EFI1.1 from Tiano another way
         // Try Tiano decompression first
         if (ERR_SUCCESS != TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
             // Not Tiano, try EFI 1.1
