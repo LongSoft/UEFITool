@@ -40,7 +40,7 @@ TreeModel* FfsEngine::treeModel() const
     return model;
 }
 
-void FfsEngine::msg(const QString & message, const QModelIndex index)
+void FfsEngine::msg(const QString & message, const QModelIndex & index)
 {
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 }
@@ -1848,7 +1848,7 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
 }
 
 // Construction routines
-UINT8 FfsEngine::constructPadFile(const QByteArray guid, const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad)
+UINT8 FfsEngine::constructPadFile(const QByteArray &guid, const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, QByteArray & pad)
 {
     if (size < sizeof(EFI_FFS_FILE_HEADER) || erasePolarity == ERASE_POLARITY_UNKNOWN)
         return ERR_INVALID_PARAMETER;
@@ -2690,8 +2690,7 @@ UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & new
     EFI_FV_BLOCK_MAP_ENTRY* blockMap = (EFI_FV_BLOCK_MAP_ENTRY*) (header.data() + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
 
     // Get block map size
-    UINT32 extHeaderOffset = volumeHeader->Revision == 2 ? volumeHeader->ExtHeaderOffset : 0;
-    UINT32 blockMapSize = header.size() - extHeaderOffset - sizeof(EFI_FIRMWARE_VOLUME_HEADER);
+    UINT32 blockMapSize = volumeHeader->HeaderLength - sizeof(EFI_FIRMWARE_VOLUME_HEADER);
     if (blockMapSize % sizeof(EFI_FV_BLOCK_MAP_ENTRY))
         return ERR_INVALID_VOLUME;
     UINT32 blockMapCount = blockMapSize / sizeof(EFI_FV_BLOCK_MAP_ENTRY);
@@ -2700,13 +2699,19 @@ UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & new
     if (blockMap[blockMapCount-1].NumBlocks != 0 || blockMap[blockMapCount-1].Length != 0)
         return ERR_INVALID_VOLUME;
 
+    // Case of complex blockMap
+    //!TODO: implement this case
+    if (blockMapCount > 2)
+        return ERR_COMPLEX_BLOCK_MAP;
+
     // Calculate new size
     if (newSize <= size)
         return ERR_INVALID_PARAMETER;
-    newSize += blockMap->Length - newSize % blockMap->Length;
+    
+    newSize += blockMap[0].Length - newSize % blockMap[0].Length;
 
     // Recalculate number of blocks
-    blockMap->NumBlocks = newSize / blockMap->Length;
+    blockMap[0].NumBlocks = newSize / blockMap[0].Length;
 
     // Set new volume size
     volumeHeader->FvLength = 0;

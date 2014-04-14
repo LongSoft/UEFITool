@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.17.6</string>
+   <string>UEFITool 0.17.7</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
