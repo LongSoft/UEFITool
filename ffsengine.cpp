@@ -28,6 +28,8 @@ FfsEngine::FfsEngine(QObject *parent)
 : QObject(parent)
 {
     model = new TreeModel();
+    oldPeiCoreEntryPoint = 0;
+    newPeiCoreEntryPoint = 0;
 }
 
 FfsEngine::~FfsEngine(void)
@@ -71,8 +73,6 @@ bool FfsEngine::hasIntersection(const UINT32 begin1, const UINT32 end1, const UI
 // Firmware image parsing
 UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
 {
-    oldPeiCoreEntryPoint = 0;
-    newPeiCoreEntryPoint = 0;
     UINT32 capsuleHeaderSize = 0;
     FLASH_DESCRIPTOR_HEADER* descriptorHeader = NULL;
     QModelIndex index;
@@ -828,7 +828,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
 
     // Check file state
     // Determine file erase polarity
-    bool fileErasePolarity = fileHeader->State | EFI_FILE_ERASE_POLARITY;
+    bool fileErasePolarity = fileHeader->State & EFI_FILE_ERASE_POLARITY;
 
     // Check file erase polarity to be the same as parent erase polarity
     if (erasePolarity != ERASE_POLARITY_UNKNOWN && (bool) erasePolarity != fileErasePolarity) {
@@ -1702,6 +1702,8 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             if (ERR_SUCCESS != EfiDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
                 if (algorithm)
                     *algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
+                delete[] decompressed;
+                delete[] scratch;
                 return ERR_STANDARD_DECOMPRESSION_FAILED;
             }
             else if (algorithm)
@@ -1712,10 +1714,8 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
 
         decompressedData = QByteArray((const char*) decompressed, decompressedSize);
 
-        // Free allocated memory
         delete[] decompressed;
         delete[] scratch;
-
         return ERR_SUCCESS;
     case EFI_CUSTOMIZED_COMPRESSION:
         // Get buffer sizes
@@ -1743,13 +1743,16 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             data += shittySectionSize;
 
             // Get info again
-            if (ERR_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize))
+            if (ERR_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
+                delete[] decompressed;
                 return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
+            }
 
             // Decompress section data again
             if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
                 if (algorithm)
                     *algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
+                delete[] decompressed;
                 return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
             else {
@@ -1764,9 +1767,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             decompressedData = QByteArray((const char*) decompressed, decompressedSize);
         }
 
-        // Free memory
         delete[] decompressed;
-
         return ERR_SUCCESS;
     default:
         msg(tr("decompress: Unknown compression type (%1)").arg(compressionType));
@@ -1793,8 +1794,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         if (EfiCompress((UINT8*) data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_STANDARD_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (EfiCompress((UINT8*) data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS)
+        if (EfiCompress((UINT8*)data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+            delete[] compressed;
             return ERR_STANDARD_COMPRESSION_FAILED;
+        }
         compressedData = QByteArray((const char*) compressed, compressedSize);
         delete[] compressed;
         return ERR_SUCCESS;
@@ -1805,8 +1808,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         if (TianoCompress((UINT8*) data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_STANDARD_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (TianoCompress((UINT8*) data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS)
+        if (TianoCompress((UINT8*)data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+            delete[] compressed;
             return ERR_STANDARD_COMPRESSION_FAILED;
+        }
         compressedData = QByteArray((const char*) compressed, compressedSize);
         delete[] compressed;
         return ERR_SUCCESS;
@@ -1817,8 +1822,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         if (LzmaCompress((const UINT8*) data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (LzmaCompress((const UINT8*) data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS)
+        if (LzmaCompress((const UINT8*)data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+            delete[] compressed;
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
+        }
         compressedData = QByteArray((const char*) compressed, compressedSize);
         delete[] compressed;
         return ERR_SUCCESS;
@@ -1834,8 +1841,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         if (LzmaCompress((UINT8*) newData.constData(), newData.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (LzmaCompress((UINT8*) newData.constData(), newData.size(), compressed, &compressedSize) != ERR_SUCCESS)
+        if (LzmaCompress((UINT8*)newData.constData(), newData.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+            delete[] compressed;
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
+        }
         compressedData = header.append(QByteArray((const char*) compressed, compressedSize));
         delete[] compressed;
         return ERR_SUCCESS;

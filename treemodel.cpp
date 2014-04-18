@@ -47,8 +47,6 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
         return item->data(index.column());
     else
         return item->info();
-
-    return QVariant();
 }
 
 Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
@@ -366,8 +364,10 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
         emit layoutAboutToBeChanged();
         parentItem->insertChildAfter(item, newItem);
     }
-    else
+    else {
+        delete newItem;
         return QModelIndex();
+    }
 
     emit layoutChanged();
 

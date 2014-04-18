@@ -205,6 +205,9 @@ void UEFITool::insert(const UINT8 mode)
         return;
     }
 
+    if (path.trimmed().isEmpty())
+        return;
+    
     QFileInfo fileInfo = QFileInfo(path);
     if (!fileInfo.exists()) {
         ui->statusBar->showMessage(tr("Please select existing file"));
@@ -302,6 +305,9 @@ void UEFITool::replace(const UINT8 mode)
             return;
     }
     else
+        return;
+
+    if (path.trimmed().isEmpty())
         return;
 
     QFileInfo fileInfo = QFileInfo(path);
@@ -405,6 +411,9 @@ void UEFITool::extract(const UINT8 mode)
     else
         path = QFileDialog::getSaveFileName(this, tr("Save object to file"),".","Binary files (*.bin);;All files (*.*)");
 
+    if (path.trimmed().isEmpty())
+        return;
+
     QByteArray extracted;
     UINT8 result = ffsEngine->extract(index, extracted, mode);
     if (result) {
@@ -421,7 +430,6 @@ void UEFITool::extract(const UINT8 mode)
     outputFile.resize(0);
     outputFile.write(extracted);
     outputFile.close();
-
 }
 
 void UEFITool::about()
@@ -484,7 +492,11 @@ void UEFITool::openImageFile()
 
 void UEFITool::openImageFile(QString path)
 {
+    if (path.trimmed().isEmpty())
+        return;
+    
     QFileInfo fileInfo = QFileInfo(path);
+        
     if (!fileInfo.exists()) {
         ui->statusBar->showMessage(tr("Please select existing file"));
         return;
