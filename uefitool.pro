@@ -20,8 +20,7 @@ SOURCES  += main.cpp \
  LZMA/SDK/C/LzmaDec.c \
  LZMA/SDK/C/LzmaEnc.c \
  Tiano/EfiTianoDecompress.c \
- Tiano/EfiCompress.c \
- Tiano/TianoCompress.c
+ Tiano/EfiTianoCompress.c
 
 HEADERS  += uefitool.h \
  searchdialog.h \

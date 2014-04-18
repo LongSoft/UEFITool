@@ -73,6 +73,8 @@ bool FfsEngine::hasIntersection(const UINT32 begin1, const UINT32 end1, const UI
 // Firmware image parsing
 UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
 {
+    oldPeiCoreEntryPoint = 0;
+    newPeiCoreEntryPoint = 0;
     UINT32 capsuleHeaderSize = 0;
     FLASH_DESCRIPTOR_HEADER* descriptorHeader = NULL;
     QModelIndex index;
