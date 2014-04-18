@@ -1,6 +1,7 @@
-/* Tiano Compress Implementation
+/* EFI11/Tiano Compress Implementation
 
-Copyright (c) 2006 - 2008, Intel Corporation. All rights reserved.
+Copyright (c) 2014, Nikolaj Schlej
+Copyright (c) 2006 - 2008, Intel Corporation
 This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
 which accompanies this distribution.  The full text of the license may be found at        
@@ -11,7 +12,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 Module Name:
 
-TianoCompress.c
+EfiTianoCompress.c
 
 Abstract:
 
@@ -52,7 +53,7 @@ typedef INT32 NODE;
 #define NC    (UINT8_MAX + MAXMATCH + 2 - THRESHOLD)
 #define CBIT  9
 #define NP    (WNDBIT + 1)
-#define PBIT  5
+//#define PBIT  5
 #define NT    (CODE_BIT + 3)
 #define TBIT  5
 #if NT > NP
@@ -265,11 +266,111 @@ STATIC UINT32 mCompSize, mOrigSize;
 STATIC UINT16 *mFreq, *mSortPtr, mLenCnt[17], mLeft[2 * NC - 1], mRight[2 * NC - 1], mCrcTable[UINT8_MAX + 1],
 	mCFreq[2 * NC - 1], mCCode[NC], mPFreq[2 * NP - 1], mPTCode[NPT], mTFreq[2 * NT - 1];
 
+STATIC UINT8  mPbit;
+
 STATIC NODE   mPos, mMatchPos, mAvail, *mPosition, *mParent, *mPrev, *mNext = NULL;
 
 //
 // functions
 //
+//
+// functions
+//
+INT32
+EfiCompress(
+UINT8   *SrcBuffer,
+UINT32  SrcSize,
+UINT8   *DstBuffer,
+UINT32  *DstSize
+)
+/*++
+
+Routine Description:
+
+The internal implementation of [Efi/Tiano]Compress().
+
+Arguments:
+
+SrcBuffer   - The buffer storing the source data
+SrcSize     - The size of source data
+DstBuffer   - The buffer to store the compressed data
+DstSize     - On input, the size of DstBuffer; On output,
+the size of the actual compressed data.
+
+Returns:
+
+EFI_BUFFER_TOO_SMALL  - The DstBuffer is too small. this case,
+DstSize contains the size needed.
+EFI_SUCCESS           - Compression is successful.
+EFI_OUT_OF_RESOURCES  - No resource to complete function.
+EFI_INVALID_PARAMETER - Parameter supplied is wrong.
+
+--*/
+{
+    INT32 Status;
+
+    //
+    // Initializations
+    //
+    mPbit = 4;
+    
+    mBufSiz = 0;
+    mBuf = NULL;
+    mText = NULL;
+    mLevel = NULL;
+    mChildCount = NULL;
+    mPosition = NULL;
+    mParent = NULL;
+    mPrev = NULL;
+    mNext = NULL;
+
+    mSrc = SrcBuffer;
+    mSrcUpperLimit = mSrc + SrcSize;
+    mDst = DstBuffer;
+    mDstUpperLimit = mDst + *DstSize;
+
+    PutDword(0L);
+    PutDword(0L);
+
+    MakeCrcTable();
+
+    mOrigSize = mCompSize = 0;
+    mCrc = INIT_CRC;
+
+    //
+    // Compress it
+    //
+    Status = Encode();
+    if (Status) {
+        return ERR_OUT_OF_RESOURCES;
+    }
+    //
+    // Null terminate the compressed data
+    //
+    if (mDst < mDstUpperLimit) {
+        *mDst++ = 0;
+    }
+    //
+    // Fill compressed size and original size
+    //
+    mDst = DstBuffer;
+    PutDword(mCompSize + 1);
+    PutDword(mOrigSize);
+
+    //
+    // Return
+    //
+    if (mCompSize + 1 + 8 > *DstSize) {
+        *DstSize = mCompSize + 1 + 8;
+        return ERR_BUFFER_TOO_SMALL;
+    }
+    else {
+        *DstSize = mCompSize + 1 + 8;
+        return ERR_SUCCESS;
+    }
+
+}
+
 INT32
 	TianoCompress (
 	UINT8   *SrcBuffer,
@@ -309,6 +410,8 @@ INT32
 	//
 	// Initializations
 	//
+    mPbit = 5;
+
 	mBufSiz         = 0;
 	mBuf            = NULL;
 	mText           = NULL;
@@ -1251,10 +1354,10 @@ STATIC
 
 	Root = MakeTree (NP, mPFreq, mPTLen, mPTCode);
 	if (Root >= NP) {
-		WritePTLen (NP, PBIT, -1);
+		WritePTLen (NP, mPbit, -1);
 	} else {
-		PutBits (PBIT, 0);
-		PutBits (PBIT, Root);
+        PutBits (mPbit, 0);
+        PutBits (mPbit, Root);
 	}
 
 	Pos = 0;
