@@ -24,6 +24,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "LZMA/LzmaCompress.h"
 #include "LZMA/LzmaDecompress.h"
 
+#include <iostream>
+
 FfsEngine::FfsEngine(QObject *parent)
 : QObject(parent)
 {
@@ -44,9 +46,14 @@ TreeModel* FfsEngine::treeModel() const
 
 void FfsEngine::msg(const QString & message, const QModelIndex & index)
 {
+#ifndef _CONSOLE 
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
+#else
+    std::cout << message.toLatin1().constData() << std::endl;
+#endif
 }
 
+#ifndef _CONSOLE
 QQueue<MessageListItem> FfsEngine::messages() const
 {
     return messageItems;
@@ -56,6 +63,7 @@ void FfsEngine::clearMessages()
 {
     messageItems.clear();
 }
+#endif
 
 bool FfsEngine::hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2)
 {

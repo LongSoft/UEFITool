@@ -20,8 +20,11 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "basetypes.h"
 #include "treemodel.h"
-#include "messagelistitem.h"
 #include "peimage.h"
+
+#ifndef _CONSOLE
+#include "messagelistitem.h"
+#endif
 
 class TreeModel;
 
@@ -37,11 +40,12 @@ public:
     // Returns model for Qt view classes
     TreeModel* treeModel() const;
 
+#ifndef _CONSOLE
     // Returns message items queue
     QQueue<MessageListItem> messages() const;
-
     // Clears message items queue
     void clearMessages();
+#endif
 
     // Firmware image parsing
     UINT8 parseImageFile(const QByteArray & buffer);
@@ -110,8 +114,10 @@ private:
     // Patch routines
     UINT8 patchVtf(QByteArray &vtf);
 
-    // Message helper
+#ifndef _CONSOLE
     QQueue<MessageListItem> messageItems;
+#endif
+    // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 
     // Internal operations

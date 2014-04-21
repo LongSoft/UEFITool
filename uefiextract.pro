@@ -1,12 +1,12 @@
-QT       += core gui
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT       += core
+QT       -= gui
 
-TARGET    = UEFITool
+TARGET    = UEFIExtract
 TEMPLATE  = app
+CONFIG   += console
 
-SOURCES  += uefitool_main.cpp \
- uefitool.cpp \
- searchdialog.cpp \
+SOURCES  += uefiextract_main.cpp \
+ uefiextract.cpp \
  types.cpp \
  descriptor.cpp \
  ffs.cpp \
@@ -22,8 +22,7 @@ SOURCES  += uefitool_main.cpp \
  Tiano/EfiTianoDecompress.c \
  Tiano/EfiTianoCompress.c
 
-HEADERS  += uefitool.h \
- searchdialog.h \
+HEADERS  += uefiextract.h \
  basetypes.h \
  descriptor.h \
  gbe.h \
@@ -39,12 +38,4 @@ HEADERS  += uefitool.h \
  LZMA/LzmaDecompress.h \
  Tiano/EfiTianoDecompress.h \
  Tiano/EfiTianoCompress.h
-           
-
-FORMS    += uefitool.ui \
- searchdialog.ui
-
-RC_FILE   = uefitool.rc
-
-ICON      = uefitool.icns
-
+ 
