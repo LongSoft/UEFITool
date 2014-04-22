@@ -48,7 +48,8 @@ typedef struct {
 #define EFI_CAPSULE_HEADER_FLAG_POPULATE_SYSTEM_TABLE   0x00020000
 
 // Standard EFI capsule GUID
-const QByteArray EFI_CAPSULE_GUID("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
+const QByteArray EFI_CAPSULE_GUID
+("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
 
 // AMI Aptio extended capsule header
 typedef struct {
@@ -378,6 +379,16 @@ typedef struct {
 // Attributes for GUID defined section
 #define EFI_GUIDED_SECTION_PROCESSING_REQUIRED  0x01
 #define EFI_GUIDED_SECTION_AUTH_STATUS_VALID    0x02
+
+// GUIDs of GUID-defined sections
+const QByteArray EFI_GUIDED_SECTION_CRC32 // FC1BCDB0-7D31-49AA-936A-A4600D9DD083
+("\xB0\xCD\x1B\xFC\x31\x7D\xAA\x49\x93\x6A\xA4\x60\x0D\x9D\xD0\x83", 16);
+
+const QByteArray EFI_GUIDED_SECTION_TIANO // A31280AD-481E-41B6-95E8-127F4C984779
+("\xAD\x80\x12\xA3\x1E\x48\xB6\x41\x95\xE8\x12\x7F\x4C\x98\x47\x79", 16);
+
+const QByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
+("\x98\x58\x4E\xEE\x14\x39\x59\x42\x9D\x6E\xDC\x7B\xD7\x94\x03\xCF", 16);
 
 // Version section
 typedef struct {
