@@ -19,8 +19,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QString>
 #include <QFileInfo>
 
-#include "basetypes.h"
-#include "ffsengine.h"
+#include "../basetypes.h"
+#include "../ffsengine.h"
 
 class UEFIExtract : public QObject
 {
