@@ -1039,7 +1039,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         name = guidToQString(guidDefinedSectionHeader->SectionDefinitionGuid);
-        info = tr("Type: %1\nSize: %2\nData offset: %3\nAttributes: %4")
+        info = tr("GUID: %1\nType: %2\nSize: %3\nData offset: %4\nAttributes: %5")
+            .arg(name)
             .arg(sectionHeader->Type, 2, 16, QChar('0'))
             .arg(body.size(), 6, 16, QChar('0'))
             .arg(guidDefinedSectionHeader->DataOffset, 4, 16, QChar('0'))
