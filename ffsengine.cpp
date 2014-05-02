@@ -516,7 +516,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         UINT32 alignment;
         if (volumeHeader->Revision == 1) {
             // Acquire alignment capability bit
-            bool alignmentCap = volumeHeader->Attributes | EFI_FVB_ALIGNMENT_CAP;
+            bool alignmentCap = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_CAP;
             if (!alignmentCap) {
                 if (volumeHeader->Attributes & 0xFFFF0000)
                     msg("parseBios: Alignment bits set on volume without alignment capability", parent);
@@ -657,7 +657,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
     // Check attributes
     // Determine value of empty byte
-    char empty = volumeHeader->Attributes | EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
+    char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
     // Get volume size
     UINT8 result;
@@ -778,16 +778,8 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
     EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)file.constData();
 
     // Check file state
-    // Determine file erase polarity
-    bool fileErasePolarity = fileHeader->State & EFI_FILE_ERASE_POLARITY;
-
-    // Check file erase polarity to be the same as parent erase polarity
-    if (erasePolarity != ERASE_POLARITY_UNKNOWN && (bool)erasePolarity != fileErasePolarity) {
-        msg(tr("parseFile: %1, erase polarity differs from parent erase polarity"), parent);
-    }
-
     // Construct empty byte for this file
-    char empty = fileErasePolarity ? '\xFF' : '\x00';
+    char empty = erasePolarity ? '\xFF' : '\x00';
 
     // Check header checksum
     QByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));

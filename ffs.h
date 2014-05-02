@@ -282,7 +282,6 @@ typedef struct {
 #define EFI_FV_FILETYPE_FFS_MAX                 0xFF
 
 // File attributes
-#define FFS_ATTRIB_RESERVED           0x80 // ErasePolarity value can be obtained from that bit
 #define FFS_ATTRIB_TAIL_PRESENT       0x01
 #define FFS_ATTRIB_RECOVERY           0x02
 #define FFS_ATTRIB_FIXED              0x04
@@ -300,7 +299,6 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_MARKED_FOR_UPDATE      0x08
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
-#define EFI_FILE_ERASE_POLARITY         0x80
 
 // Volume top file
 const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
