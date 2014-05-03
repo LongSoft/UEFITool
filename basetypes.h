@@ -83,6 +83,8 @@ typedef uint16_t  CHAR16;
 #define ERR_VOLUME_BASE_NOT_FOUND           33
 #define ERR_PEI_CORE_ENTRY_POINT_NOT_FOUND  34
 #define ERR_COMPLEX_BLOCK_MAP               35
+#define ERR_DIR_ALREADY_EXIST               36
+#define ERR_DIR_CREATE                      37
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms
