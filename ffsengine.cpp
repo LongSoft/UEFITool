@@ -3175,10 +3175,10 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
         file.close();
     }
 
-    QString info = tr("Name: %1\nType: %2\nSubtype: %3\n%4")
-        .arg(model->nameString(index))
+    QString info = tr("Type: %1\nSubtype: %2\n%3%4")
         .arg(model->typeString(index))
         .arg(model->subtypeString(index))
+        .arg(model->textString(index).isEmpty() ? "" : tr("Text: %1\n").arg(model->textString(index)))
         .arg(model->info(index));
     file.setFileName(tr("%1/info.txt").arg(path));
     if (!file.open(QFile::Text | QFile::WriteOnly))
@@ -3189,8 +3189,8 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
     UINT8 result;
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex childIndex = index.child(i, 0);
-        QString childPath = tr("%1/%2 %3").arg(path).arg(i).arg(model->nameString(childIndex));
-        result = dump(index.child(i, index.column()), childPath);
+        QString childPath = tr("%1/%2 %3").arg(path).arg(i).arg(model->textString(childIndex).isEmpty() ? model->nameString(childIndex) : model->textString(childIndex));
+        result = dump(childIndex, childPath);
         if (result)
             return result;
     }
