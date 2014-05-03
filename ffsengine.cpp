@@ -3197,3 +3197,4 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
 
     return ERR_SUCCESS;
 }
+

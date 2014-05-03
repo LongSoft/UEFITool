@@ -32,7 +32,6 @@ HEADERS  += uefiextract.h \
  ../ffsengine.h \
  ../treeitem.h \
  ../treemodel.h \
- ../messagelistitem.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
  ../Tiano/EfiTianoDecompress.h \
