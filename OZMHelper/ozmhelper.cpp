@@ -188,60 +188,36 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
 
 UINT8 OZMHelper::FFSConvert(QString input, QString output)
 {
+    UINT8 nullterminator = 0;
     UINT8 ret;
-    QString ozmdefaults;
-    QStringList kextList;
+    UINT32 GUIDindex;
+    UINT32 GUIDindexCount;
     QByteArray plist;
+    QByteArray plistBinary;
     QByteArray binary;
+    QByteArray inputBinary;
     QByteArray out;
+    QList<kextEntry> toConvert;
+    kextEntry mKextEntry;
+    QString basename;
+    QString sectionName;
+    QString filename;
+    QDir dir;
 
-    QString kextExtension = ".kext";
-    QString ozmDefaultsFilename = "OzmosisDefaults.plist";
-    QString ozmGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D";
+    QFileInfo binaryPath;
+    QFileInfo plistPath;
+    QDirIterator di(input);
+
+    const static QString kextExtension = ".kext";
+    const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
+    const static QString ozmPlistGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D";
+    const static QString ozmPlistPath = wrapper->pathConcatenate(input, ozmDefaultsFilename);
+    const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275"; // %1 placeholder
+
+    GUIDindexCount = 6;
 
     if (!wrapper->dirExists(input)) {
-        return ERR_ITEM_NOT_FOUND;
-    }
-
-    if(wrapper->fileExists(wrapper->pathConcatenate(input, ozmDefaultsFilename))) {
-        printf("Found %s\n", qPrintable(ozmDefaultsFilename));
-        ozmdefaults = wrapper->pathConcatenate(input, ozmDefaultsFilename);
-    }
-
-    if(wrapper->getFolderListByExt(kextList, input, kextExtension)) {
-        return ERR_INVALID_PARAMETER;
-    }
-
-    if(!ozmdefaults.isEmpty()) {
-        binary.clear();
-        ret = wrapper->fileOpen(ozmdefaults, binary);
-        if(ret) {
-            printf("Failed to open %s\n", qPrintable(ozmdefaults));
-            return ret;
-        }
-        ret = wrapper->kext2ffs(ozmDefaultsFilename, ozmGUID, NULL, binary, out);
-        if(ret) {
-            printf("Failed to convert '%s' to FFS\n", qPrintable(ozmDefaultsFilename));
-            return ret;
-        }
-        ret = wrapper->fileWrite("OzmosisDefaults.ffs", out);
-        if(ret) {
-            printf("Failed to write '%s'\n", qPrintable(ozmDefaultsFilename));
-            return ret;
-        }
-        printf("%s written successfully!", qPrintable(ozmDefaultsFilename));
-    }
-
-    printf("Validating %i kext folder/s...\n", kextList.size());
-
-    for(int i=0; i < kextList.size(); i++) {
-        printf("%s\t\t\t\t",qPrintable(kextList.at(i)));
-        if(!wrapper->isValidKextDir(kextList.at(i))) {
-            printf("Invalid!\n");
-            return ERR_ITEM_NOT_FOUND;
-        }
-        else
-            printf("OK\n");
+        return ERR_DIR_NOT_EXIST;
     }
 
     ret = wrapper->dirCreate(output);
@@ -249,19 +225,114 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
         return ret;
     }
 
-    /* ToDo: Implement this */
+    if(wrapper->fileExists(ozmPlistPath)) {
+        printf("Found %s\n", qPrintable(ozmDefaultsFilename));
+
+        mKextEntry.basename = "OzmosisDefaults";
+        mKextEntry.binaryPath = ozmPlistPath; // yes, Plist handled as binary
+        mKextEntry.plistPath = "";
+        mKextEntry.GUID = ozmPlistGUID;
+
+        toConvert.append(mKextEntry);
+    }
+
+    // Check all folders in input-dir
+    while (di.hasNext()) {
+
+        if(!di.next().endsWith(kextExtension))
+            continue;
+
+        basename = di.fileName().left(di.fileName().size()-kextExtension.size());
+
+        dir.setPath(di.filePath());
+        dir = dir.filePath("Contents");
+        plistPath.setFile(dir,"Info.plist");
+        dir = dir.filePath("MacOS");
+        binaryPath.setFile(dir, basename);
+
+        if (!dir.exists()) {
+            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/ missing!\n", qPrintable(di.fileName()));
+            return STATUS_ERROR;
+        }
+
+        if (!plistPath.exists()) {
+            printf("ERROR: Kext-dir invalid: %s/Contents/Info.plist missing!\n", qPrintable(di.fileName()));
+            return STATUS_ERROR;
+        }
+
+        if (!binaryPath.exists()) {
+            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/%s missing!\n",
+                                                    qPrintable(di.fileName()), qPrintable(basename));
+            return STATUS_ERROR;
+        }
+
+        if(GUIDindexCount > 0xF) {
+            printf("ERROR: Reached maximum Kext-Count! Ignoring the rest...\n");
+            break;
+        }
+
+        if(!di.fileName().compare("FakeSMC.kext"))
+            GUIDindex = 1;
+        else if(!di.fileName().compare("Disabler.kext"))
+            GUIDindex = 2;
+        else if(!di.fileName().compare("Injector.kext"))
+            GUIDindex = 3;
+        else
+            GUIDindex = GUIDindexCount++;
+
+        mKextEntry.basename = basename;
+        mKextEntry.binaryPath = binaryPath.filePath();
+        mKextEntry.plistPath = plistPath.filePath();
+        mKextEntry.GUID = kextGUID.arg(GUIDindex, 0, 16);
+        toConvert.append(mKextEntry);
+    }
+
+
     // Convert Kext to FFS
-    for(int i=0; i < kextList.size(); i++) {
-        ret = wrapper->fileOpen(wrapper->pathConcatenate(kextList.at(i),"Contents/MacOS/GenericUSBXHCI"), binary);
-        if(ret)
-                printf("Open failed: %s\n",wrapper->pathConcatenate(kextList.at(i),"Contents/MacOS/GenericUSBXHCI").toLocal8Bit().constData());
-        ret = wrapper->fileOpen(wrapper->pathConcatenate(kextList.at(i),"Contents/Info.plist"), plist);
-        if(ret)
-                printf("Open failed: %s\n",wrapper->pathConcatenate(kextList.at(i),"Contents/Info.plist").toLocal8Bit().constData());
+    for(int i=0; i < toConvert.size(); i++) {
+        inputBinary.clear();
 
-        ret = wrapper->kext2ffs("GenericUSBXHCI","DADE1006-1B31-4FE4-8557-26FCEFC78275", plist, binary, out);
+        if(toConvert.at(i).GUID.compare(ozmPlistGUID)) { // If NOT Ozmosis => check plist path
+            ret = wrapper->fileOpen(toConvert.at(i).plistPath, plist);
+            if(ret) {
+                printf("ERROR: Open failed: %s\n", qPrintable(toConvert.at(i).plistPath));
+                return STATUS_ERROR;
+            }
 
-        wrapper->fileWrite("GenericUSBXHCI.ffs",out);
+            wrapper->getInfoFromPlist(plist, sectionName, plistBinary);
+            if(ret) {
+                printf("ERROR: Failed to get values/convert Info.plist\n");
+                return STATUS_ERROR;
+            }
+
+            inputBinary.append(plistBinary);
+            inputBinary.append(nullterminator);
+        }
+        else {
+            sectionName = toConvert.at(i).basename;
+        }
+
+        ret = wrapper->fileOpen(toConvert.at(i).binaryPath, binary);
+        if(ret) {
+            printf("ERROR: Open failed: %s\n", qPrintable(toConvert.at(i).binaryPath));
+            return STATUS_ERROR;
+        }
+        inputBinary.append(binary);
+
+        out.clear();
+        ret = wrapper->kext2ffs(sectionName, toConvert.at(i).GUID, inputBinary, out);
+        if(ret) {
+            printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(toConvert.at(i).basename));
+            return STATUS_ERROR;
+        }
+
+        filename = QString("%1.ffs").arg(toConvert.at(i).basename);
+
+        wrapper->fileWrite(filename, out);
+        if(ret) {
+            printf("ERROR: Saving '%s'\n", qPrintable(filename));
+            return STATUS_ERROR;
+        }
     }
 
     return ERR_SUCCESS;

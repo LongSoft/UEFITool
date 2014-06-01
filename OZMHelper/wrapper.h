@@ -44,7 +44,7 @@ public:
     UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out);
     UINT8 writeNewVersionToPlist(QByteArray plist, QString newVersion, QByteArray & out);
     UINT8 convertPlistToBinary(QByteArray in, QByteArray & out);
-    UINT8 kext2ffs(QString basename, QString GUID, QByteArray plist, QByteArray inputbinary, QByteArray & output);
+    UINT8 kext2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output);
     UINT8 efi2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output);
     UINT8 ozm2ffs(QByteArray inputbinary, QByteArray & output);
 

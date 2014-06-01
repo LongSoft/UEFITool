@@ -85,21 +85,6 @@ QString Wrapper::pathConcatenate(QString path, QString filename)
     return QDir(path).filePath(filename);
 }
 
-UINT8 Wrapper::getFolderListByExt(QStringList & list, QString path, QString stringEnd)
-{
-    QDirIterator di(path);
-
-    while (di.hasNext()) {
-        if(di.next().endsWith(stringEnd))
-            list.append(di.filePath());
-    }
-
-    if(!list.size())
-        return ERR_ITEM_NOT_FOUND;
-
-    return ERR_SUCCESS;
-}
-
 BOOLEAN Wrapper::isValidKextDir(QString path)
 {
     QDir dir;
@@ -227,6 +212,7 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     plistVersion = boost::any_cast<const std::string&>(dict.find(versionIdentifier)->second).c_str();
 
     if(plistName.isEmpty()) {
+        printf("ERROR: CFBundleName in Plist is blank. Aborting!\n");
         return STATUS_ERROR;
     }
 
@@ -247,47 +233,8 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     return STATUS_SUCCESS;
 }
 
-UINT8 Wrapper::kext2ffs(QString basename, QString GUID, QByteArray plist, QByteArray binary, QByteArray & output)
-{
-    UINT8 ret;
-    UINT8 null = 0;
-    QString name;
-    QByteArray input;
-    QByteArray plistOut;
-    KextConvert *kext = new KextConvert();
-
-    input.clear();
-
-    if(!plist.isEmpty()) {
-        ret = getInfoFromPlist(plist, name, plistOut);
-        if(ret)
-            return STATUS_ERROR;
-
-        input.append(plistOut);
-        input.append(null);
-        input.append(binary);
-    }
-    else {
-        name = basename;
-        input = binary;
-    }
-
-    return kext->createFFS(name, GUID, input, output);
-}
-
-
-UINT8 Wrapper::efi2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output)
+UINT8 Wrapper::kext2ffs(QString name, QString GUID, QByteArray binary, QByteArray & output)
 {
     KextConvert *kext = new KextConvert();
-    return STATUS_SUCCESS;
+    return kext->createFFS(name, GUID, binary, output);
 }
-
-UINT8 Wrapper::ozm2ffs(QByteArray inputbinary, QByteArray & output)
-{
-    QString fixedGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D"; //OzmosisDefaults.plist
-    QString fixedName = "OzmosisDefaults";
-    KextConvert *kext = new KextConvert();
-
-    return kext->createFFS(fixedName, fixedGUID, inputbinary, output);
-}
-

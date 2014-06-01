@@ -16,6 +16,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "wrapper.h"
 
+struct kextEntry {
+    QString binaryPath;
+    QString plistPath;
+    QString basename;
+    QString GUID;
+};
+
 class OZMHelper : public QObject
 {
     Q_OBJECT
