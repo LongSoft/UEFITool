@@ -85,25 +85,6 @@ QString Wrapper::pathConcatenate(QString path, QString filename)
     return QDir(path).filePath(filename);
 }
 
-BOOLEAN Wrapper::isValidKextDir(QString path)
-{
-    QDir dir;
-    QFileInfo plist;
-
-    dir.setPath(path);
-    dir = dir.filePath("Contents");
-    plist.setFile(dir,"Info.plist");
-    dir = dir.filePath("MacOS");
-
-    if (!dir.exists())
-        return FALSE;
-
-    if (!plist.exists())
-        return FALSE;
-
-    return TRUE;
-}
-
 UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 {
     int i;

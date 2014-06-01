@@ -28,10 +28,6 @@ public:
     UINT8 dirCreate(QString path);
     BOOLEAN dirExists(QString path);
     QString pathConcatenate(QString path, QString filename);
-    UINT8 getFolderListByExt(QStringList & list, QString path, QString stringEnd);
-    BOOLEAN isValidKextDir(QString path);
-    UINT32 getDSDTStart(QByteArray & buf);
-    UINT32 getDSDTSize(QByteArray & buf, UINT32 start);
     UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE);
     UINT32 getDateTime();
     /* Specific stuff */
@@ -39,14 +35,8 @@ public:
     UINT8 dumpSectionByGUID(QString guid, QByteArray & buf, UINT8 mode);
     UINT8 parseBIOSFile(QByteArray & buf);
     UINT8 getDSDTfromAMI(QByteArray & in, QByteArray & out);
-    UINT8 findSectionByName(QString name, QByteArray & buf, const UINT8 mode);
-    UINT8 openInputFile(QString path);
     UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out);
-    UINT8 writeNewVersionToPlist(QByteArray plist, QString newVersion, QByteArray & out);
-    UINT8 convertPlistToBinary(QByteArray in, QByteArray & out);
     UINT8 kext2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output);
-    UINT8 efi2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output);
-    UINT8 ozm2ffs(QByteArray inputbinary, QByteArray & output);
 
 private:
     FfsEngine* ffsEngine;
