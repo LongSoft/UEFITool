@@ -3198,3 +3198,23 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
     return ERR_SUCCESS;
 }
 
+QModelIndex FfsEngine::findIndexByName(const QModelIndex & index, const QString & pattern)
+{
+    QModelIndex ret = model->index(-1,-1);
+
+    if (!index.isValid())
+        return ret;
+
+    if(!model->textString(index).isEmpty() &&
+       !model->textString(index).compare(pattern)) {
+        return index;
+    }
+
+    for (int i = 0; i < model->rowCount(index); i++) {
+        QModelIndex childIndex = index.child(i, 0);
+        ret = findIndexByName(childIndex, pattern);
+        if(ret.isValid())
+            break;
+    }
+    return ret;
+}

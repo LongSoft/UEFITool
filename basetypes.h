@@ -85,6 +85,8 @@ typedef uint16_t  CHAR16;
 #define ERR_COMPLEX_BLOCK_MAP               35
 #define ERR_DIR_ALREADY_EXIST               36
 #define ERR_DIR_CREATE                      37
+#define ERR_FILE_NOT_FOUND                  38
+#define ERR_FILE_EXISTS                     39
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms
