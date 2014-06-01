@@ -299,7 +299,7 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
                 return STATUS_ERROR;
             }
 
-            wrapper->getInfoFromPlist(plist, sectionName, plistBinary);
+            ret = wrapper->getInfoFromPlist(plist, sectionName, plistBinary);
             if(ret) {
                 printf("ERROR: Failed to get values/convert Info.plist\n");
                 return STATUS_ERROR;
