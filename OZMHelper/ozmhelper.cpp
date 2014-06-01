@@ -207,17 +207,29 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
     }
 
     if(wrapper->fileExists(wrapper->pathConcatenate(input, ozmDefaultsFilename))) {
+        printf("Found %s\n", qPrintable(ozmDefaultsFilename));
         ozmdefaults = wrapper->pathConcatenate(input, ozmDefaultsFilename);
     }
 
-    if(wrapper->getFolderListByExt(kextList, input, ".kext")) {
+    if(wrapper->getFolderListByExt(kextList, input, kextExtension)) {
         return ERR_INVALID_PARAMETER;
     }
 
     if(!ozmdefaults.isEmpty()) {
         binary.clear();
-        wrapper->fileOpen(ozmdefaults, binary);
-        wrapper->kext2ffs(ozmDefaultsFilename, ozmGUID, NULL, binary, out);
+        ret = wrapper->fileOpen(ozmdefaults, binary);
+        if(ret) {
+            return ret;
+        }
+        ret = wrapper->kext2ffs(ozmDefaultsFilename, ozmGUID, NULL, binary, out);
+        if(ret) {
+            return ret;
+        }
+        ret = wrapper->fileWrite("OzmosisDefaults.ffs", out);
+        if(ret) {
+            return ret;
+        }
+        printf("%s written successfully!", "OzmosisDefaults.ffs");
     }
 
     printf("Validating %i kext folder/s...\n", kextList.size());

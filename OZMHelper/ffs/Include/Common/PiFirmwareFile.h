@@ -21,6 +21,8 @@
 #ifndef __PI_FIRMWARE_FILE_H__
 #define __PI_FIRMWARE_FILE_H__
 
+#include <Common/BaseTypes.h>
+
 #pragma pack(1)
 //
 // Used to verify the integrity of the file.

@@ -11,69 +11,9 @@
 
 #include "kextconvert.h"
 
-#define UTILITY_NAME            "GenSec"
-#define UTILITY_MAJOR_VERSION   0
-#define UTILITY_MINOR_VERSION   1
-
-STATIC CHAR8      *mSectionTypeName[] = {
-  NULL,                                 // 0x00 - reserved
-  "EFI_SECTION_COMPRESSION",            // 0x01
-  "EFI_SECTION_GUID_DEFINED",           // 0x02
-  NULL,                                 // 0x03 - reserved
-  NULL,                                 // 0x04 - reserved
-  NULL,                                 // 0x05 - reserved
-  NULL,                                 // 0x06 - reserved
-  NULL,                                 // 0x07 - reserved
-  NULL,                                 // 0x08 - reserved
-  NULL,                                 // 0x09 - reserved
-  NULL,                                 // 0x0A - reserved
-  NULL,                                 // 0x0B - reserved
-  NULL,                                 // 0x0C - reserved
-  NULL,                                 // 0x0D - reserved
-  NULL,                                 // 0x0E - reserved
-  NULL,                                 // 0x0F - reserved
-  "EFI_SECTION_PE32",                   // 0x10
-  "EFI_SECTION_PIC",                    // 0x11
-  "EFI_SECTION_TE",                     // 0x12
-  "EFI_SECTION_DXE_DEPEX",              // 0x13
-  "EFI_SECTION_VERSION",                // 0x14
-  "EFI_SECTION_USER_INTERFACE",         // 0x15
-  "EFI_SECTION_COMPATIBILITY16",        // 0x16
-  "EFI_SECTION_FIRMWARE_VOLUME_IMAGE",  // 0x17
-  "EFI_SECTION_FREEFORM_SUBTYPE_GUID",  // 0x18
-  "EFI_SECTION_RAW",                    // 0x19
-  NULL,                                 // 0x1A
-  "EFI_SECTION_PEI_DEPEX",              // 0x1B
-  "EFI_SECTION_SMM_DEPEX"               // 0x1C
-};
-
-STATIC CHAR8      *mCompressionTypeName[]    = { "PI_NONE", "PI_STD" };
-
 #define EFI_GUIDED_SECTION_NONE 0x80
-STATIC CHAR8      *mGUIDedSectionAttribue[]  = { "NONE", "PROCESSING_REQUIRED", "AUTH_STATUS_VALID"};
-
-STATIC CHAR8 *mAlignName[] = {
-  "1", "2", "4", "8", "16", "32", "64", "128", "256", "512",
-  "1K", "2K", "4K", "8K", "16K", "32K", "64K"
-};
 
 STATIC UINT32 mFfsValidAlign[] = {0, 8, 16, 128, 512, 1024, 4096, 32768, 65536};
-
-//
-// Crc32 GUID section related definitions.
-//
-typedef struct {
-  EFI_GUID_DEFINED_SECTION  GuidSectionHeader;
-  UINT32                    CRC32Checksum;
-} CRC32_SECTION_HEADER;
-
-typedef struct {
-  EFI_GUID_DEFINED_SECTION2 GuidSectionHeader;
-  UINT32                    CRC32Checksum;
-} CRC32_SECTION_HEADER2;
-
-STATIC EFI_GUID  mZeroGuid                 = {0x0, 0x0, 0x0, {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}};
-STATIC EFI_GUID  mEfiCrc32SectionGuid      = EFI_CRC32_GUIDED_SECTION_EXTRACTION_PROTOCOL_GUID;
 
 KextConvert::KextConvert()
 {
@@ -84,55 +24,15 @@ KextConvert::~KextConvert()
 }
 
 
-/*++
-
-Routine Description:
-
-  This function calculates the value needed for a valid UINT8 checksum
-
-Arguments:
-
-  Buffer      Pointer to buffer containing byte data of component.
-  Size        Size of the buffer
-
-Returns:
-
-  The 8 bit checksum value needed.
-
---*/
-UINT8
-CalculateChecksum8 (
-  IN UINT8        *Buffer,
-  IN UINTN        Size
-  )
+UINT8 KextConvert::CalculateChecksum8 (UINT8 *Buffer,UINT32 Size)
 {
   return (UINT8) (0x100 - CalculateSum8 (Buffer, Size));
 }
 
-/*++
 
-Routine Description::
-
-  This function calculates the UINT8 sum for the requested region.
-
-Arguments:
-
-  Buffer      Pointer to buffer containing byte data of component.
-  Size        Size of the buffer
-
-Returns:
-
-  The 8 bit checksum value needed.
-
---*/
-UINT8
-CalculateSum8 (
-  IN UINT8  *Buffer,
-  IN UINTN  Size
-  )
-
+UINT8 KextConvert::CalculateSum8 (UINT8  *Buffer, UINT32  Size)
 {
-  UINTN Index;
+  UINT32 Index;
   UINT8 Sum;
 
   Sum = 0;
@@ -147,23 +47,8 @@ CalculateSum8 (
   return Sum;
 }
 
-/*++
 
-Routine Description:
-
-  Write ascii string as unicode string format to FILE
-
-Arguments:
-
-  String      - Pointer to string that is written to FILE.
-  UniString   - Pointer to unicode string
-
-Returns:
-
-  NULL
-
---*/
-VOID Ascii2UnicodeString (CHAR8 *String, CHAR16   *UniString)
+VOID KextConvert::Ascii2UnicodeString (CHAR8 *String, CHAR16   *UniString)
 {
   while (*String != '\0') {
     *(UniString++) = (CHAR16) *(String++);
@@ -174,50 +59,94 @@ VOID Ascii2UnicodeString (CHAR8 *String, CHAR16   *UniString)
   *UniString = '\0';
 }
 
-
 /*++
 
 Routine Description:
 
-  Get the contents of all section files specified in InputFileName
-  into FileBuffer.
+  Converts a string to an EFI_GUID.  The string must be in the
+  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx format.
 
-Arguments:
-
-  InputFileName  - Name of the input file.
-
-  InputFileAlign - Alignment required by the input file data.
-
-  InputFileNum   - Number of input files. Should be at least 1.
-
-  FileBuffer     - Output buffer to contain data
-
-  BufferLength   - On input, this is size of the FileBuffer.
-                   On output, this is the actual length of the data.
-
-  MaxAlignment   - The max alignment required by all the input file datas.
-
-  PeSectionNum   - Calculate the number of Pe/Te Section in this FFS file.
-
-Returns:
-
-  EFI_SUCCESS on successful return
-  EFI_INVALID_PARAMETER if InputFileNum is less than 1 or BufferLength point is NULL.
-  EFI_ABORTED if unable to open input file.
-  EFI_BUFFER_TOO_SMALL FileBuffer is not enough to contain all file data.
 --*/
-/*
-STATIC EFI_STATUS GetSectionContents (
-  IN  CHAR8   **InputFileName,
-  IN  UINT32  *InputFileAlign,
-  IN  UINT32  InputFileNum,
-  OUT UINT8   *FileBuffer,
-  OUT UINT32  *BufferLength,
-  OUT UINT32  *MaxAlignment,
-  OUT UINT8   *PESectionNum
-  )
-*/
-STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign, UINT32 InputFileNum,
+UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID  *GuidBuffer)
+{
+  INT32 Index;
+  unsigned Data1;
+  unsigned Data2;
+  unsigned Data3;
+  unsigned Data4[8];
+
+  if (AsciiGuidBuffer == NULL || GuidBuffer == NULL) {
+    return STATUS_ERROR;
+  }
+  //
+  // Check Guid Format strictly xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  //
+  for (Index = 0; AsciiGuidBuffer[Index] != '\0' && Index < 37; Index ++) {
+    if (Index == 8 || Index == 13 || Index == 18 || Index == 23) {
+      if (AsciiGuidBuffer[Index] != '-') {
+        break;
+      }
+    } else {
+      if (((AsciiGuidBuffer[Index] >= '0') && (AsciiGuidBuffer[Index] <= '9')) ||
+         ((AsciiGuidBuffer[Index] >= 'a') && (AsciiGuidBuffer[Index] <= 'f')) ||
+         ((AsciiGuidBuffer[Index] >= 'A') && (AsciiGuidBuffer[Index] <= 'F'))) {
+        continue;
+      } else {
+        break;
+      }
+    }
+  }
+
+  if (Index < 36 || AsciiGuidBuffer[36] != '\0') {
+    printf("Invalid option value: Incorrect GUID \"%s\"\n  Correct Format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"\n", AsciiGuidBuffer);
+    return STATUS_ERROR;
+  }
+
+  //
+  // Scan the guid string into the buffer
+  //
+  Index = sscanf (
+            AsciiGuidBuffer,
+            "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+            &Data1,
+            &Data2,
+            &Data3,
+            &Data4[0],
+            &Data4[1],
+            &Data4[2],
+            &Data4[3],
+            &Data4[4],
+            &Data4[5],
+            &Data4[6],
+            &Data4[7]
+            );
+
+  //
+  // Verify the correct number of items were scanned.
+  //
+  if (Index != 11) {
+    printf("Invalid option value: Incorrect GUID \"%s\"\n  Correct Format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"", AsciiGuidBuffer);
+    return STATUS_ERROR;
+  }
+  //
+  // Copy the data into our GUID.
+  //
+  GuidBuffer->Data1     = (UINT32) Data1;
+  GuidBuffer->Data2     = (UINT16) Data2;
+  GuidBuffer->Data3     = (UINT16) Data3;
+  GuidBuffer->Data4[0]  = (UINT8) Data4[0];
+  GuidBuffer->Data4[1]  = (UINT8) Data4[1];
+  GuidBuffer->Data4[2]  = (UINT8) Data4[2];
+  GuidBuffer->Data4[3]  = (UINT8) Data4[3];
+  GuidBuffer->Data4[4]  = (UINT8) Data4[4];
+  GuidBuffer->Data4[5]  = (UINT8) Data4[5];
+  GuidBuffer->Data4[6]  = (UINT8) Data4[6];
+  GuidBuffer->Data4[7]  = (UINT8) Data4[7];
+
+  return STATUS_SUCCESS;
+}
+
+UINT8 KextConvert::GetSectionContents(QByteArray input[], UINT32 *InputFileAlign, UINT32 InputFileNum,
                                      UINT8 *FileBuffer, UINT32  *BufferLength, UINT32 *MaxAlignment, UINT8 *PESectionNum)
 {
   UINT32                     Size;
@@ -259,18 +188,9 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
     //
     // Open file and read contents
     //
-//    InFile = fopen (InputFileName[Index], "rb");
-//    if (InFile == NULL) {
-//      Error (NULL, 0, 0001, "Error opening file", InputFileName[Index]);
-//      return EFI_ABORTED;
-//    }
 
-//    fseek (InFile, 0, SEEK_END);
-//    FileSize = ftell (InFile);
-//    fseek (InFile, 0, SEEK_SET);
       FileSize = input[Index].size();
-      DebugMsg (NULL, 0, 9, "Input section files",
-              "the input section is size %u bytes", (unsigned) FileSize);
+      printf("the input section is size %u bytes\n", (unsigned) FileSize);
 
     //
     // Check this section is Te/Pe section, and Calculate the numbers of Te/Pe section.
@@ -281,11 +201,9 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
     } else {
       HeaderSize = sizeof (EFI_COMMON_SECTION_HEADER);
     }
-//    fread (&TempSectHeader, 1, HeaderSize, InFile);
       memcpy(&TempSectHeader,input[Index].data(), HeaderSize);
     if (TempSectHeader.Type == EFI_SECTION_TE) {
       (*PESectionNum) ++;
-//      fread (&TeHeader, 1, sizeof (TeHeader), InFile);
         memcpy(&TeHeader, &input[Index].data()[HeaderSize], sizeof(TeHeader));
       if (TeHeader.Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
         TeOffset = TeHeader.StrippedSize - sizeof (TeHeader);
@@ -293,15 +211,12 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
     } else if (TempSectHeader.Type == EFI_SECTION_PE32) {
       (*PESectionNum) ++;
     } else if (TempSectHeader.Type == EFI_SECTION_GUID_DEFINED) {
-//      fseek (InFile, 0, SEEK_SET);
       if (FileSize >= MAX_SECTION_SIZE) {
-//        fread (&GuidSectHeader2, 1, sizeof (GuidSectHeader2), InFile);
           memcpy(&GuidSectHeader2, input[Index].data(), sizeof (GuidSectHeader2));
         if ((GuidSectHeader2.Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) {
           HeaderSize = GuidSectHeader2.DataOffset;
         }
       } else {
-//        fread (&GuidSectHeader, 1, sizeof (GuidSectHeader), InFile);
           memcpy(&GuidSectHeader, input[Index].data(), sizeof (GuidSectHeader));
         if ((GuidSectHeader.Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) {
           HeaderSize = GuidSectHeader.DataOffset;
@@ -315,8 +230,6 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
       //
       (*PESectionNum) ++;
     }
-
-//    fseek (InFile, 0, SEEK_SET);
 
     //
     // Revert TeOffset to the converse value relative to Alignment
@@ -347,8 +260,7 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
         SectHeader->Size[1] = (UINT8) ((Offset & 0xff00) >> 8);
         SectHeader->Size[2] = (UINT8) ((Offset & 0xff0000) >> 16);
       }
-      DebugMsg (NULL, 0, 9, "Pad raw section for section data alignment",
-                "Pad Raw section size is %u", (unsigned) Offset);
+      printf("Pad raw section for section data alignment Pad Raw section size is %u\n", (unsigned) Offset);
 
       Size = Size + Offset;
     }
@@ -358,12 +270,7 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
     // Buffer must be enough to contain the file content.
     //
     if ((FileSize > 0) && (FileBuffer != NULL) && ((Size + FileSize) <= *BufferLength)) {
-//      if (fread (FileBuffer + Size, (size_t) FileSize, 1, InFile) != 1) {
         memcpy(&FileBuffer[Size], input[Index].data(), (size_t) FileSize);
-//        Error (NULL, 0, 0004, "Error reading file", InputFileName[Index]);
-//        fclose (InFile);
-//        return EFI_ABORTED;
-//      }
     }
 
 
@@ -385,7 +292,7 @@ STATIC EFI_STATUS GetSectionContents(QByteArray input[], UINT32 *InputFileAlign,
 
 
 // GenFfs -t EFI_FV_FILETYPE_DRIVER -g GUID -o output -i pe32 -i userinterface
-EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray userinterface, QByteArray & out)
+UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray userinterface, QByteArray & out)
 {
     UINT8  PeSectionNum;
     UINT8 *FileBuffer;
@@ -400,7 +307,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     EFI_FFS_FILE_HEADER2    FfsFileHeader;
     EFI_FV_FILETYPE         FfsFiletype;
     EFI_STATUS Status;
-    EFI_GUID FileGuid = {0};
+    EFI_GUID FileGuid = {0, 0, 0 ,0};
 
     QByteArray inputFile[] = {inputPE32, userinterface};
 
@@ -438,7 +345,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     //
     // Output input parameter information
     //
-    VerboseMsg ("FFS File Guid is %08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+    printf("FFS File Guid is %08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X\n",
                   (unsigned) FileGuid.Data1,
                   FileGuid.Data2,
                   FileGuid.Data3,
@@ -451,10 +358,10 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
                   FileGuid.Data4[6],
                   FileGuid.Data4[7]);
     if ((FfsAttrib & FFS_ATTRIB_FIXED) != 0) {
-      VerboseMsg ("FFS File has the fixed file attribute");
+      printf("FFS File has the fixed file attribute\n");
     }
     if ((FfsAttrib & FFS_ATTRIB_CHECKSUM) != 0) {
-      VerboseMsg ("FFS File requires the checksum of the whole file");
+      printf("FFS File requires the checksum of the whole file\n");
     }
 
     for (Index = 0; Index < InputFileNum; Index ++) {
@@ -464,14 +371,13 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
         //
         InputFileAlign[Index] = 1;
       }
-      VerboseMsg ("the %dth input section alignment is %u", Index, (unsigned) InputFileAlign[Index]);
+      printf("the %dth input section alignment is %u\n", Index, (unsigned) InputFileAlign[Index]);
     }
 
     //
     // Calculate the size of all input section files.
     //
     Status = GetSectionContents (
-//               InputFileName,
                inputFile,
                InputFileAlign,
                InputFileNum,
@@ -499,7 +405,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     if (Status == EFI_BUFFER_TOO_SMALL) {
       FileBuffer = (UINT8 *) malloc (FileSize);
       if (FileBuffer == NULL) {
-        Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+        printf("Resource memory cannot be allocated!\n");
         return STATUS_ERROR;
       }
       memset (FileBuffer, 0, FileSize);
@@ -531,7 +437,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     //
     // Update FFS Alignment based on the max alignment required by input section files
     //
-    VerboseMsg ("the max alignment of all input sections is %u", (unsigned) MaxAlignment);
+    printf("the max alignment of all input sections is %u\n", (unsigned) MaxAlignment);
     for (Index = 0; Index < sizeof (mFfsValidAlign) / sizeof (UINT32) - 1; Index ++) {
       if ((MaxAlignment > mFfsValidAlign [Index]) && (MaxAlignment <= mFfsValidAlign [Index + 1])) {
         break;
@@ -540,7 +446,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     if (FfsAlign < Index) {
       FfsAlign = Index;
     }
-    VerboseMsg ("the alignment of the generated FFS file is %u", (unsigned) mFfsValidAlign [FfsAlign + 1]);
+    printf("the alignment of the generated FFS file is %u\n", (unsigned) mFfsValidAlign [FfsAlign + 1]);
 
     //
     // Now FileSize includes the EFI_FFS_FILE_HEADER
@@ -558,7 +464,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
       FfsFileHeader.Size[1]  = (UINT8) ((FileSize & 0xFF00) >> 8);
       FfsFileHeader.Size[2]  = (UINT8) ((FileSize & 0xFF0000) >> 16);
     }
-    VerboseMsg ("the size of the generated FFS file is %u bytes", (unsigned) FileSize);
+    printf("the size of the generated FFS file is %u bytes\n", (unsigned) FileSize);
 
     FfsFileHeader.Attributes = (EFI_FFS_FILE_ATTRIBUTES) (FfsAttrib | (FfsAlign << 3));
 
@@ -589,24 +495,15 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     FfsFileHeader.State = EFI_FILE_HEADER_CONSTRUCTION | EFI_FILE_HEADER_VALID | EFI_FILE_DATA_VALID;
 
     //
-    // Open output file to write ffs data.
-    //
-    //
     // write header
     //
-//    fwrite (&FfsFileHeader, 1, HeaderSize, FfsFile);
     out.clear();
     out.reserve(FileSize);
-//    memcpy(out.data(),&FfsFileHeader, HeaderSize);
     out.append((const char*)&FfsFileHeader, HeaderSize);
     //
     // write data
     //
-//    fwrite (FileBuffer, 1, FileSize - HeaderSize, FfsFile);
-//    memcpy(out.data(), FileBuffer, FileSize - HeaderSize);
     out.append((const char*)FileBuffer, FileSize-HeaderSize);
-
-//    fclose (FfsFile);
 
     if (InputFileAlign != NULL) {
       free (InputFileAlign);
@@ -618,7 +515,7 @@ EFI_STATUS GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteArray use
     return STATUS_SUCCESS;
 }
 
-STATUS GenSectionUserInterface(QString name, QByteArray &out)
+UINT8 KextConvert::GenSectionUserInterface(QString name, QByteArray &out)
 {
     UINT8 *Buffer;
     UINT32 Index;
@@ -628,13 +525,12 @@ STATUS GenSectionUserInterface(QString name, QByteArray &out)
     Index = sizeof (EFI_COMMON_SECTION_HEADER);
 
     // StringBuffer is ascii.. unicode is 2X + 2 bytes for terminating unicode null.
-//    Index += (strlen (StringBuffer) * 2) + 2;
     Index += (strlen(name.toLocal8Bit().constData()) * 2) +2;
 
     Buffer = (UINT8 *) malloc (Index);
     if (Buffer == NULL) {
-      Error (NULL, 0, 4001, "Resource", "memory cannot be allcoated");
-      return 1;
+      printf("Resource memory cannot be allcoated\n");
+      return STATUS_ERROR;
     }
 
     UiSect = (EFI_USER_INTERFACE_SECTION *) Buffer;
@@ -642,7 +538,6 @@ STATUS GenSectionUserInterface(QString name, QByteArray &out)
     UiSect->CommonHeader.Size[0]  = (UINT8) (Index & 0xff);
     UiSect->CommonHeader.Size[1]  = (UINT8) ((Index & 0xff00) >> 8);
     UiSect->CommonHeader.Size[2]  = (UINT8) ((Index & 0xff0000) >> 16);
-//    Ascii2UnicodeString (StringBuffer, UiSect->FileNameString);
     Ascii2UnicodeString (name.toLocal8Bit().data(), UiSect->FileNameString);
 
     printf("the size of the created section file is %u bytes\n", (unsigned) Index);
@@ -650,41 +545,14 @@ STATUS GenSectionUserInterface(QString name, QByteArray &out)
     out.clear();
     out.reserve(Index);
     out.append((const char*)Buffer, Index);
-//    memcpy(&out.constData(), Buffer, Index);
 
     return STATUS_SUCCESS;
 }
 
-/*++
 
-Routine Description:
-
-  Generate a leaf section of type other than EFI_SECTION_VERSION
-  and EFI_SECTION_USER_INTERFACE. Input file must be well formed.
-  The function won't validate the input file's contents. For
-  common leaf sections, the input file may be a binary file.
-  The utility will add section header to the file.
-
-Arguments:
-
-  InputFileName  - Name of the input file.
-
-  InputFileNum   - Number of input files. Should be 1 for leaf section.
-
-  SectionType    - A valid section type string
-
-  OutFileBuffer  - Buffer pointer to Output file contents
-
-Returns:
-
-  STATUS_ERROR            - can't continue
-  STATUS_SUCCESS          - successful return
-
---*/
-STATUS GenSectionPE32 (QByteArray inputbinary, QByteArray & out)
+UINT8 KextConvert::GenSectionPE32 (QByteArray inputbinary, QByteArray & out)
 {
   UINT32                    InputFileLength;
-//  FILE                      *InFile;
   UINT8                     *Buffer;
   UINT32                    TotalLength;
   UINT32                    HeaderLength;
@@ -734,7 +602,6 @@ STATUS GenSectionPE32 (QByteArray inputbinary, QByteArray & out)
   //
   out.clear();
   out.reserve(TotalLength);
-//  memcpy(out.data(), Buffer, TotalLength);
   out.append((const char*) Buffer, TotalLength);
 
   return STATUS_SUCCESS;
@@ -746,7 +613,6 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     QByteArray pe32;
     QByteArray userinterface;
 
-    UINT8 SectType;
     UINT32 InputLength;
     EFI_STATUS Status;
     EFI_COMMON_SECTION_HEADER *SectionHeader;
@@ -754,24 +620,15 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     //
     // GenSec -s EFI_SECTION_PE32 -o pe32 inputbinary
     //
-//    SectType = EFI_SECTION_PE32;
-/*
-    Status = GenSectionCommonLeafSection (
-              InputFileName,
-              SectType,
-              &OutFileBuffer
-              );
-*/
     out.clear();
     Status = GenSectionPE32(inputbinary, out);
 
-    if (Status != EFI_SUCCESS) {
-        printf("Status is not successful: Status value is 0x%X", (int) Status);
-        return 1;
+    if (Status != STATUS_SUCCESS) {
+        printf("Status is not successful: Status value is 0x%X\n", (int) Status);
+        return STATUS_ERROR;
     }
 
     // Get output file length
-//    SectionHeader = (EFI_COMMON_SECTION_HEADER *)OutFileBuffer;
     SectionHeader = (EFI_COMMON_SECTION_HEADER *)out.data();
     InputLength = *(UINT32 *)SectionHeader->Size & 0x00ffffff;
     if (InputLength == 0xffffff) {
@@ -781,18 +638,15 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     // Write the output file
     pe32 = out.mid(0, InputLength);
 
-//   fwrite (OutFileBuffer, InputLength, 1, OutFile);
-
     //
     // GenSec -s EFI_SECTION_USER_INTERFACE -n basename+version -o userinterface
     //
-//    SectType = EFI_SECTION_USER_INTERFACE;
     out.clear();
     Status = GenSectionUserInterface(name, out);
 
-    if (Status != EFI_SUCCESS) {
-        printf("Status is not successful: Status value is 0x%X", (int) Status);
-        return 1;
+    if (Status != STATUS_SUCCESS) {
+        printf("Status is not successful: Status value is 0x%X\n", (int) Status);
+        return STATUS_ERROR;
     }
 
     // Get output file length
@@ -806,17 +660,16 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
 
     // Write the output file
     userinterface = out.mid(0, InputLength);
-//    userinterface = out;
-//     fwrite (OutFileBuffer, InputLength, 1, OutFile);
 
     //
     // GenFfs -t EFI_FV_FILETYPE_DRIVER -g GUID -o output -i pe32 -i userinterface
     //
-
-    SectType = EFI_FV_FILETYPE_DRIVER;
-
     out.clear();
     Status = GenFFS(EFI_FV_FILETYPE_DRIVER, GUID, pe32, userinterface, out);
+    if (Status != STATUS_SUCCESS) {
+        printf("Status is not successful: Status value is 0x%X\n", (int) Status);
+        return STATUS_ERROR;
+    }
 
     output.clear();
     output.append(out);
@@ -824,7 +677,8 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     return STATUS_SUCCESS;
 }
 
-BOOLEAN KextConvert::getInfoFromPlist(QByteArray plist, QString & CFBundleName, QString & CFBundleShortVersionString)
+UINT8 KextConvert::getInfoFromPlist(QByteArray plist, QString & CFBundleName, QString & CFBundleShortVersionString)
 {
     /* ToDo: Implement solid plist library - plist is bitchy */
+    return STATUS_SUCCESS;
 }

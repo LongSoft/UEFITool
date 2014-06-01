@@ -16,8 +16,6 @@ INCLUDEPATH += ffs/Include/X64
 
 SOURCES  += ozmhelper_main.cpp \
  ozmhelper.cpp \
- ffs/GenFfs.c \
- ffs/GenSec.c \
  ffs/Common/EfiUtilityMsgs.c \
  ffs/Common/ParseInf.c \
  ffs/Common/CommonLib.c \
