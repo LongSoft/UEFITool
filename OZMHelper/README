@@ -1,0 +1,52 @@
+OZMHelper v0.1
+Usage: ozmhelper [COMMAND] [PARAMETERS...] input
+
+Available commands:
+--amiextract				Extracts AmiBoardInfo and DSDT from BIOS
+--ozmextract				Extracts Ozmosis files (ffs) from BIOS
+--ozmcreate					Patches Original BIOS with Ozmosis
+--ffsconvert				Converts kext-directories to FFS
+--checkspace				Checks available space in BIOS volume space
+--help, -h					Print this
+
+amiextract command
+ usage:
+	ozmhelper --amiextract -o outputdir OZMBIOS_or_BIOS.ROM
+ 
+ parameters:
+	-o, --out [dir]			Output directory
+	-h, --help				Print this
+
+ozmextract command
+ usage:
+	ozmhelper --ozmextract -o outputdir OZM.ROM
+	
+ parameters:
+	-o, --out [dir]			Output directory
+	-h, --help				Print this
+
+ozmcreate command
+ usage:
+	ozmhelper --ozmcreate -f ffsdir -a AmiBoardInfo.bin -o outputdir BIOS.ROM
+
+ parameters:
+	-f, --ffs [dir]			FFS directory (OZM FFS + extra FFS)
+	-a, --ami [file]		AmiBoardInfo file
+	-o, --out [dir]			Output directory
+	-h, --help				Print this
+	
+ffsconvert command
+ usage:
+	ozmhelper --ffsconvert -o outputdir ffsdir
+
+ parameters:
+	-o, --out [dir]			Output directory
+	-h, --help				Print this
+
+checkspace command
+ usage:
+	ozmhelper --checkspace BIOS.ROM
+
+ parameters:
+	-o, --out [dir]			Output directory
+	-h, --help				Print this
