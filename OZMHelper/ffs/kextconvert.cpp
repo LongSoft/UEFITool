@@ -665,9 +665,3 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
 
     return STATUS_SUCCESS;
 }
-
-UINT8 KextConvert::getInfoFromPlist(QByteArray plist, QString & CFBundleName, QString & CFBundleShortVersionString)
-{
-    /* ToDo: Implement solid plist library - plist is bitchy */
-    return STATUS_SUCCESS;
-}

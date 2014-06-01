@@ -43,7 +43,6 @@ public:
     ~KextConvert();
 
     UINT8 createFFS(QString name, QString GUID, QByteArray inputbinary, QByteArray & output);
-    UINT8 getInfoFromPlist(QByteArray plist, QString & CFBundleName, QString & CFBundleShortVersionString);
 
 private:
     UINT8 CalculateChecksum8 (UINT8 *Buffer,UINT32 Size);

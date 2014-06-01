@@ -13,20 +13,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ozmhelper.h"
 
-static const QStringList ozmFFS{
-    "DisablerKext", // optional
-    "EnhancedFat", // optional
-    "ExtFs", // optional
-    "HermitShellX64", // optional
-    "HfsPlus",
-    "InjectorKext", // optional
-    "Ozmosis",
-    "OzmosisTheme", // optional, needed for Pos1-key bootmenu
-    "OzmosisDefaults",
-    "PartitionDxe", // optional - for nonEFI/MBR/Windows needed
-    "SmcEmulatorKext"
-};
-
 static const QString DSDTFilename =  "DSDT.aml";
 static const QString AmiBoardFilename = "AmiBoardInfo";
 
@@ -34,6 +20,17 @@ OZMHelper::OZMHelper(QObject *parent) :
     QObject(parent)
 {
     wrapper = new Wrapper();
+    ozmFFS.append("DisablerKext"); //optional
+    ozmFFS.append("EnhancedFat"); // optional
+    ozmFFS.append("ExtFs"); // optional
+    ozmFFS.append("HermitShellX64"); // optional
+    ozmFFS.append("HfsPlus");
+    ozmFFS.append("InjectorKext"); // optional
+    ozmFFS.append("Ozmosis");
+    ozmFFS.append("OzmosisTheme"); // optional, needed for Pos1-key bootmenu
+    ozmFFS.append("OzmosisDefaults");
+    ozmFFS.append("PartitionDxe"); // optional - for nonEFI/MBR/Windows needed
+    ozmFFS.append("SmcEmulatorKext");
 }
 
 OZMHelper::~OZMHelper()
@@ -219,17 +216,20 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
         binary.clear();
         ret = wrapper->fileOpen(ozmdefaults, binary);
         if(ret) {
+            printf("Failed to open %s\n", qPrintable(ozmdefaults));
             return ret;
         }
         ret = wrapper->kext2ffs(ozmDefaultsFilename, ozmGUID, NULL, binary, out);
         if(ret) {
+            printf("Failed to convert '%s' to FFS\n", qPrintable(ozmDefaultsFilename));
             return ret;
         }
         ret = wrapper->fileWrite("OzmosisDefaults.ffs", out);
         if(ret) {
+            printf("Failed to write '%s'\n", qPrintable(ozmDefaultsFilename));
             return ret;
         }
-        printf("%s written successfully!", "OzmosisDefaults.ffs");
+        printf("%s written successfully!", qPrintable(ozmDefaultsFilename));
     }
 
     printf("Validating %i kext folder/s...\n", kextList.size());

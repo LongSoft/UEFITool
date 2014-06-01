@@ -32,6 +32,8 @@ public:
 
 private:
     Wrapper* wrapper;
+    QStringList ozmFFS;
+    CONST STATIC BOOLEAN verboseLog = false;
 };
 
 #endif

@@ -208,30 +208,68 @@ UINT8 Wrapper::getDSDTfromAMI(QByteArray & in, QByteArray & out)
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::kext2ffs(QString basename, QString GUID, QByteArray plist, QByteArray inputbinary, QByteArray & output)
+UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
 {
-    QString name;
-    QString version;
-    QByteArray input;
+    std::vector<char> data;
+    static const std::string nameIdentifier = "CFBundleName";
+    static const std::string versionIdentifier = "CFBundleShortVersionString";
+
+    QString plistName;
+    QString plistVersion;
+
+    /* ToDo: Implement solid plist library - plist is bitchy */
+
+    std::map<std::string, boost::any> dict;
+    Plist::readPlist(plist.data(), plist.size(), dict);
+
+    /* Just assumes the entry's there, otherwise => CRASH */
+    plistName = boost::any_cast<const std::string&>(dict.find(nameIdentifier)->second).c_str();
+    plistVersion = boost::any_cast<const std::string&>(dict.find(versionIdentifier)->second).c_str();
+
+    if(plistName.isEmpty()) {
+        return STATUS_ERROR;
+    }
+
+    if(plistVersion.isEmpty()) {
+        plistVersion = "nA"; // set to NonAvailable
+    }
+
+    name.sprintf("%s.Rev-%s", qPrintable(plistName), qPrintable(plistVersion));
+
+    // Assign new value for CFBundleName
+    dict[nameIdentifier] = std::string(name.toUtf8().constData());
+
+    Plist::writePlistBinary(data, dict);
+
+    out.clear();
+    out.append(data.data(), data.size());
+
+    return STATUS_SUCCESS;
+}
+
+UINT8 Wrapper::kext2ffs(QString basename, QString GUID, QByteArray plist, QByteArray binary, QByteArray & output)
+{
+    UINT8 ret;
     UINT8 null = 0;
+    QString name;
+    QByteArray input;
+    QByteArray plistOut;
     KextConvert *kext = new KextConvert();
 
     input.clear();
 
     if(!plist.isEmpty()) {
-        kext->getInfoFromPlist(plist, name, version);
-        name = basename;
-        version = "0.12a";
-        name.sprintf("%s.Rev-%s", qPrintable(name), qPrintable(version));
+        ret = getInfoFromPlist(plist, name, plistOut);
+        if(ret)
+            return STATUS_ERROR;
 
-        //convertPlistToBinary();
-        input.append(plist);
+        input.append(plistOut);
         input.append(null);
-        input.append(inputbinary);
+        input.append(binary);
     }
     else {
         name = basename;
-        input = inputbinary;
+        input = binary;
     }
 
     return kext->createFFS(name, GUID, input, output);
@@ -241,7 +279,7 @@ UINT8 Wrapper::kext2ffs(QString basename, QString GUID, QByteArray plist, QByteA
 UINT8 Wrapper::efi2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output)
 {
     KextConvert *kext = new KextConvert();
-    return ERR_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 UINT8 Wrapper::ozm2ffs(QByteArray inputbinary, QByteArray & output)
