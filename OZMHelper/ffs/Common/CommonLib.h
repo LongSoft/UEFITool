@@ -60,8 +60,8 @@ CopyMem (
 
 INTN
 CompareGuid (
-  IN EFI_GUID     *Guid1,
-  IN EFI_GUID     *Guid2
+  IN EFI_GUID_     *Guid1,
+  IN EFI_GUID_     *Guid2
   )
 ;
 
@@ -131,14 +131,14 @@ CalculateSum16 (
 
 EFI_STATUS
 PrintGuid (
-  IN EFI_GUID                     *Guid
+  IN EFI_GUID_                     *Guid
   )
 ;
 
 #define PRINTED_GUID_BUFFER_SIZE  37  // including null-termination
 EFI_STATUS
 PrintGuidToBuffer (
-  IN EFI_GUID     *Guid,
+  IN EFI_GUID_     *Guid,
   IN OUT UINT8    *Buffer,
   IN UINT32       BufferLen,
   IN BOOLEAN      Uppercase

@@ -99,7 +99,7 @@ typedef UINT8 EFI_FFS_FILE_STATE;
 // contents and state of the files.
 // 
 typedef struct {
-  EFI_GUID                Name;
+  EFI_GUID_                Name;
   EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
   EFI_FV_FILETYPE         Type;
   EFI_FFS_FILE_ATTRIBUTES Attributes;
@@ -108,7 +108,7 @@ typedef struct {
 } EFI_FFS_FILE_HEADER;
 
 typedef struct {
-  EFI_GUID                Name;
+  EFI_GUID_                Name;
   EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
   EFI_FV_FILETYPE         Type;
   EFI_FFS_FILE_ATTRIBUTES Attributes;
@@ -209,12 +209,12 @@ typedef EFI_COMMON_SECTION_HEADER2 EFI_FIRMWARE_VOLUME_IMAGE_SECTION2;
 // 
 typedef struct {
   EFI_COMMON_SECTION_HEADER   CommonHeader;
-  EFI_GUID                    SubTypeGuid;
+  EFI_GUID_                    SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
 
 typedef struct {
   EFI_COMMON_SECTION_HEADER2  CommonHeader;
-  EFI_GUID                    SubTypeGuid;
+  EFI_GUID_                    SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION2;
 
 //
@@ -227,14 +227,14 @@ typedef struct {
 // 
 typedef struct {
   EFI_COMMON_SECTION_HEADER   CommonHeader;
-  EFI_GUID                    SectionDefinitionGuid;
+  EFI_GUID_                    SectionDefinitionGuid;
   UINT16                      DataOffset;
   UINT16                      Attributes;
 } EFI_GUID_DEFINED_SECTION;
 
 typedef struct {
   EFI_COMMON_SECTION_HEADER2  CommonHeader;
-  EFI_GUID                    SectionDefinitionGuid;
+  EFI_GUID_                    SectionDefinitionGuid;
   UINT16                      DataOffset;
   UINT16                      Attributes;
 } EFI_GUID_DEFINED_SECTION2;

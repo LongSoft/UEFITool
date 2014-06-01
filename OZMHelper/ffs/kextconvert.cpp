@@ -1,14 +1,3 @@
-#include <Common/UefiBaseTypes.h>
-#include <Common/PiFirmwareFile.h>
-#include <Protocol/GuidedSectionExtraction.h>
-#include <IndustryStandard/PeImage.h>
-
-#include "CommonLib.h"
-#include "Compress.h"
-#include "Crc32.h"
-#include "EfiUtilityMsgs.h"
-#include "ParseInf.h"
-
 #include "kextconvert.h"
 
 #define EFI_GUIDED_SECTION_NONE 0x80
@@ -67,7 +56,7 @@ Routine Description:
   xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx format.
 
 --*/
-UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID  *GuidBuffer)
+UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
 {
   INT32 Index;
   unsigned Data1;
@@ -146,7 +135,7 @@ UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID  *GuidBuffer)
   return STATUS_SUCCESS;
 }
 
-UINT8 KextConvert::GetSectionContents(QByteArray input[], UINT32 *InputFileAlign, UINT32 InputFileNum,
+EFI_STATUS KextConvert::GetSectionContents(QByteArray input[], UINT32 *InputFileAlign, UINT32 InputFileNum,
                                      UINT8 *FileBuffer, UINT32  *BufferLength, UINT32 *MaxAlignment, UINT8 *PESectionNum)
 {
   UINT32                     Size;
@@ -307,7 +296,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
     EFI_FFS_FILE_HEADER2    FfsFileHeader;
     EFI_FV_FILETYPE         FfsFiletype;
     EFI_STATUS Status;
-    EFI_GUID FileGuid = {0, 0, 0 ,0};
+    EFI_GUID_ FileGuid = {0, 0, 0 , 0};
 
     QByteArray inputFile[] = {inputPE32, userinterface};
 
@@ -432,7 +421,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
     // Create Ffs file header.
     //
     memset (&FfsFileHeader, 0, sizeof (EFI_FFS_FILE_HEADER2));
-    memcpy (&FfsFileHeader.Name, &FileGuid, sizeof (EFI_GUID));
+    memcpy (&FfsFileHeader.Name, &FileGuid, sizeof (EFI_GUID_));
     FfsFileHeader.Type       = FfsFiletype;
     //
     // Update FFS Alignment based on the max alignment required by input section files
@@ -522,7 +511,7 @@ UINT8 KextConvert::GenSectionUserInterface(QString name, QByteArray &out)
     EFI_USER_INTERFACE_SECTION *UiSect;
 
 
-    Index = sizeof (EFI_COMMON_SECTION_HEADER);
+    Index = sizeof (EFI_COMMON_SECTION_HEADER);    
 
     // StringBuffer is ascii.. unicode is 2X + 2 bytes for terminating unicode null.
     Index += (strlen(name.toLocal8Bit().constData()) * 2) +2;
@@ -636,7 +625,7 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     }
 
     // Write the output file
-    pe32 = out.mid(0, InputLength);
+    pe32 = out.left(InputLength);
 
     //
     // GenSec -s EFI_SECTION_USER_INTERFACE -n basename+version -o userinterface
@@ -659,7 +648,7 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     printf("Userinterface InputLength: %i\n", InputLength);
 
     // Write the output file
-    userinterface = out.mid(0, InputLength);
+    userinterface = out.left(InputLength);
 
     //
     // GenFfs -t EFI_FV_FILETYPE_DRIVER -g GUID -o output -i pe32 -i userinterface

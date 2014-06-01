@@ -113,9 +113,8 @@ CopyMem (
 }
 
 INTN
-CompareGuid (
-  IN EFI_GUID     *Guid1,
-  IN EFI_GUID     *Guid2
+CompareGuid (IN EFI_GUID_ *Guid1,
+  IN EFI_GUID_ *Guid2
   )
 /*++
 
@@ -446,7 +445,7 @@ Returns:
 
 EFI_STATUS
 PrintGuid (
-  IN EFI_GUID *Guid
+  IN EFI_GUID_ *Guid
   )
 /*++
 
@@ -489,7 +488,7 @@ Returns:
 
 EFI_STATUS
 PrintGuidToBuffer (
-  IN EFI_GUID     *Guid,
+  IN EFI_GUID_     *Guid,
   IN OUT UINT8    *Buffer,
   IN UINT32       BufferLen,
   IN BOOLEAN      Uppercase

@@ -148,6 +148,6 @@ struct _EFI_GUIDED_SECTION_EXTRACTION_PROTOCOL {
 //
 // may add other GUID here
 //
-extern EFI_GUID gEfiCrc32GuidedSectionExtractionProtocolGuid;
+extern EFI_GUID_ gEfiCrc32GuidedSectionExtractionProtocolGuid;
 
 #endif

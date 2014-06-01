@@ -356,7 +356,7 @@ Returns:
 EFI_STATUS
 StringToGuid (
   IN CHAR8      *AsciiGuidBuffer,
-  OUT EFI_GUID  *GuidBuffer
+  OUT EFI_GUID_  *GuidBuffer
   )
 /*++
 

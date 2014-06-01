@@ -28,7 +28,7 @@ typedef struct {
   UINT16  Data2;
   UINT16  Data3;
   UINT8   Data4[8];
-} EFI_GUID;
+} EFI_GUID_;
 
 typedef RETURN_STATUS             EFI_STATUS;
 typedef VOID                      *EFI_HANDLE;

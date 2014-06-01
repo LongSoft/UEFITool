@@ -651,7 +651,7 @@ typedef struct {
 #define CODEVIEW_SIGNATURE_MTOC  SIGNATURE_32('M', 'T', 'O', 'C')
 typedef struct {
   UINT32    Signature;                       ///< "MTOC"
-  EFI_GUID  MachOUuid;
+  EFI_GUID_  MachOUuid;
   //
   //  Filename of .DLL (Mach-O with debug info) goes here
   //
