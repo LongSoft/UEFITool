@@ -56,7 +56,7 @@ Routine Description:
   xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx format.
 
 --*/
-UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
+EFI_STATUS KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
 {
   INT32 Index;
   unsigned Data1;
@@ -65,7 +65,7 @@ UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
   unsigned Data4[8];
 
   if (AsciiGuidBuffer == NULL || GuidBuffer == NULL) {
-    return STATUS_ERROR;
+    return EFI_INVALID_PARAMETER;
   }
   //
   // Check Guid Format strictly xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -88,7 +88,7 @@ UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
 
   if (Index < 36 || AsciiGuidBuffer[36] != '\0') {
     printf("Invalid option value: Incorrect GUID \"%s\"\n  Correct Format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"\n", AsciiGuidBuffer);
-    return STATUS_ERROR;
+    return EFI_ABORTED;
   }
 
   //
@@ -115,7 +115,7 @@ UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
   //
   if (Index != 11) {
     printf("Invalid option value: Incorrect GUID \"%s\"\n  Correct Format \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\"", AsciiGuidBuffer);
-    return STATUS_ERROR;
+    return EFI_ABORTED;
   }
   //
   // Copy the data into our GUID.
@@ -132,7 +132,7 @@ UINT8 KextConvert::StringToGuid (CHAR8 *AsciiGuidBuffer, EFI_GUID_  *GuidBuffer)
   GuidBuffer->Data4[6]  = (UINT8) Data4[6];
   GuidBuffer->Data4[7]  = (UINT8) Data4[7];
 
-  return STATUS_SUCCESS;
+  return EFI_SUCCESS;
 }
 
 EFI_STATUS KextConvert::GetSectionContents(QByteArray input[], UINT32 *InputFileAlign, UINT32 InputFileNum,
@@ -654,7 +654,9 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
     // GenFfs -t EFI_FV_FILETYPE_DRIVER -g GUID -o output -i pe32 -i userinterface
     //
     out.clear();
-    Status = GenFFS(EFI_FV_FILETYPE_DRIVER, GUID, pe32, userinterface, out);
+
+    //Status = GenFFS(EFI_FV_FILETYPE_DRIVER, GUID, pe32, userinterface, out);
+    Status = GenFFS(EFI_FV_FILETYPE_FREEFORM, GUID, pe32, userinterface, out);
     if (Status != STATUS_SUCCESS) {
         printf("Status is not successful: Status value is 0x%X\n", (int) Status);
         return STATUS_ERROR;
