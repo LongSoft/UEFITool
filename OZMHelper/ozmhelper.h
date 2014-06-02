@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define __OZMHELPER_H__
 
 #include "wrapper.h"
+#include "../basetypes.h"
 
 struct kextEntry {
     QString binaryPath;
@@ -40,7 +41,6 @@ public:
 private:
     Wrapper* wrapper;
     QStringList ozmFFS;
-    CONST STATIC BOOLEAN verboseLog = false;
 };
 
 #endif

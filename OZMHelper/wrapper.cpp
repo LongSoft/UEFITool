@@ -1,3 +1,7 @@
+#include <QtEndian>
+#include <QDateTime>
+#include <plist/Plist.hpp>
+#include "ffs/kextconvert.h"
 #include "wrapper.h"
 
 Wrapper::Wrapper(void)
@@ -194,7 +198,7 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
 
     if(plistName.isEmpty()) {
         printf("ERROR: CFBundleName in Plist is blank. Aborting!\n");
-        return STATUS_ERROR;
+        return ERR_ERROR;
     }
 
     if(plistVersion.isEmpty()) {
@@ -211,7 +215,7 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     out.clear();
     out.append(data.data(), data.size());
 
-    return STATUS_SUCCESS;
+    return ERR_SUCCESS;
 }
 
 UINT8 Wrapper::kext2ffs(QString name, QString GUID, QByteArray binary, QByteArray & output)

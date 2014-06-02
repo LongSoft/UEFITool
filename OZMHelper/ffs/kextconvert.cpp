@@ -1,3 +1,9 @@
+#include <Common/PiFirmwareFile.h>
+#include <IndustryStandard/PeImage.h>
+
+#include "CommonLib.h"
+#include "EfiUtilityMsgs.h"
+
 #include "kextconvert.h"
 
 #define EFI_GUIDED_SECTION_NONE 0x80

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+#include <QDirIterator>
 #include "ozmhelper.h"
 
 static const QString DSDTFilename =  "DSDT.aml";
@@ -250,18 +251,18 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
 
         if (!dir.exists()) {
             printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/ missing!\n", qPrintable(di.fileName()));
-            return STATUS_ERROR;
+            return ERR_ERROR;
         }
 
         if (!plistPath.exists()) {
             printf("ERROR: Kext-dir invalid: %s/Contents/Info.plist missing!\n", qPrintable(di.fileName()));
-            return STATUS_ERROR;
+            return ERR_ERROR;
         }
 
         if (!binaryPath.exists()) {
             printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/%s missing!\n",
                                                     qPrintable(di.fileName()), qPrintable(basename));
-            return STATUS_ERROR;
+            return ERR_ERROR;
         }
 
         if(GUIDindexCount > 0xF) {
@@ -294,13 +295,13 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
             ret = wrapper->fileOpen(toConvert.at(i).plistPath, plist);
             if(ret) {
                 printf("ERROR: Open failed: %s\n", qPrintable(toConvert.at(i).plistPath));
-                return STATUS_ERROR;
+                return ERR_ERROR;
             }
 
             ret = wrapper->getInfoFromPlist(plist, sectionName, plistBinary);
             if(ret) {
                 printf("ERROR: Failed to get values/convert Info.plist\n");
-                return STATUS_ERROR;
+                return ERR_ERROR;
             }
 
             inputBinary.append(plistBinary);
@@ -313,7 +314,7 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
         ret = wrapper->fileOpen(toConvert.at(i).binaryPath, binary);
         if(ret) {
             printf("ERROR: Open failed: %s\n", qPrintable(toConvert.at(i).binaryPath));
-            return STATUS_ERROR;
+            return ERR_ERROR;
         }
         inputBinary.append(binary);
 
@@ -321,7 +322,7 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
         ret = wrapper->kext2ffs(sectionName, toConvert.at(i).GUID, inputBinary, out);
         if(ret) {
             printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(toConvert.at(i).basename));
-            return STATUS_ERROR;
+            return ERR_ERROR;
         }
 
         filename = QString("%1.ffs").arg(toConvert.at(i).basename);
@@ -329,7 +330,7 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
         wrapper->fileWrite(filename, out);
         if(ret) {
             printf("ERROR: Saving '%s'\n", qPrintable(filename));
-            return STATUS_ERROR;
+            return ERR_ERROR;
         }
     }
 

@@ -15,6 +15,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QStringList>
 #include <iostream>
 #include <string.h>
+#include <stdio.h>
+
 #include "ozmhelper.h"
 
 QString version = "v0.1";

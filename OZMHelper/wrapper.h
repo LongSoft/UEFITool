@@ -1,18 +1,6 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
-#include <QObject>
-#include <QByteRef>
-#include <QByteArray>
-#include <QString>
-#include <QDir>
-#include <QDirIterator>
-#include <QFileInfo>
-#include <QtEndian>
-#include <QDateTime>
-
-#include "plist/Plist.hpp"
-#include "ffs/kextconvert.h"
 #include "../basetypes.h"
 #include "../ffsengine.h"
 

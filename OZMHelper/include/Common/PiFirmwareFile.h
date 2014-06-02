@@ -22,6 +22,7 @@
 #define __PI_FIRMWARE_FILE_H__
 
 #include <Common/BaseTypes.h>
+#include <Common/UefiBaseTypes.h>
 
 #pragma pack(1)
 //
