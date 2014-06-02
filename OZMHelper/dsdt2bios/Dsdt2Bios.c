@@ -65,7 +65,7 @@ static UINT64 insn_detail(csh ud, cs_mode mode, cs_insn *ins)
     return r;
 }
 
-static int Disass(unsigned char *X86_CODE64, int CodeSize, int size, char *cr)
+static int Disass(unsigned char *X86_CODE64, int CodeSize, int size)
 {
     uint64_t address = 0;
     int ret = 0;
@@ -87,7 +87,7 @@ static int Disass(unsigned char *X86_CODE64, int CodeSize, int size, char *cr)
     {
 		cs_err err = cs_open(platforms[i].arch, platforms[i].mode, &handle);
 		if (err) {
-			sprintf(cr,"\n\n\n\n\n\n\n\n%sFailed on cs_open() with error returned: %u\n",cr, err);
+            printf("\n\n\n\n\n\n\n\nFailed on cs_open() with error returned: %u\n", err);
             return 0;
 		}
         
@@ -106,7 +106,7 @@ static int Disass(unsigned char *X86_CODE64, int CodeSize, int size, char *cr)
                 {
                     unsigned short *adr = (unsigned short *)&X86_CODE64[insn[j].address+3];
                     *adr += size;
-                    if ( debug ) sprintf(cr,"%s%s\t%s \t-> \t[0x%x]\n",cr, insn[j].mnemonic, insn[j].op_str,*adr);
+                    if ( debug ) printf("%s\t%s \t-> \t[0x%x]\n", insn[j].mnemonic, insn[j].op_str,*adr);
                     ret = 1;
                 }
             }
@@ -115,7 +115,7 @@ static int Disass(unsigned char *X86_CODE64, int CodeSize, int size, char *cr)
 		}
         else
         {
-			sprintf(cr,"\n\n\n\n\n\n\n\n%sERROR: Failed to disasm given code!\n",cr);
+            printf("\n\n\n\n\n\n\n\nERROR: Failed to disasm given code!\n");
             return 0;
 		}
 		cs_close(&handle);
@@ -123,17 +123,15 @@ static int Disass(unsigned char *X86_CODE64, int CodeSize, int size, char *cr)
     return ret;
 }
 
-unsigned int Read_AmiBoardInfo(const char *FileName, unsigned char *d,unsigned long *len, unsigned short *Old_Dsdt_Size, unsigned short *Old_Dsdt_Ofs, int Extract, char *cr)
+unsigned int Read_AmiBoardInfo(const char *FileName, unsigned char *d,unsigned long *len, unsigned short *Old_Dsdt_Size, unsigned short *Old_Dsdt_Ofs, int Extract)
 {
     int fd_amiboard, fd_out;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     
-    sprintf(cr,"");
-    
     fd_amiboard = open(FileName, O_RDWR | O_NONBLOCK);
     if (fd_amiboard < 0)
     {
-        sprintf(cr,"\n\n\n\n\n\n\n\nFile %s does not exist\n",FileName);
+        printf("\n\n\n\n\n\n\n\nFile %s does not exist\n",FileName);
         return 0;
     }
     //Get size of AmiBoardInfo in Header
@@ -146,7 +144,7 @@ unsigned int Read_AmiBoardInfo(const char *FileName, unsigned char *d,unsigned l
     {
         if (!((d[0] =='D') && (d[1] =='S') && (d[2] =='D') && (d[3] =='T')))
         {
-            sprintf(cr,"\n\n\n\n\n\n\n\nFile %s has bad header\n",FileName);
+            printf("\n\n\n\n\n\n\n\nFile %s has bad header\n",FileName);
             return 0;
         }
         else
@@ -172,23 +170,23 @@ unsigned int Read_AmiBoardInfo(const char *FileName, unsigned char *d,unsigned l
         fd_out = open(FileOutput, O_CREAT | O_RDWR | O_NONBLOCK, 0666);
         write(fd_out,&d[*Old_Dsdt_Ofs],*Old_Dsdt_Size);
         close(fd_out);
-        //sprintf(cr,"DSDT-Original.aml has been successfully created\n\n");
+        //printf("DSDT-Original.aml has been successfully created\n\n");
         if ( Extract == 1 )
         {
-            sprintf(cr,"\n\nDSDT-Original.aml and AmiBoardInfo.bin\n");
-            sprintf(cr,"%sHAVE BEEN SUCCESSFULLY CREATED ON YOUR DESKTOP\n\n",cr);
+            printf("\n\nDSDT-Original.aml and AmiBoardInfo.bin\n");
+            printf("HAVE BEEN SUCCESSFULLY CREATED ON YOUR DESKTOP\n\n");
         }
         else
         {
-            sprintf(cr,"\n\n\n\n\n\n\nDSDT-Original.aml\n\n");
-            sprintf(cr,"%sHAS BEEN SUCCESSFULLY CREATED ON YOUR DESKTOP\n\n",cr);
+            printf("\n\n\n\n\n\n\nDSDT-Original.aml\n\n");
+            printf("HAS BEEN SUCCESSFULLY CREATED ON YOUR DESKTOP\n\n");
         }
     }
     
     return 1;
 }
 
-unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, char *cr,unsigned short *reloc_padding)
+unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding)
 {
     int fd_dsdt, fd_out, i, j;
     unsigned long dsdt_len;
@@ -209,7 +207,7 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     
     if (fd_dsdt < 0)
     {
-        sprintf(cr,"\n\n\n\n\n\n\n\nFile %s does not exist\n",FileName);
+        printf("\n\n\n\n\n\n\n\nFile %s does not exist\n",FileName);
         free(dsdt);
         return 0;
     }
@@ -219,7 +217,7 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     
     if (!((dsdt[0] =='D') && (dsdt[1] =='S') && (dsdt[2] =='D') && (dsdt[3] =='T')))
     {
-        sprintf(cr,"\n\n\n\n\n\n\n\nFile %s has bad header\n",FileName);
+        printf("\n\n\n\n\n\n\n\nFile %s has bad header\n",FileName);
         free(dsdt);
         return 0;
     }
@@ -230,7 +228,7 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     {
         if (((d[i+0] =='.') && (d[i+1] =='R') && (d[i+2] =='O') && (d[i+3] =='M')))
         {
-            sprintf(cr,"\n\n\n\n\n\n\n\nFile has .ROM section, it can't be patched\n");
+            printf("\n\n\n\n\n\n\n\nFile has .ROM section, it can't be patched\n");
             free(dsdt);
             return 0;
         }
@@ -239,12 +237,12 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     New_Dsdt_Size = (dsdt[5] << 8) + dsdt[4];
     
     size = New_Dsdt_Size - Old_Dsdt_Size;
-    padding = 0x10-(len+size)&0x0f;
+    padding = (0x10-(len+size))&0x0f;
     size += padding + *reloc_padding;
     
     if ((len+size) > 0xFFFF)
     {
-        sprintf(cr,"\n\n\n\n\n\n\n\nFinal size > 0xFFFF not tested aborting\n");
+        printf("\n\n\n\n\n\n\n\nFinal size > 0xFFFF not tested aborting\n");
         free(dsdt);
         return 0;
     }
@@ -260,29 +258,29 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     HeaderDOS = (EFI_IMAGE_DOS_HEADER *)&d[0];
     HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)&d[HeaderDOS->e_lfanew];
     
-    if ( debug ) sprintf(cr,"%sPatching header\n",cr);
-    if ( debug ) sprintf(cr,"%s---------------\n\n",cr);
-    if ( debug ) sprintf(cr,"%sSizeOfInitializedData       \t0x%x",cr,HeaderNT->OptionalHeader.SizeOfInitializedData);
+    if ( debug ) printf("Patching header\n");
+    if ( debug ) printf("---------------\n\n");
+    if ( debug ) printf("SizeOfInitializedData       \t0x%x",HeaderNT->OptionalHeader.SizeOfInitializedData);
     HeaderNT->OptionalHeader.SizeOfInitializedData += size;
-    if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n",cr,HeaderNT->OptionalHeader.SizeOfInitializedData);
-    if ( debug ) sprintf(cr,"%sSizeOfImage                 \t0x%x",cr,HeaderNT->OptionalHeader.SizeOfImage);
+    if ( debug ) printf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfInitializedData);
+    if ( debug ) printf("SizeOfImage                 \t0x%x",HeaderNT->OptionalHeader.SizeOfImage);
     HeaderNT->OptionalHeader.SizeOfImage += size;
-    if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n",cr,HeaderNT->OptionalHeader.SizeOfImage);
+    if ( debug ) printf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfImage);
     
     for ( i = 0; i < EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES ;i++)
     {
         if ( HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress != 0 )
         {
-            if ( debug ) sprintf(cr,"%sDataDirectory               \t0x%x",cr,HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
+            if ( debug ) printf("DataDirectory               \t0x%x",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
             HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress += size;
-            if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n\n",cr,HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
+            if ( debug ) printf("\t -> \t0x%x\n\n",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
         }
     }
     
     
     Section = (EFI_IMAGE_SECTION_HEADER *)&d[HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64)];
-    if ( debug ) sprintf(cr,"%sPatching sections\n",cr);
-    if ( debug ) sprintf(cr,"%s-----------------\n\n",cr);
+    if ( debug ) printf("Patching sections\n");
+    if ( debug ) printf("-----------------\n\n");
     unsigned int Found = 0;
     
 
@@ -294,30 +292,30 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
             if ( !strcmp((char *)&Section[i].Name, ".data" ) )
             {
     
-                if ( debug ) sprintf(cr,"%sName                         \t%s\t -> \t %s\n",cr,Section[i].Name,Section[i].Name);
-                if ( debug ) sprintf(cr,"%sPhysicalAddress             \t0x%x",cr,Section[i].Misc.PhysicalAddress);
+                if ( debug ) printf("Name                         \t%s\t -> \t %s\n",Section[i].Name,Section[i].Name);
+                if ( debug ) printf("PhysicalAddress             \t0x%x",Section[i].Misc.PhysicalAddress);
                 Section[i].Misc.PhysicalAddress += size;
-                if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n",cr,Section[i].Misc.PhysicalAddress);
-                if ( debug ) sprintf(cr,"%sSizeOfRawData               \t0x%x",cr,Section[i].SizeOfRawData);
+                if ( debug ) printf("\t -> \t0x%x\n",Section[i].Misc.PhysicalAddress);
+                if ( debug ) printf("SizeOfRawData               \t0x%x",Section[i].SizeOfRawData);
                 Section[i].SizeOfRawData += size;
-                if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n\n",cr,Section[i].SizeOfRawData);
+                if ( debug ) printf("\t -> \t0x%x\n\n",Section[i].SizeOfRawData);
             }
             else
             {
                 if (!strcmp((char *)&Section[i].Name,"")) strcpy((char *)&Section[i].Name,".empty");
-                if ( debug ) sprintf(cr,"%sName                        \t%s\t -> \t%s\n",cr,Section[i].Name,Section[i].Name);
-                if ( debug ) sprintf(cr,"%sVirtualAddress              \t0x%x",cr,Section[i].VirtualAddress);
+                if ( debug ) printf("Name                        \t%s\t -> \t%s\n",Section[i].Name,Section[i].Name);
+                if ( debug ) printf("VirtualAddress              \t0x%x",Section[i].VirtualAddress);
                 Section[i].VirtualAddress += size;
-                if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n",cr,Section[i].VirtualAddress);
-                if ( debug ) sprintf(cr,"%sPointerToRawData            \t0x%x",cr,Section[i].PointerToRawData);
+                if ( debug ) printf("\t -> \t0x%x\n",Section[i].VirtualAddress);
+                if ( debug ) printf("PointerToRawData            \t0x%x",Section[i].PointerToRawData);
                 Section[i].PointerToRawData += size;
-                if ( debug ) sprintf(cr,"%s\t -> \t0x%x\n\n",cr,Section[i].PointerToRawData);
+                if ( debug ) printf("\t -> \t0x%x\n\n",Section[i].PointerToRawData);
                 
                 if ( !strcmp((char *)&Section[i].Name, ".reloc" ) )
                 {
                     
-                    if ( debug ) sprintf(cr,"%sPatching relocations\n",cr);
-                    if ( debug ) sprintf(cr,"%s--------------------\n\n",cr);
+                    if ( debug ) printf("Patching relocations\n");
+                    if ( debug ) printf("--------------------\n\n");
                     
     
                     EFI_IMAGE_BASE_RELOCATION *p;
@@ -335,19 +333,19 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
                         s = (UINT16 *)p + 4;
                         
                         index = 0;
-                        if ( debug ) sprintf(cr,"%sVirtual base address           \t0x%04x",cr,p->VirtualAddress);
+                        if ( debug ) printf("Virtual base address           \t0x%04x",p->VirtualAddress);
                         OldAdr = p->VirtualAddress;
                         if (p->VirtualAddress != 0 ) p->VirtualAddress =(len + size) & 0xf000;
                         
-                        if ( debug ) sprintf(cr,"%s\t -> \t0x%04x\n",cr,p->VirtualAddress);
+                        if ( debug ) printf("\t -> \t0x%04x\n",p->VirtualAddress);
 
                         for ( j = 0; j <  ( p->SizeOfBlock - 8 ); j+=2)
                         {
                             if (*s != 0)
                             {
-                                if ( debug ) sprintf(cr,"%sTable index %i                \t0x%04x",cr,index++, OldAdr + (*s & 0xfff));
+                                if ( debug ) printf("Table index %i                \t0x%04x",index++, OldAdr + (*s & 0xfff));
                                 if (p->VirtualAddress != 0 ) *s = 0xa000 + ((*s + size ) & 0xfff);
-                                if ( debug ) sprintf(cr,"%s\t -> \t0x%04x\n",cr,p->VirtualAddress + (*s & 0xfff));
+                                if ( debug ) printf("\t -> \t0x%04x\n",p->VirtualAddress + (*s & 0xfff));
                             }
                             if (p->VirtualAddress != 0 )OldOfs = *s & 0xfff;
                             s++;
@@ -357,20 +355,15 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
                                 {
                                     if ( OldOfs > ((*s +size) & 0xfff))
                                     {
-                                        *reloc_padding = 0x10 + (0x1000 - OldOfs) & 0xff0 ;
-                                        if ( debug ) sprintf(cr,"%s error %04X \n",cr,*reloc_padding);
+                                        *reloc_padding = ( 0x10 + (0x1000 - OldOfs)) & 0xff0 ;
+                                        if ( debug ) printf(" error %04X \n",*reloc_padding);
                                         goto error; //sorry it's not à beautifull end of prog ;)
                                     }
                                 }
                             }
                         }
-                        
-                        if ( debug ) sprintf(cr,"%s\n",cr);
-
 
                     }while (sizeSection < Section[i].Misc.VirtualSize );
-                    
-                    if ( debug ) sprintf(cr,"%s\n",cr);
                 }
             }
         }
@@ -381,18 +374,18 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     strcpy(FileOutput,homeDir);
     strcat(FileOutput,"/Desktop/AmiBoardInfo.bin");
     remove(FileOutput);
-    if ( debug ) sprintf(cr,"%sPatching adr in code\n",cr);
-    if ( debug ) sprintf(cr,"%s--------------------\n\n",cr);
-    if ( Disass(&d[HeaderNT->OptionalHeader.BaseOfCode],HeaderNT->OptionalHeader.SizeOfCode, size,cr) )
+    if ( debug ) printf("Patching adr in code\n");
+    if ( debug ) printf("--------------------\n\n");
+    if ( Disass(&d[HeaderNT->OptionalHeader.BaseOfCode],HeaderNT->OptionalHeader.SizeOfCode, size) )
     {
         fd_out = open(FileOutput, O_CREAT | O_RDWR | O_NONBLOCK, 0666 );
         write(fd_out,d,len+size);
         close(fd_out);
-        //sprintf(cr,"%s\nDSDT-Original.aml has been successfully created\n\n",cr);
-        //sprintf(cr,"%sAmiBoardInfo.bin has been successfully created\n\n",cr);
+        //printf("\nDSDT-Original.aml has been successfully created\n\n");
+        //printf("AmiBoardInfo.bin has been successfully created\n\n";
     }
     else
-        sprintf(cr,"\n\n\n\n\n\n\n\nCode not patched, AmiBoardInfo.bin has not been created\n\n");
+        printf("\n\n\n\n\n\n\n\nCode not patched, AmiBoardInfo.bin has not been created\n\n");
   
 error:
     free(dsdt);
