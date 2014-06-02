@@ -226,8 +226,6 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
     }
 
     if(wrapper->fileExists(ozmPlistPath)) {
-        printf("Found %s\n", qPrintable(ozmDefaultsFilename));
-
         mKextEntry.basename = "OzmosisDefaults";
         mKextEntry.binaryPath = ozmPlistPath; // yes, Plist handled as binary
         mKextEntry.plistPath = "";
