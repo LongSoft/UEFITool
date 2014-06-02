@@ -27,24 +27,11 @@
 #include <unistd.h>
 #include <capstone/capstone.h>
 
+#include "Dsdt2Bios.h"
 #include "PeImage.h"
 
-#define debug 1
 
-static csh handle;
-
-struct platform
-{
-	cs_arch arch;
-	cs_mode mode;
-	unsigned char *code;
-	size_t size;
-	char *comment;
-	cs_opt_type opt_type;
-	cs_opt_value opt_value;
-};
-
-static UINT64 insn_detail(csh ud, cs_mode mode, cs_insn *ins)
+UINT64 Dsdt2Bios::insn_detail(csh ud, cs_mode mode, cs_insn *ins)
 {
 	int i;
     UINT64 r = 0;
@@ -65,19 +52,19 @@ static UINT64 insn_detail(csh ud, cs_mode mode, cs_insn *ins)
     return r;
 }
 
-static int Disass(unsigned char *X86_CODE64, int CodeSize, int size)
+int Dsdt2Bios::Disass(unsigned char *X86_CODE64, int CodeSize, int size)
 {
     uint64_t address = 0;
     int ret = 0;
 	struct platform platforms[] =
     {
-		{
+        {
 			.arch = CS_ARCH_X86,
 			.mode = CS_MODE_64,
 			.code = (unsigned char *)X86_CODE64,
 			.size = CodeSize - 1,
-			.comment = "X86 64 (Intel syntax)"
-		},
+            .comment = "X86 64 (Intel syntax)"
+        }
 	};
     
 	cs_insn *insn;
@@ -102,7 +89,7 @@ static int Disass(unsigned char *X86_CODE64, int CodeSize, int size)
 			size_t j;
 			for (j = 0; j < count; j++)
             {
-				if ( insn_detail(handle, platforms[i].mode, &insn[j]) != 0)
+                if ( insn_detail(handle, platforms[i].mode, &insn[j]) != 0)
                 {
                     unsigned short *adr = (unsigned short *)&X86_CODE64[insn[j].address+3];
                     *adr += size;
@@ -123,7 +110,7 @@ static int Disass(unsigned char *X86_CODE64, int CodeSize, int size)
     return ret;
 }
 
-unsigned int Read_AmiBoardInfo(const char *FileName, unsigned char *d,unsigned long *len, unsigned short *Old_Dsdt_Size, unsigned short *Old_Dsdt_Ofs, int Extract)
+unsigned int Dsdt2Bios::getFromAmiBoardInfo(const char *FileName, unsigned char *d,unsigned long *len, unsigned short *Old_Dsdt_Size, unsigned short *Old_Dsdt_Ofs, int Extract)
 {
     int fd_amiboard, fd_out;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
@@ -186,7 +173,7 @@ unsigned int Read_AmiBoardInfo(const char *FileName, unsigned char *d,unsigned l
     return 1;
 }
 
-unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding)
+unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding)
 {
     int fd_dsdt, fd_out, i, j;
     unsigned long dsdt_len;
@@ -200,7 +187,7 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     EFI_IMAGE_SECTION_HEADER *Section;
 
     
-    dsdt = malloc(0x10000);
+    dsdt = (unsigned char *)malloc(0x10000);
     
     
     fd_dsdt = open(FileName, O_RDWR | O_NONBLOCK);
@@ -327,7 +314,7 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
                     UINT32 OldOfs = 0;
                     do
                     {
-                        p = (UINT32 *)(&d[Section[i].PointerToRawData]) + Offset;
+                        p = (EFI_IMAGE_BASE_RELOCATION *)(&d[Section[i].PointerToRawData]) + Offset;
                         Offset = p->SizeOfBlock / sizeof(UINT32);
                         sizeSection += p->SizeOfBlock;
                         s = (UINT16 *)p + 4;
@@ -357,7 +344,8 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
                                     {
                                         *reloc_padding = ( 0x10 + (0x1000 - OldOfs)) & 0xff0 ;
                                         if ( debug ) printf(" error %04X \n",*reloc_padding);
-                                        goto error; //sorry it's not à beautifull end of prog ;)
+                                        free(dsdt);
+                                        return 1;
                                     }
                                 }
                             }
@@ -386,9 +374,6 @@ unsigned int Read_Dsdt(const char *FileName, unsigned char *d, unsigned long len
     }
     else
         printf("\n\n\n\n\n\n\n\nCode not patched, AmiBoardInfo.bin has not been created\n\n");
-  
-error:
-    free(dsdt);
-    
-    return 1;
+
+    return 0;
 }

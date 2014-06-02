@@ -25,7 +25,7 @@ SOURCES  += ozmhelper_main.cpp \
  plist/Plist.cpp \
  plist/PlistDate.cpp \
  plist/pugixml.cpp \
- dsdt2bios/Dsdt2Bios.c \
+ dsdt2bios/Dsdt2Bios.cpp \
  dsdt2bios/capstone/cs.c \
  dsdt2bios/capstone/MCInstrDesc.c \
  dsdt2bios/capstone/MCInst.c \
@@ -59,6 +59,7 @@ HEADERS  += ozmhelper.h \
    plist/pugiconfig.hpp \
    plist/pugixml.hpp \
    plist/PlistDate.hpp \
+   dsdt2bios/Dsdt2Bios.h \
    dsdt2bios/PeImage.h \
    dsdt2bios/capstone/cs_priv.h \
    dsdt2bios/capstone/MCInstrDesc.h \
@@ -81,4 +82,5 @@ HEADERS  += ozmhelper.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
  ../Tiano/EfiTianoDecompress.h \
- ../Tiano/EfiTianoCompress.h
+ ../Tiano/EfiTianoCompress.h \
+    dsdt2bios/Dsdt2Bios.h

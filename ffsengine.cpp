@@ -3198,7 +3198,7 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
     return ERR_SUCCESS;
 }
 
-QModelIndex FfsEngine::findIndexByName(const QModelIndex & index, const QString & pattern)
+QModelIndex FfsEngine::findIndexByName(const QModelIndex index, const QString pattern)
 {
     QModelIndex ret = model->index(-1,-1);
 
