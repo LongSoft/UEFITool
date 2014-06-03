@@ -336,3 +336,44 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
 
     return ERR_SUCCESS;
 }
+
+UINT8 OZMHelper::DSDT2Bios(QString input, QString inputDSDT, QString output)
+{
+    UINT8 ret;
+    QString outputFile;
+    QByteArray amiboardinfo;
+    QByteArray dsdt;
+    QByteArray out;
+
+    if (!wrapper->fileExists(input)) {
+        return ERR_ITEM_NOT_FOUND;
+    }
+
+    if (!wrapper->fileExists(inputDSDT)) {
+        return ERR_ITEM_NOT_FOUND;
+    }
+
+    ret = wrapper->dirCreate(output);
+    if (ret == ERR_DIR_CREATE) {
+        return ret;
+    }
+
+    ret = wrapper->fileOpen(input, amiboardinfo);
+    if (ret) {
+        return ret;
+    }
+
+    ret = wrapper->fileOpen(input, dsdt);
+    if (ret) {
+        return ret;
+    }
+
+    outputFile = wrapper->pathConcatenate(output,"patchedAmiBoardInfo.bin");
+
+    ret = wrapper->fileWrite(outputFile, out);
+    if (ret) {
+        return ret;
+    }
+
+    return ERR_SUCCESS;
+}

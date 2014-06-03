@@ -157,6 +157,23 @@ UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
     return ERR_SUCCESS;
 }
 
+UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
+{
+    UINT8 ret;
+    Dsdt2Bios d2b;
+    UINT16 offset, size;
+
+    ret = d2b.getFromAmiBoardInfo(amiboardinfo, offset, size);
+    if(ret)
+        return ret;
+
+    ret = d2b.injectIntoAmiBoardInfo(amiboardinfo, dsdt, offset, size, out, TRUE);
+    if(ret)
+        return ret;
+
+    return ERR_SUCCESS;
+}
+
 UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
 {
     std::vector<char> data;

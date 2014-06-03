@@ -22,13 +22,15 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 QString version = "v0.1";
 QString appname = "OZMHelper";
 
-void usageCheckspace()
+void usageDsdt2Bios()
 {
-    printf("checkspace command\n"
+    printf("dsdt2bios command\n"
             " usage:\n"
-            "\t%s --checkspace -i BIOS.ROM\n\n"
+            "\t%s --dsdt2bios -i AmiBoardInfo.bin -d DSDT.aml -o outputdir\n\n"
             " parameters:\n" \
-            "\t-i, --input\t\tInput file\n"
+            "\t-i, --input\t\tInput file (AmiBoardInfo)\n"
+            "\t-d, --dsdt\t\tDSDT.aml file\n"
+            "\t-o, --out [dir]\t\tOutput directory\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
 
@@ -103,7 +105,7 @@ void usageAll()
     usageOzmExtract();
     usageOzmCreate();
     usageFfsConvert();
-    usageCheckspace();
+    usageDsdt2Bios();
 }
 
 int main(int argc, char *argv[])
@@ -113,6 +115,7 @@ int main(int argc, char *argv[])
     bool ozmextract = false;
     bool ozmcreate = false;
     bool ffsconvert = false;
+    bool dsdt2bios = false;
     QString inputpath = "";
     QString output = "";
     QString ffsdir = "";
@@ -175,6 +178,13 @@ int main(int argc, char *argv[])
         }
 
         if (strcasecmp(argv[0], "--ffsconvert") == 0) {
+            ffsconvert = true;
+            argc --;
+            argv ++;
+            continue;
+        }
+
+        if (strcasecmp(argv[0], "--dsdt2bios") == 0) {
             ffsconvert = true;
             argc --;
             argv ++;
@@ -268,6 +278,8 @@ fail:
             usageOzmCreate();
         else if (ffsconvert)
             usageFfsConvert();
+        else if (dsdt2bios)
+            usageDsdt2Bios();
         else
             usageAll();
 
@@ -293,10 +305,16 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
+    if(ozmcreate && kextdir.isEmpty())
+        printf("Warning: No KEXT-dir given! Injecting only Ozmosis files!\n");
+
     if (ozmcreate && (ffsdir.isEmpty()||dsdtfile.isEmpty())) {
-        if(kextdir.isEmpty())
-            printf("Warning: No KEXT-dir given! Injecting only Ozmosis files!\n");
-        printf("ERROR: FFS directory or DSDT.aml file not supplied!\n");
+        printf("ERROR: No FFS directory or DSDT.aml file supplied!\n");
+        return ERR_GENERIC_CALL_NOT_SUPPORTED;
+    }
+
+    if (dsdt2bios && dsdtfile.isEmpty()) {
+        printf("ERROR: No DSDT.aml file supplied!\n");
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
@@ -308,6 +326,8 @@ fail:
         result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile);
     else if (ffsconvert)
         result = w.FFSConvert(inputpath, output);
+    else if (dsdt2bios)
+        result = w.DSDT2Bios(inputpath, dsdtfile, output);
 
     printf("Program exited %s!\n", result ? "with errors" : "successfully");
     if(result)

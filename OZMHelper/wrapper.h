@@ -16,13 +16,13 @@ public:
     UINT8 dirCreate(QString path);
     BOOLEAN dirExists(QString path);
     QString pathConcatenate(QString path, QString filename);
-    UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE);
     UINT32 getDateTime();
     /* Specific stuff */
     UINT8 dumpSectionByName(QString name, QByteArray & buf, UINT8 mode);
     UINT8 dumpSectionByGUID(QString guid, QByteArray & buf, UINT8 mode);
     UINT8 parseBIOSFile(QByteArray & buf);
     UINT8 getDSDTfromAMI(QByteArray in, QByteArray & out);
+    UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out);
     UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out);
     UINT8 kext2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output);
 

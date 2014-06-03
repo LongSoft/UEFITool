@@ -36,7 +36,7 @@ public:
     UINT8 OZMExtract(QString input, QString output);
     UINT8 OZMCreate(QString input, QString output, QString inputFFS, QString inputKext, QString inputDSDT);
     UINT8 FFSConvert(QString input, QString output);
-    UINT8 CheckSpace(QString input);
+    UINT8 DSDT2Bios(QString input, QString inputDSDT, QString output);
 
 private:
     Wrapper* wrapper;
