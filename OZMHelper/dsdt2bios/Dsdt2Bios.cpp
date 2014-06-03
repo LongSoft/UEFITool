@@ -31,6 +31,7 @@
 #include "PeImage.h"
 
 #define debug TRUE
+static csh handle;
 
 UINT64 Dsdt2Bios::insn_detail(csh ud, cs_mode mode, cs_insn *ins)
 {
@@ -186,10 +187,10 @@ UINT8 Dsdt2Bios::injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UI
         
     DSDTSizeNew = (dsdt.at(5) << 8) + dsdt.at(4);//size from DSDT itself
     
-    if(DSDTSizeNew != DSDTLen) {
-        printf("ERROR: Size of DSDT differs from passed data to in-code define. Aborting!\n");
-        return ERR_ERROR;
-    }
+//    if(DSDTSizeNew != DSDTLen) {
+//        printf("ERROR: Size of DSDT differs from passed data to in-code define. Aborting!\n");
+//        return ERR_ERROR;
+//    }
 
     DSDTSizeDiff = DSDTSizeNew - DSDTSizeOld;
     padding = (0x10-(AmiLen+DSDTSizeDiff))&0x0f;

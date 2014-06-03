@@ -363,7 +363,7 @@ UINT8 OZMHelper::DSDT2Bios(QString input, QString inputDSDT, QString output)
         return ret;
     }
 
-    ret = wrapper->fileOpen(input, dsdt);
+    ret = wrapper->fileOpen(inputDSDT, dsdt);
     if (ret) {
         return ret;
     }

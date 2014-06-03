@@ -15,7 +15,6 @@ public:
     UINT8 injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT16 DSDTOffsetOld, UINT16 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding = 0);
 
 private:
-    csh handle;
     UINT64 insn_detail(csh ud, cs_mode mode, cs_insn *ins);
     UINT8 Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size);
 };
