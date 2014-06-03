@@ -90,6 +90,7 @@ void usageGeneral()
             "\t--ozmextract\t\tExtracts Ozmosis files (ffs) from BIOS\n"
             "\t--ozmcreate\t\tPatches Original BIOS with Ozmosis\n"
             "\t--ffsconvert\t\tConverts kext-directories to FFS\n"
+            "\t--dsdt2bios\t\tInjects (bigger) DSDT into AmiBoardInfo\n"
             "\t--help, -h\t\tPrint this\n\n",qPrintable(appname));
 }
 
