@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
         }
 
         if (strcasecmp(argv[0], "--dsdt2bios") == 0) {
-            ffsconvert = true;
+            dsdt2bios = true;
             argc --;
             argv ++;
             continue;
