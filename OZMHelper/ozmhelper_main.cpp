@@ -266,7 +266,7 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    int cmds = dsdtextract + ozmextract + ozmcreate + ffsconvert;
+    int cmds = dsdtextract + ozmextract + ozmcreate + ffsconvert + dsdt2bios;
 
     if (help) {
         if (cmds > 1)
