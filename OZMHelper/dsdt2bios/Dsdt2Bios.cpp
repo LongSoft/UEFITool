@@ -119,11 +119,11 @@ UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, U
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     
     if(!amiboard.size()) {
-//        printf("ERROR: AmiBoardInfo is empty. Aborting!\n");
+        printf("ERROR: AmiBoardInfo is empty. Aborting!\n");
         return ERR_FILE_READ;
     }
     else if(amiboard.size() > 0xFFFF) {
-//        printf("ERROR: AmiBoardInfo exceeds maximal size of %i(0x%X). Aborting!", 0xFFFF, 0xFFFF);
+        printf("ERROR: AmiBoardInfo exceeds maximal size of %i(0x%X). Aborting!", 0xFFFF, 0xFFFF);
         return ERR_FILE_READ;
     }
     
@@ -136,7 +136,7 @@ UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, U
     
     ret = amiboard.indexOf(DSDT_HEADER);
     if(ret < 0) {
-//        printf("ERROR: DSDT wasn't found in AmiBoardInfo");
+        printf("ERROR: DSDT wasn't found in AmiBoardInfo");
         return ERR_FILE_NOT_FOUND;
     }
 

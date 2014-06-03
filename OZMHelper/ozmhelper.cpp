@@ -368,6 +368,11 @@ UINT8 OZMHelper::DSDT2Bios(QString input, QString inputDSDT, QString output)
         return ret;
     }
 
+    ret = wrapper->dsdt2bios(amiboardinfo, dsdt, out);
+    if (ret) {
+        return ret;
+    }
+
     outputFile = wrapper->pathConcatenate(output,"patchedAmiBoardInfo.bin");
 
     ret = wrapper->fileWrite(outputFile, out);
