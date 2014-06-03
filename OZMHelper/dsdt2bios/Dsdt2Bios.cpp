@@ -30,6 +30,7 @@
 #include "Dsdt2Bios.h"
 #include "PeImage.h"
 
+#define debug TRUE
 
 UINT64 Dsdt2Bios::insn_detail(csh ud, cs_mode mode, cs_insn *ins)
 {
@@ -52,10 +53,10 @@ UINT64 Dsdt2Bios::insn_detail(csh ud, cs_mode mode, cs_insn *ins)
     return r;
 }
 
-int Dsdt2Bios::Disass(unsigned char *X86_CODE64, int CodeSize, int size)
+UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
 {
-    uint64_t address = 0;
-    int ret = 0;
+    UINT8 ret = ERR_ERROR;
+    UINT64 address = 0;
 	struct platform platforms[] =
     {
         {
@@ -75,7 +76,7 @@ int Dsdt2Bios::Disass(unsigned char *X86_CODE64, int CodeSize, int size)
 		cs_err err = cs_open(platforms[i].arch, platforms[i].mode, &handle);
 		if (err) {
             printf("\n\n\n\n\n\n\n\nFailed on cs_open() with error returned: %u\n", err);
-            return 0;
+            return ERR_ERROR;
 		}
         
 		if (platforms[i].opt_type)
@@ -94,7 +95,7 @@ int Dsdt2Bios::Disass(unsigned char *X86_CODE64, int CodeSize, int size)
                     unsigned short *adr = (unsigned short *)&X86_CODE64[insn[j].address+3];
                     *adr += size;
                     if ( debug ) printf("%s\t%s \t-> \t[0x%x]\n", insn[j].mnemonic, insn[j].op_str,*adr);
-                    ret = 1;
+                    ret = ERR_SUCCESS;
                 }
             }
             // free memory allocated by cs_disasm_ex()
@@ -103,155 +104,117 @@ int Dsdt2Bios::Disass(unsigned char *X86_CODE64, int CodeSize, int size)
         else
         {
             printf("\n\n\n\n\n\n\n\nERROR: Failed to disasm given code!\n");
-            return 0;
+            return ERR_ERROR;
 		}
 		cs_close(&handle);
 	}
     return ret;
 }
 
-unsigned int Dsdt2Bios::getFromAmiBoardInfo(const char *FileName, unsigned char *d,unsigned long *len, unsigned short *Old_Dsdt_Size, unsigned short *Old_Dsdt_Ofs, int Extract)
+UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, UINT16 & DSDTSize)
 {
-    int fd_amiboard, fd_out;
+    INT16  ret;
+    UINT16 offset;
+    UINT16 size;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     
-    fd_amiboard = open(FileName, O_RDWR | O_NONBLOCK);
-    if (fd_amiboard < 0)
-    {
-        printf("\n\n\n\n\n\n\n\nFile %s does not exist\n",FileName);
-        return 0;
+    if(!amiboard.size()) {
+//        printf("ERROR: AmiBoardInfo is empty. Aborting!\n");
+        return ERR_FILE_READ;
     }
-    //Get size of AmiBoardInfo in Header
-    *len = read(fd_amiboard, d, 0xFFFF);
-    close(fd_amiboard);
-    
-    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)&d[0];
-    
-    if (HeaderDOS->e_magic != 0x5A4D )
-    {
-        if (!((d[0] =='D') && (d[1] =='S') && (d[2] =='D') && (d[3] =='T')))
-        {
-            printf("\n\n\n\n\n\n\n\nFile %s has bad header\n",FileName);
-            return 0;
-        }
-        else
-            return 2;
+    else if(amiboard.size() > 0xFFFF) {
+//        printf("ERROR: AmiBoardInfo exceeds maximal size of %i(0x%X). Aborting!", 0xFFFF, 0xFFFF);
+        return ERR_FILE_READ;
     }
     
-    for ( *Old_Dsdt_Ofs = 0; *Old_Dsdt_Ofs < *len ; *Old_Dsdt_Ofs+=1)
-    {
-        if ((d[*Old_Dsdt_Ofs] =='D') && (d[*Old_Dsdt_Ofs+1] =='S') && (d[*Old_Dsdt_Ofs+2] =='D') && (d[*Old_Dsdt_Ofs+3] =='T'))
-        {
-            *Old_Dsdt_Size = (d[*Old_Dsdt_Ofs+5] << 8) + d[*Old_Dsdt_Ofs+4];
-            break;
-        }
+    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboard.constData();
+    
+    if (HeaderDOS->e_magic != 0x5A4D ) {
+        printf("Error: Invalid file, not AmiBoardInfo. Aborting!\n");
+        return ERR_INVALID_FILE;
     }
     
-    if ( Extract )
-    {
-        char *homeDir = getenv("HOME");
-        char FileOutput[256];
-        strcpy(FileOutput,homeDir);
-        strcat(FileOutput,"/Desktop/DSDT-Original.aml");
-        remove(FileOutput);
-        fd_out = open(FileOutput, O_CREAT | O_RDWR | O_NONBLOCK, 0666);
-        write(fd_out,&d[*Old_Dsdt_Ofs],*Old_Dsdt_Size);
-        close(fd_out);
-        //printf("DSDT-Original.aml has been successfully created\n\n");
-        if ( Extract == 1 )
-        {
-            printf("\n\nDSDT-Original.aml and AmiBoardInfo.bin\n");
-            printf("HAVE BEEN SUCCESSFULLY CREATED ON YOUR DESKTOP\n\n");
-        }
-        else
-        {
-            printf("\n\n\n\n\n\n\nDSDT-Original.aml\n\n");
-            printf("HAS BEEN SUCCESSFULLY CREATED ON YOUR DESKTOP\n\n");
-        }
+    ret = amiboard.indexOf(DSDT_HEADER);
+    if(ret < 0) {
+//        printf("ERROR: DSDT wasn't found in AmiBoardInfo");
+        return ERR_FILE_NOT_FOUND;
+    }
+
+    offset = ret;
+    size = (amiboard.at(offset+5) << 8) + amiboard.at(offset+4);
+
+    if(size > (amiboard.size()-offset)) {
+        printf("ERROR: Read invalid size from DSDT. Aborting!\n");
+        return ERR_INVALID_PARAMETER;
     }
     
-    return 1;
+    DSDTSize = size;
+    DSDTOffset = offset;
+
+    return ERR_SUCCESS;
 }
 
-unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding)
+UINT8 Dsdt2Bios::injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT16 DSDTOffsetOld, UINT16 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding)
+//unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding)
 {
-    int fd_dsdt, fd_out, i, j;
-    unsigned long dsdt_len;
-    short size, padding;
-    unsigned char *dsdt;
-    unsigned short New_Dsdt_Size;
+    int i, j;
+    UINT8 ret;
+    INT16 DSDTSizeDiff, padding;
+    UINT16 DSDTSizeNew;
+    UINT32 DSDTLen, AmiLen;
+    QByteArray amiToEdit;
     
     
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     EFI_IMAGE_NT_HEADERS64 *HeaderNT;
     EFI_IMAGE_SECTION_HEADER *Section;
 
+    amiToEdit = amiboard;
     
-    dsdt = (unsigned char *)malloc(0x10000);
+    DSDTLen = dsdt.size(); //physical size
+    AmiLen = amiToEdit.size();
     
-    
-    fd_dsdt = open(FileName, O_RDWR | O_NONBLOCK);
-    
-    if (fd_dsdt < 0)
-    {
-        printf("\n\n\n\n\n\n\n\nFile %s does not exist\n",FileName);
-        free(dsdt);
-        return 0;
-    }
-    //Read DSDT into buffer
-    dsdt_len = read(fd_dsdt, dsdt, 0xFFFF);
-    close(fd_dsdt);
-    
-    if (!((dsdt[0] =='D') && (dsdt[1] =='S') && (dsdt[2] =='D') && (dsdt[3] =='T')))
-    {
-        printf("\n\n\n\n\n\n\n\nFile %s has bad header\n",FileName);
-        free(dsdt);
-        return 0;
+    if(!dsdt.startsWith(DSDT_HEADER)) {
+        printf("ERROR: DSDT has invalid header. Aborting!\n");
+        return ERR_INVALID_FILE;
     }
     
-    
-    //Check is not in good place but it's faster to me to put here ;)
-    for (i = 0 ; i < len ; i++)
-    {
-        if (((d[i+0] =='.') && (d[i+1] =='R') && (d[i+2] =='O') && (d[i+3] =='M')))
-        {
-            printf("\n\n\n\n\n\n\n\nFile has .ROM section, it can't be patched\n");
-            free(dsdt);
-            return 0;
-        }
+    if(dsdt.indexOf(UNPATCHABLE_SECTION) > 0) {
+        printf("ERROR: AmiBoardInfo contains '.ROM' section => unpatchable atm. Aborting!\n");
+        return ERR_INVALID_SECTION;
     }
         
-    New_Dsdt_Size = (dsdt[5] << 8) + dsdt[4];
+    DSDTSizeNew = (dsdt.at(5) << 8) + dsdt.at(4);//size from DSDT itself
     
-    size = New_Dsdt_Size - Old_Dsdt_Size;
-    padding = (0x10-(len+size))&0x0f;
-    size += padding + *reloc_padding;
+    if(DSDTSizeNew != DSDTLen) {
+        printf("ERROR: Size of DSDT differs from passed data to in-code define. Aborting!\n");
+        return ERR_ERROR;
+    }
+
+    DSDTSizeDiff = DSDTSizeNew - DSDTSizeOld;
+    padding = (0x10-(AmiLen+DSDTSizeDiff))&0x0f;
+    DSDTSizeDiff += padding + relocPadding;
     
-    if ((len+size) > 0xFFFF)
+    if ((AmiLen+DSDTSizeDiff) > 0xFFFF)
     {
-        printf("\n\n\n\n\n\n\n\nFinal size > 0xFFFF not tested aborting\n");
-        free(dsdt);
-        return 0;
+        printf("ERROR: Final size exceeds limit of %i (0x%X). Aborting!\n", 0xFFFF, 0xFFFF);
+        return ERR_BUFFER_TOO_SMALL;
     }
     
-    memcpy(&d[Old_Dsdt_Ofs+Old_Dsdt_Size+size],&d[Old_Dsdt_Ofs+Old_Dsdt_Size],len - Old_Dsdt_Ofs - Old_Dsdt_Size);
-
-    memset(&d[Old_Dsdt_Ofs],0x00,New_Dsdt_Size + padding + *reloc_padding);
+    amiToEdit = amiToEdit.replace(DSDTOffsetOld+DSDTSizeOld+DSDTSizeDiff, AmiLen-DSDTOffsetOld-DSDTSizeOld, amiToEdit.constData()+DSDTOffsetOld+DSDTSizeOld);
+    memset(amiToEdit.mid(DSDTOffsetOld).data_ptr(), 0, DSDTSizeNew+padding+relocPadding);
+    amiToEdit = amiToEdit.replace(DSDTOffsetOld, DSDTSizeNew, dsdt);
     
-    
-    memcpy(&d[Old_Dsdt_Ofs],dsdt,New_Dsdt_Size);
-    
-    
-    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)&d[0];
-    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)&d[HeaderDOS->e_lfanew];
+    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiToEdit.data_ptr();
+    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)amiToEdit.mid(HeaderDOS->e_lfanew).data_ptr();
     
     if ( debug ) printf("Patching header\n");
     if ( debug ) printf("---------------\n\n");
     if ( debug ) printf("SizeOfInitializedData       \t0x%x",HeaderNT->OptionalHeader.SizeOfInitializedData);
-    HeaderNT->OptionalHeader.SizeOfInitializedData += size;
+    HeaderNT->OptionalHeader.SizeOfInitializedData += DSDTSizeDiff;
     if ( debug ) printf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfInitializedData);
     if ( debug ) printf("SizeOfImage                 \t0x%x",HeaderNT->OptionalHeader.SizeOfImage);
-    HeaderNT->OptionalHeader.SizeOfImage += size;
+    HeaderNT->OptionalHeader.SizeOfImage += DSDTSizeDiff;
     if ( debug ) printf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfImage);
     
     for ( i = 0; i < EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES ;i++)
@@ -259,17 +222,17 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
         if ( HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress != 0 )
         {
             if ( debug ) printf("DataDirectory               \t0x%x",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
-            HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress += size;
+            HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress += DSDTSizeDiff;
             if ( debug ) printf("\t -> \t0x%x\n\n",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
         }
     }
     
     
-    Section = (EFI_IMAGE_SECTION_HEADER *)&d[HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64)];
+    Section = (EFI_IMAGE_SECTION_HEADER *)amiToEdit.mid(HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64)).data_ptr();//[HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64)];
     if ( debug ) printf("Patching sections\n");
     if ( debug ) printf("-----------------\n\n");
-    unsigned int Found = 0;
-    
+
+    UINT32 Found = 0;
 
     for ( i = 0 ; i < HeaderNT->FileHeader.NumberOfSections; i++)
     {
@@ -281,10 +244,10 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
     
                 if ( debug ) printf("Name                         \t%s\t -> \t %s\n",Section[i].Name,Section[i].Name);
                 if ( debug ) printf("PhysicalAddress             \t0x%x",Section[i].Misc.PhysicalAddress);
-                Section[i].Misc.PhysicalAddress += size;
+                Section[i].Misc.PhysicalAddress += DSDTSizeDiff;
                 if ( debug ) printf("\t -> \t0x%x\n",Section[i].Misc.PhysicalAddress);
                 if ( debug ) printf("SizeOfRawData               \t0x%x",Section[i].SizeOfRawData);
-                Section[i].SizeOfRawData += size;
+                Section[i].SizeOfRawData += DSDTSizeDiff;
                 if ( debug ) printf("\t -> \t0x%x\n\n",Section[i].SizeOfRawData);
             }
             else
@@ -292,10 +255,10 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
                 if (!strcmp((char *)&Section[i].Name,"")) strcpy((char *)&Section[i].Name,".empty");
                 if ( debug ) printf("Name                        \t%s\t -> \t%s\n",Section[i].Name,Section[i].Name);
                 if ( debug ) printf("VirtualAddress              \t0x%x",Section[i].VirtualAddress);
-                Section[i].VirtualAddress += size;
+                Section[i].VirtualAddress += DSDTSizeDiff;
                 if ( debug ) printf("\t -> \t0x%x\n",Section[i].VirtualAddress);
                 if ( debug ) printf("PointerToRawData            \t0x%x",Section[i].PointerToRawData);
-                Section[i].PointerToRawData += size;
+                Section[i].PointerToRawData += DSDTSizeDiff;
                 if ( debug ) printf("\t -> \t0x%x\n\n",Section[i].PointerToRawData);
                 
                 if ( !strcmp((char *)&Section[i].Name, ".reloc" ) )
@@ -314,7 +277,7 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
                     UINT32 OldOfs = 0;
                     do
                     {
-                        p = (EFI_IMAGE_BASE_RELOCATION *)(&d[Section[i].PointerToRawData]) + Offset;
+                        p = (EFI_IMAGE_BASE_RELOCATION *)(amiToEdit.mid(Section[i].PointerToRawData).data_ptr()) + Offset;
                         Offset = p->SizeOfBlock / sizeof(UINT32);
                         sizeSection += p->SizeOfBlock;
                         s = (UINT16 *)p + 4;
@@ -322,7 +285,7 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
                         index = 0;
                         if ( debug ) printf("Virtual base address           \t0x%04x",p->VirtualAddress);
                         OldAdr = p->VirtualAddress;
-                        if (p->VirtualAddress != 0 ) p->VirtualAddress =(len + size) & 0xf000;
+                        if (p->VirtualAddress != 0 ) p->VirtualAddress =(AmiLen + DSDTSizeDiff) & 0xf000;
                         
                         if ( debug ) printf("\t -> \t0x%04x\n",p->VirtualAddress);
 
@@ -331,7 +294,7 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
                             if (*s != 0)
                             {
                                 if ( debug ) printf("Table index %i                \t0x%04x",index++, OldAdr + (*s & 0xfff));
-                                if (p->VirtualAddress != 0 ) *s = 0xa000 + ((*s + size ) & 0xfff);
+                                if (p->VirtualAddress != 0 ) *s = 0xa000 + ((*s + DSDTSizeDiff ) & 0xfff);
                                 if ( debug ) printf("\t -> \t0x%04x\n",p->VirtualAddress + (*s & 0xfff));
                             }
                             if (p->VirtualAddress != 0 )OldOfs = *s & 0xfff;
@@ -340,12 +303,17 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
                             {
                                 if (j < ( p->SizeOfBlock - 8 - 4) )
                                 {
-                                    if ( OldOfs > ((*s +size) & 0xfff))
+                                    if ( OldOfs > ((*s +DSDTSizeDiff) & 0xfff))
                                     {
-                                        *reloc_padding = ( 0x10 + (0x1000 - OldOfs)) & 0xff0 ;
-                                        if ( debug ) printf(" error %04X \n",*reloc_padding);
-                                        free(dsdt);
-                                        return 1;
+                                        relocPadding = ( 0x10 + (0x1000 - OldOfs)) & 0xff0 ;
+                                        if(firstRun) {
+                                            printf("Failed on 1st run.. retrying with padding of %x!\n",relocPadding);
+                                            ret = injectIntoAmiBoardInfo(amiboard, dsdt, DSDTOffsetOld, DSDTSizeOld, out, FALSE, relocPadding); //Recalling THIS function
+                                        }
+                                        else
+                                            printf("ERROR: Sorry, failed on second patching run. Aborting!\n");
+
+                                        return ret;
                                     }
                                 }
                             }
@@ -356,24 +324,19 @@ unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned ch
             }
         }
     }
-   
-    char *homeDir = getenv("HOME");
-    char FileOutput[256];
-    strcpy(FileOutput,homeDir);
-    strcat(FileOutput,"/Desktop/AmiBoardInfo.bin");
-    remove(FileOutput);
+
     if ( debug ) printf("Patching adr in code\n");
     if ( debug ) printf("--------------------\n\n");
-    if ( Disass(&d[HeaderNT->OptionalHeader.BaseOfCode],HeaderNT->OptionalHeader.SizeOfCode, size) )
+    if (!Disass((UINT8 *)amiToEdit.mid(HeaderNT->OptionalHeader.BaseOfCode).data_ptr(),HeaderNT->OptionalHeader.SizeOfCode, DSDTSizeDiff))
     {
-        fd_out = open(FileOutput, O_CREAT | O_RDWR | O_NONBLOCK, 0666 );
-        write(fd_out,d,len+size);
-        close(fd_out);
-        //printf("\nDSDT-Original.aml has been successfully created\n\n");
-        //printf("AmiBoardInfo.bin has been successfully created\n\n";
+        printf("Successfully patched AmiBoardInfo to new offset :) All credits to FredWst!\n");
+        out.clear();
+        out.append(amiToEdit, AmiLen+DSDTSizeDiff);
     }
-    else
-        printf("\n\n\n\n\n\n\n\nCode not patched, AmiBoardInfo.bin has not been created\n\n");
+    else {
+        printf("AmiBoardInfo Code not patched :( All credits to noob tuxuser, who fucked up!\n\n");
+        return ERR_ERROR;
+    }
 
-    return 0;
+    return ERR_SUCCESS;
 }

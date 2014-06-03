@@ -1,20 +1,23 @@
 #ifndef DSDT2BIOS_H
 #define DSDT2BIOS_H
 
+#include <QByteArray>
+#include <capstone/capstone.h>
 #include <../basetypes.h>
 
-#define debug 1
+#define DSDT_HEADER "DSDT"
+#define UNPATCHABLE_SECTION ".ROM"
 
 class Dsdt2Bios
 {
 public:
-    unsigned int getFromAmiBoardInfo(const char *FileName, unsigned char *d,unsigned long *len, unsigned short *Old_Dsdt_Size, unsigned short *Old_Dsdt_Ofs, int Extract);
-    unsigned int injectIntoAmiBoardInfo(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding);
+    UINT8 getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, UINT16 & DSDTSize);
+    UINT8 injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT16 DSDTOffsetOld, UINT16 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding = 0);
 
 private:
     csh handle;
     UINT64 insn_detail(csh ud, cs_mode mode, cs_insn *ins);
-    int Disass(unsigned char *X86_CODE64, int CodeSize, int size);
+    UINT8 Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size);
 };
 
 struct platform

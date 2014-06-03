@@ -2,6 +2,7 @@
 #include <QDateTime>
 #include <plist/Plist.hpp>
 #include "ffs/kextconvert.h"
+#include "dsdt2bios/Dsdt2Bios.h"
 #include "wrapper.h"
 
 Wrapper::Wrapper(void)
@@ -18,7 +19,7 @@ Wrapper::~Wrapper(void)
 
 UINT8 Wrapper::fileOpen(QString path, QByteArray & buf)
 {
-    QFileInfo fileInfo = QFileInfo(path);
+    QFileInfo fileInfo(path);
 
     if (!fileInfo.exists())
         return ERR_FILE_NOT_FOUND;
@@ -39,7 +40,7 @@ UINT8 Wrapper::fileOpen(QString path, QByteArray & buf)
 
 UINT8 Wrapper::fileWrite(QString path, QByteArray & buf)
 {
-    QFileInfo fileInfo = QFileInfo(path);
+    QFileInfo fileInfo(path);
 
     if (fileInfo.exists())
         return ERR_FILE_EXISTS;
@@ -89,19 +90,6 @@ QString Wrapper::pathConcatenate(QString path, QString filename)
     return QDir(path).filePath(filename);
 }
 
-UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
-{
-    int i;
-    UINT32 tmp = 0;
-    for(i = start; i < (start+4); i++)
-    {
-         tmp = (tmp << 8) + buf.at(i);
-    }
-    if (fromBE)
-        return qFromBigEndian(tmp);
-    return tmp;
-}
-
 UINT32 Wrapper::getDateTime()
 {
     QDateTime dateTime = QDateTime::currentDateTime();
@@ -147,26 +135,17 @@ UINT8 Wrapper::parseBIOSFile(QByteArray & buf)
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::getDSDTfromAMI(QByteArray & in, QByteArray & out)
+UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
 {
-    INT32 tmp = 0;
-    UINT32 size_start = 0;
+    UINT8 ret;
+    UINT16 start = 0;
+    UINT16 size = 0;
 
-    UINT32 start = 0;
-    UINT32 size = 0;
-    static const QString MAGIC = "DSDT";
+    Dsdt2Bios d2b;
 
-    tmp = in.indexOf(MAGIC, start);
-    if (tmp < 0)
-        return ERR_ITEM_NOT_FOUND;
-
-    start = tmp;
-    size_start = start + MAGIC.size();
-
-    size = getUInt32(in, size_start, true);
-
-    if((start+size) > in.size())
-        return ERR_INVALID_SECTION;
+    ret = d2b.getFromAmiBoardInfo(in, start, size);
+    if(ret)
+        return ret;
 
     out.clear();
     /* ToDo: Why is DSDT one byte too long */

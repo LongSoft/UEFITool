@@ -22,7 +22,7 @@ public:
     UINT8 dumpSectionByName(QString name, QByteArray & buf, UINT8 mode);
     UINT8 dumpSectionByGUID(QString guid, QByteArray & buf, UINT8 mode);
     UINT8 parseBIOSFile(QByteArray & buf);
-    UINT8 getDSDTfromAMI(QByteArray & in, QByteArray & out);
+    UINT8 getDSDTfromAMI(QByteArray in, QByteArray & out);
     UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out);
     UINT8 kext2ffs(QString basename, QString GUID, QByteArray inputbinary, QByteArray & output);
 
