@@ -20,6 +20,7 @@
 //
 //***************************************************
 
+#include <QtEndian>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -63,7 +64,7 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
         {
 			.arch = CS_ARCH_X86,
 			.mode = CS_MODE_64,
-			.code = (unsigned char *)X86_CODE64,
+            .code = (UINT8 *)X86_CODE64,
 			.size = CodeSize - 1,
             .comment = "X86 64 (Intel syntax)"
         }
@@ -112,11 +113,11 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
     return ret;
 }
 
-UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, UINT16 & DSDTSize)
+UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT32 & DSDTOffset, UINT32 & DSDTSize)
 {
-    INT16  ret;
-    UINT16 offset;
-    UINT16 size;
+    INT32  ret;
+    UINT32 offset;
+    UINT32 size = 0;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     
     if(!amiboard.size()) {
@@ -142,7 +143,12 @@ UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, U
     }
 
     offset = ret;
-    size = (amiboard.at(offset+5) << 8) + amiboard.at(offset+4);
+
+    size = (size << 8) + amiboard.at(offset+4);
+    size = (size << 8) + amiboard.at(offset+5);
+    size = (size << 8) + amiboard.at(offset+6);
+    size = (size << 8) + amiboard.at(offset+7);
+    size = qFromBigEndian(size);
 
     if(size > (amiboard.size()-offset)) {
         printf("ERROR: Read invalid size from DSDT. Aborting!\n");
@@ -155,13 +161,12 @@ UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, U
     return ERR_SUCCESS;
 }
 
-UINT8 Dsdt2Bios::injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT16 DSDTOffsetOld, UINT16 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding)
-//unsigned int Dsdt2Bios::injectIntoAmiBoardInfo(const char *FileName, unsigned char *d, unsigned long len, unsigned short Old_Dsdt_Size, unsigned short Old_Dsdt_Ofs, unsigned short *reloc_padding)
+UINT8 Dsdt2Bios::injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT32 DSDTOffsetOld, UINT32 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding)
 {
     int i, j;
     UINT8 ret;
-    INT16 DSDTSizeDiff, padding;
-    UINT16 DSDTSizeNew;
+    INT32 DSDTSizeDiff, padding;
+    UINT32 DSDTSizeNew = 0;
     UINT32 DSDTLen, AmiLen;
     QByteArray amiToEdit;
     
@@ -184,13 +189,17 @@ UINT8 Dsdt2Bios::injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UI
         printf("ERROR: AmiBoardInfo contains '.ROM' section => unpatchable atm. Aborting!\n");
         return ERR_INVALID_SECTION;
     }
-        
-    DSDTSizeNew = (dsdt.at(5) << 8) + dsdt.at(4);//size from DSDT itself
+
+    DSDTSizeNew = (DSDTSizeNew << 8) + dsdt.at(4);
+    DSDTSizeNew = (DSDTSizeNew << 8) + dsdt.at(5);
+    DSDTSizeNew = (DSDTSizeNew << 8) + dsdt.at(6);
+    DSDTSizeNew = (DSDTSizeNew << 8) + dsdt.at(7);
+    DSDTSizeNew = qFromBigEndian(DSDTSizeNew);
     
-//    if(DSDTSizeNew != DSDTLen) {
-//        printf("ERROR: Size of DSDT differs from passed data to in-code define. Aborting!\n");
-//        return ERR_ERROR;
-//    }
+    if(DSDTSizeNew != DSDTLen) {
+        printf("ERROR: Size of DSDT differs from passed data to in-code define. Aborting!\n");
+        return ERR_ERROR;
+    }
 
     DSDTSizeDiff = DSDTSizeNew - DSDTSizeOld;
     padding = (0x10-(AmiLen+DSDTSizeDiff))&0x0f;

@@ -17,6 +17,8 @@ public:
     BOOLEAN dirExists(QString path);
     QString pathConcatenate(QString path, QString filename);
     UINT32 getDateTime();
+    UINT16 getUInt16(QByteArray & buf, UINT32 start, bool fromBE);
+    UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE);
     /* Specific stuff */
     UINT8 dumpSectionByName(QString name, QByteArray & buf, UINT8 mode);
     UINT8 dumpSectionByGUID(QString guid, QByteArray & buf, UINT8 mode);

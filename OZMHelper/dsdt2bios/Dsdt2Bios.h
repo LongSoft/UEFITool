@@ -11,8 +11,8 @@
 class Dsdt2Bios
 {
 public:
-    UINT8 getFromAmiBoardInfo(QByteArray amiboard, UINT16 & DSDTOffset, UINT16 & DSDTSize);
-    UINT8 injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT16 DSDTOffsetOld, UINT16 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding = 0);
+    UINT8 getFromAmiBoardInfo(QByteArray amiboard, UINT32 &DSDTOffset, UINT32 &DSDTSize);
+    UINT8 injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UINT32 DSDTOffsetOld, UINT32 DSDTSizeOld, QByteArray & out, BOOLEAN firstRun, UINT16 relocPadding = 0);
 
 private:
     UINT64 insn_detail(csh ud, cs_mode mode, cs_insn *ins);

@@ -96,6 +96,34 @@ UINT32 Wrapper::getDateTime()
     return dateTime.toTime_t();
 }
 
+UINT16 Wrapper::getUInt16(QByteArray & buf, UINT32 start, bool fromBE)
+{
+    UINT16 tmp = 0;
+
+    tmp = (tmp << 8) + buf.at(start+0);
+    tmp = (tmp << 8) + buf.at(start+1);
+
+    if(fromBE)
+        return qFromBigEndian(tmp);
+    else
+        return tmp;
+}
+
+UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
+{
+    UINT32 tmp = 0;
+
+    tmp = (tmp << 8) + buf.at(start+0);
+    tmp = (tmp << 8) + buf.at(start+1);
+    tmp = (tmp << 8) + buf.at(start+2);
+    tmp = (tmp << 8) + buf.at(start+3);
+
+    if(fromBE)
+        return qFromBigEndian(tmp);
+    else
+        return tmp;
+}
+
 /* Specific stuff */
 
 UINT8 Wrapper::dumpSectionByName(QString name, QByteArray & buf, UINT8 mode)
@@ -138,8 +166,8 @@ UINT8 Wrapper::parseBIOSFile(QByteArray & buf)
 UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
 {
     UINT8 ret;
-    UINT16 start = 0;
-    UINT16 size = 0;
+    UINT32 start = 0;
+    UINT32 size = 0;
 
     Dsdt2Bios d2b;
 
@@ -161,7 +189,7 @@ UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & 
 {
     UINT8 ret;
     Dsdt2Bios d2b;
-    UINT16 offset, size;
+    UINT32 offset, size;
 
     ret = d2b.getFromAmiBoardInfo(amiboardinfo, offset, size);
     if(ret)
