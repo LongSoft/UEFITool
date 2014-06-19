@@ -86,6 +86,7 @@ public:
     UINT8 remove(const QModelIndex & index);
     UINT8 rebuild(const QModelIndex & index);
     UINT8 dump(const QModelIndex & index, const QString path);
+    UINT8 patch(const QModelIndex & index, const QByteArray & findPattern, const QByteArray & replacePattern, const UINT8 mode);
 
     // Search routines
     UINT8 findHexPattern(const QByteArray & pattern, const UINT8 mode);

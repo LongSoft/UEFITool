@@ -1132,7 +1132,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_PEI_DEPEX:
     case EFI_SECTION_SMM_DEPEX:
     case EFI_SECTION_COMPATIBILITY16: {
-        headerSize = sizeOfSectionHeaderOfType(sectionHeader->Type);
+        headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
         body = section.mid(headerSize, sectionSize - headerSize);
 
@@ -1509,12 +1509,12 @@ UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, co
     else if (model->type(parent) == Types::File) {
         type = Types::Section;
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)object.constData();
-        headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+        headerSize = sizeOfSectionHeader(commonHeader);
     }
     else if (model->type(parent) == Types::Section) {
         type = Types::Section;
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)object.constData();
-        headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+        headerSize = sizeOfSectionHeader(commonHeader);
     }
     else
         return ERR_NOT_IMPLEMENTED;
@@ -1549,7 +1549,7 @@ UINT8 FfsEngine::replace(const QModelIndex & index, const QByteArray & object, c
     else if (model->type(index) == Types::Section) {
         if (mode == REPLACE_MODE_AS_IS) {
             EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)object.constData();
-            headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+            headerSize = sizeOfSectionHeader(commonHeader);
             result = create(index, Types::Section, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER, Actions::Replace);
         }
         else if (mode == REPLACE_MODE_BODY) {
@@ -1754,7 +1754,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             // Shitty compressed section with a section header between COMPRESSED_SECTION_HEADER and LZMA_HEADER
             // We must determine section header size by checking it's type before we can unpack that non-standard compressed section
             shittySectionHeader = (EFI_COMMON_SECTION_HEADER*)data;
-            shittySectionSize = sizeOfSectionHeaderOfType(shittySectionHeader->Type);
+            shittySectionSize = sizeOfSectionHeader(shittySectionHeader);
 
             // Decompress section data once again
             data += shittySectionSize;
@@ -1852,7 +1852,7 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
     {
         QByteArray header = data.left(sizeof(EFI_COMMON_SECTION_HEADER));
         EFI_COMMON_SECTION_HEADER* sectionHeader = (EFI_COMMON_SECTION_HEADER*)header.constData();
-        UINT32 headerSize = sizeOfSectionHeaderOfType(sectionHeader->Type);
+        UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
         header = data.left(headerSize);
         QByteArray newData = data.mid(headerSize);
         if (LzmaCompress((UINT8*)newData.constData(), newData.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
@@ -3198,3 +3198,48 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
     return ERR_SUCCESS;
 }
 
+UINT8 FfsEngine::patch(const QModelIndex & index, const QByteArray & findPattern, const QByteArray & replacePattern, const UINT8 mode)
+{
+    if (!index.isValid() || findPattern.isEmpty())
+        return ERR_INVALID_PARAMETER;
+
+    // Skip removed files
+    if (model->action(index) == Actions::Remove)
+        return ERR_SUCCESS;
+
+    // Patch header 
+    if (mode == PATCH_MODE_HEADER && model->header(index).contains(findPattern)) {
+        QByteArray patched = model->header(index);
+        patched.replace(findPattern, replacePattern).append(model->body(index));
+        msg(tr("Header of %1 patched, %2 -> %3")
+            .arg(model->nameString(index))
+            .arg(QString(findPattern.toHex()))
+            .arg(QString(replacePattern.toHex())), index);
+        return replace(index, patched, REPLACE_MODE_AS_IS);
+    }
+    // Patch body
+    else if (mode == PATCH_MODE_BODY) {
+        if (model->rowCount(index)) {
+            UINT8 result;
+            for (int i = 0; i < model->rowCount(index); i++) {
+                result = patch(index.child(i, 0), findPattern, replacePattern, PATCH_MODE_BODY);
+                if (result)
+                    return result;
+            }
+        }
+        else if (model->body(index).contains(findPattern)){
+            QByteArray patched = model->body(index);
+            patched.replace(findPattern, replacePattern);
+            patched.prepend(model->header(index));
+            msg(tr("Body of %1 patched, %2 -> %3")
+                .arg(model->nameString(index))
+                .arg(QString(findPattern.toHex()))
+                .arg(QString(replacePattern.toHex())), index);
+            return replace(index, patched, REPLACE_MODE_AS_IS);
+        }
+    }
+    else
+        return ERR_UNKNOWN_PATCH_MODE;
+
+    return ERR_SUCCESS;
+}

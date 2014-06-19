@@ -85,6 +85,7 @@ typedef uint16_t  CHAR16;
 #define ERR_COMPLEX_BLOCK_MAP               35
 #define ERR_DIR_ALREADY_EXIST               36
 #define ERR_DIR_CREATE                      37
+#define ERR_UNKNOWN_PATCH_MODE              38
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms
@@ -109,6 +110,10 @@ typedef uint16_t  CHAR16;
 #define REPLACE_MODE_AS_IS    0
 #define REPLACE_MODE_BODY     1
 
+// Item patch modes
+#define PATCH_MODE_HEADER     0
+#define PATCH_MODE_BODY       1
+
 // Erase polarity types
 #define ERASE_POLARITY_FALSE   0
 #define ERASE_POLARITY_TRUE    1
@@ -118,6 +123,8 @@ typedef uint16_t  CHAR16;
 #define SEARCH_MODE_HEADER  1
 #define SEARCH_MODE_BODY    2
 #define SEARCH_MODE_ALL     3
+
+
 
 // EFI GUID
 typedef struct {
