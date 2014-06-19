@@ -4,6 +4,7 @@ QT       -= gui
 TARGET    = UEFIPatch
 TEMPLATE  = app
 CONFIG   += console
+CONFIG   -= app_bundle
 DEFINES  += _CONSOLE
 
 SOURCES  += uefipatch_main.cpp \
