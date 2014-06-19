@@ -4,6 +4,7 @@ QT       -= gui
 TARGET    = UEFIExtract
 TEMPLATE  = app
 CONFIG   += console
+CONFIG   -= app_bundle
 DEFINES  += _CONSOLE
 
 SOURCES  += uefiextract_main.cpp \
