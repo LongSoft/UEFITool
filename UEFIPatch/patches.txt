@@ -1,3 +1,12 @@
+# You can add your own patch here
+# Format is simple: "file_GUID search_pattern replace_pattern"
+# String beginned with '#' symbol is a comment and will be ignored by the program
+
+#----------------------------------------------------------------------------------
+# OSX CPU Power Management Patches
+# Remove lock from MSR 0xE2 register
+#----------------------------------------------------------------------------------
+
 # PowerMgmtDxe | Haswell
 F7731B4C-58A2-4DF4-8980-5645D39ECE58 75080FBAE80F89442430 EB080FBAE80F89442430
 # PowerMgmtDxe | Haswell-E
@@ -11,7 +20,4 @@ F7731B4C-58A2-4DF4-8980-5645D39ECE58 0FBA6C24380F 0FBA7424380F
 # CpuPei | Sandy Bridge with ME 7.xx, old SB-E/IB-E
 2BB5AFA9-FF33-417B-8497-CB773C2B93BF 800018EB050D0080 000018EB050D0000
 
-# You can add your own patch here
-# Format is simple: "file_GUID search_pattern replace_pattern"
-# String beginned with '#' symbol is a comment and will be ignored by the program
 
