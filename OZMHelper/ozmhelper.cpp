@@ -11,27 +11,48 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include <QDirIterator>
+#include <../ffs.h>
 #include "ozmhelper.h"
 
 static const QString DSDTFilename =  "DSDT.aml";
-static const QString AmiBoardFilename = "AmiBoardInfo";
+
+#define requiredFfsCount 6
+
+static const sectionEntry requiredFfs[] = {
+  {"PartitionDxe","1FA1F39E-FEFF-4AAE-BD7B-38A070A3B609",TRUE},
+  {"EnhancedFat","961578FE-B6B7-44C3-AF35-6BC705CD2B1F",TRUE},
+  {"HfsPlus","4CF484CD-135F-4FDC-BAFB-1AA104B48D36",TRUE},
+  {"Ozmosis","AAE65279-0761-41D1-BA13-4A3C1383603F",TRUE},
+  {"OzmosisDefaults","99F2839C-57C3-411E-ABC3-ADE5267D960D",TRUE},
+  {"SmcEmulatorKext","DADE1001-1B31-4FE4-8557-26FCEFC78275",TRUE}
+};
+
+#define optionalFfsCount 5
+
+static const sectionEntry optionalFfs[] = {
+  {"ExtFs","B34E5765-2E04-4DAF-867F-7F40BE6FC33D", FALSE},
+  {"HermitShellX64","C57AD6B7-0515-40A8-9D21-551652854E37", FALSE},
+  {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", FALSE},
+  {"DisablerKext","DADE1002-1B31-4FE4-8557-26FCEFC78275", FALSE},
+  {"InjectorKext","DADE1003-1B31-4FE4-8557-26FCEFC78275", FALSE}
+};
+
+static const sectionEntry amiBoardSection = {
+  "AmiBoardInfo","9F3A0016-AE55-4288-829D-D22FD344C347", TRUE
+};
+
+static QList<sectionEntry> OzmFfs;
 
 OZMHelper::OZMHelper(QObject *parent) :
     QObject(parent)
 {
     wrapper = new Wrapper();
-    ozmFFS.append("DisablerKext"); //optional
-    ozmFFS.append("EnhancedFat"); // optional
-    ozmFFS.append("ExtFs"); // optional
-    ozmFFS.append("HermitShellX64"); // optional
-    ozmFFS.append("HfsPlus");
-    ozmFFS.append("InjectorKext"); // optional
-    ozmFFS.append("Ozmosis");
-    ozmFFS.append("OzmosisTheme"); // optional, needed for Pos1-key bootmenu
-    ozmFFS.append("OzmosisDefaults");
-    ozmFFS.append("PartitionDxe"); // optional - for nonEFI/MBR/Windows needed
-    ozmFFS.append("SmcEmulatorKext");
+    for(int i = 0; i < requiredFfsCount; i++) {
+        OzmFfs.append(requiredFfs[i]);
+    }
+    for(int i = 0; i < optionalFfsCount; i++) {
+        OzmFfs.append(optionalFfs[i]);
+    }
 }
 
 OZMHelper::~OZMHelper()
@@ -62,7 +83,7 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
 
     buf.clear();
 
-    ret = wrapper->dumpSectionByName(AmiBoardFilename, buf, EXTRACT_MODE_BODY);
+    ret = wrapper->dumpSectionByGUID(amiBoardSection.name, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
     if (ret) {
         return ret;
     }
@@ -72,7 +93,7 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
         return ret;
     }
 
-    outputFile = wrapper->pathConcatenate(output, AmiBoardFilename);
+    outputFile = wrapper->pathConcatenate(output, amiBoardSection.name);
 
     ret = wrapper->fileWrite(outputFile, buf);
     if (ret) {
@@ -116,16 +137,15 @@ UINT8 OZMHelper::OZMExtract(QString input, QString output)
         return ret;
     }
 
-    for(i=0; i<ozmFFS.size(); i++) {
-        /* ToDo: RATHER LOOK FOR GUID ? */
-        ret = wrapper->dumpSectionByName(ozmFFS.at(i), buf, EXTRACT_MODE_AS_IS);
+    for(i=0; i<OzmFfs.size(); i++) {
+        ret = wrapper->dumpFileByGUID(OzmFfs.at(i).GUID, buf, EXTRACT_MODE_AS_IS);
         if (ret == ERR_ITEM_NOT_FOUND)
             continue;
         if (ret) {
             return ret;
         }
 
-        outputFile = wrapper->pathConcatenate(output,(ozmFFS.at(i)+".ffs"));
+        outputFile = wrapper->pathConcatenate(output,(OzmFfs.at(i).name+".ffs"));
 
         ret = wrapper->fileWrite(outputFile, buf);
         if (ret) {
@@ -143,6 +163,7 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
     UINT8 ret;
     QByteArray buf;
     QString outputFile;
+    QFileInfo inputfile(input);
 
     if (!wrapper->dirExists(inputFFS)) {
         return ERR_ITEM_NOT_FOUND;
@@ -174,10 +195,18 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
         return ret;
     }
 
+    // Inject DSDT.aml
+
+    // Get Last Sibling
+    // Inject InputFFS
+    // Convert Kext to FFS
+    // Inject Kext FFS
+
+
     /* ToDo: Implement this */
     buf.append("OZM");
 
-    outputFile = wrapper->pathConcatenate(output,wrapper->getDateTime() + ".OZM");
+    outputFile = wrapper->pathConcatenate(output,inputfile.fileName() + ".OZM");
 
     ret = wrapper->fileWrite(outputFile, buf);
     if (ret) {
@@ -189,33 +218,10 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
 
 UINT8 OZMHelper::FFSConvert(QString input, QString output)
 {
-    UINT8 nullterminator = 0;
     UINT8 ret;
-    UINT32 GUIDindex;
-    UINT32 GUIDindexCount;
-    QByteArray plist;
-    QByteArray plistBinary;
-    QByteArray binary;
-    QByteArray inputBinary;
-    QByteArray out;
     QList<kextEntry> toConvert;
-    kextEntry mKextEntry;
-    QString basename;
-    QString sectionName;
     QString filename;
-    QDir dir;
-
-    QFileInfo binaryPath;
-    QFileInfo plistPath;
-    QDirIterator di(input);
-
-    const static QString kextExtension = ".kext";
-    const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
-    const static QString ozmPlistGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D";
-    const static QString ozmPlistPath = wrapper->pathConcatenate(input, ozmDefaultsFilename);
-    const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275"; // %1 placeholder
-
-    GUIDindexCount = 6;
+    QByteArray out;
 
     if (!wrapper->dirExists(input)) {
         return ERR_DIR_NOT_EXIST;
@@ -226,108 +232,19 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
         return ret;
     }
 
-    if(wrapper->fileExists(ozmPlistPath)) {
-        mKextEntry.basename = "OzmosisDefaults";
-        mKextEntry.binaryPath = ozmPlistPath; // yes, Plist handled as binary
-        mKextEntry.plistPath = "";
-        mKextEntry.GUID = ozmPlistGUID;
-
-        toConvert.append(mKextEntry);
+    ret = wrapper->parseKextDirectory(input, toConvert);
+    if (ret) {
+        return ret;
     }
 
-    // Check all folders in input-dir
-    while (di.hasNext()) {
-
-        if(!di.next().endsWith(kextExtension))
-            continue;
-
-        basename = di.fileName().left(di.fileName().size()-kextExtension.size());
-
-        dir.setPath(di.filePath());
-        dir = dir.filePath("Contents");
-        plistPath.setFile(dir,"Info.plist");
-        dir = dir.filePath("MacOS");
-        binaryPath.setFile(dir, basename);
-
-        if (!dir.exists()) {
-            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/ missing!\n", qPrintable(di.fileName()));
-            return ERR_ERROR;
-        }
-
-        if (!plistPath.exists()) {
-            printf("ERROR: Kext-dir invalid: %s/Contents/Info.plist missing!\n", qPrintable(di.fileName()));
-            return ERR_ERROR;
-        }
-
-        if (!binaryPath.exists()) {
-            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/%s missing!\n",
-                                                    qPrintable(di.fileName()), qPrintable(basename));
-            return ERR_ERROR;
-        }
-
-        if(GUIDindexCount > 0xF) {
-            printf("ERROR: Reached maximum Kext-Count! Ignoring the rest...\n");
-            break;
-        }
-
-        if(!di.fileName().compare("FakeSMC.kext"))
-            GUIDindex = 1;
-        else if(!di.fileName().compare("Disabler.kext"))
-            GUIDindex = 2;
-        else if(!di.fileName().compare("Injector.kext"))
-            GUIDindex = 3;
-        else
-            GUIDindex = GUIDindexCount++;
-
-        mKextEntry.basename = basename;
-        mKextEntry.binaryPath = binaryPath.filePath();
-        mKextEntry.plistPath = plistPath.filePath();
-        mKextEntry.GUID = kextGUID.arg(GUIDindex, 0, 16);
-        toConvert.append(mKextEntry);
-    }
-
-
-    // Convert Kext to FFS
     for(int i=0; i < toConvert.size(); i++) {
-        inputBinary.clear();
-
-        if(toConvert.at(i).GUID.compare(ozmPlistGUID)) { // If NOT Ozmosis => check plist path
-            ret = wrapper->fileOpen(toConvert.at(i).plistPath, plist);
-            if(ret) {
-                printf("ERROR: Open failed: %s\n", qPrintable(toConvert.at(i).plistPath));
-                return ERR_ERROR;
-            }
-
-            ret = wrapper->getInfoFromPlist(plist, sectionName, plistBinary);
-            if(ret) {
-                printf("ERROR: Failed to get values/convert Info.plist\n");
-                return ERR_ERROR;
-            }
-
-            inputBinary.append(plistBinary);
-            inputBinary.append(nullterminator);
-        }
-        else {
-            sectionName = toConvert.at(i).basename;
-        }
-
-        ret = wrapper->fileOpen(toConvert.at(i).binaryPath, binary);
-        if(ret) {
-            printf("ERROR: Open failed: %s\n", qPrintable(toConvert.at(i).binaryPath));
-            return ERR_ERROR;
-        }
-        inputBinary.append(binary);
-
         out.clear();
-        ret = wrapper->kext2ffs(sectionName, toConvert.at(i).GUID, inputBinary, out);
-        if(ret) {
-            printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(toConvert.at(i).basename));
+
+        ret = wrapper->convertKexts(toConvert.at(i), out);
+        if(ret)
             return ERR_ERROR;
-        }
 
-        filename = QString("%1.ffs").arg(toConvert.at(i).basename);
-
-        wrapper->fileWrite(filename, out);
+        wrapper->fileWrite(toConvert.at(i).filename, out);
         if(ret) {
             printf("ERROR: Saving '%s'\n", qPrintable(filename));
             return ERR_ERROR;
@@ -379,6 +296,35 @@ UINT8 OZMHelper::DSDT2Bios(QString input, QString inputDSDT, QString output)
     if (ret) {
         return ret;
     }
+
+    return ERR_SUCCESS;
+}
+
+UINT8 OZMHelper::Test(QString input)
+{
+    int i = 0;
+    UINT8 ret;
+    QModelIndex idx;
+    QByteArray bios;
+    QByteArray out;
+
+    out.clear();
+
+    if (!wrapper->fileExists(input)) {
+        return ERR_ITEM_NOT_FOUND;
+    }
+
+    ret = wrapper->fileOpen(input, bios);
+    if (ret) {
+        return ret;
+    }
+
+    ret = wrapper->parseBIOSFile(bios);
+    if (ret) {
+        return ret;
+    }
+
+    // Do testing here
 
     return ERR_SUCCESS;
 }

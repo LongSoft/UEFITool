@@ -92,7 +92,6 @@ public:
     UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
     UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
     UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
-    QModelIndex findIndexByName(const QModelIndex index, const QString pattern);
 
 private:
     TreeModel *model;

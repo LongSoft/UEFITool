@@ -1,4 +1,5 @@
 #include <QtEndian>
+#include <QDirIterator>
 #include <QDateTime>
 #include <plist/Plist.hpp>
 #include "ffs/kextconvert.h"
@@ -126,31 +127,101 @@ UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 
 /* Specific stuff */
 
-UINT8 Wrapper::dumpSectionByName(QString name, QByteArray & buf, UINT8 mode)
+UINT8 Wrapper::findFileByGUID(const QModelIndex index, const QString guid, QModelIndex & result)
 {
-    QModelIndex index;
+    UINT8 ret;
+
+    if (!index.isValid()) {
+        return ERR_INVALID_SECTION;
+    }
+
+    if(!ffsEngine->treeModel()->nameString(index).compare(guid)) {
+        result = index;
+        return ERR_SUCCESS;
+    }
+
+    for (int i = 0; i < ffsEngine->treeModel()->rowCount(index); i++) {
+        QModelIndex childIndex = index.child(i, 0);
+        ret = findFileByGUID(childIndex, guid, result);
+        if(result.isValid() && (ret == ERR_SUCCESS))
+            return ERR_SUCCESS;
+    }
+    return ERR_ITEM_NOT_FOUND;
+}
+
+UINT8 Wrapper::findSectionByIndex(const QModelIndex index, UINT8 type, QModelIndex & result)
+{
+    UINT8 ret;
+
+    if (!index.isValid()) {
+        return ERR_INVALID_SECTION;
+    }
+
+    if(ffsEngine->treeModel()->subtype(index) == type) {
+        result = index;
+        return ERR_SUCCESS;
+    }
+
+    for (int i = 0; i < ffsEngine->treeModel()->rowCount(index); i++) {
+        QModelIndex childIndex = index.child(i, 0);
+        ret = findSectionByIndex(childIndex, type, result);
+        if(result.isValid() && (ret == ERR_SUCCESS))
+            return ERR_SUCCESS;
+    }
+    return ERR_ITEM_NOT_FOUND;
+}
+
+UINT8 Wrapper::dumpFileByGUID(QString guid, QByteArray & buf, UINT8 mode)
+{
+    UINT8 ret;
+    QModelIndex result;
     QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
 
-    index = ffsEngine->findIndexByName(rootIndex, name);
-    if(!index.isValid())
+    ret = findFileByGUID(rootIndex, guid, result);
+    if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    ffsEngine->extract(index, buf, mode);
+    ffsEngine->extract(result, buf, mode);
 
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::dumpSectionByGUID(QString guid, QByteArray & buf, UINT8 mode)
+UINT8 Wrapper::dumpSectionByGUID(QString guid, UINT8 type, QByteArray & buf, UINT8 mode)
 {
+    UINT8 ret;
+    QModelIndex resultFile;
+    QModelIndex resultSection;
+    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
+
+    ret = findFileByGUID(rootIndex, guid, resultFile);
+    if(ret)
+        return ERR_ITEM_NOT_FOUND;
+
+    ret = findSectionByIndex(resultFile, type, resultSection);
+    if(ret)
+        return ERR_ITEM_NOT_FOUND;
+
+    ffsEngine->extract(resultSection, buf, mode);
+
+    return ERR_SUCCESS;
+}
+
+UINT8 Wrapper::getLastSibling(QString guid, QModelIndex & result)
+{
+    int lastRow, column;
+    UINT8 ret;
     QModelIndex index;
     QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
 
-    index = ffsEngine->findIndexByName(rootIndex, guid);
-    if(!index.isValid())
+    ret = findFileByGUID(rootIndex, guid, index);
+    if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    ffsEngine->extract(index, buf, mode);
+    column = 0;
+    lastRow = ffsEngine->treeModel()->rowCount(index.parent());
+    lastRow--;
 
+    result = index.sibling(lastRow, column);
     return ERR_SUCCESS;
 }
 
@@ -176,10 +247,10 @@ UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
         return ret;
 
     out.clear();
-    /* ToDo: Why is DSDT one byte too long */
-    out = in.mid(start, size+1);
 
-    if(out.size() != size+1)
+    out = in.mid(start, size);
+
+    if(out.size() != size)
         return ERR_OUT_OF_MEMORY;
 
     return ERR_SUCCESS;
@@ -211,8 +282,6 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     QString plistName;
     QString plistVersion;
 
-    /* ToDo: Implement solid plist library - plist is bitchy */
-
     std::map<std::string, boost::any> dict;
     Plist::readPlist(plist.data(), plist.size(), dict);
 
@@ -221,7 +290,7 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     plistVersion = boost::any_cast<const std::string&>(dict.find(versionIdentifier)->second).c_str();
 
     if(plistName.isEmpty()) {
-        printf("ERROR: CFBundleName in Plist is blank. Aborting!\n");
+        printf("ERROR: CFBundleName in plist is blank. Aborting!\n");
         return ERR_ERROR;
     }
 
@@ -242,8 +311,144 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::kext2ffs(QString name, QString GUID, QByteArray binary, QByteArray & output)
+UINT8 Wrapper::parseKextDirectory(QString input, QList<kextEntry> & kextList)
 {
+    UINT32 GUIDindex;
+    UINT32 GUIDindexCount;
+
+    kextEntry mKextEntry;
+    QString basename;
+    QDir dir;
+
+    QFileInfo binaryPath;
+    QFileInfo plistPath;
+
+    QDirIterator di(input);
+
+    const static QString kextExtension = ".kext";
+    const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
+    const static QString ozmPlistGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D";
+    const static QString ozmPlistPath = pathConcatenate(input, ozmDefaultsFilename);
+    const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275"; // %1 placeholder
+
+    GUIDindexCount = 6;
+
+    if(fileExists(ozmPlistPath)) {
+        mKextEntry.basename = "OzmosisDefaults";
+        mKextEntry.binaryPath = ozmPlistPath; // yes, Plist handled as binary
+        mKextEntry.plistPath = "";
+        mKextEntry.GUID = ozmPlistGUID;
+        mKextEntry.filename = "OzmosisDefaults.ffs";
+
+        kextList.append(mKextEntry);
+    }
+
+    // Check all folders in input-dir
+    while (di.hasNext()) {
+
+        if(!di.next().endsWith(kextExtension))
+            continue;
+
+        basename = di.fileName().left(di.fileName().size()-kextExtension.size());
+
+        dir.setPath(di.filePath());
+        dir = dir.filePath("Contents");
+        plistPath.setFile(dir,"Info.plist");
+        dir = dir.filePath("MacOS");
+        binaryPath.setFile(dir, basename);
+
+        if (!dir.exists()) {
+            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/ missing!\n", qPrintable(di.fileName()));
+            return ERR_ERROR;
+        }
+
+        if (!plistPath.exists()) {
+            printf("ERROR: Kext-dir invalid: %s/Contents/Info.plist missing!\n", qPrintable(di.fileName()));
+            return ERR_ERROR;
+        }
+
+        if (!binaryPath.exists()) {
+            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/%s missing!\n",
+                   qPrintable(di.fileName()), qPrintable(basename));
+            return ERR_ERROR;
+        }
+
+        if(GUIDindexCount > 0xF) {
+            printf("ERROR: Reached maximum Kext-Count! Ignoring the rest...\n");
+            break;
+        }
+
+        if(!di.fileName().compare("FakeSMC.kext"))
+            GUIDindex = 1;
+        else if(!di.fileName().compare("Disabler.kext"))
+            GUIDindex = 2;
+        else if(!di.fileName().compare("Injector.kext"))
+            GUIDindex = 3;
+        else
+            GUIDindex = GUIDindexCount++;
+
+        mKextEntry.basename = basename;
+        mKextEntry.binaryPath = binaryPath.filePath();
+        mKextEntry.plistPath = plistPath.filePath();
+        mKextEntry.GUID = kextGUID.arg(GUIDindex, 0, 16);
+        mKextEntry.filename = basename + ".ffs";
+        kextList.append(mKextEntry);
+    }
+
+    return ERR_SUCCESS;
+}
+
+UINT8 Wrapper::convertKexts(kextEntry entry, QByteArray & out)
+{
+    UINT8 ret;
+    UINT8 nullterminator = 0;
+
+    QString sectionName;
+
+    QByteArray plist;
+    QByteArray plistBinary;
+    QByteArray kextbinary;
+    QByteArray inputBinary;
+
     KextConvert *kext = new KextConvert();
-    return kext->createFFS(name, GUID, binary, output);
+
+    // Convert Kext to FFS
+    inputBinary.clear();
+
+    if(!entry.basename.compare("OzmosisDefaults")) {
+        sectionName = entry.basename;
+    }
+    else {
+        // If NOT OzmosisDefaults => check plist path
+        ret = fileOpen(entry.plistPath, plist);
+        if(ret) {
+            printf("ERROR: Open failed: %s\n", qPrintable(entry.plistPath));
+            return ERR_ERROR;
+        }
+
+        ret = getInfoFromPlist(plist, sectionName, plistBinary);
+        if(ret) {
+            printf("ERROR: Failed to get values/convert Info.plist\n");
+            return ERR_ERROR;
+        }
+
+        inputBinary.append(plistBinary);
+        inputBinary.append(nullterminator); // need between binary plist + kextbinary
+    }
+
+    ret = fileOpen(entry.binaryPath, kextbinary);
+    if(ret) {
+        printf("ERROR: Open failed: %s\n", qPrintable(entry.binaryPath));
+        return ERR_ERROR;
+    }
+    inputBinary.append(kextbinary);
+
+    out.clear();
+    ret = kext->createFFS(sectionName, entry.GUID, inputBinary, out);
+    if(ret) {
+        printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(entry.basename));
+        return ERR_ERROR;
+    }
+
+    return ERR_SUCCESS;
 }

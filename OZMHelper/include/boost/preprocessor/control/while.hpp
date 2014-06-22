@@ -16,7 +16,7 @@
 #
 # include <boost/preprocessor/cat.hpp>
 # include <boost/preprocessor/config/config.hpp>
-# include <boost/preprocessor/debug/error.hpp>
+//# include <boost/preprocessor/debug/error.hpp>
 # include <boost/preprocessor/detail/auto_rec.hpp>
 # include <boost/preprocessor/list/fold_left.hpp>
 # include <boost/preprocessor/list/fold_right.hpp>
