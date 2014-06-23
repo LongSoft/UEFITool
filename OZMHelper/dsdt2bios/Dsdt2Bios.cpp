@@ -26,8 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <capstone.h>
 
-#include "capstone.h"
 #include "Dsdt2Bios.h"
 #include "PeImage.h"
 

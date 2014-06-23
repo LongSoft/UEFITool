@@ -9,10 +9,10 @@ DEFINES  += _CONSOLE
 # QMAKE_CXXFLAGS += -std=c++11 -stdlib=libc++ -mmacosx-version-min=10.7
 # LIBS += -stdlib=libc++ -mmacosx-version-min=10.7 #For MAC
 
-
 INCLUDEPATH += ffs/Common
 INCLUDEPATH += include
 INCLUDEPATH += include/X64
+INCLUDEPATH += dsdt2bios/capstone/include
 
 SOURCES  += ozmhelper_main.cpp \
  ozmhelper.cpp \
@@ -25,6 +25,16 @@ SOURCES  += ozmhelper_main.cpp \
  plist/Plist.cpp \
  plist/PlistDate.cpp \
  plist/pugixml.cpp \
+ dsdt2bios/capstone/cs.c \
+ dsdt2bios/capstone/MCInst.c \
+ dsdt2bios/capstone/SStream.c \
+ dsdt2bios/capstone/arch/X86/X86Module.c \
+ dsdt2bios/capstone/arch/X86/X86IntelInstPrinter.c \
+ dsdt2bios/capstone/arch/X86/X86ATTInstPrinter.c \
+ dsdt2bios/capstone/arch/X86/X86Disassembler.c \
+ dsdt2bios/capstone/arch/X86/X86DisassemblerDecoder.c \
+ dsdt2bios/capstone/arch/X86/X86Mapping.c \
+ dsdt2bios/capstone/utils.c \
  dsdt2bios/Dsdt2Bios.cpp \
  ../types.cpp \
  ../descriptor.cpp \

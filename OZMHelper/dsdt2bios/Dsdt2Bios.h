@@ -2,7 +2,7 @@
 #define DSDT2BIOS_H
 
 #include <QByteArray>
-#include "capstone.h"
+#include <capstone.h>
 #include <../basetypes.h>
 
 #define DSDT_HEADER "DSDT"
