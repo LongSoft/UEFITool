@@ -26,13 +26,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <capstone/capstone.h>
 
+#include "capstone.h"
 #include "Dsdt2Bios.h"
 #include "PeImage.h"
 
 #define debug TRUE
-static csh handle;
 
 UINT64 Dsdt2Bios::insn_detail(csh ud, cs_mode mode, cs_insn *ins)
 {
@@ -59,21 +58,21 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
 {
     UINT8 ret = ERR_ERROR;
     UINT64 address = 0;
-    struct platform platforms =
-    {
-        .arch = CS_ARCH_X86,
-                .mode = CS_MODE_64,
-                .code = (UINT8 *)X86_CODE64,
-                .size = CodeSize - 1,
-                .comment = "X86 64 (Intel syntax)"
-    };
     
     cs_insn *insn;
     int i;
-    
+    static csh handle;
+    struct platform platforms;
+
+    platforms.arch = CS_ARCH_X86;
+    platforms.mode = CS_MODE_64;
+    platforms.code = (UINT8 *)X86_CODE64;
+    platforms.size = CodeSize - 1;
+    platforms.comment = "X86 64 (Intel syntax)";
+
     cs_err err = cs_open(platforms.arch, platforms.mode, &handle);
     if (err) {
-        printf("\n\n\n\n\n\n\n\nFailed on cs_open() with error returned: %u\n", err);
+        printf("\nFailed on cs_open() with error returned: %u\n", err);
         return ERR_ERROR;
     }
 

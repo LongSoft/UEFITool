@@ -26,12 +26,6 @@ SOURCES  += ozmhelper_main.cpp \
  plist/PlistDate.cpp \
  plist/pugixml.cpp \
  dsdt2bios/Dsdt2Bios.cpp \
- dsdt2bios/capstone/cs.c \
- dsdt2bios/capstone/MCInstrDesc.c \
- dsdt2bios/capstone/MCInst.c \
- dsdt2bios/capstone/SStream.c \
- dsdt2bios/capstone/MCRegisterInfo.c \
- dsdt2bios/capstone/utils.c \
  ../types.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
@@ -61,14 +55,6 @@ HEADERS  += ozmhelper.h \
    plist/PlistDate.hpp \
    dsdt2bios/Dsdt2Bios.h \
    dsdt2bios/PeImage.h \
-   dsdt2bios/capstone/cs_priv.h \
-   dsdt2bios/capstone/MCInstrDesc.h \
-   dsdt2bios/capstone/MCDisassembler.h \
-   dsdt2bios/capstone/SStream.h \
-   dsdt2bios/capstone/MCRegisterInfo.h \
-   dsdt2bios/capstone/utils.h \
-   dsdt2bios/capstone/MCFixedLenDisassembler.h \
-   dsdt2bios/capstone/MCInst.h \
  ../basetypes.h \
  ../descriptor.h \
  ../gbe.h \
@@ -82,5 +68,4 @@ HEADERS  += ozmhelper.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
  ../Tiano/EfiTianoDecompress.h \
- ../Tiano/EfiTianoCompress.h \
-    dsdt2bios/Dsdt2Bios.h
+ ../Tiano/EfiTianoCompress.h
