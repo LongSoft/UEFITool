@@ -26,6 +26,7 @@ public:
     ~OZMHelper();
 
     UINT8 DSDTExtract(QString input, QString output);
+    UINT8 OZMUpdate(QString input, QString recentBios, QString output);
     UINT8 OZMExtract(QString input, QString output);
     UINT8 OZMCreate(QString input, QString output, QString inputFFS, QString inputKext, QString inputDSDT);
     UINT8 FFSConvert(QString input, QString output);

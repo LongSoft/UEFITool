@@ -4,6 +4,7 @@
 #include <plist/Plist.hpp>
 #include "ffs/kextconvert.h"
 #include "dsdt2bios/Dsdt2Bios.h"
+#include "../ffs.h"
 #include "wrapper.h"
 
 Wrapper::Wrapper(void)
@@ -127,6 +128,34 @@ UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 
 /* Specific stuff */
 
+QModelIndex Wrapper::getRootIndex() {
+    return ffsEngine->treeModel()->index(0, 0);
+}
+
+UINT8 Wrapper::insert(QModelIndex & index, QByteArray & object, UINT8 mode) {
+    return ffsEngine->insert(index, object, mode);
+}
+
+UINT8 Wrapper::replace(QModelIndex & index, QByteArray & object, UINT8 mode) {
+    return ffsEngine->replace(index, object, mode);
+}
+
+UINT8 Wrapper::reconstructImageFile(QByteArray & out) {
+    return ffsEngine->reconstructImageFile(out);
+}
+
+UINT8 Wrapper::getGUIDfromFile(QByteArray object, QString & name)
+{
+    QByteArray header;
+    EFI_GUID* guid;
+    header = object.left(sizeof(EFI_GUID));
+    guid = (EFI_GUID*)(header.constData());
+
+    // Get info
+    name = guidToQString(*guid);
+    return ERR_SUCCESS;
+}
+
 UINT8 Wrapper::findFileByGUID(const QModelIndex index, const QString guid, QModelIndex & result)
 {
     UINT8 ret;
@@ -181,7 +210,9 @@ UINT8 Wrapper::dumpFileByGUID(QString guid, QByteArray & buf, UINT8 mode)
     if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    ffsEngine->extract(result, buf, mode);
+    ret = ffsEngine->extract(result, buf, mode);
+    if(ret)
+        return ERR_ERROR;
 
     return ERR_SUCCESS;
 }
@@ -201,21 +232,16 @@ UINT8 Wrapper::dumpSectionByGUID(QString guid, UINT8 type, QByteArray & buf, UIN
     if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    ffsEngine->extract(resultSection, buf, mode);
+    ret = ffsEngine->extract(resultSection, buf, mode);
+    if(ret)
+        return ERR_ERROR;
 
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::getLastSibling(QString guid, QModelIndex & result)
+UINT8 Wrapper::getLastSibling(QModelIndex index, QModelIndex & result)
 {
     int lastRow, column;
-    UINT8 ret;
-    QModelIndex index;
-    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
-
-    ret = findFileByGUID(rootIndex, guid, index);
-    if(ret)
-        return ERR_ITEM_NOT_FOUND;
 
     column = 0;
     lastRow = ffsEngine->treeModel()->rowCount(index.parent());

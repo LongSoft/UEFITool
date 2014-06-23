@@ -34,11 +34,16 @@ public:
     UINT16 getUInt16(QByteArray & buf, UINT32 start, bool fromBE);
     UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE);
     /* Specific stuff */
+    QModelIndex getRootIndex();
+    UINT8 insert(QModelIndex & index, QByteArray & object, UINT8 mode);
+    UINT8 replace(QModelIndex & index, QByteArray & object, UINT8 mode);
+    UINT8 reconstructImageFile(QByteArray & out);
+    UINT8 getGUIDfromFile(QByteArray object, QString & name);
     UINT8 findFileByGUID(const QModelIndex index, const QString guid, QModelIndex & result);
     UINT8 findSectionByIndex(const QModelIndex index, UINT8 type, QModelIndex & result);
     UINT8 dumpFileByGUID(QString guid, QByteArray & buf, UINT8 mode);
     UINT8 dumpSectionByGUID(QString guid, UINT8 type, QByteArray & buf, UINT8 mode);
-    UINT8 getLastSibling(QString guid, QModelIndex &result);
+    UINT8 getLastSibling(QModelIndex index, QModelIndex &result);
     UINT8 parseBIOSFile(QByteArray & buf);
     UINT8 getDSDTfromAMI(QByteArray in, QByteArray & out);
     UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out);

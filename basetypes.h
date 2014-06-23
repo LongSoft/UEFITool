@@ -89,6 +89,7 @@ typedef uint16_t  CHAR16;
 #define ERR_DIR_CREATE                      39
 #define ERR_FILE_NOT_FOUND                  40
 #define ERR_FILE_EXISTS                     41
+#define ERR_REPLACE                         42
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // Compression algorithms

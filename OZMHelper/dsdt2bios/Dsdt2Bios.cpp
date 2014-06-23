@@ -59,57 +59,52 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
 {
     UINT8 ret = ERR_ERROR;
     UINT64 address = 0;
-	struct platform platforms[] =
+    struct platform platforms =
     {
-        {
-			.arch = CS_ARCH_X86,
-			.mode = CS_MODE_64,
-            .code = (UINT8 *)X86_CODE64,
-			.size = CodeSize - 1,
-            .comment = "X86 64 (Intel syntax)"
-        }
-	};
+        .arch = CS_ARCH_X86,
+                .mode = CS_MODE_64,
+                .code = (UINT8 *)X86_CODE64,
+                .size = CodeSize - 1,
+                .comment = "X86 64 (Intel syntax)"
+    };
     
-	cs_insn *insn;
-	int i;
+    cs_insn *insn;
+    int i;
     
-	for (i = 0; i < sizeof(platforms)/sizeof(platforms[0]); i++)
+    cs_err err = cs_open(platforms.arch, platforms.mode, &handle);
+    if (err) {
+        printf("\n\n\n\n\n\n\n\nFailed on cs_open() with error returned: %u\n", err);
+        return ERR_ERROR;
+    }
+
+    if (platforms.opt_type)
+        cs_option(handle, platforms.opt_type, platforms.opt_value);
+
+    cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
+
+    size_t count = cs_disasm_ex(handle, platforms.code, platforms.size, address, 0, &insn);
+    if (count)
     {
-		cs_err err = cs_open(platforms[i].arch, platforms[i].mode, &handle);
-		if (err) {
-            printf("\n\n\n\n\n\n\n\nFailed on cs_open() with error returned: %u\n", err);
-            return ERR_ERROR;
-		}
-        
-		if (platforms[i].opt_type)
-			cs_option(handle, platforms[i].opt_type, platforms[i].opt_value);
-        
-		cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
-        
-		size_t count = cs_disasm_ex(handle, platforms[i].code, platforms[i].size, address, 0, &insn);
-		if (count)
+        size_t j;
+        for (j = 0; j < count; j++)
         {
-			size_t j;
-			for (j = 0; j < count; j++)
+            if ( insn_detail(handle, platforms.mode, &insn[j]) != 0)
             {
-                if ( insn_detail(handle, platforms[i].mode, &insn[j]) != 0)
-                {
-                    unsigned short *adr = (unsigned short *)&X86_CODE64[insn[j].address+3];
-                    *adr += size;
-                    if ( debug ) printf("%s\t%s \t-> \t[0x%x]\n", insn[j].mnemonic, insn[j].op_str,*adr);
-                    ret = ERR_SUCCESS;
-                }
+                unsigned short *adr = (unsigned short *)&X86_CODE64[insn[j].address+3];
+                *adr += size;
+                if ( debug ) printf("%s\t%s \t-> \t[0x%x]\n", insn[j].mnemonic, insn[j].op_str,*adr);
+                ret = ERR_SUCCESS;
             }
-            // free memory allocated by cs_disasm_ex()
-			cs_free(insn, count);
-		}
-        else
-        {
-            printf("\n\n\n\n\n\n\n\nERROR: Failed to disasm given code!\n");
-            return ERR_ERROR;
-		}
-		cs_close(&handle);
-	}
+        }
+        // free memory allocated by cs_disasm_ex()
+        cs_free(insn, count);
+    }
+    else
+    {
+        printf("\n\n\n\n\n\n\n\nERROR: Failed to disasm given code!\n");
+        return ERR_ERROR;
+    }
+    cs_close(&handle);
     return ret;
 }
 
@@ -124,10 +119,12 @@ UINT8 Dsdt2Bios::getFromAmiBoardInfo(QByteArray amiboard, UINT32 & DSDTOffset, U
         printf("ERROR: AmiBoardInfo is empty. Aborting!\n");
         return ERR_FILE_READ;
     }
+/*
     else if(amiboard.size() > 0xFFFF) {
-        printf("ERROR: AmiBoardInfo exceeds maximal size of %i(0x%X). Aborting!", 0xFFFF, 0xFFFF);
+        printf("ERROR: AmiBoardInfo exceeds maximal size of %i(0x%X). Aborting!\n", 0xFFFF, 0xFFFF);
         return ERR_FILE_READ;
     }
+*/
     
     HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboard.constData();
     
@@ -204,12 +201,14 @@ UINT8 Dsdt2Bios::injectIntoAmiBoardInfo(QByteArray amiboard, QByteArray dsdt, UI
     DSDTSizeDiff = DSDTSizeNew - DSDTSizeOld;
     padding = (0x10-(AmiLen+DSDTSizeDiff))&0x0f;
     DSDTSizeDiff += padding + relocPadding;
-    
+
+/*
     if ((AmiLen+DSDTSizeDiff) > 0xFFFF)
     {
         printf("ERROR: Final size exceeds limit of %i (0x%X). Aborting!\n", 0xFFFF, 0xFFFF);
         return ERR_BUFFER_TOO_SMALL;
     }
+*/
     
     amiToEdit = amiToEdit.replace(DSDTOffsetOld+DSDTSizeOld+DSDTSizeDiff, AmiLen-DSDTOffsetOld-DSDTSizeOld, amiToEdit.constData()+DSDTOffsetOld+DSDTSizeOld);
     memset(amiToEdit.mid(DSDTOffsetOld).data_ptr(), 0, DSDTSizeNew+padding+relocPadding);
