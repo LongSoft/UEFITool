@@ -263,12 +263,12 @@ UINT8 Wrapper::parseBIOSFile(QByteArray & buf)
 UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
 {
     UINT8 ret;
-    UINT32 start = 0;
-    UINT32 size = 0;
+    UINT16 start = 0;
+    UINT16 size = 0;
 
     Dsdt2Bios d2b;
 
-    ret = d2b.getFromAmiBoardInfo(in, start, size);
+    ret = d2b.getDSDTFromAmi(in, start, size);
     if(ret)
         return ret;
 
@@ -286,13 +286,16 @@ UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & 
 {
     UINT8 ret;
     Dsdt2Bios d2b;
-    UINT32 offset, size;
+    UINT16 reloc_padding;
+    UINT16 offset, size;
 
-    ret = d2b.getFromAmiBoardInfo(amiboardinfo, offset, size);
+    reloc_padding = 0;
+
+    ret = d2b.getDSDTFromAmi(amiboardinfo, offset, size);
     if(ret)
         return ret;
 
-    ret = d2b.injectIntoAmiBoardInfo(amiboardinfo, dsdt, offset, size, out, TRUE);
+    ret = d2b.injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
     if(ret)
         return ret;
 
