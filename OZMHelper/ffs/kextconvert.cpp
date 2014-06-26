@@ -8,6 +8,15 @@
 
 #define EFI_GUIDED_SECTION_NONE 0x80
 
+#define DEBUG 0
+
+#if DEBUG
+    #define dprintf(...) \
+            do { printf(__VA_ARGS__); } while (0)
+#else
+    #define dprintf(...)
+#endif
+
 STATIC UINT32 mFfsValidAlign[] = {0, 8, 16, 128, 512, 1024, 4096, 32768, 65536};
 
 KextConvert::KextConvert()
@@ -185,7 +194,7 @@ EFI_STATUS KextConvert::GetSectionContents(QByteArray input[], UINT32 *InputFile
     //
 
       FileSize = input[Index].size();
-      printf("the input section is size %u bytes\n", (unsigned) FileSize);
+      dprintf("the input section is size %u bytes\n", (unsigned) FileSize);
 
     //
     // Check this section is Te/Pe section, and Calculate the numbers of Te/Pe section.
@@ -255,7 +264,7 @@ EFI_STATUS KextConvert::GetSectionContents(QByteArray input[], UINT32 *InputFile
         SectHeader->Size[1] = (UINT8) ((Offset & 0xff00) >> 8);
         SectHeader->Size[2] = (UINT8) ((Offset & 0xff0000) >> 16);
       }
-      printf("Pad raw section for section data alignment Pad Raw section size is %u\n", (unsigned) Offset);
+      dprintf("Pad raw section for section data alignment Pad Raw section size is %u\n", (unsigned) Offset);
 
       Size = Size + Offset;
     }
@@ -340,7 +349,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
     //
     // Output input parameter information
     //
-    printf("FFS File Guid is %08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X\n",
+    dprintf("FFS File Guid is %08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X\n",
                   (unsigned) FileGuid.Data1,
                   FileGuid.Data2,
                   FileGuid.Data3,
@@ -353,10 +362,10 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
                   FileGuid.Data4[6],
                   FileGuid.Data4[7]);
     if ((FfsAttrib & FFS_ATTRIB_FIXED) != 0) {
-      printf("FFS File has the fixed file attribute\n");
+      dprintf("FFS File has the fixed file attribute\n");
     }
     if ((FfsAttrib & FFS_ATTRIB_CHECKSUM) != 0) {
-      printf("FFS File requires the checksum of the whole file\n");
+      dprintf("FFS File requires the checksum of the whole file\n");
     }
 
     for (Index = 0; Index < InputFileNum; Index ++) {
@@ -366,7 +375,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
         //
         InputFileAlign[Index] = 1;
       }
-      printf("the %dth input section alignment is %u\n", Index, (unsigned) InputFileAlign[Index]);
+      dprintf("the %dth input section alignment is %u\n", Index, (unsigned) InputFileAlign[Index]);
     }
 
     //
@@ -432,7 +441,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
     //
     // Update FFS Alignment based on the max alignment required by input section files
     //
-    printf("the max alignment of all input sections is %u\n", (unsigned) MaxAlignment);
+    dprintf("the max alignment of all input sections is %u\n", (unsigned) MaxAlignment);
     for (Index = 0; Index < sizeof (mFfsValidAlign) / sizeof (UINT32) - 1; Index ++) {
       if ((MaxAlignment > mFfsValidAlign [Index]) && (MaxAlignment <= mFfsValidAlign [Index + 1])) {
         break;
@@ -441,7 +450,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
     if (FfsAlign < Index) {
       FfsAlign = Index;
     }
-    printf("the alignment of the generated FFS file is %u\n", (unsigned) mFfsValidAlign [FfsAlign + 1]);
+    dprintf("the alignment of the generated FFS file is %u\n", (unsigned) mFfsValidAlign [FfsAlign + 1]);
 
     //
     // Now FileSize includes the EFI_FFS_FILE_HEADER
@@ -459,7 +468,7 @@ UINT8 KextConvert::GenFFS(UINT8 type, QString GUID, QByteArray inputPE32, QByteA
       FfsFileHeader.Size[1]  = (UINT8) ((FileSize & 0xFF00) >> 8);
       FfsFileHeader.Size[2]  = (UINT8) ((FileSize & 0xFF0000) >> 16);
     }
-    printf("the size of the generated FFS file is %u bytes\n", (unsigned) FileSize);
+    dprintf("the size of the generated FFS file is %u bytes\n", (unsigned) FileSize);
 
     FfsFileHeader.Attributes = (EFI_FFS_FILE_ATTRIBUTES) (FfsAttrib | (FfsAlign << 3));
 
@@ -535,7 +544,7 @@ UINT8 KextConvert::GenSectionUserInterface(QString name, QByteArray &out)
     UiSect->CommonHeader.Size[2]  = (UINT8) ((Index & 0xff0000) >> 16);
     Ascii2UnicodeString (name.toLocal8Bit().data(), UiSect->FileNameString);
 
-    printf("the size of the created section file is %u bytes\n", (unsigned) Index);
+    dprintf("the size of the created section file is %u bytes\n", (unsigned) Index);
 
     out.clear();
     out.reserve(Index);
@@ -570,7 +579,7 @@ UINT8 KextConvert::GenSectionPE32 (QByteArray inputbinary, QByteArray & out)
     TotalLength = sizeof (EFI_COMMON_SECTION_HEADER2) + InputFileLength;
     HeaderLength = sizeof (EFI_COMMON_SECTION_HEADER2);
   }
-  printf("the size of the created section file is %u bytes\n", (unsigned) TotalLength);
+  dprintf("the size of the created section file is %u bytes\n", (unsigned) TotalLength);
   //
   // Fill in the fields in the local section header structure
   //
@@ -651,7 +660,7 @@ UINT8 KextConvert::createFFS(QString name, QString GUID, QByteArray inputbinary,
         InputLength = ((EFI_COMMON_SECTION_HEADER2 *)SectionHeader)->ExtendedSize;
     }
 
-    printf("Userinterface InputLength: %i\n", InputLength);
+    dprintf("Userinterface InputLength: %i\n", InputLength);
 
     // Write the output file
     userinterface = out.left(InputLength);
