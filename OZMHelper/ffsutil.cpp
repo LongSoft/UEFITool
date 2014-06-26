@@ -18,6 +18,10 @@ UINT8 FFSUtil::replace(QModelIndex & index, QByteArray & object, UINT8 mode) {
     return ffsEngine->replace(index, object, mode);
 }
 
+UINT8 FFSUtil::remove(QModelIndex & index) {
+    return ffsEngine->remove(index);
+}
+
 UINT8 FFSUtil::reconstructImageFile(QByteArray & out) {
     return ffsEngine->reconstructImageFile(out);
 }

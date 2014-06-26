@@ -35,7 +35,7 @@ UINT8 fileWrite(QString path, QByteArray & buf)
     QFileInfo fileInfo(path);
 
     if (fileInfo.exists())
-        return ERR_FILE_EXISTS;
+        printf("Warning: File already exists! Overwriting it...\n");
 
     QFile writeFile;
     writeFile.setFileName(path);

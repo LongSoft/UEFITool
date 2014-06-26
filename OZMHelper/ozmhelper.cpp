@@ -65,6 +65,13 @@ static const sectionEntry amiBoardSection = {
   "AmiBoardInfo","9F3A0016-AE55-4288-829D-D22FD344C347", TRUE
 };
 
+#define MAX_RUNS 4
+
+#define RUN_AS_IS           0
+#define RUN_COMPRESS        1
+#define RUN_DEL_OZM_NREQ    2
+#define RUN_DELETE          3
+
 static QList<sectionEntry> occupyFfs;
 static QList<sectionEntry> OzmFfs;
 
@@ -246,21 +253,15 @@ UINT8 OZMHelper::OZMExtract(QString inputfile, QString outputdir)
 
 UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile)
 {
-    int i;
+    int i, run = 0;
     UINT8 ret;
     QString guid;
-    QFileInfo currFFS;
     QByteArray bios, dsdt, ffs, out;
     QByteArray amiboard, patchedAmiboard;
     QModelIndex amiFileIdx, amiSectionIdx, volumeIdxCount, currIdx, rootIndex;
 
-    QDirIterator diFFS(inputFFSdir);
-    QList<kextEntry> kextList;
-
     BOOLEAN insertDSDT = FALSE;
     BOOLEAN insertKexts = FALSE;
-
-    FFSUtil *fu = new FFSUtil();
 
     if (!dirExists(inputFFSdir)) {
         printf("ERROR: FFS directory '%s' couldn't be found!\n", qPrintable(inputFFSdir));
@@ -277,156 +278,118 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
     else
         printf("Warning: No DSDT file given! Will leave DSDT as-is!\n");
 
-    ret = fileOpen(inputfile, bios);
-    if (ret) {
-        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
-        return ret;
-    }
+    do {
+        //cleanup
+        bios.clear();
+        dsdt.clear();
+        ffs.clear();
+        out.clear();
+        amiboard.clear();
+        patchedAmiboard.clear();
 
-    ret = fu->parseBIOSFile(bios);
-    if (ret) {
-        printf("ERROR: Parsing BIOS failed!\n");
-        return ret;
-    }
+        FFSUtil *fu = new FFSUtil();
 
-    rootIndex = fu->getRootIndex();
-
-    /* Needed here to know correct volume image where everything goes */
-    ret = fu->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
-    if(ret) {
-        printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
-        return ERR_ITEM_NOT_FOUND;
-    }
-
-    ret = fu->findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
-    if(ret) {
-        printf("ERROR: PE32 Section of GUID %s couldn't be found!\n",qPrintable(amiBoardSection.GUID));
-        return ERR_ITEM_NOT_FOUND;
-    }
-
-    fu->getLastSibling(amiFileIdx, volumeIdxCount); // We want Sibling of file, not section!
-
-    if(insertDSDT) {
-        printf("Inserting supplied DSDT into image...\n");
-
-        ret = fileOpen(inputDSDTfile, dsdt);
+        ret = fileOpen(inputfile, bios);
         if (ret) {
-            printf("ERROR: Opening DSDT '%s' failed!\n", qPrintable(inputDSDTfile));
+            printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
             return ret;
         }
 
-        if(!dsdt.startsWith("DSDT")) {
-            printf("ERROR: Input DSDT doesn't contain valid header!\n");
-            return ERR_INVALID_FILE;
-        }
-
-        ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32,
-                                                amiboard, EXTRACT_MODE_BODY);
-        if(ret){
-            printf("ERROR: Failed to dump '%s' [%s] from BIOS!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+        ret = fu->parseBIOSFile(bios);
+        if (ret) {
+            printf("ERROR: Parsing BIOS failed!\n");
             return ret;
         }
 
-        printf("* Dumped AmiBoardInfo from BIOS\n");
+        rootIndex = fu->getRootIndex();
 
-        ret = dsdt2bios(amiboard, dsdt, patchedAmiboard);
+        /* Needed here to know correct volume image where everything goes */
+        ret = fu->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
         if(ret) {
-            printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
-            return ret;
+            printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+            return ERR_ITEM_NOT_FOUND;
         }
 
-        printf("* Injected new DSDT into AmiBoardInfo\n");
-
-       ret = fu->replace(amiSectionIdx, patchedAmiboard, REPLACE_MODE_BODY);
-       if(ret) {
-           printf("ERROR: Failed to replace '%s' [%s]\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
-           return ERR_REPLACE;
-       }
-
-       printf("* Replaced AmiBoardInfo in BIOS with patched one\n");
-    }
-
-    printf("Injecting FFS into BIOS...\n");
-
-    while (diFFS.hasNext()) {
-        ffs.clear();
-        guid = "";
-        currIdx = rootIndex; // reset to 0,0
-        currFFS = diFFS.next();
-
-        if(!currFFS.fileName().compare(".")  ||
-           !currFFS.fileName().compare("..") ||
-           currFFS.fileName().isEmpty())
-            continue;
-
-        ret = fileOpen(currFFS.filePath(), ffs);
-        if (ret) {
-            printf("ERROR: Opening '%s' failed!\n", qPrintable(diFFS.filePath()));
-            return ret;
+        ret = fu->findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
+        if(ret) {
+            printf("ERROR: PE32 Section of GUID %s couldn't be found!\n",qPrintable(amiBoardSection.GUID));
+            return ERR_ITEM_NOT_FOUND;
         }
 
-        /* ToDo: verify input file, guid is read without verification */
+        fu->getLastSibling(amiFileIdx, volumeIdxCount); // We want Sibling of file, not section!
 
-        ret = getGUIDfromFile(ffs, guid);
-        if (ret){
-            printf("ERROR: Getting GUID from file failed!\n");
-            return ret;
-        }
+        if(insertDSDT) {
+            printf("Inserting supplied DSDT into image...\n");
 
-        ret = fu->findFileByGUID(rootIndex, guid, currIdx);
-        if (ret) {
-            printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(diFFS.fileName()), qPrintable(guid));
-            ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
-            if(ret) {
-                printf("ERROR: Injection failed!\n");
-                return ret;
-            }
-        }
-        else {
-           /* Found, replace at known index */
-           printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(diFFS.fileName()), qPrintable(guid));
-           ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
-           if(ret) {
-               printf("ERROR: Replacing failed!\n");
-               return ret;
-           }
-        }
-        printf(" * Success!\n");
-    }
-
-    if(insertKexts) {
-
-        printf("Converting Kext & injecting into BIOS...\n");
-
-        ffs.clear();
-        guid = "";
-        currIdx = rootIndex; // reset to 0,0
-
-        ret = parseKextDirectory(inputKextdir, kextList);
-        if (ret) {
-            printf("ERROR: Parsing supplied Kext directory failed!\n");
-            return ret;
-        }
-
-        for(i=0; i<kextList.size(); i++) {
-            printf("* Attempting to convert '%s'..\n", qPrintable(kextList.at(i).basename));
-            ret = convertKexts(kextList.at(i), ffs);
+            ret = fileOpen(inputDSDTfile, dsdt);
             if (ret) {
-                printf("ERROR: Conversion failed!\n");
+                printf("ERROR: Opening DSDT '%s' failed!\n", qPrintable(inputDSDTfile));
                 return ret;
             }
 
-            /* No need to verify, convertKexts returned fine */
+            if(!dsdt.startsWith("DSDT")) {
+                printf("ERROR: Input DSDT doesn't contain valid header!\n");
+                return ERR_INVALID_FILE;
+            }
+
+            ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32,
+                                        amiboard, EXTRACT_MODE_BODY);
+            if(ret){
+                printf("ERROR: Failed to dump '%s' [%s] from BIOS!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+                return ret;
+            }
+
+            printf("* Dumped AmiBoardInfo from BIOS\n");
+
+            ret = dsdt2bios(amiboard, dsdt, patchedAmiboard);
+            if(ret) {
+                printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
+                return ret;
+            }
+
+            printf("* Injected new DSDT into AmiBoardInfo\n");
+
+            ret = fu->replace(amiSectionIdx, patchedAmiboard, REPLACE_MODE_BODY);
+            if(ret) {
+                printf("ERROR: Failed to replace '%s' [%s]\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+                return ERR_REPLACE;
+            }
+
+            printf("* Replaced AmiBoardInfo in BIOS with patched one\n");
+        }
+
+        printf("Injecting FFS into BIOS...\n");
+        QDirIterator diFFS(inputFFSdir);
+        QFileInfo currFFS;
+
+        while (diFFS.hasNext()) {
+            ffs.clear();
+            guid = "";
+            currIdx = rootIndex; // reset to 0,0
+            currFFS = diFFS.next();
+
+            if(!currFFS.fileName().compare(".")  ||
+                    !currFFS.fileName().compare("..") ||
+                    currFFS.fileName().isEmpty())
+                continue;
+
+            ret = fileOpen(currFFS.filePath(), ffs);
+            if (ret) {
+                printf("ERROR: Opening '%s' failed!\n", qPrintable(diFFS.filePath()));
+                return ret;
+            }
+
+            /* ToDo: verify input file, guid is read without verification */
 
             ret = getGUIDfromFile(ffs, guid);
-            if (ret) {
-                printf("ERROR: Getting GUID failed!\n");
+            if (ret){
+                printf("ERROR: Getting GUID from file failed!\n");
                 return ret;
             }
 
             ret = fu->findFileByGUID(rootIndex, guid, currIdx);
             if (ret) {
-                printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
+                printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(diFFS.fileName()), qPrintable(guid));
                 ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
                 if(ret) {
                     printf("ERROR: Injection failed!\n");
@@ -434,25 +397,127 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
                 }
             }
             else {
-               /* Found, replace at known index */
-               printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
-               ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
-               if(ret) {
-                   printf("ERROR: Replacing failed!\n");
-                   return ret;
-               }
+                /* Found, replace at known index */
+                printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(diFFS.fileName()), qPrintable(guid));
+                ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
+                if(ret) {
+                    printf("ERROR: Replacing failed!\n");
+                    return ret;
+                }
             }
             printf(" * Success!\n");
         }
-    }
 
-    out.clear();
-    printf("Reconstructing final image...\n");
-    ret = fu->reconstructImageFile(out);
-    if(ret) {
-        printf("ERROR: Image exploded.. please provide fewer files!\n");
-        return ret;
-    }
+        if(insertKexts) {
+
+            printf("Converting Kext & injecting into BIOS...\n");
+            QList<kextEntry> kextList;
+
+            ffs.clear();
+            guid = "";
+            currIdx = rootIndex; // reset to 0,0
+
+            ret = parseKextDirectory(inputKextdir, kextList);
+            if (ret) {
+                printf("ERROR: Parsing supplied Kext directory failed!\n");
+                return ret;
+            }
+
+            for(i=0; i<kextList.size(); i++) {
+                printf("* Attempting to convert '%s'..\n", qPrintable(kextList.at(i).basename));
+                ret = convertKexts(kextList.at(i), ffs);
+                if (ret) {
+                    printf("ERROR: Conversion failed!\n");
+                    return ret;
+                }
+
+                /* No need to verify, convertKexts returned fine */
+
+                ret = getGUIDfromFile(ffs, guid);
+                if (ret) {
+                    printf("ERROR: Getting GUID failed!\n");
+                    return ret;
+                }
+
+                ret = fu->findFileByGUID(rootIndex, guid, currIdx);
+                if (ret) {
+                    printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
+                    ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
+                    if(ret) {
+                        printf("ERROR: Injection failed!\n");
+                        return ret;
+                    }
+                }
+                else {
+                    /* Found, replace at known index */
+                    printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
+                    ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
+                    if(ret) {
+                        printf("ERROR: Replacing failed!\n");
+                        return ret;
+                    }
+                }
+                printf(" * Success!\n");
+            }
+        }
+
+        BOOLEAN req = FALSE;
+        switch(run){
+        case RUN_DELETE:
+            printf("Deleting network BIOS stuff (PXE) to save space...\n");
+            for(i = 0; i<occupyFfs.size(); i++){
+                req = occupyFfs.at(i).required;
+                if(!req){
+                    ret = fu->findFileByGUID(rootIndex,occupyFfs.at(i).GUID,currIdx);
+                    if(ret)
+                        continue;
+                    ret = fu->remove(currIdx);
+                    if(ret)
+                        printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
+                    else
+                        printf(" * Removed '%s' [%s] succesfully!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
+                }
+            }
+        case RUN_DEL_OZM_NREQ:
+            printf("Deleting non-essential Ozmosis files to save space...\n");
+            for(i = 0; i<OzmFfs.size(); i++){
+                req = OzmFfs.at(i).required;
+                if(!req){
+                    ret = fu->findFileByGUID(rootIndex,OzmFfs.at(i).GUID,currIdx);
+                    if(ret)
+                        continue;
+                    ret = fu->remove(currIdx);
+                    if(ret)
+                        printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                    else
+                        printf(" * Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                }
+            }
+        case RUN_COMPRESS:
+            printf("Compressing some files to save space...\n");
+            printf("Warning: Sorry... not implemented yet...\n");
+        case RUN_AS_IS:
+            break;
+        }
+
+        out.clear();
+        printf("Reconstructing final image...\n");
+        ret = fu->reconstructImageFile(out);
+        if(ret)
+            printf("ERROR: Image exploded...\n");
+
+        run++;
+
+        if((run < MAX_RUNS) && ret) {
+            printf("*** Re-trying the process ***\n");
+            continue;
+        } else if(run >= MAX_RUNS && ret)
+            return ret;
+
+        printf(" * Image built successfully!\n");
+        break;
+
+    } while(true);
 
     ret = fileWrite(outputfile, out);
     if (ret) {

@@ -12,6 +12,7 @@ public:
     ~FFSUtil();
     UINT8 insert(QModelIndex & index, QByteArray & object, UINT8 mode);
     UINT8 replace(QModelIndex & index, QByteArray & object, UINT8 mode);
+    UINT8 remove(QModelIndex & index);
     UINT8 reconstructImageFile(QByteArray & out);
     QModelIndex getRootIndex();
     UINT8 findFileByGUID(const QModelIndex index, const QString guid, QModelIndex & result);
