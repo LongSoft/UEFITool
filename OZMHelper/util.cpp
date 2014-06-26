@@ -209,7 +209,7 @@ UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
     // Assign new value for CFBundleName
     dict[nameIdentifier] = std::string(name.toUtf8().constData());
 
-    Plist::writePlistBinary(data, dict);
+    Plist::writePlistXML(data, dict);
 
     out.clear();
     out.append(data.data(), data.size());
@@ -317,7 +317,7 @@ UINT8 convertKexts(kextEntry entry, QByteArray & out)
     QString sectionName;
 
     QByteArray plist;
-    QByteArray plistBinary;
+    QByteArray moddedplist;
     QByteArray kextbinary;
     QByteArray inputBinary;
 
@@ -337,13 +337,13 @@ UINT8 convertKexts(kextEntry entry, QByteArray & out)
             return ERR_ERROR;
         }
 
-        ret = getInfoFromPlist(plist, sectionName, plistBinary);
+        ret = getInfoFromPlist(plist, sectionName, moddedplist);
         if(ret) {
             printf("ERROR: Failed to get values/convert Info.plist\n");
             return ERR_ERROR;
         }
 
-        inputBinary.append(plistBinary);
+        inputBinary.append(moddedplist);
         inputBinary.append(nullterminator); // need between binary plist + kextbinary
     }
 
