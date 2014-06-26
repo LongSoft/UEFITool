@@ -312,16 +312,23 @@ UINT8 OZMHelper::OZMUpdate(QString inputfile, QString recentBios, QString output
         if((run < MAX_RUNS) && ret) {
             printf("\n\n*** Re-trying the process ***\n");
             continue;
-        } else if(run >= MAX_RUNS && ret)
+        } else if(run >= MAX_RUNS && ret) {
+            printf("ERROR: It wasn't possible to make enough space for Ozmosis!\n");
             return ret;
+        }
 
         printf(" * Image built successfully!\n");
         break;
     }while(true);
 
+    ret = fileWrite(outputfile, out);
+    if (ret) {
+        printf("ERROR: Writing updated BIOS to '%s' failed!\n", qPrintable(outputfile));
+        return ret;
+    }
+    printf("Bios successfully saved to '%s'\n",qPrintable(outputfile));
 
-    printf("Function not implemented yet... Sorry!\n");
-    return ERR_NOT_IMPLEMENTED;
+    return ERR_SUCCESS;
 }
 
 UINT8 OZMHelper::OZMExtract(QString inputfile, QString outputdir)
@@ -637,8 +644,10 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
         if((run < MAX_RUNS) && ret) {
             printf("\n\n*** Re-trying the process ***\n");
             continue;
-        } else if(run >= MAX_RUNS && ret)
+        } else if(run >= MAX_RUNS && ret) {
+            printf("ERROR: It wasn't possible to make enough space for Ozmosis!\n");
             return ret;
+        }
 
         printf(" * Image built successfully!\n");
         break;
