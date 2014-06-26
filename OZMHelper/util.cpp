@@ -118,6 +118,11 @@ UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 
 /* Specific stuff */
 
+QModelIndex getRootIndex() {
+    TreeModel *tm = new TreeModel();
+    return tm->index(0,0);
+}
+
 UINT8 getGUIDfromFile(QByteArray object, QString & name)
 {
     QByteArray header;
@@ -278,7 +283,7 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
         }
 
         if(GUIDindexCount > 0xF) {
-            printf("ERROR: Reached maximum Kext-Count! Ignoring the rest...\n");
+            printf("Warning: Reached maximum Kext-Count! Ignoring the rest...\n");
             break;
         }
 
@@ -297,6 +302,11 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
         mKextEntry.GUID = kextGUID.arg(GUIDindex, 0, 16);
         mKextEntry.filename = basename + ".ffs";
         kextList.append(mKextEntry);
+    }
+
+    if(kextList.size() == 0) {
+        printf("ERROR: No kext found!\n");
+        return ERR_FILE_NOT_FOUND;
     }
 
     return ERR_SUCCESS;

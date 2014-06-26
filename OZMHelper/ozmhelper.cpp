@@ -60,7 +60,7 @@ OZMHelper::~OZMHelper()
 {
 }
 
-UINT8 OZMHelper::DSDTExtract(QString input, QString output)
+UINT8 OZMHelper::DSDTExtract(QString inputfile, QString outputdir)
 {
     UINT8 ret;
     QString outputFile;
@@ -68,13 +68,13 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
 
     FFSUtil *fu = new FFSUtil();
 
-    ret = dirCreate(output);
+    ret = dirCreate(outputdir);
     if (ret == ERR_DIR_CREATE) {
-        printf("ERROR: Creating dir failed!\n");
+        printf("ERROR: Creating output dir failed!\n");
         return ret;
     }
 
-    ret = fileOpen(input, buf);
+    ret = fileOpen(inputfile, buf);
     if (ret) {
         printf("ERROR: Opening BIOS failed!\n");
         return ret;
@@ -100,7 +100,7 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
         return ret;
     }
 
-    outputFile = pathConcatenate(output, amiBoardSection.name + ".bin");
+    outputFile = pathConcatenate(outputdir, amiBoardSection.name + ".bin");
 
     ret = fileWrite(outputFile, buf);
     if (ret) {
@@ -108,7 +108,7 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
         return ret;
     }
 
-    outputFile = pathConcatenate(output, DSDTFilename);
+    outputFile = pathConcatenate(outputdir, DSDTFilename);
 
     ret = fileWrite(outputFile, dsdtbuf);
     if (ret) {
@@ -122,15 +122,44 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::OZMUpdate(QString input, QString recentBios, QString output)
+UINT8 OZMHelper::OZMUpdate(QString inputfile, QString recentBios, QString outputfile)
 {
-    input = "shut";
-    recentBios = "your";
-    output = "warnings";
+    UINT8 ret;
+    QByteArray oldBIOS;
+    QByteArray newBIOS;
+
+    FFSUtil *oFU = new FFSUtil();
+    FFSUtil *nFU = new FFSUtil();
+
+    ret = fileOpen(inputfile, oldBIOS);
+    if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
+        return ret;
+    }
+
+    ret = oFU->parseBIOSFile(oldBIOS);
+    if (ret) {
+        printf("ERROR: Parsing old BIOS failed!\n");
+        return ret;
+    }
+
+    ret = fileOpen(recentBios, newBIOS);
+    if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(recentBios));
+        return ret;
+    }
+
+    ret = nFU->parseBIOSFile(newBIOS);
+    if (ret) {
+        printf("ERROR: Parsing old BIOS failed!\n");
+        return ret;
+    }
+
+    printf("Function not implemented yet... Sorry!\n");
     return ERR_NOT_IMPLEMENTED;
 }
 
-UINT8 OZMHelper::OZMExtract(QString input, QString output)
+UINT8 OZMHelper::OZMExtract(QString inputfile, QString outputdir)
 {
     int i;
     UINT8 ret;
@@ -139,104 +168,118 @@ UINT8 OZMHelper::OZMExtract(QString input, QString output)
 
     FFSUtil *fu = new FFSUtil();
 
-    ret = fileOpen(input, buf);
+    ret = fileOpen(inputfile, buf);
     if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
         return ret;
     }
 
     ret = fu->parseBIOSFile(buf);
     if (ret) {
+        printf("ERROR: Parsing BIOS failed!\n");
         return ret;
     }
 
     buf.clear();
 
-    ret = dirCreate(output);
+    ret = dirCreate(outputdir);
     if (ret == ERR_DIR_CREATE) {
+        printf("ERROR: Creating output directory failed!\n");
         return ret;
     }
 
     for(i=0; i<OzmFfs.size(); i++) {
         ret = fu->dumpFileByGUID(OzmFfs.at(i).GUID, buf, EXTRACT_MODE_AS_IS);
-        if (ret == ERR_ITEM_NOT_FOUND)
+        if (ret == ERR_ITEM_NOT_FOUND) {
+            printf("Warning: File '%s' [%s] wasn't found!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
             continue;
+        }
         if (ret) {
+            printf("ERROR: Dumping '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
             return ret;
         }
 
-        outputFile = pathConcatenate(output,(OzmFfs.at(i).name+".ffs"));
+        outputFile = pathConcatenate(outputdir,(OzmFfs.at(i).name+".ffs"));
 
         ret = fileWrite(outputFile, buf);
         if (ret) {
+            printf("ERROR: Saving '%s' failed!\n", qPrintable(outputFile));
             return ret;
         }
 
+        printf("* '%s' [%s] extracted & saved\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
         buf.clear();
     }
 
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QString inputKext, QString inputDSDT)
+UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile)
 {
     int i;
     UINT8 ret;
-    QString guid, outputFilePath;
+    QString guid;
     QByteArray bios, dsdt, ffs, out;
     QByteArray amiboard, patchedAmiboard;
-    QFileInfo biosfile(input);
     QModelIndex amiFileIdx, amiSectionIdx, volumeIdxCount, currIdx;
+    const static QModelIndex rootIndex = getRootIndex();
 
-    QDirIterator diFFS(inputFFS);
+    QDirIterator diFFS(inputFFSdir);
     QList<kextEntry> kextList;
 
     BOOLEAN insertDSDT = FALSE;
     BOOLEAN insertKexts = FALSE;
 
     FFSUtil *fu = new FFSUtil();
-    const static QModelIndex rootIndex = fu->getRootIndex();
 
-    if (!dirExists(inputFFS)) {
+    if (!dirExists(inputFFSdir)) {
+        printf("ERROR: FFS directory '%s' couldn't be found!\n", qPrintable(inputFFSdir));
         return ERR_ITEM_NOT_FOUND;
     }
 
-    if (!inputKext.isEmpty() && dirExists(inputKext))
+    if (!inputKextdir.isEmpty() && dirExists(inputKextdir))
         insertKexts = TRUE;
+    else
+        printf("Warning: No KEXT-dir given! Injecting only Ozmosis files!\n");
 
-    if (!inputDSDT.isEmpty() && fileExists(inputDSDT)) {
+    if (!inputDSDTfile.isEmpty() && fileExists(inputDSDTfile))
         insertDSDT = TRUE;
-    }
+    else
+        printf("Warning: No DSDT file given! Will leave DSDT as-is!\n");
 
-    ret = dirCreate(output);
-    if (ret == ERR_DIR_CREATE) {
-        return ret;
-    }
-
-    ret = fileOpen(input, bios);
+    ret = fileOpen(inputfile, bios);
     if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
         return ret;
     }
 
     ret = fu->parseBIOSFile(bios);
     if (ret) {
+        printf("ERROR: Parsing BIOS failed!\n");
         return ret;
     }
 
     /* Needed here to know correct volume image where everything goes */
     ret = fu->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
-    if(ret)
+    if(ret) {
+        printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
         return ERR_ITEM_NOT_FOUND;
+    }
 
     ret = fu->findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
-    if(ret)
+    if(ret) {
+        printf("ERROR: PE32 Section of GUID %s couldn't be found!\n",qPrintable(amiBoardSection.GUID));
         return ERR_ITEM_NOT_FOUND;
+    }
 
-    fu->getLastSibling(amiFileIdx, volumeIdxCount);
+    fu->getLastSibling(amiFileIdx, volumeIdxCount); // We want Sibling of file, not section!
 
-    /* ToDo: Implement this */
     if(insertDSDT) {
-        ret = fileOpen(inputDSDT, dsdt);
+        printf("Inserting supplied DSDT into image...\n");
+
+        ret = fileOpen(inputDSDTfile, dsdt);
         if (ret) {
+            printf("ERROR: Opening DSDT '%s' failed!\n", qPrintable(inputDSDTfile));
             return ret;
         }
 
@@ -247,17 +290,31 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
 
         ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32,
                                                 amiboard, EXTRACT_MODE_BODY);
-        if(ret)
+        if(ret){
+            printf("ERROR: Failed to dump '%s' [%s] from BIOS!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
             return ret;
+        }
+
+        printf("* Dumped AmiBoardInfo from BIOS\n");
 
         ret = dsdt2bios(amiboard, dsdt, patchedAmiboard);
-        if(ret)
+        if(ret) {
+            printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
             return ret;
+        }
+
+        printf("* Injected new DSDT into AmiBoardInfo\n");
 
        ret = fu->replace(amiSectionIdx, patchedAmiboard, REPLACE_MODE_BODY);
-       if(ret)
+       if(ret) {
+           printf("ERROR: Failed to replace '%s' [%s]\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
            return ERR_REPLACE;
+       }
+
+       printf("* Replaced AmiBoardInfo in BIOS with patched one\n");
     }
+
+    printf("Injecting FFS into BIOS...\n");
 
     while (diFFS.hasNext()) {
         ffs.clear();
@@ -265,69 +322,92 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
         currIdx = rootIndex; // reset to 0,0
 
         ret = fileOpen(diFFS.filePath(), ffs);
-        if (ret)
+        if (ret) {
+            printf("ERROR: Opening '%s' failed!\n", qPrintable(diFFS.filePath()));
             return ret;
+        }
 
-        /* verify input file, guid is read without verification */
+        /* ToDo: verify input file, guid is read without verification */
 
         ret = getGUIDfromFile(ffs, guid);
-        if (ret)
+        if (ret){
+            printf("ERROR: Getting GUID from file failed!\n");
             return ret;
+        }
 
         ret = fu->findFileByGUID(rootIndex, guid, currIdx);
         if (ret) {
-            /* Not found, insert at end of volume */
+            printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(diFFS.fileName()), qPrintable(guid));
             ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
-            if(ret)
+            if(ret) {
+                printf("ERROR: Injection failed!\n");
                 return ret;
+            }
         }
         else {
            /* Found, replace at known index */
-           printf("Warning: File already present -> Replacing!\n");
+           printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(diFFS.fileName()), qPrintable(guid));
            ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
-           if(ret)
+           if(ret) {
+               printf("ERROR: Replacing failed!\n");
                return ret;
+           }
         }
+        printf(" * Success!\n");
     }
 
     if(insertKexts) {
+
+        printf("Converting Kext & injecting into BIOS...\n");
+
         ffs.clear();
         guid = "";
         currIdx = rootIndex; // reset to 0,0
 
-        ret = parseKextDirectory(inputKext, kextList);
-        if (ret)
+        ret = parseKextDirectory(inputKextdir, kextList);
+        if (ret) {
+            printf("ERROR: Parsing supplied Kext directory failed!\n");
             return ret;
+        }
 
         for(i=0; i<kextList.size(); i++) {
+            printf("* Attempting to convert '%s'..\n", qPrintable(kextList.at(i).basename));
             ret = convertKexts(kextList.at(i), ffs);
-            if (ret)
+            if (ret) {
+                printf("ERROR: Conversion failed!\n");
                 return ret;
+            }
 
             /* No need to verify, convertKexts returned fine */
 
             ret = getGUIDfromFile(ffs, guid);
-            if (ret)
+            if (ret) {
+                printf("ERROR: Getting GUID failed!\n");
                 return ret;
+            }
 
             ret = fu->findFileByGUID(rootIndex, guid, currIdx);
             if (ret) {
-                /* Not found, insert at end of volume and increment Idx */
+                printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
                 ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
-                if(ret)
+                if(ret) {
+                    printf("ERROR: Injection failed!\n");
                     return ret;
+                }
             }
             else {
                /* Found, replace at known index */
-               printf("Warning: File already present -> Replacing!\n");
+               printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
                ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
-               if(ret)
+               if(ret) {
+                   printf("ERROR: Replacing failed!\n");
                    return ret;
+               }
             }
+            printf(" * Success!\n");
         }
     }
 
-    /* Congratz, we got that far :D */
     out.clear();
     ret = fu->reconstructImageFile(out);
     if(ret) {
@@ -335,93 +415,102 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
         return ret;
     }
 
-    outputFilePath = pathConcatenate(output,biosfile.fileName() + ".OZM");
-
-    ret = fileWrite(outputFilePath, out);
+    ret = fileWrite(outputfile, out);
     if (ret) {
+        printf("ERROR: Writing patched BIOS to '%s' failed!\n", qPrintable(outputfile));
         return ret;
     }
 
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::FFSConvert(QString input, QString output)
+UINT8 OZMHelper::FFSConvert(QString inputdir, QString outputdir)
 {
     UINT8 ret;
     QList<kextEntry> toConvert;
-    QString filename;
+    QString filepath;
     QByteArray out;
 
-    if (!dirExists(input)) {
+    if (!dirExists(inputdir)) {
+        printf("ERROR: Input directory '%s' doesn't exist!\n", qPrintable(inputdir));
         return ERR_DIR_NOT_EXIST;
     }
 
-    ret = dirCreate(output);
+    ret = dirCreate(outputdir);
     if (ret == ERR_DIR_CREATE) {
+        printf("ERROR: Creating output directory failed!\n");
         return ret;
     }
 
-    ret = parseKextDirectory(input, toConvert);
+    ret = parseKextDirectory(inputdir, toConvert);
     if (ret) {
+        printf("ERROR: Parsing supplied Kext directory failed!\n");
         return ret;
     }
 
     for(int i=0; i < toConvert.size(); i++) {
         out.clear();
 
+        printf("* Attempting to convert '%s'..\n", qPrintable(toConvert.at(i).basename));
         ret = convertKexts(toConvert.at(i), out);
-        if(ret)
-            return ERR_ERROR;
-
-        fileWrite(toConvert.at(i).filename, out);
         if(ret) {
-            printf("ERROR: Saving '%s'\n", qPrintable(filename));
+            printf("ERROR: Conversion failed!\n");
             return ERR_ERROR;
         }
+
+        filepath = pathConcatenate(outputdir, toConvert.at(i).filename);
+
+        fileWrite(filepath, out);
+        if(ret) {
+            printf("ERROR: Saving '%s' failed!\n", qPrintable(filepath));
+            return ERR_ERROR;
+        }
+
+        printf("* Success!\n");
     }
 
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::DSDT2Bios(QString input, QString inputDSDT, QString output)
+UINT8 OZMHelper::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outputfile)
 {
     UINT8 ret;
-    QString outputFile;
     QByteArray amiboardinfo;
     QByteArray dsdt;
     QByteArray out;
 
-    if (!fileExists(input)) {
-        return ERR_ITEM_NOT_FOUND;
+    if (fileExists(outputfile)) {
+        printf("ERROR: Output file already exists!\n");
+        return ERR_FILE_EXISTS;
     }
 
-    if (!fileExists(inputDSDT)) {
-        return ERR_ITEM_NOT_FOUND;
-    }
-
-    if (fileExists(output)) {
-        printf("WARNING: Output file already exists! Overwriting it!\n");
-    }
-
-    ret = fileOpen(input, amiboardinfo);
+    ret = fileOpen(inputfile, amiboardinfo);
     if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
         return ret;
     }
 
-    ret = fileOpen(inputDSDT, dsdt);
+    ret = fileOpen(inputDSDTfile, dsdt);
     if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputDSDTfile));
         return ret;
     }
+
+    printf("Attempting to patch DSDT into AmiBoardInfo\n");
 
     ret = dsdt2bios(amiboardinfo, dsdt, out);
     if (ret) {
+        printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
         return ret;
     }
 
-    ret = fileWrite(output, out);
+    ret = fileWrite(outputfile, out);
     if (ret) {
+        printf("ERROR: Saving to '%s' failed!\n", qPrintable(outputfile));
         return ret;
     }
+
+    printf("* Success!\n");
 
     return ERR_SUCCESS;
 }

@@ -325,7 +325,7 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
         out.append(amiBufNew.constData(), amiLen+diffSize);
     }
     else {
-        printf("AmiBoardInfo Code not patched :( All credits to noob tuxuser, who fucked up!\n\n");
+        printf("AmiBoardInfo Code not patched :( Blame noob tuxuser, who fucked up!\n\n");
         return ERR_ERROR;
     }
 

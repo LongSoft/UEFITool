@@ -61,7 +61,7 @@ void usageOzmCreate()
 {
     printf("ozmcreate command\n" \
             " usage:\n"
-            "\t%s --ozmcreate -k kextdir -f ffsdir -d DSDT.aml -o outputdir -i BIOS.ROM\n\n"
+            "\t%s --ozmcreate -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
             " parameters:\n"
             "\t-k, --kext [dir]\t\tKEXT directory\n"
             "\t-f, --ffs [dir]\t\tFFS directory (OZM files)\n"
@@ -345,12 +345,6 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    if(ozmcreate && kextdir.isEmpty())
-        printf("Warning: No KEXT-dir given! Injecting only Ozmosis files!\n");
-
-    if(ozmcreate && dsdtfile.isEmpty())
-        printf("Warning: No DSDT file given! Will leave DSDT as-is!\n");
-
     if (ozmcreate && ffsdir.isEmpty()) {
         printf("ERROR: No FFS directory file supplied!\n");
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
@@ -379,9 +373,9 @@ fail:
     else if (dsdt2bios)
         result = w.DSDT2Bios(inputpath, dsdtfile, output);
 
-    printf("Program exited %s!\n", result ? "with errors" : "successfully");
+    printf("Program exited %s!\n", result ? "with errors" : "successfully :)");
     if(result)
-        printf("Status: %i\n", result);
+        printf("\nStatus code: %i\n", result);
 
     return result;
 }

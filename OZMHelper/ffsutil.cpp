@@ -10,10 +10,6 @@ FFSUtil::~FFSUtil(void)
     delete ffsEngine;
 }
 
-QModelIndex FFSUtil::getRootIndex() {
-    return ffsEngine->treeModel()->index(0, 0);
-}
-
 UINT8 FFSUtil::insert(QModelIndex & index, QByteArray & object, UINT8 mode) {
     return ffsEngine->insert(index, object, mode);
 }

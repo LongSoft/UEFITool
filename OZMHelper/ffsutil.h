@@ -10,7 +10,6 @@ class FFSUtil
 public:
     FFSUtil();
     ~FFSUtil();
-    QModelIndex getRootIndex();
     UINT8 insert(QModelIndex & index, QByteArray & object, UINT8 mode);
     UINT8 replace(QModelIndex & index, QByteArray & object, UINT8 mode);
     UINT8 reconstructImageFile(QByteArray & out);
