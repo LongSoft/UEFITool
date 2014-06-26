@@ -125,12 +125,6 @@ UINT8 Dsdt2Bios::getDSDTFromAmi(QByteArray amiboard, UINT32 &DSDTOffset, UINT32 
         printf("ERROR: AmiBoardInfo is empty. Aborting!\n");
         return ERR_FILE_READ;
     }
-
-    else if(amiboard.size() > 0xFFFF) {
-        printf("ERROR: AmiBoardInfo exceeds maximal size of %i(0x%X). Aborting!\n", 0xFFFF, 0xFFFF);
-        return ERR_FILE_READ;
-    }
-
     
     HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboard.constData();
     
