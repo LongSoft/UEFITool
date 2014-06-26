@@ -1,3 +1,5 @@
+QMAKE_CFLAGS_RELEASE *= -O1
+
 QT       += core
 QT       -= gui
 
