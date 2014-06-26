@@ -22,6 +22,10 @@ UINT8 FFSUtil::reconstructImageFile(QByteArray & out) {
     return ffsEngine->reconstructImageFile(out);
 }
 
+QModelIndex FFSUtil::getRootIndex() {
+    return ffsEngine->treeModel()->index(0,0);
+}
+
 UINT8 FFSUtil::findFileByGUID(const QModelIndex index, const QString guid, QModelIndex & result)
 {
     UINT8 ret;

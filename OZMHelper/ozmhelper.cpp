@@ -219,10 +219,10 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
     int i;
     UINT8 ret;
     QString guid;
+    QFileInfo currFFS;
     QByteArray bios, dsdt, ffs, out;
     QByteArray amiboard, patchedAmiboard;
-    QModelIndex amiFileIdx, amiSectionIdx, volumeIdxCount, currIdx;
-    const static QModelIndex rootIndex = getRootIndex();
+    QModelIndex amiFileIdx, amiSectionIdx, volumeIdxCount, currIdx, rootIndex;
 
     QDirIterator diFFS(inputFFSdir);
     QList<kextEntry> kextList;
@@ -258,6 +258,8 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
         printf("ERROR: Parsing BIOS failed!\n");
         return ret;
     }
+
+    rootIndex = fu->getRootIndex();
 
     /* Needed here to know correct volume image where everything goes */
     ret = fu->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
@@ -320,8 +322,14 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
         ffs.clear();
         guid = "";
         currIdx = rootIndex; // reset to 0,0
+        currFFS = diFFS.next();
 
-        ret = fileOpen(diFFS.filePath(), ffs);
+        if(!currFFS.fileName().compare(".")  ||
+           !currFFS.fileName().compare("..") ||
+           currFFS.fileName().isEmpty())
+            continue;
+
+        ret = fileOpen(currFFS.filePath(), ffs);
         if (ret) {
             printf("ERROR: Opening '%s' failed!\n", qPrintable(diFFS.filePath()));
             return ret;

@@ -324,6 +324,8 @@ fail:
         return ERR_SUCCESS;
     }
 
+    versionInfo();
+
     if (cmds == 0) {
         usageGeneral();
         printf("ERROR: No command supplied!\n");

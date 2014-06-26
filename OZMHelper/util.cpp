@@ -118,11 +118,6 @@ UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 
 /* Specific stuff */
 
-QModelIndex getRootIndex() {
-    TreeModel *tm = new TreeModel();
-    return tm->index(0,0);
-}
-
 UINT8 getGUIDfromFile(QByteArray object, QString & name)
 {
     QByteArray header;
