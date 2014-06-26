@@ -12,7 +12,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include <QDirIterator>
-#include <../ffs.h>
+#include "../ffs.h"
+#include "ffsutil.h"
 #include "ozmhelper.h"
 
 static const QString DSDTFilename =  "DSDT.aml";
@@ -47,7 +48,6 @@ static QList<sectionEntry> OzmFfs;
 OZMHelper::OZMHelper(QObject *parent) :
     QObject(parent)
 {
-    wrapper = new Wrapper();
     for(int i = 0; i < requiredFfsCount; i++) {
         OzmFfs.append(requiredFfs[i]);
     }
@@ -58,7 +58,6 @@ OZMHelper::OZMHelper(QObject *parent) :
 
 OZMHelper::~OZMHelper()
 {
-    delete wrapper;
 }
 
 UINT8 OZMHelper::DSDTExtract(QString input, QString output)
@@ -67,19 +66,21 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
     QString outputFile;
     QByteArray buf, dsdtbuf;
 
-    ret = wrapper->dirCreate(output);
+    FFSUtil *fu = new FFSUtil();
+
+    ret = dirCreate(output);
     if (ret == ERR_DIR_CREATE) {
         printf("ERROR: Creating dir failed!\n");
         return ret;
     }
 
-    ret = wrapper->fileOpen(input, buf);
+    ret = fileOpen(input, buf);
     if (ret) {
         printf("ERROR: Opening BIOS failed!\n");
         return ret;
     }
 
-    ret = wrapper->parseBIOSFile(buf);
+    ret = fu->parseBIOSFile(buf);
     if (ret) {
         printf("ERROR: Parsing BIOS failed!\n");
         return ret;
@@ -87,29 +88,29 @@ UINT8 OZMHelper::DSDTExtract(QString input, QString output)
 
     buf.clear();
 
-    ret = wrapper->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
+    ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
     if (ret) {
         printf("ERROR: Dumping AmiBoardInfo failed!\n");
         return ret;
     }
 
-    ret = wrapper->getDSDTfromAMI(buf, dsdtbuf);
+    ret = getDSDTfromAMI(buf, dsdtbuf);
     if (ret) {
         printf("ERROR: Extracting DSDT from AmiBoardInfo failed!\n");
         return ret;
     }
 
-    outputFile = wrapper->pathConcatenate(output, amiBoardSection.name + ".bin");
+    outputFile = pathConcatenate(output, amiBoardSection.name + ".bin");
 
-    ret = wrapper->fileWrite(outputFile, buf);
+    ret = fileWrite(outputFile, buf);
     if (ret) {
         printf("ERROR: Writing AmiBoardInfo.bin to '%s' failed!\n", qPrintable(outputFile));
         return ret;
     }
 
-    outputFile = wrapper->pathConcatenate(output, DSDTFilename);
+    outputFile = pathConcatenate(output, DSDTFilename);
 
-    ret = wrapper->fileWrite(outputFile, dsdtbuf);
+    ret = fileWrite(outputFile, dsdtbuf);
     if (ret) {
         printf("ERROR: Writing DSDT.aml to '%s' failed!\n", qPrintable(outputFile));
         return ret;
@@ -136,34 +137,36 @@ UINT8 OZMHelper::OZMExtract(QString input, QString output)
     QString outputFile;
     QByteArray buf;
 
-    ret = wrapper->fileOpen(input, buf);
+    FFSUtil *fu = new FFSUtil();
+
+    ret = fileOpen(input, buf);
     if (ret) {
         return ret;
     }
 
-    ret = wrapper->parseBIOSFile(buf);
+    ret = fu->parseBIOSFile(buf);
     if (ret) {
         return ret;
     }
 
     buf.clear();
 
-    ret = wrapper->dirCreate(output);
+    ret = dirCreate(output);
     if (ret == ERR_DIR_CREATE) {
         return ret;
     }
 
     for(i=0; i<OzmFfs.size(); i++) {
-        ret = wrapper->dumpFileByGUID(OzmFfs.at(i).GUID, buf, EXTRACT_MODE_AS_IS);
+        ret = fu->dumpFileByGUID(OzmFfs.at(i).GUID, buf, EXTRACT_MODE_AS_IS);
         if (ret == ERR_ITEM_NOT_FOUND)
             continue;
         if (ret) {
             return ret;
         }
 
-        outputFile = wrapper->pathConcatenate(output,(OzmFfs.at(i).name+".ffs"));
+        outputFile = pathConcatenate(output,(OzmFfs.at(i).name+".ffs"));
 
-        ret = wrapper->fileWrite(outputFile, buf);
+        ret = fileWrite(outputFile, buf);
         if (ret) {
             return ret;
         }
@@ -187,51 +190,52 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
     QDirIterator diFFS(inputFFS);
     QList<kextEntry> kextList;
 
-    const static QModelIndex rootIndex = wrapper->getRootIndex();
-
     BOOLEAN insertDSDT = FALSE;
     BOOLEAN insertKexts = FALSE;
 
-    if (!wrapper->dirExists(inputFFS)) {
+    FFSUtil *fu = new FFSUtil();
+    const static QModelIndex rootIndex = fu->getRootIndex();
+
+    if (!dirExists(inputFFS)) {
         return ERR_ITEM_NOT_FOUND;
     }
 
-    if (!inputKext.isEmpty() && wrapper->dirExists(inputKext))
+    if (!inputKext.isEmpty() && dirExists(inputKext))
         insertKexts = TRUE;
 
-    if (!inputDSDT.isEmpty() && wrapper->fileExists(inputDSDT)) {
+    if (!inputDSDT.isEmpty() && fileExists(inputDSDT)) {
         insertDSDT = TRUE;
     }
 
-    ret = wrapper->dirCreate(output);
+    ret = dirCreate(output);
     if (ret == ERR_DIR_CREATE) {
         return ret;
     }
 
-    ret = wrapper->fileOpen(input, bios);
+    ret = fileOpen(input, bios);
     if (ret) {
         return ret;
     }
 
-    ret = wrapper->parseBIOSFile(bios);
+    ret = fu->parseBIOSFile(bios);
     if (ret) {
         return ret;
     }
 
     /* Needed here to know correct volume image where everything goes */
-    ret = wrapper->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
+    ret = fu->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
     if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    ret = wrapper->findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
+    ret = fu->findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
     if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    wrapper->getLastSibling(amiFileIdx, volumeIdxCount);
+    fu->getLastSibling(amiFileIdx, volumeIdxCount);
 
     /* ToDo: Implement this */
     if(insertDSDT) {
-        ret = wrapper->fileOpen(inputDSDT, dsdt);
+        ret = fileOpen(inputDSDT, dsdt);
         if (ret) {
             return ret;
         }
@@ -241,16 +245,16 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
             return ERR_INVALID_FILE;
         }
 
-        ret = wrapper->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32,
+        ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32,
                                                 amiboard, EXTRACT_MODE_BODY);
         if(ret)
             return ret;
 
-        ret = wrapper->dsdt2bios(amiboard, dsdt, patchedAmiboard);
+        ret = dsdt2bios(amiboard, dsdt, patchedAmiboard);
         if(ret)
             return ret;
 
-       ret = wrapper->replace(amiSectionIdx, patchedAmiboard, REPLACE_MODE_BODY);
+       ret = fu->replace(amiSectionIdx, patchedAmiboard, REPLACE_MODE_BODY);
        if(ret)
            return ERR_REPLACE;
     }
@@ -260,27 +264,27 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
         guid = "";
         currIdx = rootIndex; // reset to 0,0
 
-        ret = wrapper->fileOpen(diFFS.filePath(), ffs);
+        ret = fileOpen(diFFS.filePath(), ffs);
         if (ret)
             return ret;
 
         /* verify input file, guid is read without verification */
 
-        ret = wrapper->getGUIDfromFile(ffs, guid);
+        ret = getGUIDfromFile(ffs, guid);
         if (ret)
             return ret;
 
-        ret = wrapper->findFileByGUID(rootIndex, guid, currIdx);
+        ret = fu->findFileByGUID(rootIndex, guid, currIdx);
         if (ret) {
             /* Not found, insert at end of volume */
-            ret = wrapper->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
+            ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
             if(ret)
                 return ret;
         }
         else {
            /* Found, replace at known index */
            printf("Warning: File already present -> Replacing!\n");
-           ret = wrapper->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
+           ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
            if(ret)
                return ret;
         }
@@ -291,32 +295,32 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
         guid = "";
         currIdx = rootIndex; // reset to 0,0
 
-        ret = wrapper->parseKextDirectory(inputKext, kextList);
+        ret = parseKextDirectory(inputKext, kextList);
         if (ret)
             return ret;
 
         for(i=0; i<kextList.size(); i++) {
-            ret = wrapper->convertKexts(kextList.at(i), ffs);
+            ret = convertKexts(kextList.at(i), ffs);
             if (ret)
                 return ret;
 
             /* No need to verify, convertKexts returned fine */
 
-            ret = wrapper->getGUIDfromFile(ffs, guid);
+            ret = getGUIDfromFile(ffs, guid);
             if (ret)
                 return ret;
 
-            ret = wrapper->findFileByGUID(rootIndex, guid, currIdx);
+            ret = fu->findFileByGUID(rootIndex, guid, currIdx);
             if (ret) {
                 /* Not found, insert at end of volume and increment Idx */
-                ret = wrapper->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
+                ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
                 if(ret)
                     return ret;
             }
             else {
                /* Found, replace at known index */
                printf("Warning: File already present -> Replacing!\n");
-               ret = wrapper->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
+               ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
                if(ret)
                    return ret;
             }
@@ -325,15 +329,15 @@ UINT8 OZMHelper::OZMCreate(QString input, QString output, QString inputFFS, QStr
 
     /* Congratz, we got that far :D */
     out.clear();
-    ret = wrapper->reconstructImageFile(out);
+    ret = fu->reconstructImageFile(out);
     if(ret) {
         printf("ERROR: Image exploded.. please provide fewer files!\n");
         return ret;
     }
 
-    outputFilePath = wrapper->pathConcatenate(output,biosfile.fileName() + ".OZM");
+    outputFilePath = pathConcatenate(output,biosfile.fileName() + ".OZM");
 
-    ret = wrapper->fileWrite(outputFilePath, out);
+    ret = fileWrite(outputFilePath, out);
     if (ret) {
         return ret;
     }
@@ -348,16 +352,16 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
     QString filename;
     QByteArray out;
 
-    if (!wrapper->dirExists(input)) {
+    if (!dirExists(input)) {
         return ERR_DIR_NOT_EXIST;
     }
 
-    ret = wrapper->dirCreate(output);
+    ret = dirCreate(output);
     if (ret == ERR_DIR_CREATE) {
         return ret;
     }
 
-    ret = wrapper->parseKextDirectory(input, toConvert);
+    ret = parseKextDirectory(input, toConvert);
     if (ret) {
         return ret;
     }
@@ -365,11 +369,11 @@ UINT8 OZMHelper::FFSConvert(QString input, QString output)
     for(int i=0; i < toConvert.size(); i++) {
         out.clear();
 
-        ret = wrapper->convertKexts(toConvert.at(i), out);
+        ret = convertKexts(toConvert.at(i), out);
         if(ret)
             return ERR_ERROR;
 
-        wrapper->fileWrite(toConvert.at(i).filename, out);
+        fileWrite(toConvert.at(i).filename, out);
         if(ret) {
             printf("ERROR: Saving '%s'\n", qPrintable(filename));
             return ERR_ERROR;
@@ -387,43 +391,37 @@ UINT8 OZMHelper::DSDT2Bios(QString input, QString inputDSDT, QString output)
     QByteArray dsdt;
     QByteArray out;
 
-    if (!wrapper->fileExists(input)) {
+    if (!fileExists(input)) {
         return ERR_ITEM_NOT_FOUND;
     }
 
-    if (!wrapper->fileExists(inputDSDT)) {
+    if (!fileExists(inputDSDT)) {
         return ERR_ITEM_NOT_FOUND;
     }
 
-    if (wrapper->fileExists(output)) {
+    if (fileExists(output)) {
         printf("WARNING: Output file already exists! Overwriting it!\n");
     }
 
-    ret = wrapper->fileOpen(input, amiboardinfo);
+    ret = fileOpen(input, amiboardinfo);
     if (ret) {
         return ret;
     }
 
-    ret = wrapper->fileOpen(inputDSDT, dsdt);
+    ret = fileOpen(inputDSDT, dsdt);
     if (ret) {
         return ret;
     }
 
-    ret = wrapper->dsdt2bios(amiboardinfo, dsdt, out);
+    ret = dsdt2bios(amiboardinfo, dsdt, out);
     if (ret) {
         return ret;
     }
 
-    ret = wrapper->fileWrite(output, out);
+    ret = fileWrite(output, out);
     if (ret) {
         return ret;
     }
 
     return ERR_SUCCESS;
-}
-
-UINT8 OZMHelper::Test(QString input)
-{
-    input = "";
-    return ERR_NOT_IMPLEMENTED;
 }

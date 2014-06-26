@@ -5,21 +5,11 @@
 #include "ffs/kextconvert.h"
 #include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
-#include "wrapper.h"
-
-Wrapper::Wrapper(void)
-{
-    ffsEngine = new FfsEngine();
-}
-
-Wrapper::~Wrapper(void)
-{
-    delete ffsEngine;
-}
+#include "util.h"
 
 /* General stuff */
 
-UINT8 Wrapper::fileOpen(QString path, QByteArray & buf)
+UINT8 fileOpen(QString path, QByteArray & buf)
 {
     QFileInfo fileInfo(path);
 
@@ -40,7 +30,7 @@ UINT8 Wrapper::fileOpen(QString path, QByteArray & buf)
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::fileWrite(QString path, QByteArray & buf)
+UINT8 fileWrite(QString path, QByteArray & buf)
 {
     QFileInfo fileInfo(path);
 
@@ -61,14 +51,14 @@ UINT8 Wrapper::fileWrite(QString path, QByteArray & buf)
     return ERR_SUCCESS;
 }
 
-BOOLEAN Wrapper::fileExists(QString path)
+BOOLEAN fileExists(QString path)
 {
     QFileInfo fileInfo = QFileInfo(path);
 
     return fileInfo.exists();
 }
 
-UINT8 Wrapper::dirCreate(QString path)
+UINT8 dirCreate(QString path)
 {
     QDir dir;
     if (dir.cd(path))
@@ -80,25 +70,25 @@ UINT8 Wrapper::dirCreate(QString path)
     return ERR_SUCCESS;
 }
 
-BOOLEAN Wrapper::dirExists(QString path)
+BOOLEAN dirExists(QString path)
 {
     QDir dir(path);
 
     return dir.exists();
 }
 
-QString Wrapper::pathConcatenate(QString path, QString filename)
+QString pathConcatenate(QString path, QString filename)
 {
     return QDir(path).filePath(filename);
 }
 
-UINT32 Wrapper::getDateTime()
+UINT32 getDateTime()
 {
     QDateTime dateTime = QDateTime::currentDateTime();
     return dateTime.toTime_t();
 }
 
-UINT16 Wrapper::getUInt16(QByteArray & buf, UINT32 start, bool fromBE)
+UINT16 getUInt16(QByteArray & buf, UINT32 start, bool fromBE)
 {
     UINT16 tmp = 0;
 
@@ -111,7 +101,7 @@ UINT16 Wrapper::getUInt16(QByteArray & buf, UINT32 start, bool fromBE)
         return tmp;
 }
 
-UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
+UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 {
     UINT32 tmp = 0;
 
@@ -128,23 +118,7 @@ UINT32 Wrapper::getUInt32(QByteArray & buf, UINT32 start, bool fromBE)
 
 /* Specific stuff */
 
-QModelIndex Wrapper::getRootIndex() {
-    return ffsEngine->treeModel()->index(0, 0);
-}
-
-UINT8 Wrapper::insert(QModelIndex & index, QByteArray & object, UINT8 mode) {
-    return ffsEngine->insert(index, object, mode);
-}
-
-UINT8 Wrapper::replace(QModelIndex & index, QByteArray & object, UINT8 mode) {
-    return ffsEngine->replace(index, object, mode);
-}
-
-UINT8 Wrapper::reconstructImageFile(QByteArray & out) {
-    return ffsEngine->reconstructImageFile(out);
-}
-
-UINT8 Wrapper::getGUIDfromFile(QByteArray object, QString & name)
+UINT8 getGUIDfromFile(QByteArray object, QString & name)
 {
     QByteArray header;
     EFI_GUID* guid;
@@ -156,111 +130,9 @@ UINT8 Wrapper::getGUIDfromFile(QByteArray object, QString & name)
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::findFileByGUID(const QModelIndex index, const QString guid, QModelIndex & result)
-{
-    UINT8 ret;
 
-    if (!index.isValid()) {
-        return ERR_INVALID_SECTION;
-    }
 
-    if(!ffsEngine->treeModel()->nameString(index).compare(guid)) {
-        result = index;
-        return ERR_SUCCESS;
-    }
-
-    for (int i = 0; i < ffsEngine->treeModel()->rowCount(index); i++) {
-        QModelIndex childIndex = index.child(i, 0);
-        ret = findFileByGUID(childIndex, guid, result);
-        if(result.isValid() && (ret == ERR_SUCCESS))
-            return ERR_SUCCESS;
-    }
-    return ERR_ITEM_NOT_FOUND;
-}
-
-UINT8 Wrapper::findSectionByIndex(const QModelIndex index, UINT8 type, QModelIndex & result)
-{
-    UINT8 ret;
-
-    if (!index.isValid()) {
-        return ERR_INVALID_SECTION;
-    }
-
-    if(ffsEngine->treeModel()->subtype(index) == type) {
-        result = index;
-        return ERR_SUCCESS;
-    }
-
-    for (int i = 0; i < ffsEngine->treeModel()->rowCount(index); i++) {
-        QModelIndex childIndex = index.child(i, 0);
-        ret = findSectionByIndex(childIndex, type, result);
-        if(result.isValid() && (ret == ERR_SUCCESS))
-            return ERR_SUCCESS;
-    }
-    return ERR_ITEM_NOT_FOUND;
-}
-
-UINT8 Wrapper::dumpFileByGUID(QString guid, QByteArray & buf, UINT8 mode)
-{
-    UINT8 ret;
-    QModelIndex result;
-    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
-
-    ret = findFileByGUID(rootIndex, guid, result);
-    if(ret)
-        return ERR_ITEM_NOT_FOUND;
-
-    ret = ffsEngine->extract(result, buf, mode);
-    if(ret)
-        return ERR_ERROR;
-
-    return ERR_SUCCESS;
-}
-
-UINT8 Wrapper::dumpSectionByGUID(QString guid, UINT8 type, QByteArray & buf, UINT8 mode)
-{
-    UINT8 ret;
-    QModelIndex resultFile;
-    QModelIndex resultSection;
-    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
-
-    ret = findFileByGUID(rootIndex, guid, resultFile);
-    if(ret)
-        return ERR_ITEM_NOT_FOUND;
-
-    ret = findSectionByIndex(resultFile, type, resultSection);
-    if(ret)
-        return ERR_ITEM_NOT_FOUND;
-
-    ret = ffsEngine->extract(resultSection, buf, mode);
-    if(ret)
-        return ERR_ERROR;
-
-    return ERR_SUCCESS;
-}
-
-UINT8 Wrapper::getLastSibling(QModelIndex index, QModelIndex & result)
-{
-    int lastRow, column;
-
-    column = 0;
-    lastRow = ffsEngine->treeModel()->rowCount(index.parent());
-    lastRow--;
-
-    result = index.sibling(lastRow, column);
-    return ERR_SUCCESS;
-}
-
-UINT8 Wrapper::parseBIOSFile(QByteArray & buf)
-{
-    UINT8 ret = ffsEngine->parseImageFile(buf);
-    if (ret)
-        return ret;
-
-    return ERR_SUCCESS;
-}
-
-UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
+UINT8 getDSDTfromAMI(QByteArray in, QByteArray & out)
 {
     UINT8 ret;
     UINT32 start = 0;
@@ -282,7 +154,7 @@ UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
+UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
 {
     UINT8 ret;
     UINT32 reloc_padding;
@@ -305,7 +177,7 @@ UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & 
     return ret;
 }
 
-UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
+UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
 {
     std::vector<char> data;
     static const std::string nameIdentifier = "CFBundleName";
@@ -343,7 +215,7 @@ UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & o
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::parseKextDirectory(QString input, QList<kextEntry> & kextList)
+UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
 {
     UINT32 GUIDindex;
     UINT32 GUIDindexCount;
@@ -430,7 +302,7 @@ UINT8 Wrapper::parseKextDirectory(QString input, QList<kextEntry> & kextList)
     return ERR_SUCCESS;
 }
 
-UINT8 Wrapper::convertKexts(kextEntry entry, QByteArray & out)
+UINT8 convertKexts(kextEntry entry, QByteArray & out)
 {
     UINT8 ret;
     UINT8 nullterminator = 0;

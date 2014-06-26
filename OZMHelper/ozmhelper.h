@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __OZMHELPER_H__
 #define __OZMHELPER_H__
 
-#include "wrapper.h"
+#include "util.h"
 #include "../basetypes.h"
 
 class OZMHelper : public QObject
@@ -31,10 +31,7 @@ public:
     UINT8 OZMCreate(QString input, QString output, QString inputFFS, QString inputKext, QString inputDSDT);
     UINT8 FFSConvert(QString input, QString output);
     UINT8 DSDT2Bios(QString input, QString inputDSDT, QString output);
-    UINT8 Test(QString input);
-
 private:
-    Wrapper* wrapper;
 };
 
 #endif

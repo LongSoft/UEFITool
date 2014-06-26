@@ -5,9 +5,6 @@ TARGET    = OZMHelper
 TEMPLATE  = app
 CONFIG   += console
 DEFINES  += _CONSOLE
-# CONFIG   += c++11
-# QMAKE_CXXFLAGS += -std=c++11 -stdlib=libc++ -mmacosx-version-min=10.7
-# LIBS += -stdlib=libc++ -mmacosx-version-min=10.7 #For MAC
 
 INCLUDEPATH += ffs/Common
 INCLUDEPATH += include
@@ -16,7 +13,6 @@ INCLUDEPATH += dsdt2bios/capstone/include
 
 SOURCES  += ozmhelper_main.cpp \
  ozmhelper.cpp \
- wrapper.cpp \
  ffs/Common/EfiUtilityMsgs.c \
  ffs/Common/ParseInf.c \
  ffs/Common/CommonLib.c \
@@ -48,11 +44,12 @@ SOURCES  += ozmhelper_main.cpp \
  ../LZMA/SDK/C/LzmaDec.c \
  ../LZMA/SDK/C/LzmaEnc.c \
  ../Tiano/EfiTianoDecompress.c \
- ../Tiano/EfiTianoCompress.c
+ ../Tiano/EfiTianoCompress.c \
+    util.cpp \
+    ffsutil.cpp
 
 
 HEADERS  += ozmhelper.h \
-   wrapper.h \
    ffs/Common/EfiUtilityMsgs.h \
    ffs/Common/ParseInf.h \
    ffs/Common/CommonLib.h \
@@ -78,4 +75,6 @@ HEADERS  += ozmhelper.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
  ../Tiano/EfiTianoDecompress.h \
- ../Tiano/EfiTianoCompress.h
+ ../Tiano/EfiTianoCompress.h \
+    util.h \
+    ffsutil.h

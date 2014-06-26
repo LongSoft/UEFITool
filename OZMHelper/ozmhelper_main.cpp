@@ -34,17 +34,6 @@ void usageDsdt2Bios()
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
 
-void usageTest()
-{
-    printf("test command\n"
-            " usage:\n"
-            "\t%s --test -i BIOS.ROM\n\n"
-            " parameters:\n" \
-            "\t-i, --input [file]\t\tInput file (BIOS.ROM)\n"
-            "\t-o, --out [dir]\t\tOutput directory\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
-}
-
 void usageFfsConvert()
 {
     printf("ffsconvert command\n"
@@ -127,6 +116,7 @@ void usageAll()
 {
     usageGeneral();
     usageDSDTExtract();
+    usageOzmUpdate();
     usageOzmExtract();
     usageOzmCreate();
     usageFfsConvert();
@@ -142,7 +132,6 @@ int main(int argc, char *argv[])
     bool ozmcreate = false;
     bool ffsconvert = false;
     bool dsdt2bios = false;
-    bool test = false;
     QString inputpath = "";
     QString output = "";
     QString ffsdir = "";
@@ -221,13 +210,6 @@ int main(int argc, char *argv[])
 
         if (strcasecmp(argv[0], "--dsdt2bios") == 0) {
             dsdt2bios = true;
-            argc --;
-            argv ++;
-            continue;
-        }
-
-        if (strcasecmp(argv[0], "--test") == 0) {
-            test = true;
             argc --;
             argv ++;
             continue;
@@ -319,7 +301,7 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    int cmds = dsdtextract + ozmextract + ozmcreate + ffsconvert + dsdt2bios + test;
+    int cmds = dsdtextract + ozmextract + ozmcreate + ffsconvert + dsdt2bios;
 
     if (help) {
         if (cmds > 1)
@@ -336,8 +318,6 @@ fail:
             usageFfsConvert();
         else if (dsdt2bios)
             usageDsdt2Bios();
-        else if (test)
-            usageTest();
         else
             usageAll();
 
@@ -398,8 +378,6 @@ fail:
         result = w.FFSConvert(inputpath, output);
     else if (dsdt2bios)
         result = w.DSDT2Bios(inputpath, dsdtfile, output);
-    else if (test)
-        result = w.Test(inputpath);
 
     printf("Program exited %s!\n", result ? "with errors" : "successfully");
     if(result)
