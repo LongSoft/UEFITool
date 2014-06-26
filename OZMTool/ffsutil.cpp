@@ -35,6 +35,14 @@ UINT8 FFSUtil::remove(QModelIndex & index) {
     return ffsEngine->remove(index);
 }
 
+UINT8 FFSUtil::compress(QByteArray & data, UINT8 algorithm, QByteArray & compressedData) {
+    return ffsEngine->compress(data, algorithm, compressedData);
+}
+
+UINT8 FFSUtil::decompress(QByteArray & compressed, UINT8 compressionType, QByteArray & decompressedData) {
+    return ffsEngine->decompress(compressed, compressionType, decompressedData);
+}
+
 UINT8 FFSUtil::reconstructImageFile(QByteArray & out) {
     return ffsEngine->reconstructImageFile(out);
 }

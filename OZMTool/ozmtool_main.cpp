@@ -375,9 +375,11 @@ fail:
     else if (dsdt2bios)
         result = w.DSDT2Bios(inputpath, dsdtfile, output);
 
-    printf("Program exited %s!\n", result ? "with errors" : "successfully :)");
-    if(result)
+
+    if(result) {
+        printf("! Program exited with errors !\n");
         printf("\nStatus code: %i\n", result);
+    }
 
     return result;
 }

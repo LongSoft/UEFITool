@@ -41,7 +41,7 @@ static const sectionEntry optionalFfs[] = {
 
 #define compressFfsCount 1
 
-static const sectionEntry compressFfs[] = {
+static const sectionEntry compressedFfs[] = {
   {"CORE_DXE","5AE3F37E-4EAE-41AE-8240-35465B5E81EB", TRUE}
 };
 
@@ -72,7 +72,8 @@ static const sectionEntry amiBoardSection = {
 #define RUN_DEL_OZM_NREQ    2
 #define RUN_DELETE          3
 
-static QList<sectionEntry> occupyFfs;
+static QList<sectionEntry> deleteFfs;
+static QList<sectionEntry> compressFfs;
 static QList<sectionEntry> OzmFfs;
 
 OZMTool::OZMTool(QObject *parent) :
@@ -86,10 +87,10 @@ OZMTool::OZMTool(QObject *parent) :
         OzmFfs.append(optionalFfs[i]);
     }
     for(int i = 0; i < compressFfsCount; i++) {
-        occupyFfs.append(compressFfs[i]);
-    }
+        compressFfs.append(compressedFfs[i]);
+    }    
     for(int i = 0; i < deletableFfsCount; i++) {
-        occupyFfs.append(deletableFfs[i]);
+        deleteFfs.append(deletableFfs[i]);
     }
 }
 
@@ -228,7 +229,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
 
             ret = nFU->findFileByGUID(rootIndex, OzmFfs.at(i).GUID, currIdx);
             if (ret) {
-                printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                printf("* File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
                 ret = nFU->insert(volumeIdx, ffsbuf, CREATE_MODE_AFTER);
                 if(ret) {
                     printf("ERROR: Injection failed!\n");
@@ -237,7 +238,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
             }
             else {
                 /* Found, replace at known index */
-                printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                printf("* File '%s' [%s] is already present -> Replacing it!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
                 ret = nFU->replace(currIdx, ffsbuf, REPLACE_MODE_AS_IS); // as-is for whole File
                 if(ret) {
                     printf("ERROR: Replacing failed!\n");
@@ -259,7 +260,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
 
             ret = nFU->findFileByGUID(rootIndex, guid, currIdx);
             if (ret) {
-                printf(" * Custom file [%s] not existant, inserting at the end of volume\n", qPrintable(guid));
+                printf("* Custom file [%s] not existant, inserting at the end of volume\n", qPrintable(guid));
                 ret = nFU->insert(volumeIdx, ffsbuf, CREATE_MODE_AFTER);
                 if(ret) {
                     printf("ERROR: Injection failed!\n");
@@ -268,7 +269,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
             }
             else {
                 /* Found, replace at known index */
-                printf(" * Custom file [%s] is already present -> Replacing it!\n", qPrintable(guid));
+                printf("* Custom file [%s] is already present -> Replacing it!\n", qPrintable(guid));
                 ret = nFU->replace(currIdx, ffsbuf, REPLACE_MODE_AS_IS); // as-is for whole File
                 if(ret) {
                     printf("ERROR: Replacing failed!\n");
@@ -277,22 +278,18 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
             }
         }
 
-        BOOLEAN req = FALSE;
         switch(run){
         case RUN_DELETE:
             printf("Deleting network BIOS stuff (PXE) to save space...\n");
-            for(i = 0; i<occupyFfs.size(); i++){
-                req = occupyFfs.at(i).required;
-                if(!req){
-                    ret = nFU->findFileByGUID(rootIndex,occupyFfs.at(i).GUID,currIdx);
-                    if(ret)
-                        continue;
-                    ret = nFU->remove(currIdx);
-                    if(ret)
-                        printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
-                    else
-                        printf(" * Removed '%s' [%s] succesfully!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
-                }
+            for(i = 0; i<deleteFfs.size(); i++){
+                ret = nFU->findFileByGUID(rootIndex,deleteFfs.at(i).GUID,currIdx);
+                if(ret)
+                    continue;
+                ret = nFU->remove(currIdx);
+                if(ret)
+                    printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
+                else
+                    printf("* Removed '%s' [%s] succesfully!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
             }
         case RUN_COMPRESS:
             printf("Compressing some files to save space...\n");
@@ -317,7 +314,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
             return ret;
         }
 
-        printf(" * Image built successfully!\n");
+        printf("* Image built successfully!\n");
         break;
     }while(true);
 
@@ -523,7 +520,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
 
             ret = fu->findFileByGUID(rootIndex, guid, currIdx);
             if (ret) {
-                printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(diFFS.fileName()), qPrintable(guid));
+                printf("* File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(diFFS.fileName()), qPrintable(guid));
                 ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
                 if(ret) {
                     printf("ERROR: Injection failed!\n");
@@ -532,7 +529,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             }
             else {
                 /* Found, replace at known index */
-                printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(diFFS.fileName()), qPrintable(guid));
+                printf("* File '%s' [%s] is already present -> Replacing it!\n", qPrintable(diFFS.fileName()), qPrintable(guid));
                 ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
                 if(ret) {
                     printf("ERROR: Replacing failed!\n");
@@ -557,7 +554,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             }
 
             for(i=0; i<kextList.size(); i++) {
-                printf("* Attempting to convert '%s'..\n", qPrintable(kextList.at(i).basename));
+                printf("* Converting '%s'..\n", qPrintable(kextList.at(i).basename));
                 ret = convertKexts(kextList.at(i), ffs);
                 if (ret) {
                     printf("ERROR: Conversion failed!\n");
@@ -574,7 +571,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
 
                 ret = fu->findFileByGUID(rootIndex, guid, currIdx);
                 if (ret) {
-                    printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
+                    printf("* File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
                     ret = fu->insert(volumeIdxCount, ffs, CREATE_MODE_AFTER);
                     if(ret) {
                         printf("ERROR: Injection failed!\n");
@@ -583,7 +580,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
                 }
                 else {
                     /* Found, replace at known index */
-                    printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
+                    printf("* File '%s' [%s] is already present -> Replacing it!\n", qPrintable(kextList.at(i).basename), qPrintable(guid));
                     ret = fu->replace(currIdx, ffs, REPLACE_MODE_AS_IS); // as-is for whole File
                     if(ret) {
                         printf("ERROR: Replacing failed!\n");
@@ -593,28 +590,24 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             }
         }
 
-        BOOLEAN req = FALSE;
+
         switch(run){
         case RUN_DELETE:
             printf("Deleting network BIOS stuff (PXE) to save space...\n");
-            for(i = 0; i<occupyFfs.size(); i++){
-                req = occupyFfs.at(i).required;
-                if(!req){
-                    ret = fu->findFileByGUID(rootIndex,occupyFfs.at(i).GUID,currIdx);
-                    if(ret)
-                        continue;
-                    ret = fu->remove(currIdx);
-                    if(ret)
-                        printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
-                    else
-                        printf(" * Removed '%s' [%s] succesfully!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
-                }
+            for(i = 0; i<deleteFfs.size(); i++){
+                ret = fu->findFileByGUID(rootIndex,deleteFfs.at(i).GUID,currIdx);
+                if(ret)
+                    continue;
+                ret = fu->remove(currIdx);
+                if(ret)
+                    printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
+                else
+                    printf("* Removed '%s' [%s] succesfully!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
             }
         case RUN_DEL_OZM_NREQ:
             printf("Deleting non-essential Ozmosis files to save space...\n");
             for(i = 0; i<OzmFfs.size(); i++){
-                req = OzmFfs.at(i).required;
-                if(!req){
+                if(!OzmFfs.at(i).required){
                     ret = fu->findFileByGUID(rootIndex,OzmFfs.at(i).GUID,currIdx);
                     if(ret)
                         continue;
@@ -622,12 +615,37 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
                     if(ret)
                         printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
                     else
-                        printf(" * Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                        printf("* Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
                 }
             }
         case RUN_COMPRESS:
+            /*
             printf("Compressing some files to save space...\n");
-            printf("Warning: Sorry... not implemented yet...\n");
+            for(i = 0; i<compressFfs.size(); i++) {
+                compressed.clear();
+                ffs.clear();
+                ret = fu->findFileByGUID(rootIndex, compressFfs.at(i).GUID, currIdx);
+                if(ret)
+                    continue;
+                ret = fu->dumpFileByGUID(compressFfs.at(i).GUID, ffs, EXTRACT_MODE_AS_IS);
+                if(ret) {
+                    printf("Warning: Failed to get '%s' [%s] for compression!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
+                    continue;
+                }
+                printf("* Trying to compress '%s' [%s]\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
+                ret = fu->compress(ffs, COMPRESSION_ALGORITHM_TIANO, compressed);
+                if(ret) {
+                    printf("Warning: Compressing '%s' [%s] failed!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
+                    continue;
+                }
+                ret = fu->replace(currIdx, compressed, REPLACE_MODE_AS_IS);
+                if(ret) {
+                    printf("Warning: Injecting compressed '%s' [%s] failed!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
+                    continue;
+                }
+                printf("* File was injected compressed successfully!\n");
+            }
+            */
         case RUN_AS_IS:
             break;
         }
@@ -648,7 +666,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             return ret;
         }
 
-        printf(" * Image built successfully!\n");
+        printf("* Image built successfully!\n");
         break;
 
     } while(true);
@@ -658,7 +676,27 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
         printf("ERROR: Writing patched BIOS to '%s' failed!\n", qPrintable(outputfile));
         return ret;
     }
-    printf("Bios successfully saved to '%s'\n",qPrintable(outputfile));
+    printf("Bios successfully saved to '%s'\n\n",qPrintable(outputfile));
+
+    printf("Starting verification... if you see any unusual warnings/errors -> DONT USE THE IMAGE!\n");
+    printf("NOTE: You are using this application on your own risk anyway..\n");
+    printf("NOTE: 'parseInputFile: descriptor parsing failed, descriptor region has intersection with BIOS region' can be ignored..\n\n");
+
+    FFSUtil *verifyFU = new FFSUtil();
+    ret = verifyFU->parseBIOSFile(out);
+    if(ret) {
+        printf("ERROR: Parsing BIOS failed!\n");
+        return ret;
+    }
+
+    for(i=0; i<OzmFfs.size(); i++) {
+        ffs.clear();
+        if(OzmFfs.at(i).required) {
+            ret = verifyFU->dumpFileByGUID(OzmFfs.at(i).GUID, ffs, EXTRACT_MODE_AS_IS);
+            if(ret)
+                printf("ERROR: Failed to dump '%s' [%s] !\n",qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+        }
+    }
 
     return ERR_SUCCESS;
 }

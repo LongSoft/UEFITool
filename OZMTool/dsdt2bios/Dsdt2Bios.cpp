@@ -324,7 +324,7 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
     dprintf("--------------------\n\n");
     if (!Disass((UINT8 *)amiBufNew.mid(HeaderNT->OptionalHeader.BaseOfCode).constData(),HeaderNT->OptionalHeader.SizeOfCode, diffSize))
     {
-        printf("Successfully patched AmiBoardInfo to new offset :) All credits to FredWst!\n");
+        printf("* Successfully patched AmiBoardInfo to new offset :) All credits to FredWst!\n");
         out.clear();
         out.append(amiBufNew.constData(), amiLen+diffSize);
     }
