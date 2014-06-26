@@ -307,7 +307,7 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
                         {
                             relocPadding = ( 0x10 + (0x1000 - OldOfs)) & 0xff0 ;
                             printf("ERROR: errcode %x patching relocations!\n",relocPadding);
-                            return ERR_ERROR;
+                            return ERR_RELOCATION;
                         }
                     }
 

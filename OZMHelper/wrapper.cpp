@@ -297,10 +297,12 @@ UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & 
         return ret;
 
     ret = d2b.injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
-    if(ret)
-        return ret;
+    if(ret == ERR_RELOCATION && (reloc_padding != 0)) {
+        /* Re-running with other reloc_padding */
+        ret = d2b.injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
+    }
 
-    return ERR_SUCCESS;
+    return ret;
 }
 
 UINT8 Wrapper::getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
