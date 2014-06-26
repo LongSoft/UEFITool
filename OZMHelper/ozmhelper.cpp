@@ -161,9 +161,17 @@ UINT8 OZMHelper::DSDTExtract(QString inputfile, QString outputdir)
 
 UINT8 OZMHelper::OZMUpdate(QString inputfile, QString recentBios, QString outputfile)
 {
+    int i, run = 0;
     UINT8 ret;
+    QString guid;
     QByteArray oldBIOS;
     QByteArray newBIOS;
+    QByteArray ffsbuf;
+    QByteArray out;
+    QModelIndex rootIndex, volumeIdx, currIdx;
+
+    const static int MAX_KEXT_ID = 0xF;
+    const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275";
 
     FFSUtil *oFU = new FFSUtil();
     FFSUtil *nFU = new FFSUtil();
@@ -174,23 +182,143 @@ UINT8 OZMHelper::OZMUpdate(QString inputfile, QString recentBios, QString output
         return ret;
     }
 
-    ret = oFU->parseBIOSFile(oldBIOS);
-    if (ret) {
-        printf("ERROR: Parsing old BIOS failed!\n");
-        return ret;
-    }
-
     ret = fileOpen(recentBios, newBIOS);
     if (ret) {
         printf("ERROR: Opening '%s' failed!\n", qPrintable(recentBios));
         return ret;
     }
 
-    ret = nFU->parseBIOSFile(newBIOS);
-    if (ret) {
-        printf("ERROR: Parsing old BIOS failed!\n");
-        return ret;
-    }
+    do {
+
+        ret = oFU->parseBIOSFile(oldBIOS);
+        if (ret) {
+            printf("ERROR: Parsing old BIOS failed!\n");
+            return ret;
+        }
+
+        ret = nFU->parseBIOSFile(newBIOS);
+        if (ret) {
+            printf("ERROR: Parsing old BIOS failed!\n");
+            return ret;
+        }
+
+        rootIndex = nFU->getRootIndex();
+
+        /* Needed here to know correct volume image where everything goes */
+        ret = nFU->findFileByGUID(rootIndex, amiBoardSection.GUID, currIdx);
+        if(ret) {
+            printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+            return ERR_ITEM_NOT_FOUND;
+        }
+
+        nFU->getLastSibling(currIdx, volumeIdx); // We want Sibling of file, not section!
+
+        for(i = 0; i < OzmFfs.size(); i++){
+            ffsbuf.clear();
+
+            ret = oFU->dumpFileByGUID(OzmFfs.at(i).GUID, ffsbuf, EXTRACT_MODE_AS_IS);
+            if(ret && OzmFfs.at(i).required) {
+                printf("ERROR: Required file '%s' [%s] not found!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                return ERR_FILE_NOT_FOUND;
+            }
+            else if(ret)
+                continue;
+
+            printf("Injecting '%s' [%s] from old into new BIOS...\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+
+            ret = nFU->findFileByGUID(rootIndex, OzmFfs.at(i).GUID, currIdx);
+            if (ret) {
+                printf(" * File '%s' [%s] not existant, inserting at the end of volume\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                ret = nFU->insert(volumeIdx, ffsbuf, CREATE_MODE_AFTER);
+                if(ret) {
+                    printf("ERROR: Injection failed!\n");
+                    return ret;
+                }
+            }
+            else {
+                /* Found, replace at known index */
+                printf(" * File '%s' [%s] is already present -> Replacing it!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                ret = nFU->replace(currIdx, ffsbuf, REPLACE_MODE_AS_IS); // as-is for whole File
+                if(ret) {
+                    printf("ERROR: Replacing failed!\n");
+                    return ret;
+                }
+            }
+        }
+
+        for(i = 6; i <= MAX_KEXT_ID; i++) {
+            ffsbuf.clear();
+
+            guid = kextGUID.arg(i, 0, 16);
+
+            ret = oFU->dumpFileByGUID(guid, ffsbuf, EXTRACT_MODE_AS_IS);
+            if(ret)
+                continue; // Not found
+
+            printf("Injecting custom ffs [%s] from old into new BIOS...\n", qPrintable(guid));
+
+            ret = nFU->findFileByGUID(rootIndex, guid, currIdx);
+            if (ret) {
+                printf(" * Custom file [%s] not existant, inserting at the end of volume\n", qPrintable(guid));
+                ret = nFU->insert(volumeIdx, ffsbuf, CREATE_MODE_AFTER);
+                if(ret) {
+                    printf("ERROR: Injection failed!\n");
+                    return ret;
+                }
+            }
+            else {
+                /* Found, replace at known index */
+                printf(" * Custom file [%s] is already present -> Replacing it!\n", qPrintable(guid));
+                ret = nFU->replace(currIdx, ffsbuf, REPLACE_MODE_AS_IS); // as-is for whole File
+                if(ret) {
+                    printf("ERROR: Replacing failed!\n");
+                    return ret;
+                }
+            }
+        }
+
+        BOOLEAN req = FALSE;
+        switch(run){
+        case RUN_DELETE:
+            printf("Deleting network BIOS stuff (PXE) to save space...\n");
+            for(i = 0; i<occupyFfs.size(); i++){
+                req = occupyFfs.at(i).required;
+                if(!req){
+                    ret = nFU->findFileByGUID(rootIndex,occupyFfs.at(i).GUID,currIdx);
+                    if(ret)
+                        continue;
+                    ret = nFU->remove(currIdx);
+                    if(ret)
+                        printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
+                    else
+                        printf(" * Removed '%s' [%s] succesfully!\n", qPrintable(occupyFfs.at(i).name), qPrintable(occupyFfs.at(i).GUID));
+                }
+            }
+        case RUN_COMPRESS:
+            printf("Compressing some files to save space...\n");
+            printf("Warning: Sorry... not implemented yet...\n");
+        case RUN_AS_IS:
+            break;
+        }
+
+        out.clear();
+        printf("Reconstructing final image...\n");
+        ret = nFU->reconstructImageFile(out);
+        if(ret)
+            printf("ERROR: Image exploded...\n");
+
+        run++;
+
+        if((run < MAX_RUNS) && ret) {
+            printf("\n\n*** Re-trying the process ***\n");
+            continue;
+        } else if(run >= MAX_RUNS && ret)
+            return ret;
+
+        printf(" * Image built successfully!\n");
+        break;
+    }while(true);
+
 
     printf("Function not implemented yet... Sorry!\n");
     return ERR_NOT_IMPLEMENTED;
