@@ -263,8 +263,8 @@ UINT8 Wrapper::parseBIOSFile(QByteArray & buf)
 UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
 {
     UINT8 ret;
-    UINT16 start = 0;
-    UINT16 size = 0;
+    UINT32 start = 0;
+    UINT32 size = 0;
 
     Dsdt2Bios d2b;
 
@@ -285,9 +285,10 @@ UINT8 Wrapper::getDSDTfromAMI(QByteArray in, QByteArray & out)
 UINT8 Wrapper::dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
 {
     UINT8 ret;
+    UINT32 reloc_padding;
+    UINT32 offset, size;
+
     Dsdt2Bios d2b;
-    UINT16 reloc_padding;
-    UINT16 offset, size;
 
     reloc_padding = 0;
 
