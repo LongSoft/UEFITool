@@ -189,9 +189,11 @@ UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
     std::map<std::string, boost::any> dict;
     Plist::readPlist(plist.data(), plist.size(), dict);
 
-    /* Just assumes the entry's there, otherwise => CRASH */
-    plistName = boost::any_cast<const std::string&>(dict.find(nameIdentifier)->second).c_str();
-    plistVersion = boost::any_cast<const std::string&>(dict.find(versionIdentifier)->second).c_str();
+    if(dict.count(nameIdentifier) > 0)
+        plistName = boost::any_cast<const std::string&>(dict.find(nameIdentifier)->second).c_str();
+
+    if(dict.count(versionIdentifier) > 0)
+        plistVersion = boost::any_cast<const std::string&>(dict.find(versionIdentifier)->second).c_str();
 
     if(plistName.isEmpty()) {
         printf("ERROR: CFBundleName in plist is blank. Aborting!\n");
