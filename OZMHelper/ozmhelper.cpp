@@ -413,9 +413,14 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
     else
         printf("Warning: No DSDT file given! Will leave DSDT as-is!\n");
 
+    ret = fileOpen(inputfile, bios);
+    if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
+        return ret;
+    }
+
     do {
         //cleanup
-        bios.clear();
         dsdt.clear();
         ffs.clear();
         out.clear();
@@ -423,12 +428,6 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
         patchedAmiboard.clear();
 
         FFSUtil *fu = new FFSUtil();
-
-        ret = fileOpen(inputfile, bios);
-        if (ret) {
-            printf("ERROR: Opening '%s' failed!\n", qPrintable(inputfile));
-            return ret;
-        }
 
         ret = fu->parseBIOSFile(bios);
         if (ret) {
