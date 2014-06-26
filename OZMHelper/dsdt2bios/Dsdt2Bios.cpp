@@ -3,6 +3,7 @@
 //  AmiInfoBoard
 //
 //  Created by Frédéric Geoffroy on 14/04/2014.
+//  Ported to QT & edited by tuxuser
 //  Copyright (c) 2014 FredWst. All rights reserved.
 //
 
