@@ -31,6 +31,15 @@
 #include "Dsdt2Bios.h"
 #include "PeImage.h"
 
+#define DEBUG 0
+
+#if DEBUG
+    #define dprintf(...) \
+            do { printf(__VA_ARGS__); } while (0)
+#else
+    #define dprintf(...)
+#endif
+
 UINT64 Dsdt2Bios::insn_detail(csh ud, cs_mode mode, cs_insn *ins)
 {
     int i;
@@ -72,7 +81,7 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
 
     cs_err err = cs_open(x64_platform.arch, x64_platform.mode, &handle);
     if (err) {
-        printf("\nFailed on cs_open() with error returned: %u\n", err);
+        dprintf("\nFailed on cs_open() with error returned: %u\n", err);
         return ERR_ERROR;
     }
 
@@ -83,7 +92,7 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
 
     size_t count = cs_disasm_ex(handle, x64_platform.code, x64_platform.size, address, 0, &insn);
     if (!count) {
-        printf("\nERROR: Failed to disasm given code!\n");
+        dprintf("\nERROR: Failed to disasm given code!\n");
         cs_close(&handle);
         return ERR_ERROR;
     }
@@ -96,7 +105,7 @@ UINT8 Dsdt2Bios::Disass(UINT8 *X86_CODE64, INT32 CodeSize, INT32 size)
 
         unsigned short *adr = (unsigned short *)&X86_CODE64[insn[j].address+3];
         *adr += size;
-        printf("%s\t%s \t-> \t[0x%x]\n", insn[j].mnemonic, insn[j].op_str,*adr);
+        dprintf("%s\t%s \t-> \t[0x%x]\n", insn[j].mnemonic, insn[j].op_str,*adr);
         ret = ERR_SUCCESS;
     }
     // free memory allocated by cs_disasm_ex()
@@ -214,57 +223,57 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
     HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiBufNew.constData();
     HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)amiBufNew.mid(HeaderDOS->e_lfanew).constData();
     
-    printf("Patching header\n");
-    printf("---------------\n\n");
-    printf("SizeOfInitializedData       \t0x%x",HeaderNT->OptionalHeader.SizeOfInitializedData);
+    dprintf("Patching header\n");
+    dprintf("---------------\n\n");
+    dprintf("SizeOfInitializedData       \t0x%x",HeaderNT->OptionalHeader.SizeOfInitializedData);
     HeaderNT->OptionalHeader.SizeOfInitializedData += diffSize;
-    printf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfInitializedData);
-    printf("SizeOfImage                 \t0x%x",HeaderNT->OptionalHeader.SizeOfImage);
+    dprintf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfInitializedData);
+    dprintf("SizeOfImage                 \t0x%x",HeaderNT->OptionalHeader.SizeOfImage);
     HeaderNT->OptionalHeader.SizeOfImage += diffSize;
-    printf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfImage);
+    dprintf("\t -> \t0x%x\n",HeaderNT->OptionalHeader.SizeOfImage);
     
     for ( i = 0; i < EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES ;i++) {
         if ( HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress != 0 ) {
-            printf("DataDirectory               \t0x%x",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
+            dprintf("DataDirectory               \t0x%x",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
             HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress += diffSize;
-            printf("\t -> \t0x%x\n\n",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
+            dprintf("\t -> \t0x%x\n\n",HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress);
         }
     }
     
     
     Section = (EFI_IMAGE_SECTION_HEADER *)amiBufNew.mid(HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64)).constData();//[HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64)];
-    printf("Patching sections\n");
-    printf("-----------------\n\n");
+    dprintf("Patching sections\n");
+    dprintf("-----------------\n\n");
 
     for ( i = 0 ; i < HeaderNT->FileHeader.NumberOfSections; i++)
     {
         if ( !strcmp((char *)&Section[i].Name, ".data" ) )
         {
             foundDataSection = TRUE;
-            printf("Name                         \t%s\t -> \t %s\n",Section[i].Name,Section[i].Name);
-            printf("PhysicalAddress             \t0x%x",Section[i].Misc.PhysicalAddress);
+            dprintf("Name                         \t%s\t -> \t %s\n",Section[i].Name,Section[i].Name);
+            dprintf("PhysicalAddress             \t0x%x",Section[i].Misc.PhysicalAddress);
             Section[i].Misc.PhysicalAddress += diffSize;
-            printf("\t -> \t0x%x\n",Section[i].Misc.PhysicalAddress);
-            printf("SizeOfRawData               \t0x%x",Section[i].SizeOfRawData);
+            dprintf("\t -> \t0x%x\n",Section[i].Misc.PhysicalAddress);
+            dprintf("SizeOfRawData               \t0x%x",Section[i].SizeOfRawData);
             Section[i].SizeOfRawData += diffSize;
-            printf("\t -> \t0x%x\n\n",Section[i].SizeOfRawData);
+            dprintf("\t -> \t0x%x\n\n",Section[i].SizeOfRawData);
         }
         else if (foundDataSection)
         {
             if (!strcmp((char *)&Section[i].Name,""))
                 strcpy((char *)&Section[i].Name,".empty");
-            printf("Name                        \t%s\t -> \t%s\n",Section[i].Name,Section[i].Name);
-            printf("VirtualAddress              \t0x%x",Section[i].VirtualAddress);
+            dprintf("Name                        \t%s\t -> \t%s\n",Section[i].Name,Section[i].Name);
+            dprintf("VirtualAddress              \t0x%x",Section[i].VirtualAddress);
             Section[i].VirtualAddress += diffSize;
-            printf("\t -> \t0x%x\n",Section[i].VirtualAddress);
-            printf("PointerToRawData            \t0x%x",Section[i].PointerToRawData);
+            dprintf("\t -> \t0x%x\n",Section[i].VirtualAddress);
+            dprintf("PointerToRawData            \t0x%x",Section[i].PointerToRawData);
             Section[i].PointerToRawData += diffSize;
-            printf("\t -> \t0x%x\n\n",Section[i].PointerToRawData);
+            dprintf("\t -> \t0x%x\n\n",Section[i].PointerToRawData);
 
             if ( !strcmp((char *)&Section[i].Name, ".reloc" ) )
             {
-                printf("Patching relocations\n");
-                printf("--------------------\n\n");
+                dprintf("Patching relocations\n");
+                dprintf("--------------------\n\n");
 
                 EFI_IMAGE_BASE_RELOCATION *p;
                 UINT16 *s;
@@ -281,21 +290,21 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
                     s = (UINT16 *)p + 4;
 
                     index = 0;
-                    printf("Virtual base address           \t0x%04x",p->VirtualAddress);
+                    dprintf("Virtual base address           \t0x%04x",p->VirtualAddress);
                     OldAdr = p->VirtualAddress;
                     if (p->VirtualAddress != 0 )
                         p->VirtualAddress =(amiLen + diffSize) & 0xf000;
 
-                    printf("\t -> \t0x%04x\n",p->VirtualAddress);
+                    dprintf("\t -> \t0x%04x\n",p->VirtualAddress);
 
                     for ( j = 0; j <  ( p->SizeOfBlock - 8 ); j+=2)
                     {
                         if (*s != 0)
                         {
-                            printf("Table index %i                \t0x%04x",index++, OldAdr + (*s & 0xfff));
+                            dprintf("Table index %i                \t0x%04x",index++, OldAdr + (*s & 0xfff));
                             if (p->VirtualAddress != 0 )
                                 *s = 0xa000 + ((*s + diffSize ) & 0xfff);
-                            printf("\t -> \t0x%04x\n",p->VirtualAddress + (*s & 0xfff));
+                            dprintf("\t -> \t0x%04x\n",p->VirtualAddress + (*s & 0xfff));
                         }
 
                         if (p->VirtualAddress != 0 )
@@ -306,7 +315,7 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
                         if ((p->VirtualAddress != 0)&&(OldOfs > ((*s +diffSize) & 0xfff))&&(j < ( p->SizeOfBlock - 8 - 4)))
                         {
                             relocPadding = ( 0x10 + (0x1000 - OldOfs)) & 0xff0 ;
-                            printf("ERROR: errcode %x patching relocations!\n",relocPadding);
+                            dprintf("ERROR: errcode %x patching relocations!\n",relocPadding);
                             return ERR_RELOCATION;
                         }
                     }
@@ -316,8 +325,8 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
         }
     }
 
-    printf("Patching adr in code\n");
-    printf("--------------------\n\n");
+    dprintf("Patching adr in code\n");
+    dprintf("--------------------\n\n");
     if (!Disass((UINT8 *)amiBufNew.mid(HeaderNT->OptionalHeader.BaseOfCode).constData(),HeaderNT->OptionalHeader.SizeOfCode, diffSize))
     {
         printf("Successfully patched AmiBoardInfo to new offset :) All credits to FredWst!\n");

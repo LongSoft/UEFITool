@@ -405,7 +405,6 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
                     return ret;
                 }
             }
-            printf(" * Success!\n");
         }
 
         if(insertKexts) {
@@ -457,7 +456,6 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
                         return ret;
                     }
                 }
-                printf(" * Success!\n");
             }
         }
 
@@ -509,7 +507,7 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
         run++;
 
         if((run < MAX_RUNS) && ret) {
-            printf("*** Re-trying the process ***\n");
+            printf("\n\n*** Re-trying the process ***\n");
             continue;
         } else if(run >= MAX_RUNS && ret)
             return ret;
