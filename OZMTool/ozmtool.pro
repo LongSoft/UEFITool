@@ -80,3 +80,6 @@ HEADERS  += ozmtool.h \
  ../Tiano/EfiTianoCompress.h \
     util.h \
     ffsutil.h
+
+OTHER_FILES += \
+    README

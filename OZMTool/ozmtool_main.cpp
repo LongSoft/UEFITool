@@ -63,9 +63,9 @@ void usageOzmCreate()
             " usage:\n"
             "\t%s --ozmcreate -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
             " parameters:\n"
-            "\t-k, --kext [dir]\t\tKEXT directory\n"
-            "\t-f, --ffs [dir]\t\tFFS directory (OZM files)\n"
-            "\t-d, --dsdt [file]\t\tDSDT.aml file\n"
+            "\t-f, --ffs [dir]\t\tFFS directory (extracted OZM files)\n"
+            "\t-d, --dsdt [file]\t\t (optional) DSDT.aml file\n"
+            "\t-k, --kext [dir]\t\t (optional) KEXT directory\n"
             "\t-i, --input [file]\t\tInput CLEAN Bios\n"
             "\t-o, --out [file]\t\tOutput OZM Bios\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
         if ((strcasecmp(argv[0], "-i") == 0) || (strcasecmp(argv[0], "--input") == 0)) {
             if (argv[1] == NULL || argv[1][0] == '-') {
                 printf("Invalid option value\n"
-                       "Input file/dir is missing for -i option\n");
+                       "Input file/directory is missing for -i option\n");
                 goto fail;
             }
             inputpath = argv[1];
@@ -266,7 +266,7 @@ int main(int argc, char *argv[])
         if ((strcasecmp(argv[0], "-o") == 0) || (strcasecmp(argv[0], "--out") == 0)) {
             if (argv[1] == NULL || argv[1][0] == '-') {
                 printf("Invalid option value\n"
-                       "Output directory is missing for -o option\n");
+                       "Output file/directory is missing for -o option\n");
                 goto fail;
             }
             output = argv[1];
