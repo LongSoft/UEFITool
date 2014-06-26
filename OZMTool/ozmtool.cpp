@@ -1,4 +1,4 @@
-/* ozmhelper.cpp
+/* ozmtool.cpp
 
 Copyright (c) 2014, tuxuser. All rights reserved.
 This program and the accompanying materials
@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDirIterator>
 #include "../ffs.h"
 #include "ffsutil.h"
-#include "ozmhelper.h"
+#include "ozmtool.h"
 
 static const QString DSDTFilename =  "DSDT.aml";
 
@@ -75,7 +75,7 @@ static const sectionEntry amiBoardSection = {
 static QList<sectionEntry> occupyFfs;
 static QList<sectionEntry> OzmFfs;
 
-OZMHelper::OZMHelper(QObject *parent) :
+OZMTool::OZMTool(QObject *parent) :
     QObject(parent)
 {
     /* how to store those initially */
@@ -93,11 +93,11 @@ OZMHelper::OZMHelper(QObject *parent) :
     }
 }
 
-OZMHelper::~OZMHelper()
+OZMTool::~OZMTool()
 {
 }
 
-UINT8 OZMHelper::DSDTExtract(QString inputfile, QString outputdir)
+UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
 {
     UINT8 ret;
     QString outputFile;
@@ -159,7 +159,7 @@ UINT8 OZMHelper::DSDTExtract(QString inputfile, QString outputdir)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::OZMUpdate(QString inputfile, QString recentBios, QString outputfile)
+UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfile)
 {
     int i, run = 0;
     UINT8 ret;
@@ -331,7 +331,7 @@ UINT8 OZMHelper::OZMUpdate(QString inputfile, QString recentBios, QString output
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::OZMExtract(QString inputfile, QString outputdir)
+UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
 {
     int i;
     UINT8 ret;
@@ -386,7 +386,7 @@ UINT8 OZMHelper::OZMExtract(QString inputfile, QString outputdir)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile)
+UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile)
 {
     int i, run = 0;
     UINT8 ret;
@@ -663,7 +663,7 @@ UINT8 OZMHelper::OZMCreate(QString inputfile, QString outputfile, QString inputF
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::FFSConvert(QString inputdir, QString outputdir)
+UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
 {
     UINT8 ret;
     QList<kextEntry> toConvert;
@@ -711,7 +711,7 @@ UINT8 OZMHelper::FFSConvert(QString inputdir, QString outputdir)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMHelper::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outputfile)
+UINT8 OZMTool::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outputfile)
 {
     UINT8 ret;
     QByteArray amiboardinfo;

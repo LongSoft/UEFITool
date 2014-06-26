@@ -1,5 +1,5 @@
-OZMHelper v0.1
-Usage: ozmhelper [COMMAND] [PARAMETERS...] input
+OZMTool v0.1
+Usage: ozmtool [COMMAND] [PARAMETERS...] input
 
 Available commands:
 --amiextract				Extracts AmiBoardInfo and DSDT from BIOS
@@ -11,7 +11,7 @@ Available commands:
 
 amiextract command
  usage:
-	ozmhelper --amiextract -o outputdir OZMBIOS_or_BIOS.ROM
+	ozmtool --amiextract -o outputdir OZMBIOS_or_BIOS.ROM
  
  parameters:
 	-o, --out [dir]			Output directory
@@ -19,7 +19,7 @@ amiextract command
 
 ozmextract command
  usage:
-	ozmhelper --ozmextract -o outputdir OZM.ROM
+	ozmtool --ozmextract -o outputdir OZM.ROM
 	
  parameters:
 	-o, --out [dir]			Output directory
@@ -27,7 +27,7 @@ ozmextract command
 
 ozmcreate command
  usage:
-	ozmhelper --ozmcreate -f ffsdir -a AmiBoardInfo.bin -o outputdir BIOS.ROM
+	ozmtool --ozmcreate -f ffsdir -a AmiBoardInfo.bin -o outputdir BIOS.ROM
 
  parameters:
 	-f, --ffs [dir]			FFS directory (OZM FFS + extra FFS)
@@ -37,7 +37,7 @@ ozmcreate command
 	
 ffsconvert command
  usage:
-	ozmhelper --ffsconvert -o outputdir ffsdir
+	ozmtool --ffsconvert -o outputdir ffsdir
 
  parameters:
 	-o, --out [dir]			Output directory
@@ -45,7 +45,7 @@ ffsconvert command
 
 checkspace command
  usage:
-	ozmhelper --checkspace BIOS.ROM
+	ozmtool --checkspace BIOS.ROM
 
  parameters:
 	-o, --out [dir]			Output directory

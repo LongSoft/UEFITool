@@ -1,4 +1,4 @@
-/* ozmhelper.h
+/* ozmtool.h
 
 Copyright (c) 2014, tuxuser. All rights reserved.
 This program and the accompanying materials
@@ -11,19 +11,19 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __OZMHELPER_H__
-#define __OZMHELPER_H__
+#ifndef __OZMTOOL_H__
+#define __OZMTOOL_H__
 
 #include "util.h"
 #include "../basetypes.h"
 
-class OZMHelper : public QObject
+class OZMTool : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit OZMHelper(QObject *parent = 0);
-    ~OZMHelper();
+    explicit OZMTool(QObject *parent = 0);
+    ~OZMTool();
 
     UINT8 DSDTExtract(QString inputfile, QString outputdir);
     UINT8 OZMUpdate(QString inputfile, QString recentBios, QString outputfile);

@@ -3,7 +3,7 @@ QMAKE_CFLAGS_RELEASE *= -O1
 QT       += core
 QT       -= gui
 
-TARGET    = OZMHelper
+TARGET    = OZMTool
 TEMPLATE  = app
 CONFIG   += console
 DEFINES  += _CONSOLE
@@ -13,8 +13,8 @@ INCLUDEPATH += include
 INCLUDEPATH += include/X64
 INCLUDEPATH += dsdt2bios/capstone/include
 
-SOURCES  += ozmhelper_main.cpp \
- ozmhelper.cpp \
+SOURCES  += ozmtool_main.cpp \
+ ozmtool.cpp \
  ffs/Common/EfiUtilityMsgs.c \
  ffs/Common/ParseInf.c \
  ffs/Common/CommonLib.c \
@@ -51,7 +51,7 @@ SOURCES  += ozmhelper_main.cpp \
     ffsutil.cpp
 
 
-HEADERS  += ozmhelper.h \
+HEADERS  += ozmtool.h \
    ffs/Common/EfiUtilityMsgs.h \
    ffs/Common/ParseInf.h \
    ffs/Common/CommonLib.h \

@@ -1,4 +1,4 @@
-/* ozmhelper_main.cpp
+/* ozmtool_main.cpp
 
 Copyright (c) 2014, tuxuser. All rights reserved.
 This program and the accompanying materials
@@ -17,10 +17,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <string.h>
 #include <stdio.h>
 
-#include "ozmhelper.h"
+#include "ozmtool.h"
 
 QString version = "v0.1";
-QString appname = "OZMHelper";
+QString appname = "OZMTool";
 
 void usageDsdt2Bios()
 {
@@ -142,9 +142,9 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     a.setOrganizationName("tuxuser");
     a.setOrganizationDomain("tuxuser.org");
-    a.setApplicationName("OZMHelper");
+    a.setApplicationName("OZMTool");
 
-    OZMHelper w;
+    OZMTool w;
     UINT8 result = ERR_SUCCESS;
 
 
