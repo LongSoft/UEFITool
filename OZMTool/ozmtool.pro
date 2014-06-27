@@ -1,5 +1,4 @@
 QMAKE_CFLAGS_RELEASE *= -O1
-CONFIG-=app_bundle
 
 QT       += core
 QT       -= gui
@@ -7,6 +6,7 @@ QT       -= gui
 TARGET    = OZMTool
 TEMPLATE  = app
 CONFIG   += console
+CONFIG-=app_bundle
 DEFINES  += _CONSOLE
 
 INCLUDEPATH += ffs/Common
