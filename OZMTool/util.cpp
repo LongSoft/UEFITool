@@ -144,29 +144,6 @@ UINT8 getGUIDfromFile(QByteArray object, QString & name)
 }
 
 
-
-UINT8 getDSDTfromAMI(QByteArray in, QByteArray & out)
-{
-    UINT8 ret;
-    UINT32 start = 0;
-    UINT32 size = 0;
-
-    Dsdt2Bios d2b;
-
-    ret = d2b.getDSDTFromAmi(in, start, size);
-    if(ret)
-        return ret;
-
-    out.clear();
-
-    out = in.mid(start, size);
-
-    if(out.size() != size)
-        return ERR_OUT_OF_MEMORY;
-
-    return ERR_SUCCESS;
-}
-
 UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
 {
     UINT8 ret;

@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include <QDirIterator>
+#include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
 #include "ffsutil.h"
 #include "ozmtool.h"
@@ -103,8 +104,10 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
     UINT8 ret;
     QString outputFile;
     QByteArray buf, dsdtbuf;
+    UINT32 start, size;
 
     FFSUtil *fu = new FFSUtil();
+    Dsdt2Bios d2b;
 
     ret = dirCreate(outputdir);
     if (ret == ERR_DIR_CREATE) {
@@ -132,8 +135,8 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
         return ret;
     }
 
-    ret = getDSDTfromAMI(buf, dsdtbuf);
-    if (ret) {
+    ret = d2b.getDSDTFromAmi(buf, start, size);
+    if(ret) {
         printf("ERROR: Extracting DSDT from AmiBoardInfo failed!\n");
         return ret;
     }
@@ -148,6 +151,9 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
 
     outputFile = pathConcatenate(outputdir, DSDTFilename);
 
+    /* Safety - sometimes it needs 1 byte more, different from header description! */
+    dsdtbuf = buf.mid(start, size + 1);
+
     ret = fileWrite(outputFile, dsdtbuf);
     if (ret) {
         printf("ERROR: Writing DSDT.aml to '%s' failed!\n", qPrintable(outputFile));
@@ -155,7 +161,6 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
     }
 
     buf.clear();
-    dsdtbuf.clear();
 
     return ERR_SUCCESS;
 }
