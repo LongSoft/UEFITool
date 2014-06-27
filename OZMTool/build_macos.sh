@@ -23,6 +23,12 @@ then
   exit 1
 fi
 
+if [ `basename ${BASE_DIR}` != "OZMTool" ]
+then
+  echo "You are not executing from OZMTool directory!"
+  exit 1
+fi
+
 # Lets begin
 rm -rf ${BUILD_DIR}
 mkdir ${BUILD_DIR}
@@ -48,6 +54,7 @@ ${INSTALL_NAME_TOOL} -change ${QT_LIB_DIR}/${FRAMEWORK}/Versions/${QT_VER}/QtCor
         ${RELEASE_DIR}/${EXEC_NAME}
 
 echo "Packing it up..."
-tar czvf ${BASE_DIR}/${EXEC_NAME}_vXX.tar.gz ${RELEASE_DIR}
+cd ${RELEASE_DIR}
+tar czvf ${BASE_DIR}/${EXEC_NAME}_vXX.tar.gz *
 
 echo "Done!"
