@@ -1,4 +1,5 @@
 QMAKE_CFLAGS_RELEASE *= -O1
+CONFIG-=app_bundle
 
 QT       += core
 QT       -= gui
