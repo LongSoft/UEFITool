@@ -38,10 +38,10 @@ void usageFfsConvert()
 {
     printf("ffsconvert command\n"
             " usage:\n"
-            "\t%s --ffsconvert -o outputdir -i ffsdir\n\n"
+            "\t%s --ffsconvert -o outputdir -i kextsdir\n\n"
             " parameters:\n"
-            "\t-i, --input [dir]\t\tInput directory\n"
-            "\t-o, --out [dir]\t\tOutput directory\n"
+            "\t-i, --input [dir]\t\tInput kexts directory\n"
+            "\t-o, --out [dir]\t\tOutput ffs directory\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
 
@@ -301,7 +301,7 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    int cmds = dsdtextract + ozmextract + ozmcreate + ffsconvert + dsdt2bios;
+    int cmds = dsdtextract + ozmextract + ozmupdate + ozmcreate + ffsconvert + dsdt2bios;
 
     if (help) {
         if (cmds > 1)
