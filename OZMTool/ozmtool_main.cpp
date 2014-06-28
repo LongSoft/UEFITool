@@ -93,6 +93,18 @@ void usageDSDTExtract()
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
 
+void usageDSDTInject()
+{
+    printf("dsdtinject command\n"
+            " usage:\n"
+            "\t%s --dsdtinject -i BIOS.ROM -d DSDT.aml -o outputfile\n\n"
+            " parameters:\n"
+            "\t-i, --input [file]\t\tBIOS file\n"
+            "\n-d, --dsdt [file]\t\tDSDT.aml\n"
+            "\t-o, --out [dir]\t\tOutput directory\n"
+            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+}
+
 void usageGeneral()
 {
     printf("Usage:\n" \
@@ -116,6 +128,7 @@ void usageAll()
 {
     usageGeneral();
     usageDSDTExtract();
+    usageDSDTInject();
     usageOzmUpdate();
     usageOzmExtract();
     usageOzmCreate();
@@ -127,6 +140,7 @@ int main(int argc, char *argv[])
 {
     bool help = false;
     bool dsdtextract = false;
+    bool dsdtinject = false;
     bool ozmupdate = false;
     bool ozmextract = false;
     bool ozmcreate = false;
@@ -174,6 +188,13 @@ int main(int argc, char *argv[])
     while (argc > 0) {
 
         if (strcasecmp(argv[0], "--dsdtextract") == 0) {
+            dsdtextract = true;
+            argc --;
+            argv ++;
+            continue;
+        }
+
+        if (strcasecmp(argv[0], "--dsdtinject") == 0) {
             dsdtextract = true;
             argc --;
             argv ++;
@@ -301,13 +322,15 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    int cmds = dsdtextract + ozmextract + ozmupdate + ozmcreate + ffsconvert + dsdt2bios;
+    int cmds = dsdtextract + dsdtinject + ozmextract + ozmupdate + ozmcreate + ffsconvert + dsdt2bios;
 
     if (help) {
         if (cmds > 1)
             usageAll();
         else if (dsdtextract)
             usageDSDTExtract();
+        else if (dsdtinject)
+            usageDSDTInject();
         else if (ozmupdate)
             usageOzmUpdate();
         else if (ozmextract)
@@ -357,13 +380,15 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    if (dsdt2bios && dsdtfile.isEmpty()) {
+    if ((dsdt2bios || dsdtinject) && dsdtfile.isEmpty()) {
         printf("ERROR: No DSDT.aml file supplied!\n");
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
     if (dsdtextract)
         result = w.DSDTExtract(inputpath, output);
+    else if (dsdtinject)
+        result = w.DSDTInject(inputpath, dsdtfile, output);
     else if (ozmupdate)
         result = w.OZMUpdate(inputpath, recent, output);
     else if (ozmextract)

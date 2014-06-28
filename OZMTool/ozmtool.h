@@ -26,6 +26,7 @@ public:
     ~OZMTool();
 
     UINT8 DSDTExtract(QString inputfile, QString outputdir);
+    UINT8 DSDTInject(QString inputfile, QString dsdtfile, QString outputfile);
     UINT8 OZMUpdate(QString inputfile, QString recentBios, QString outputfile);
     UINT8 OZMExtract(QString inputfile, QString outputdir);
     UINT8 OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile);

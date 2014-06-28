@@ -165,6 +165,85 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
     return ERR_SUCCESS;
 }
 
+UINT8 OZMTool::DSDTInject(QString inputfile, QString dsdtfile, QString outputfile)
+{
+    UINT8 ret;
+    QByteArray buf, dsdtbuf, out;
+    QModelIndex rootIndex, amiFileIdx, amiSectionIdx;
+
+    FFSUtil *fu = new FFSUtil();
+
+    ret = fileOpen(dsdtfile, dsdtbuf);
+    if (ret) {
+        printf("ERROR: Opening DSDT failed!\n");
+        return ret;
+    }
+
+    ret = fileOpen(inputfile, buf);
+    if (ret) {
+        printf("ERROR: Opening BIOS failed!\n");
+        return ret;
+    }
+
+    ret = fu->parseBIOSFile(buf);
+    if (ret) {
+        printf("ERROR: Parsing BIOS failed!\n");
+        return ret;
+    }
+
+    rootIndex = fu->getRootIndex();
+
+    ret = fu->findFileByGUID(rootIndex, amiBoardSection.GUID, amiFileIdx);
+    if(ret) {
+        printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+        return ERR_ITEM_NOT_FOUND;
+    }
+
+    ret = fu->findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
+    if(ret) {
+        printf("ERROR: PE32 Section of GUID %s couldn't be found!\n",qPrintable(amiBoardSection.GUID));
+        return ERR_ITEM_NOT_FOUND;
+    }
+
+    buf.clear();
+
+    ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
+    if (ret) {
+        printf("ERROR: Dumping AmiBoardInfo failed!\n");
+        return ret;
+    }
+
+    ret = dsdt2bios(buf, dsdtbuf, out);
+    if (ret) {
+        printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
+        return ret;
+    }
+
+    ret = fu->replace(amiSectionIdx, out, REPLACE_MODE_BODY);
+    if (ret) {
+        printf("ERROR: Injection of patched AmiBoardInfo into BIOS failed!\n");
+        return ERR_ERROR;
+    }
+
+    out.clear();
+    ret = fu->reconstructImageFile(out);
+    if (ret) {
+        printf("ERROR: Reconstructing the BIOS image failed!\n");
+        return ERR_ERROR;
+    }
+
+    ret = fileWrite(outputfile, out);
+    if (ret) {
+        printf("ERROR: Writing patched BIOS to '%s' failed!\n", qPrintable(outputfile));
+        return ret;
+    }
+
+    buf.clear();
+
+    return ERR_SUCCESS;
+}
+
+
 UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfile)
 {
     int i, run = 0;
