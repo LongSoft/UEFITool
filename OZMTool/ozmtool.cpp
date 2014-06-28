@@ -739,7 +739,9 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
     UINT8 ret;
     QList<kextEntry> toConvert;
     QString filepath;
-    QByteArray out;
+    QByteArray out, compressedOut;
+
+    FFSUtil *fu = new FFSUtil();
 
     if (!dirExists(inputdir)) {
         printf("ERROR: Input directory '%s' doesn't exist!\n", qPrintable(inputdir));
@@ -760,6 +762,7 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
 
     for(int i=0; i < toConvert.size(); i++) {
         out.clear();
+        compressedOut.clear();
 
         printf("* Attempting to convert '%s'..\n", qPrintable(toConvert.at(i).basename));
         ret = convertKexts(toConvert.at(i), out);
@@ -768,9 +771,21 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
             return ERR_ERROR;
         }
 
-        filepath = pathConcatenate(outputdir, toConvert.at(i).filename);
+        ret = fu->compress(out, COMPRESSION_ALGORITHM_EFI11, compressedOut);
+        if(ret) {
+            printf("ERROR: Compression of FFS failed!\n");
+            return ERR_ERROR;
+        }
 
+        filepath = pathConcatenate(outputdir, toConvert.at(i).filename);
         fileWrite(filepath, out);
+        if(ret) {
+            printf("ERROR: Saving '%s' failed!\n", qPrintable(filepath));
+            return ERR_ERROR;
+        }
+
+        filepath = pathConcatenate(outputdir, toConvert.at(i).filename + ".compressed");
+        fileWrite(filepath, compressedOut);
         if(ret) {
             printf("ERROR: Saving '%s' failed!\n", qPrintable(filepath));
             return ERR_ERROR;
