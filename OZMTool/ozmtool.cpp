@@ -129,12 +129,14 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
 
     buf.clear();
 
+    printf("* Dumping AmiBoardInfo from BIOS...\n");
     ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
     if (ret) {
         printf("ERROR: Dumping AmiBoardInfo failed!\n");
         return ret;
     }
 
+    printf("* Extracting DSDT from AmiBoardInfo...\n");
     ret = d2b.getDSDTFromAmi(buf, start, size);
     if(ret) {
         printf("ERROR: Extracting DSDT from AmiBoardInfo failed!\n");
@@ -143,6 +145,7 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
 
     outputFile = pathConcatenate(outputdir, amiBoardSection.name + ".bin");
 
+    printf("* Writing DSDT and AmiBoardInfo to files...\n");
     ret = fileWrite(outputFile, buf);
     if (ret) {
         printf("ERROR: Writing AmiBoardInfo.bin to '%s' failed!\n", qPrintable(outputFile));
@@ -172,6 +175,8 @@ UINT8 OZMTool::DSDTInject(QString inputfile, QString dsdtfile, QString outputfil
     QModelIndex rootIndex, amiFileIdx, amiSectionIdx;
 
     FFSUtil *fu = new FFSUtil();
+
+    printf("Patching BIOS with supplied DSDT...\n");
 
     ret = fileOpen(dsdtfile, dsdtbuf);
     if (ret) {
@@ -207,18 +212,21 @@ UINT8 OZMTool::DSDTInject(QString inputfile, QString dsdtfile, QString outputfil
 
     buf.clear();
 
+    printf("* Dumping AmiBoardInfo from BIOS...\n");
     ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
     if (ret) {
         printf("ERROR: Dumping AmiBoardInfo failed!\n");
         return ret;
     }
 
+    printf("* Patching AmiBoardInfo with DSDT...\n");
     ret = dsdt2bios(buf, dsdtbuf, out);
     if (ret) {
         printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
         return ret;
     }
 
+    printf("* Replacing AmiBoardInfo with the patched version...\n");
     ret = fu->replace(amiSectionIdx, out, REPLACE_MODE_BODY);
     if (ret) {
         printf("ERROR: Injection of patched AmiBoardInfo into BIOS failed!\n");
@@ -226,12 +234,14 @@ UINT8 OZMTool::DSDTInject(QString inputfile, QString dsdtfile, QString outputfil
     }
 
     out.clear();
+    printf("* Reconstructing the BIOS image...\n");
     ret = fu->reconstructImageFile(out);
     if (ret) {
         printf("ERROR: Reconstructing the BIOS image failed!\n");
         return ERR_ERROR;
     }
 
+    printf("* Writing patched BIOS to '%s'...\n", qPrintable(outputfile));
     ret = fileWrite(outputfile, out);
     if (ret) {
         printf("ERROR: Writing patched BIOS to '%s' failed!\n", qPrintable(outputfile));
@@ -468,18 +478,21 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
         buf.clear();
     }
 
+    printf("* Checking for optional Kexts...\n");
     for(i=6; i<= MAX_KEXT_ID; i++) {
         buf.clear();
 
         guid = kextGUID.arg(i, 0, 16);
 
-        ret = fu->getNameByGUID(guid, name);
+        ret = fu->dumpFileByGUID(guid, buf, EXTRACT_MODE_AS_IS);
         if(ret)
             continue;
 
-        ret = fu->dumpFileByGUID(guid, buf, EXTRACT_MODE_AS_IS);
-        if(ret)
-            continue; // Should never happen
+        ret = fu->getNameByGUID(guid, name);
+        if(ret) {
+            printf("ERROR: Failed to get text of section [%s]\n", qPrintable(guid));
+            continue;
+        }
 
         outputFile = pathConcatenate(outputdir,(name+".ffs"));
 
@@ -833,6 +846,7 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
         return ret;
     }
 
+    printf("* Parsing kext directory...\n");
     ret = parseKextDirectory(inputdir, toConvert);
     if (ret) {
         printf("ERROR: Parsing supplied Kext directory failed!\n");
@@ -863,6 +877,7 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
             return ERR_ERROR;
         }
 
+        printf("* Compressing it...\n");
         filepath = pathConcatenate(outputdir, toConvert.at(i).filename + ".compressed");
         fileWrite(filepath, compressedOut);
         if(ret) {
