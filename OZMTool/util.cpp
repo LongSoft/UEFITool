@@ -167,9 +167,8 @@ UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
     return ret;
 }
 
-UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
+UINT8 getInfoFromPlist(QByteArray plist, QString & name, QString & version)
 {
-    std::vector<char> data;
     static const std::string nameIdentifier = "CFBundleName";
     static const std::string versionIdentifier = "CFBundleShortVersionString";
 
@@ -190,14 +189,32 @@ UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
         return ERR_ERROR;
     }
 
-    if(plistVersion.isEmpty()) {
-        plistVersion = "nA"; // set to NonAvailable
+    name = plistName;
+    version = plistVersion;
+
+    return ERR_SUCCESS;
+}
+
+UINT8 writeInfoToPlist(QByteArray plist, QString newName, QByteArray & out)
+{
+    std::vector<char> data;
+    static const std::string nameIdentifier = "CFBundleName";
+
+    QString plistName;
+
+    std::map<std::string, boost::any> dict;
+    Plist::readPlist(plist.data(), plist.size(), dict);
+
+    if(dict.count(nameIdentifier) > 0)
+        plistName = boost::any_cast<const std::string&>(dict.find(nameIdentifier)->second).c_str();
+
+    if(plistName.isEmpty()) {
+        printf("ERROR: CFBundleName in plist is blank, so cannot be modified. Aborting!\n");
+        return ERR_ERROR;
     }
 
-    name.sprintf("%s.Rev-%s", qPrintable(plistName), qPrintable(plistVersion));
-
     // Assign new value for CFBundleName
-    dict[nameIdentifier] = std::string(name.toUtf8().constData());
+    dict[nameIdentifier] = std::string(newName.toUtf8().constData());
 
     Plist::writePlistXML(data, dict);
 
@@ -209,15 +226,18 @@ UINT8 getInfoFromPlist(QByteArray plist, QString & name, QByteArray & out)
 
 UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
 {
+    UINT8 ret;
     UINT32 GUIDindex;
     UINT32 GUIDindexCount;
 
     kextEntry mKextEntry;
-    QString basename;
+    QString basename, version;
     QDir dir;
 
     QFileInfo binaryPath;
     QFileInfo plistPath;
+
+    QByteArray plistbuf;
 
     QDirIterator di(input);
 
@@ -251,7 +271,6 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
         dir = dir.filePath("Contents");
         plistPath.setFile(dir,"Info.plist");
         dir = dir.filePath("MacOS");
-        binaryPath.setFile(dir, basename);
 
         if (!dir.exists()) {
             printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/ missing!\n", qPrintable(di.fileName()));
@@ -262,6 +281,21 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
             printf("ERROR: Kext-dir invalid: %s/Contents/Info.plist missing!\n", qPrintable(di.fileName()));
             return ERR_ERROR;
         }
+
+        plistbuf.clear();
+        ret = fileOpen(plistPath.filePath(), plistbuf);
+        if(ret) {
+            printf("ERROR: Opening '%s' failed!\n", qPrintable(plistPath.filePath()));
+            return ERR_ERROR;
+        }
+
+        ret = getInfoFromPlist(plistbuf, basename, version);
+        if(ret) {
+            printf("ERROR: Failed to get name and version from Info.plist\n");
+            return ERR_ERROR;
+        }
+
+        binaryPath.setFile(dir, basename);
 
         if (!binaryPath.exists()) {
             printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/%s missing!\n",
@@ -304,7 +338,7 @@ UINT8 convertKexts(kextEntry entry, QByteArray & out)
     UINT8 ret;
     UINT8 nullterminator = 0;
 
-    QString sectionName;
+    QString sectionName, kextName, kextVersion;
 
     QByteArray plist;
     QByteArray moddedplist;
@@ -327,9 +361,21 @@ UINT8 convertKexts(kextEntry entry, QByteArray & out)
             return ERR_ERROR;
         }
 
-        ret = getInfoFromPlist(plist, sectionName, moddedplist);
+        ret = getInfoFromPlist(plist, kextName, kextVersion);
         if(ret) {
-            printf("ERROR: Failed to get values/convert Info.plist\n");
+            printf("ERROR: Failed to get name and version from Info.plist\n");
+            return ERR_ERROR;
+        }
+
+        if(kextVersion.isEmpty())
+            kextVersion = "?";
+
+        sectionName.clear();
+        sectionName.sprintf("%s-%s", qPrintable(kextName), qPrintable(kextVersion));
+
+        ret = writeInfoToPlist(plist, sectionName, moddedplist);
+        if(ret) {
+            printf("ERROR: Writing new name to Info.plist failed!\n");
             return ERR_ERROR;
         }
 
