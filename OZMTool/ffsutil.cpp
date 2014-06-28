@@ -134,6 +134,21 @@ UINT8 FFSUtil::dumpSectionByGUID(QString guid, UINT8 type, QByteArray & buf, UIN
     return ERR_SUCCESS;
 }
 
+UINT8 FFSUtil::getNameByGUID(QString guid, QString & name)
+{
+    UINT8 ret;
+    QModelIndex result;
+    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
+
+    ret = findFileByGUID(rootIndex, guid, result);
+    if(ret)
+        return ERR_ITEM_NOT_FOUND;
+
+    name = ffsEngine->treeModel()->textString(result);
+
+    return ERR_SUCCESS;
+}
+
 UINT8 FFSUtil::getLastSibling(QModelIndex index, QModelIndex & result)
 {
     int lastRow, column;

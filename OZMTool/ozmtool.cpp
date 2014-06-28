@@ -337,10 +337,14 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
 {
     int i;
     UINT8 ret;
+    QString guid, name;
     QString outputFile;
     QByteArray buf;
 
     FFSUtil *fu = new FFSUtil();
+
+    const static int MAX_KEXT_ID = 0xF;
+    const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275";
 
     ret = fileOpen(inputfile, buf);
     if (ret) {
@@ -383,6 +387,30 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
 
         printf("* '%s' [%s] extracted & saved\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
         buf.clear();
+    }
+
+    for(i=6; i<= MAX_KEXT_ID; i++) {
+        buf.clear();
+
+        guid = kextGUID.arg(i, 0, 16);
+
+        ret = fu->getNameByGUID(guid, name);
+        if(ret)
+            continue;
+
+        ret = fu->dumpFileByGUID(guid, buf, EXTRACT_MODE_AS_IS);
+        if(ret)
+            continue; // Should never happen
+
+        outputFile = pathConcatenate(outputdir,(name+".ffs"));
+
+        ret = fileWrite(outputFile, buf);
+        if (ret) {
+            printf("ERROR: Saving '%s' failed!\n", qPrintable(outputFile));
+            return ret;
+        }
+
+        printf("* '%s' [%s] extracted & saved\n", qPrintable(name), qPrintable(guid));
     }
 
     return ERR_SUCCESS;
