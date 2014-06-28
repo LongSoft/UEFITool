@@ -196,10 +196,6 @@ UINT8 Dsdt2Bios::injectDSDTIntoAmi(QByteArray ami, QByteArray dsdt, UINT32 DSDTO
     DSDTSizeNew = (DSDTSizeNew << 8) + dsdt.at(7);
     DSDTSizeNew = qFromBigEndian(DSDTSizeNew);
 
-    if(DSDTSizeNew != DSDTLen) {
-        printf("ERROR: Size of DSDT differs from passed data to in-code define. Aborting!\n");
-        return ERR_ERROR;
-    }
 
     diffSize = DSDTSizeNew - DSDTSizeOld;
     padding = 0x10-(amiLen+diffSize)&0x0f;
