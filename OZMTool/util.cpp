@@ -265,8 +265,6 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
         if(!di.next().endsWith(kextExtension))
             continue;
 
-        basename = di.fileName().left(di.fileName().size()-kextExtension.size());
-
         dir.setPath(di.filePath());
         dir = dir.filePath("Contents");
         plistPath.setFile(dir,"Info.plist");
