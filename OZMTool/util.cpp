@@ -167,7 +167,29 @@ UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
     return ret;
 }
 
-UINT8 getInfoFromPlist(QByteArray plist, QString & name, QString & version)
+UINT8 plistReadExecName(QByteArray plist, QString & name)
+{
+    static const std::string execIdentifier = "CFBundleExecutable";
+
+    QString plistExec;
+
+    std::map<std::string, boost::any> dict;
+    Plist::readPlist(plist.data(), plist.size(), dict);
+
+    if(dict.count(execIdentifier) > 0)
+        plistExec = boost::any_cast<const std::string&>(dict.find(execIdentifier)->second).c_str();
+
+    if(plistExec.isEmpty()) {
+        printf("ERROR: CFBundleName in plist is blank. Aborting!\n");
+        return ERR_ERROR;
+    }
+
+    name = plistExec;
+
+    return ERR_SUCCESS;
+}
+
+UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & version)
 {
     static const std::string nameIdentifier = "CFBundleName";
     static const std::string versionIdentifier = "CFBundleShortVersionString";
@@ -195,7 +217,7 @@ UINT8 getInfoFromPlist(QByteArray plist, QString & name, QString & version)
     return ERR_SUCCESS;
 }
 
-UINT8 writeInfoToPlist(QByteArray plist, QString newName, QByteArray & out)
+UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
 {
     std::vector<char> data;
     static const std::string nameIdentifier = "CFBundleName";
@@ -287,9 +309,9 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
             return ERR_ERROR;
         }
 
-        ret = getInfoFromPlist(plistbuf, basename, version);
+        ret = plistReadExecName(plistbuf, basename);
         if(ret) {
-            printf("ERROR: Failed to get name and version from Info.plist\n");
+            printf("ERROR: Failed to get executableName Info.plist\n");
             return ERR_ERROR;
         }
 
@@ -315,6 +337,7 @@ UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
         else
             GUIDindex = GUIDindexCount++;
 
+        /* Set execName as basename - seems most compact one */
         mKextEntry.basename = basename;
         mKextEntry.binaryPath = binaryPath.filePath();
         mKextEntry.plistPath = plistPath.filePath();
@@ -359,7 +382,7 @@ UINT8 convertKexts(kextEntry entry, QByteArray & out)
             return ERR_ERROR;
         }
 
-        ret = getInfoFromPlist(plist, kextName, kextVersion);
+        ret = plistReadBundlenameAndVersion(plist, kextName, kextVersion);
         if(ret) {
             printf("ERROR: Failed to get name and version from Info.plist\n");
             return ERR_ERROR;
@@ -371,7 +394,7 @@ UINT8 convertKexts(kextEntry entry, QByteArray & out)
         sectionName.clear();
         sectionName.sprintf("%s-%s", qPrintable(kextName), qPrintable(kextVersion));
 
-        ret = writeInfoToPlist(plist, sectionName, moddedplist);
+        ret = plistWriteNewBasename(plist, sectionName, moddedplist);
         if(ret) {
             printf("ERROR: Writing new name to Info.plist failed!\n");
             return ERR_ERROR;
