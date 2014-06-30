@@ -246,175 +246,139 @@ UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
     return ERR_SUCCESS;
 }
 
-UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList)
+UINT8 checkAggressivityLevel(int aggressivity) {
+    QString level;
+
+    switch(aggressivity) {
+    case RUN_AS_IS:
+        level = "Do nothing - Inject as-is";
+        break;
+    case RUN_COMPRESS:
+         level = "Compress CORE_DXE";
+         break;
+    case RUN_DELETE:
+         level = "Delete network stuff from BIOS";
+         break;
+    case RUN_DEL_OZM_NREQ:
+         level = "Delete non-required Ozmosis files";
+         break;
+    default:
+        printf("Warning: Invalid aggressivity level set!\n");
+        return ERR_ERROR;
+    }
+
+    printf("Info: Aggressivity level set to '%s'...\n", qPrintable(level));
+    return ERR_SUCCESS;
+}
+
+UINT8 convertOzmPlist(QString input, QByteArray & out)
 {
     UINT8 ret;
-    UINT32 GUIDindex;
-    UINT32 GUIDindexCount;
+    QByteArray plist;
 
-    kextEntry mKextEntry;
-    QString basename, version;
+    KextConvert *kext = new KextConvert();
+
+    ret = fileOpen(input, plist);
+    if(ret) {
+        printf("ERROR: Open failed: %s\n", qPrintable(input));
+        return ERR_ERROR;
+    }
+
+    ret = kext->createFFS(ozmSectionName, ozmPlistGUID, plist, out);
+    if(ret) {
+        printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(ozmDefaultsFilename));
+        return ERR_ERROR;
+    }
+
+    return ERR_SUCCESS;
+}
+
+UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
+{
+    UINT8 ret;
+    UINT8 nullterminator = 0;
+
+    QString sectionName, guid;
+    QString bundleName, bundleVersion, execName;
     QDir dir;
 
     QFileInfo binaryPath;
     QFileInfo plistPath;
 
     QByteArray plistbuf;
-
-    QDirIterator di(input);
-
-    const static QString kextExtension = ".kext";
-    const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
-    const static QString ozmPlistGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D";
-    const static QString ozmPlistPath = pathConcatenate(input, ozmDefaultsFilename);
-    const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275"; // %1 placeholder
-
-    GUIDindexCount = 6;
-
-    if(fileExists(ozmPlistPath)) {
-        mKextEntry.basename = "OzmosisDefaults";
-        mKextEntry.binaryPath = ozmPlistPath; // yes, Plist handled as binary
-        mKextEntry.plistPath = "";
-        mKextEntry.GUID = ozmPlistGUID;
-        mKextEntry.filename = "OzmosisDefaults.ffs";
-
-        kextList.append(mKextEntry);
-    }
-
-    // Check all folders in input-dir
-    while (di.hasNext()) {
-
-        if(!di.next().endsWith(kextExtension))
-            continue;
-
-        dir.setPath(di.filePath());
-        dir = dir.filePath("Contents");
-        plistPath.setFile(dir,"Info.plist");
-        dir = dir.filePath("MacOS");
-
-        if (!dir.exists()) {
-            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/ missing!\n", qPrintable(di.fileName()));
-            return ERR_ERROR;
-        }
-
-        if (!plistPath.exists()) {
-            printf("ERROR: Kext-dir invalid: %s/Contents/Info.plist missing!\n", qPrintable(di.fileName()));
-            return ERR_ERROR;
-        }
-
-        plistbuf.clear();
-        ret = fileOpen(plistPath.filePath(), plistbuf);
-        if(ret) {
-            printf("ERROR: Opening '%s' failed!\n", qPrintable(plistPath.filePath()));
-            return ERR_ERROR;
-        }
-
-        ret = plistReadExecName(plistbuf, basename);
-        if(ret) {
-            printf("ERROR: Failed to get executableName Info.plist\n");
-            return ERR_ERROR;
-        }
-
-        binaryPath.setFile(dir, basename);
-
-        if (!binaryPath.exists()) {
-            printf("ERROR: Kext-dir invalid: %s/Contents/MacOS/%s missing!\n",
-                   qPrintable(di.fileName()), qPrintable(basename));
-            return ERR_ERROR;
-        }
-
-        if(GUIDindexCount > 0xF) {
-            printf("Warning: Reached maximum Kext-Count! Ignoring the rest...\n");
-            break;
-        }
-
-        if(!di.fileName().compare("FakeSMC.kext"))
-            GUIDindex = 1;
-        else if(!di.fileName().compare("Disabler.kext"))
-            GUIDindex = 2;
-        else if(!di.fileName().compare("Injector.kext"))
-            GUIDindex = 3;
-        else
-            GUIDindex = GUIDindexCount++;
-
-        /* Set execName as basename - seems most compact one */
-        mKextEntry.basename = basename;
-        mKextEntry.binaryPath = binaryPath.filePath();
-        mKextEntry.plistPath = plistPath.filePath();
-        mKextEntry.GUID = kextGUID.arg(GUIDindex, 0, 16);
-        mKextEntry.filename = basename + ".ffs";
-        kextList.append(mKextEntry);
-    }
-
-    if(kextList.size() == 0) {
-        printf("ERROR: No kext found!\n");
-        return ERR_FILE_NOT_FOUND;
-    }
-
-    return ERR_SUCCESS;
-}
-
-UINT8 convertKexts(kextEntry entry, QByteArray & out)
-{
-    UINT8 ret;
-    UINT8 nullterminator = 0;
-
-    QString sectionName, kextName, kextVersion;
-
-    QByteArray plist;
-    QByteArray moddedplist;
-    QByteArray kextbinary;
-    QByteArray inputBinary;
+    QByteArray binarybuf;
+    QByteArray toConvertBinary;
 
     KextConvert *kext = new KextConvert();
 
-    // Convert Kext to FFS
-    inputBinary.clear();
+    // Check all folders in input-dir
 
-    if(!entry.basename.compare("OzmosisDefaults")) {
-        sectionName = entry.basename;
-    }
-    else {
-        // If NOT OzmosisDefaults => check plist path
-        ret = fileOpen(entry.plistPath, plist);
-        if(ret) {
-            printf("ERROR: Open failed: %s\n", qPrintable(entry.plistPath));
-            return ERR_ERROR;
-        }
-
-        ret = plistReadBundlenameAndVersion(plist, kextName, kextVersion);
-        if(ret) {
-            printf("ERROR: Failed to get name and version from Info.plist\n");
-            return ERR_ERROR;
-        }
-
-        if(kextVersion.isEmpty())
-            kextVersion = "?";
-
-        sectionName.clear();
-        sectionName.sprintf("%s-%s", qPrintable(kextName), qPrintable(kextVersion));
-
-        ret = plistWriteNewBasename(plist, sectionName, moddedplist);
-        if(ret) {
-            printf("ERROR: Writing new name to Info.plist failed!\n");
-            return ERR_ERROR;
-        }
-
-        inputBinary.append(moddedplist);
-        inputBinary.append(nullterminator); // need between binary plist + kextbinary
-    }
-
-    ret = fileOpen(entry.binaryPath, kextbinary);
-    if(ret) {
-        printf("ERROR: Open failed: %s\n", qPrintable(entry.binaryPath));
+    if(kextIndex > 0xF) {
+        printf("ERROR: Invalid kextIndex '%i' supplied!\n", kextIndex);
         return ERR_ERROR;
     }
-    inputBinary.append(kextbinary);
 
-    out.clear();
-    ret = kext->createFFS(sectionName, entry.GUID, inputBinary, out);
+    dir.setPath(input);
+    dir = dir.filePath("Contents");
+    plistPath.setFile(dir,"Info.plist");
+    dir = dir.filePath("MacOS");
+
+    if (!dir.exists()) {
+        printf("ERROR: Kext-dir invalid: */Contents/MacOS/ missing!\n");
+        return ERR_ERROR;
+    }
+
+    if (!plistPath.exists()) {
+        printf("ERROR: Kext-dir invalid: */Contents/Info.plist missing!\n");
+        return ERR_ERROR;
+    }
+
+    ret = fileOpen(plistPath.filePath(), plistbuf);
     if(ret) {
-        printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(entry.basename));
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(plistPath.filePath()));
+        return ret;
+    }
+
+    ret = plistReadExecName(plistbuf, execName);
+    if(ret) {
+        printf("ERROR: Failed to get executableName Info.plist\n");
+        return ret;
+    }
+
+    binaryPath.setFile(dir, execName);
+
+    if (!binaryPath.exists()) {
+        printf("ERROR: Kext-dir invalid: */Contents/MacOS/%s missing!\n",
+               qPrintable(execName));
+        return ERR_ERROR;
+    }
+
+    ret = plistReadBundlenameAndVersion(plistbuf, bundleName, bundleVersion);
+    if (ret) {
+        printf("ERROR: Failed to get bundleName and/or version from Info.plist\n");
+        return ret;
+    }
+
+    ret = fileOpen(binaryPath.filePath(), binarybuf);
+    if (ret) {
+        printf("ERROR: Opening '%s' failed!\n", qPrintable(binaryPath.filePath()));
+        return ERR_ERROR;
+    }
+
+    if(bundleVersion.isEmpty())
+        bundleVersion = "?";
+
+    sectionName.sprintf("%s-%s",qPrintable(bundleName), qPrintable(bundleVersion));
+
+    guid = kextGUID.arg(kextIndex, 0, 16);
+
+    toConvertBinary.append(plistbuf);
+    toConvertBinary.append(nullterminator);
+    toConvertBinary.append(binarybuf);
+
+    ret = kext->createFFS(sectionName, guid, toConvertBinary, out);
+    if(ret) {
+        printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(sectionName));
         return ERR_ERROR;
     }
 

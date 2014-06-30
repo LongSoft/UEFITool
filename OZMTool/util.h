@@ -16,20 +16,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "../basetypes.h"
 #include "../ffsengine.h"
-
-struct kextEntry {
-    QString binaryPath;
-    QString plistPath;
-    QString basename;
-    QString GUID;
-    QString filename;
-};
-
-struct sectionEntry {
-    QString name;
-    QString GUID;
-    BOOLEAN required;
-};
+#include "common.h"
 
 /* Generic stuff */
 UINT8 fileOpen(QString path, QByteArray & buf);
@@ -47,7 +34,8 @@ UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out);
 UINT8 plistReadExecName(QByteArray plist, QString & name);
 UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & version);
 UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out);
-UINT8 parseKextDirectory(QString input, QList<kextEntry> & kextList);
-UINT8 convertKexts(kextEntry entry, QByteArray & out);
+UINT8 checkAggressivityLevel(int aggressivity);
+UINT8 convertOzmPlist(QString input, QByteArray & out);
+UINT8 convertKext(QString input, int kextIndex, QByteArray & out);
 
 #endif // UTIL_H

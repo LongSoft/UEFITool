@@ -49,10 +49,11 @@ void usageOzmUpdate()
 {
     printf("ozmupdate command\n" \
             " usage:\n"
-            "\t%s --ozmupdate -o BIOS_RECENT.OZM -i BIOS.OZM -r BIOS.CLEAN\n\n"
+            "\t%s --ozmupdate -a 1 -o BIOS_RECENT.OZM -i BIOS.OZM -r BIOS.CLEAN\n\n"
             " parameters:\n"
             "\t-i, --input [file]\t\tInput \"old\" Ozmosis BIOSFile\n"
             "\t-r, --recent [file]\t\tInput \"recent\" clean BIOSFile\n"
+            "\t-a, --aggressivity\t\tAggressivity level (see README)\n"
             "\t-o, --out [file]\t\tOutput BIOSFile\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
@@ -61,12 +62,13 @@ void usageOzmCreate()
 {
     printf("ozmcreate command\n" \
             " usage:\n"
-            "\t%s --ozmcreate -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
+            "\t%s --ozmcreate -a -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
             " parameters:\n"
             "\t-f, --ffs [dir]\t\tFFS directory (extracted OZM files)\n"
             "\t-d, --dsdt [file]\t\t (optional) DSDT.aml file\n"
             "\t-k, --kext [dir]\t\t (optional) KEXT directory\n"
             "\t-i, --input [file]\t\tInput CLEAN Bios\n"
+            "\t-a, --aggressivity\t\tAggressivity level (see README)\n"
             "\t-o, --out [file]\t\tOutput OZM Bios\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
@@ -111,6 +113,7 @@ void usageGeneral()
             "\t%s [COMMAND] [PARAMETERS...]\n\n"
             "Available commands:\n"
             "\t--dsdtextract\t\tExtracts DSDT from BIOS\n"
+            "\t--dsdtinject\t\tInjects DSDT into BIOS\n"
             "\t--ozmupdate\t\tUpdates clean BIOS with files from old OZM-flavoured one\n"
             "\t--ozmextract\t\tExtracts Ozmosis files (ffs) from BIOS\n"
             "\t--ozmcreate\t\tPatches Original BIOS with Ozmosis\n"
@@ -152,6 +155,7 @@ int main(int argc, char *argv[])
     QString kextdir = "";
     QString dsdtfile = "";
     QString recent = "";
+    int aggressivity = 0;
 
     QCoreApplication a(argc, argv);
     a.setOrganizationName("tuxuser");
@@ -308,6 +312,18 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        if ((strcasecmp(argv[0], "-a") == 0) || (strcasecmp(argv[0], "--aggressivity") == 0)) {
+            if (argv[1] == NULL || argv[1][0] == '-') {
+                printf("Invalid option value\n"
+                       "Value is missing for -a option\n");
+                goto fail;
+            }
+            aggressivity = atoi(argv[1]);
+            argc -= 2;
+            argv += 2;
+            continue;
+        }
+
         if ((strcasecmp(argv[0], "-h") == 0) || (strcasecmp(argv[0], "--help") == 0)) {
             help = true;
             argc --;
@@ -390,11 +406,11 @@ fail:
     else if (dsdtinject)
         result = w.DSDTInject(inputpath, dsdtfile, output);
     else if (ozmupdate)
-        result = w.OZMUpdate(inputpath, recent, output);
+        result = w.OZMUpdate(inputpath, recent, output, aggressivity);
     else if (ozmextract)
         result = w.OZMExtract(inputpath, output);
     else if (ozmcreate)
-        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile);
+        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile, aggressivity);
     else if (ffsconvert)
         result = w.FFSConvert(inputpath, output);
     else if (dsdt2bios)
