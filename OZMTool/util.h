@@ -30,7 +30,6 @@ UINT16 getUInt16(QByteArray & buf, UINT32 start, bool fromBE);
 UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE);
 /* Specific stuff */
 UINT8 getGUIDfromFile(QByteArray object, QString & name);
-UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out);
 UINT8 plistReadExecName(QByteArray plist, QString & name);
 UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & version);
 UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out);

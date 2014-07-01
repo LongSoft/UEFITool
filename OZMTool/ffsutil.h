@@ -25,6 +25,7 @@ public:
     ~FFSUtil();
     UINT8 insert(QModelIndex & index, QByteArray & object, UINT8 mode);
     UINT8 replace(QModelIndex & index, QByteArray & object, UINT8 mode);
+    UINT8 extract(QModelIndex & index, QByteArray & extracted, UINT8 mode);
     UINT8 compress(QByteArray & data, UINT8 algorithm, QByteArray & compressedData);
     UINT8 decompress(QByteArray & compressed, UINT8 compressionType, QByteArray & decompressedData);
     UINT8 remove(QModelIndex & index);

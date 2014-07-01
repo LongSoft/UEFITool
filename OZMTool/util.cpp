@@ -143,30 +143,6 @@ UINT8 getGUIDfromFile(QByteArray object, QString & name)
     return ERR_SUCCESS;
 }
 
-
-UINT8 dsdt2bios(QByteArray amiboardinfo, QByteArray dsdt, QByteArray & out)
-{
-    UINT8 ret;
-    UINT32 reloc_padding;
-    UINT32 offset, size;
-
-    Dsdt2Bios d2b;
-
-    reloc_padding = 0;
-
-    ret = d2b.getDSDTFromAmi(amiboardinfo, offset, size);
-    if(ret)
-        return ret;
-
-    ret = d2b.injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
-    if(ret == ERR_RELOCATION && (reloc_padding != 0)) {
-        /* Re-running with other reloc_padding */
-        ret = d2b.injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
-    }
-
-    return ret;
-}
-
 UINT8 plistReadExecName(QByteArray plist, QString & name)
 {
     static const std::string execIdentifier = "CFBundleExecutable";

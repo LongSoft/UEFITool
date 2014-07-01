@@ -624,9 +624,15 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
 UINT8 OZMTool::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outputfile)
 {
     UINT8 ret;
+    UINT32 reloc_padding;
+    UINT32 offset, size;
     QByteArray amiboardinfo;
     QByteArray dsdt;
     QByteArray out;
+
+    Dsdt2Bios *d2b = new Dsdt2Bios();
+
+    reloc_padding = 0;
 
     if (fileExists(outputfile)) {
         printf("ERROR: Output file already exists!\n");
@@ -647,9 +653,20 @@ UINT8 OZMTool::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outpu
 
     printf("Attempting to patch DSDT into AmiBoardInfo\n");
 
-    ret = dsdt2bios(amiboardinfo, dsdt, out);
+    ret = d2b->getDSDTFromAmi(amiboardinfo, offset, size);
+    if(ret) {
+        printf("ERROR: Failed to get DSDT offset and size from AmiBoardInfo!\n");
+        return ret;
+    }
+
+    ret = d2b->injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
+    if(ret == ERR_RELOCATION && (reloc_padding != 0)) {
+        /* Re-running with other reloc_padding */
+        ret = d2b->injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
+    }
+
     if (ret) {
-        printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
+        printf("ERROR: Failed to patch AmiBoardInfo with new DSDT!\n");
         return ret;
     }
 

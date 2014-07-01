@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffsutil.h"
 #include "util.h"
 #include "common.h"
+#include "dsdt2bios/Dsdt2Bios.h"
 
 FFSUtil::FFSUtil(void)
 {
@@ -35,6 +36,10 @@ UINT8 FFSUtil::replace(QModelIndex & index, QByteArray & object, UINT8 mode) {
 
 UINT8 FFSUtil::remove(QModelIndex & index) {
     return ffsEngine->remove(index);
+}
+
+UINT8 FFSUtil::extract(QModelIndex & index, QByteArray & extracted, UINT8 mode) {
+    return ffsEngine->extract(index, extracted, mode);
 }
 
 UINT8 FFSUtil::compress(QByteArray & data, UINT8 algorithm, QByteArray & compressedData) {
@@ -221,8 +226,11 @@ UINT8 FFSUtil::parseBIOSFile(QByteArray & buf)
 UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
 {
     UINT8 ret;
+    UINT32 offset, size, reloc_padding;
     QModelIndex amiSectionIdx;
     QByteArray amiboard, patchedAmiboard;
+
+    Dsdt2Bios *d2b = new Dsdt2Bios();
 
     if(!dsdt.startsWith("DSDT")) {
         printf("ERROR: Input DSDT doesn't contain valid header!\n");
@@ -244,9 +252,20 @@ UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
 
     printf("* Dumped AmiBoardInfo from BIOS\n");
 
-    ret = dsdt2bios(amiboard, dsdt, patchedAmiboard);
+    ret = d2b->getDSDTFromAmi(amiboard, offset, size);
     if(ret) {
-        printf("ERROR: Failed to inject DSDT into AmiBoardInfo!\n");
+        printf("ERROR: Failed to get DSDT offset and size from AmiBoardInfo!\n");
+        return ret;
+    }
+
+    ret = d2b->injectDSDTIntoAmi(amiboard, dsdt, offset, size, patchedAmiboard, reloc_padding);
+    if(ret == ERR_RELOCATION && (reloc_padding != 0)) {
+        /* Re-running with other reloc_padding */
+        ret = d2b->injectDSDTIntoAmi(amiboard, dsdt, offset, size, patchedAmiboard, reloc_padding);
+    }
+
+    if (ret){
+        printf("ERROR: Failed to patch DSDT into AmiBoardInfo!\n");
         return ret;
     }
 
@@ -306,7 +325,8 @@ UINT8 FFSUtil::injectFile(QByteArray file) {
 UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
     int i;
     UINT8 ret;
-    QModelIndex rootIdx, currIdx;
+    QByteArray decompressed, compressed, buf;
+    QModelIndex rootIdx, currIdx, tmpIdx;
 
     static QList<sectionEntry> deleteFfs;
     static QList<sectionEntry> compressFfs;
@@ -355,34 +375,46 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
                     printf("* Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
             }
         }
-    case RUN_COMPRESS:
-        /*
+    case RUN_COMPRESS:    
         printf("Compressing some files to save space...\n");
         for(i = 0; i<compressFfs.size(); i++) {
+            decompressed.clear();
             compressed.clear();
-            ffs.clear();
-            ret = fu->findFileByGUID(rootIndex, compressFfs.at(i).GUID, currIdx);
+            buf.clear();
+
+            ret = findFileByGUID(rootIdx, compressFfs.at(i).GUID, tmpIdx);
             if(ret)
                 continue;
-            ret = fu->dumpFileByGUID(compressFfs.at(i).GUID, ffs, EXTRACT_MODE_AS_IS);
+
+            ret = findSectionByIndex(tmpIdx, EFI_SECTION_COMPRESSION, currIdx);
             if(ret) {
-                printf("Warning: Failed to get '%s' [%s] for compression!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
+                printf("Warning: Failed to get compressed section for [%s] for compression!\n", qPrintable(compressFfs.at(i).GUID));
                 continue;
             }
+
+            ret = extract(currIdx, buf, EXTRACT_MODE_AS_IS);
+            if(ret) {
+                printf("ERROR: Failed to extract compressed section for [%s]!\n", qPrintable(compressFfs.at(i).GUID));
+                return ERR_ERROR;
+            }
+
+            printf("Uncompressed section size: %x\n", buf.size());
+
             printf("* Trying to compress '%s' [%s]\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
-            ret = fu->compress(ffs, COMPRESSION_ALGORITHM_TIANO, compressed);
+            ret = compress(buf, COMPRESSION_ALGORITHM_TIANO, compressed);
             if(ret) {
                 printf("Warning: Compressing '%s' [%s] failed!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
                 continue;
             }
-            ret = fu->replace(currIdx, compressed, REPLACE_MODE_AS_IS);
+
+            ret = replace(currIdx, compressed, REPLACE_MODE_AS_IS);
             if(ret) {
                 printf("Warning: Injecting compressed '%s' [%s] failed!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
                 continue;
             }
             printf("* File was injected compressed successfully!\n");
         }
-        */
+
     case RUN_AS_IS:
         break;
     default:
