@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
         }
 
         if (strcasecmp(argv[0], "--dsdtinject") == 0) {
-            dsdtextract = true;
+            dsdtinject = true;
             argc --;
             argv ++;
             continue;
