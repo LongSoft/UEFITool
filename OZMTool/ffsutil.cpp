@@ -325,7 +325,8 @@ UINT8 FFSUtil::injectFile(QByteArray file) {
 UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
     int i;
     UINT8 ret;
-    QByteArray decompressed, compressed, buf;
+    QByteArray compressed, buf;
+    QByteArray created, newHeader, body;
     QModelIndex rootIdx, currIdx, tmpIdx;
 
     static QList<sectionEntry> deleteFfs;
@@ -378,9 +379,11 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
     case RUN_COMPRESS:    
         printf("Compressing some files to save space...\n");
         for(i = 0; i<compressFfs.size(); i++) {
-            decompressed.clear();
             compressed.clear();
             buf.clear();
+            created.clear();
+            newHeader.clear();
+            body.clear();
 
             ret = findFileByGUID(rootIdx, compressFfs.at(i).GUID, tmpIdx);
             if(ret)
@@ -392,22 +395,25 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
                 continue;
             }
 
-            ret = extract(currIdx, buf, EXTRACT_MODE_AS_IS);
-            if(ret) {
-                printf("ERROR: Failed to extract compressed section for [%s]!\n", qPrintable(compressFfs.at(i).GUID));
-                return ERR_ERROR;
-            }
+            newHeader = ffsEngine->treeModel()->header(currIdx);
+            body = ffsEngine->treeModel()->body(currIdx);
 
-            printf("Uncompressed section size: %x\n", buf.size());
+            EFI_COMPRESSION_SECTION* compressionHeader = (EFI_COMPRESSION_SECTION*)newHeader.data();
 
             printf("* Trying to compress '%s' [%s]\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
-            ret = compress(buf, COMPRESSION_ALGORITHM_TIANO, compressed);
+            ret = compress(body, COMPRESSION_ALGORITHM_TIANO, compressed);
             if(ret) {
                 printf("Warning: Compressing '%s' [%s] failed!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
                 continue;
             }
 
-            ret = replace(currIdx, compressed, REPLACE_MODE_AS_IS);
+            /* Set new compressionType + size */
+            compressionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+            uint32ToUint24(newHeader.size() + compressed.size(), compressionHeader->Size);
+
+            created.append(newHeader).append(compressed);
+
+            ret = replace(currIdx, created, REPLACE_MODE_AS_IS);
             if(ret) {
                 printf("Warning: Injecting compressed '%s' [%s] failed!\n", qPrintable(compressFfs.at(i).name), qPrintable(compressFfs.at(i).GUID));
                 continue;

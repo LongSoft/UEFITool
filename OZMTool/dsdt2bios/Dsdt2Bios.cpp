@@ -32,7 +32,7 @@
 #include "Dsdt2Bios.h"
 #include "PeImage.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
     #define dprintf(...) \
