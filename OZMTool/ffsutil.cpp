@@ -46,8 +46,8 @@ UINT8 FFSUtil::compress(QByteArray & data, UINT8 algorithm, QByteArray & compres
     return ffsEngine->compress(data, algorithm, compressedData);
 }
 
-UINT8 FFSUtil::decompress(QByteArray & compressed, UINT8 compressionType, QByteArray & decompressedData) {
-    return ffsEngine->decompress(compressed, compressionType, decompressedData);
+UINT8 FFSUtil::decompress(QByteArray & compressed, UINT8 compressionType, QByteArray & decompressedData, UINT8 *algorithm) {
+    return ffsEngine->decompress(compressed, compressionType, decompressedData, algorithm);
 }
 
 UINT8 FFSUtil::reconstructImageFile(QByteArray & out) {
@@ -282,7 +282,8 @@ UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
     return ERR_SUCCESS;
 }
 
-UINT8 FFSUtil::injectFile(QByteArray file) {
+UINT8 FFSUtil::injectFile(QByteArray file)
+{
     UINT8 ret;
     QString guid;
     QModelIndex rootIdx, volIdx, currIdx;
@@ -322,7 +323,8 @@ UINT8 FFSUtil::injectFile(QByteArray file) {
     return ERR_SUCCESS;
 }
 
-UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
+UINT8 FFSUtil::runFreeSomeSpace(int aggressivity)
+{
     int i;
     UINT8 ret;
     QByteArray compressed, buf;
@@ -426,6 +428,75 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity) {
     default:
         printf("No aggressivity level for freeing space supplied, doing nothing..\n");
         break;
+    }
+    return ERR_SUCCESS;
+}
+
+UINT8 FFSUtil::workaroundRecompressEFI11()
+{
+    int i;
+    UINT8 ret, algorithm;
+    static QList<sectionEntry> OzmFfs;
+    QModelIndex rootIdx, tmpIdx, currIdx;
+    QByteArray compressed, buf, created, newHeader, body;
+
+    for(int i = 0; i < requiredFfsCount; i++) {
+        OzmFfs.append(requiredFfs[i]);
+    }
+    for(int i = 0; i < optionalFfsCount; i++) {
+        OzmFfs.append(optionalFfs[i]);
+    }
+
+    getRootIndex(rootIdx);
+
+    for(i = 0; i<OzmFfs.size(); i++){
+        compressed.clear();
+        buf.clear();
+        created.clear();
+        newHeader.clear();
+        body.clear();
+
+        ret = findFileByGUID(rootIdx, OzmFfs.at(i).GUID, tmpIdx);
+        if(ret)
+            continue;
+
+        ret = findSectionByIndex(tmpIdx, EFI_SECTION_COMPRESSION, currIdx);
+        if(ret)
+            continue;
+
+        newHeader = ffsEngine->treeModel()->header(currIdx);
+        body = ffsEngine->treeModel()->body(currIdx);
+
+        EFI_COMPRESSION_SECTION* compressionHeader = (EFI_COMPRESSION_SECTION*)newHeader.data();
+
+        ret = decompress(body, EFI_STANDARD_COMPRESSION, buf, &algorithm);
+        if(ret) {
+            printf("ERROR: Decompressing '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+            return ERR_ERROR;
+        }
+
+        if(algorithm != COMPRESSION_ALGORITHM_EFI11)
+            continue;
+
+        printf("* Recompressing file '%s' [%s] with TIANO\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+        ret = compress(buf, COMPRESSION_ALGORITHM_TIANO, compressed);
+        if(ret) {
+            printf("Warning: Compressing '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+            return ERR_ERROR;
+        }
+
+        /* Set new compressionType + size */
+        compressionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+        uint32ToUint24(newHeader.size() + compressed.size(), compressionHeader->Size);
+
+        created.append(newHeader).append(compressed);
+
+        ret = replace(currIdx, created, REPLACE_MODE_AS_IS);
+        if(ret) {
+            printf("Warning: Injecting compressed '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+            continue;
+        }
+        printf("* File was injected compressed successfully!\n");
     }
     return ERR_SUCCESS;
 }

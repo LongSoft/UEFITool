@@ -254,6 +254,13 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
         }
     }
 
+    printf("Working around EFI1.1 bug...\n");
+    ret = nFU->workaroundRecompressEFI11();
+    if (ret) {
+        printf("ERROR: Recompression of EFI 1.1 files failed!\n");
+        return ERR_ERROR;
+    }
+
     ret = nFU->runFreeSomeSpace(aggressivity);
     if (ret) {
         printf("ERROR: Freeing space failed!\n");
@@ -494,6 +501,13 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
                 return ret;
             }
         }
+    }
+
+    printf("Working around EFI1.1 bug...\n");
+    ret = fu->workaroundRecompressEFI11();
+    if (ret) {
+        printf("ERROR: Recompression of EFI 1.1 files failed!\n");
+        return ERR_ERROR;
     }
 
     ret = fu->runFreeSomeSpace(aggressivity);

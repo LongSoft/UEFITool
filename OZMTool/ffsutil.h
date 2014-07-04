@@ -27,7 +27,7 @@ public:
     UINT8 replace(QModelIndex & index, QByteArray & object, UINT8 mode);
     UINT8 extract(QModelIndex & index, QByteArray & extracted, UINT8 mode);
     UINT8 compress(QByteArray & data, UINT8 algorithm, QByteArray & compressedData);
-    UINT8 decompress(QByteArray & compressed, UINT8 compressionType, QByteArray & decompressedData);
+    UINT8 decompress(QByteArray & compressed, UINT8 compressionType, QByteArray & decompressedData, UINT8 *algorithm);
     UINT8 remove(QModelIndex & index);
     UINT8 reconstructImageFile(QByteArray & out);
 
@@ -43,6 +43,7 @@ public:
     UINT8 injectDSDT(QByteArray dsdt);
     UINT8 injectFile(QByteArray file);
     UINT8 runFreeSomeSpace(int aggressivity);
+    UINT8 workaroundRecompressEFI11();
     UINT8 parseBIOSFile(QByteArray & buf);
 private:
     FfsEngine* ffsEngine;
