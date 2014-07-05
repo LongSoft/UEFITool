@@ -366,23 +366,22 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
 UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteArray & out)
 {
     QByteArray bufSectionName;
-    QByteArray bufFileHdr, bufPE32SectionHdr, bufUserInterfaceSectionHdr;
-//    QByteArray bufPE32Section, bufUserInterfaceSection;
-    QByteArray fileBody;
+    QByteArray fileBody, header;
 
     /* FFS PE32 Section */
-    bufPE32SectionHdr.fill(0, sizeof(EFI_COMMON_SECTION_HEADER));
-    EFI_COMMON_SECTION_HEADER* PE32SectionHeader = (EFI_COMMON_SECTION_HEADER*)bufPE32SectionHdr.data();
+    header.fill(0, sizeof(EFI_COMMON_SECTION_HEADER));
+    EFI_COMMON_SECTION_HEADER* PE32SectionHeader = (EFI_COMMON_SECTION_HEADER*)header.data();
 
     uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER)+body.size(), PE32SectionHeader->Size);
     PE32SectionHeader->Type = EFI_SECTION_PE32;
 
-    fileBody.append(bufPE32SectionHdr);
+    fileBody.append(header, sizeof(EFI_COMMON_SECTION_HEADER));
     fileBody.append(body);
 
     /* FFS User Interface */
-    bufUserInterfaceSectionHdr.fill(0, sizeof(EFI_USER_INTERFACE_SECTION));
-    EFI_USER_INTERFACE_SECTION* UserInterfaceSection = (EFI_USER_INTERFACE_SECTION*)bufUserInterfaceSectionHdr.data();
+    header.clear();
+    header.fill(0, sizeof(EFI_USER_INTERFACE_SECTION));
+    EFI_USER_INTERFACE_SECTION* UserInterfaceSection = (EFI_USER_INTERFACE_SECTION*)header.data();
 
     /* Convert sectionName to unicode data */
     bufSectionName.append((const char*) (sectionName.utf16()), sectionName.size() * 2);
@@ -390,31 +389,30 @@ UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteA
     uint32ToUint24(sizeof(EFI_USER_INTERFACE_SECTION)+bufSectionName.size(), UserInterfaceSection->Size);
     UserInterfaceSection->Type = EFI_SECTION_USER_INTERFACE;
 
-    fileBody.append(bufUserInterfaceSectionHdr);
+    fileBody.append(header, sizeof(EFI_USER_INTERFACE_SECTION));
     fileBody.append(bufSectionName);
 
     /* FFS File */
-    const static UINT8 erasePolarity = 0;
     const static UINT8 revision = 0;
+    const static UINT8 erasePolarity = 1;
     const static UINT32 size = fileBody.size();
 
     QUuid uuid = QUuid(guid);
-    QByteArray baGuid = QByteArray::fromRawData((const char*)&uuid.data1, sizeof(EFI_GUID));
 
-    printf("GUID: %s\n",qPrintable(uuid.toString()));
+    header.clear();
+    header.fill(0, sizeof(EFI_FFS_FILE_HEADER));
+    EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)header.data();
 
-    bufFileHdr = QByteArray(size - baGuid.size(), erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
-
-    bufFileHdr.prepend(baGuid);
-
-    EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)bufFileHdr.data();
     uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+size, fileHeader->Size);
     fileHeader->Attributes = 0x00;
+    fileHeader->Attributes |= (erasePolarity == ERASE_POLARITY_TRUE) ? '\xFF' : '\x00';
     fileHeader->Type = EFI_FV_FILETYPE_FREEFORM;
     fileHeader->State = EFI_FILE_HEADER_CONSTRUCTION | EFI_FILE_HEADER_VALID | EFI_FILE_DATA_VALID;
     // Invert state bits if erase polarity is true
     if (erasePolarity == ERASE_POLARITY_TRUE)
         fileHeader->State = ~fileHeader->State;
+
+    memcpy(&fileHeader->Name, &uuid.data1, sizeof(EFI_GUID));
 
     // Calculate header checksum
     fileHeader->IntegrityCheck.Checksum.Header = 0;
@@ -430,7 +428,7 @@ UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteA
         fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
 
     out.clear();
-    out.append(bufFileHdr, sizeof(EFI_FFS_FILE_HEADER));
+    out.append(header, sizeof(EFI_FFS_FILE_HEADER));
     out.append(fileBody);
 
     return ERR_SUCCESS;
