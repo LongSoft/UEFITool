@@ -16,6 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDateTime>
 #include <QUuid>
 #include <plist/Plist.hpp>
+#include <qtplist/PListParser.h>
+#include <qtplist/PListSerializer.h>
 #include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
 #include "util.h"
@@ -145,18 +147,16 @@ UINT8 getGUIDfromFile(QByteArray object, QString & name)
 
 UINT8 plistReadExecName(QByteArray plist, QString & name)
 {
-    static const std::string execIdentifier = "CFBundleExecutable";
-
+    static const QString execIdentifier = "CFBundleExecutable";
     QString plistExec;
 
-    std::map<std::string, boost::any> dict;
-    Plist::readPlist(plist.data(), plist.size(), dict);
+    QVariantMap parsed = PListParser::parsePList(plist).toMap();
 
-    if(dict.count(execIdentifier) > 0)
-        plistExec = boost::any_cast<const std::string&>(dict.find(execIdentifier)->second).c_str();
+    if (parsed.contains(execIdentifier))
+        plistExec = parsed.value(execIdentifier).toString();
 
     if(plistExec.isEmpty()) {
-        printf("ERROR: CFBundleName in plist is blank. Aborting!\n");
+        printf("ERROR: '%s'' in plist is blank. Aborting!\n", qPrintable(execIdentifier));
         return ERR_ERROR;
     }
 
@@ -167,23 +167,20 @@ UINT8 plistReadExecName(QByteArray plist, QString & name)
 
 UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & version)
 {
-    static const std::string nameIdentifier = "CFBundleName";
-    static const std::string versionIdentifier = "CFBundleShortVersionString";
-
+    static const QString nameIdentifier = "CFBundleName";
+    static const QString versionIdentifier = "CFBundleShortVersionString";
     QString plistName;
     QString plistVersion;
 
-    std::map<std::string, boost::any> dict;
-    Plist::readPlist(plist.data(), plist.size(), dict);
+    QVariantMap parsed = PListParser::parsePList(plist).toMap();
 
-    if(dict.count(nameIdentifier) > 0)
-        plistName = boost::any_cast<const std::string&>(dict.find(nameIdentifier)->second).c_str();
-
-    if(dict.count(versionIdentifier) > 0)
-        plistVersion = boost::any_cast<const std::string&>(dict.find(versionIdentifier)->second).c_str();
+    if (parsed.contains(nameIdentifier))
+        plistName = parsed.value(nameIdentifier).toString();
+    if (parsed.contains(versionIdentifier))
+        plistVersion = parsed.value(versionIdentifier).toString();
 
     if(plistName.isEmpty()) {
-        printf("ERROR: CFBundleName in plist is blank. Aborting!\n");
+        printf("ERROR: '%s' in plist is blank. Aborting!\n", qPrintable(nameIdentifier));
         return ERR_ERROR;
     }
 
@@ -195,29 +192,27 @@ UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & 
 
 UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
 {
-    std::vector<char> data;
-    static const std::string nameIdentifier = "CFBundleName";
-
+    static const QString nameIdentifier = "CFBundleName";
     QString plistName;
 
-    std::map<std::string, boost::any> dict;
-    Plist::readPlist(plist.data(), plist.size(), dict);
+    QVariantMap parsed = PListParser::parsePList(plist).toMap();
 
-    if(dict.count(nameIdentifier) > 0)
-        plistName = boost::any_cast<const std::string&>(dict.find(nameIdentifier)->second).c_str();
+    if (parsed.contains(nameIdentifier))
+        plistName = parsed.value(nameIdentifier).toString();
 
     if(plistName.isEmpty()) {
-        printf("ERROR: CFBundleName in plist is blank, so cannot be modified. Aborting!\n");
+        printf("ERROR: '%s' in plist is blank. Aborting!\n", qPrintable(nameIdentifier));
         return ERR_ERROR;
     }
 
     // Assign new value for CFBundleName
-    dict[nameIdentifier] = std::string(newName.toUtf8().constData());
+    parsed.insert(nameIdentifier, newName);
 
-    Plist::writePlistXML(data, dict);
+    QVariant qv(parsed);
+    QString plistString = PListSerializer::toPList(qv);
 
     out.clear();
-    out.append(data.data(), data.size());
+    out.append(plistString);
 
     return ERR_SUCCESS;
 }
@@ -279,7 +274,7 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
     QFileInfo binaryPath;
     QFileInfo plistPath;
 
-    QByteArray plistbuf;
+    QByteArray plistbuf, newPlist;
     QByteArray binarybuf;
     QByteArray toConvertBinary;
 
@@ -341,10 +336,11 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
         bundleVersion = "?";
 
     sectionName.sprintf("%s-%s",qPrintable(bundleName), qPrintable(bundleVersion));
+    plistWriteNewBasename(plistbuf, sectionName, newPlist);
 
     guid = kextGUID.arg(kextIndex, 0, 16);
 
-    toConvertBinary.append(plistbuf);
+    toConvertBinary.append(newPlist);
     toConvertBinary.append(nullterminator);
     toConvertBinary.append(binarybuf);
 

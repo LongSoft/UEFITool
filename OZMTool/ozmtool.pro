@@ -1,6 +1,7 @@
 QMAKE_CFLAGS_RELEASE *= -O1
 
 QT       += core
+QT       += xml
 QT       -= gui
 
 TARGET    = OZMTool
@@ -17,6 +18,8 @@ SOURCES  += ozmtool_main.cpp \
  plist/Plist.cpp \
  plist/PlistDate.cpp \
  plist/pugixml.cpp \
+ qtplist/PListParser.cpp \
+ qtplist/PListSerializer.cpp \
  dsdt2bios/capstone/cs.c \
  dsdt2bios/capstone/MCInst.c \
  dsdt2bios/capstone/SStream.c \
@@ -51,6 +54,8 @@ HEADERS  += ozmtool.h \
    plist/pugiconfig.hpp \
    plist/pugixml.hpp \
    plist/PlistDate.hpp \
+   qtplist/PListParser.h \
+   qtplist/PListSerializer.h \
    dsdt2bios/Dsdt2Bios.h \
    dsdt2bios/PeImage.h \
  ../basetypes.h \
