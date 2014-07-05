@@ -1,6 +1,15 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <QString>
+
+#define ERR_DIR_NOT_EXIST                   0xEB
+#define ERR_FILE_NOT_FOUND                  0xEC
+#define ERR_FILE_EXISTS                     0xED
+#define ERR_REPLACE                         0xEE
+#define ERR_RELOCATION                      0xEF
+#define ERR_ERROR                           0xF0
+
 #define MAX_RUNS 4
 
 #define RUN_AS_IS           0

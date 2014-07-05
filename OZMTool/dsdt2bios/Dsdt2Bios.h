@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QByteArray>
 #include <capstone.h>
 #include <../basetypes.h>
+#include <common.h>
 
 #define DSDT_HEADER "DSDT"
 #define UNPATCHABLE_SECTION ".ROM"
