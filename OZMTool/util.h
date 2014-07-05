@@ -36,6 +36,6 @@ UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
 UINT8 checkAggressivityLevel(int aggressivity);
 UINT8 convertOzmPlist(QString input, QByteArray & out);
 UINT8 convertKext(QString input, int kextIndex, QByteArray & out);
-UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteArray & out);
+UINT8 ffsCreate(QByteArray body, QString guid, QString sectionName, QByteArray & out);
 
 #endif // UTIL_H

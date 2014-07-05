@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDateTime>
 #include <QUuid>
 #include <plist/Plist.hpp>
-#include "ffs/kextconvert.h"
 #include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
 #include "util.h"
@@ -253,15 +252,13 @@ UINT8 convertOzmPlist(QString input, QByteArray & out)
     UINT8 ret;
     QByteArray plist;
 
-    KextConvert *kext = new KextConvert();
-
     ret = fileOpen(input, plist);
     if(ret) {
         printf("ERROR: Open failed: %s\n", qPrintable(input));
         return ERR_ERROR;
     }
 
-    ret = kext->createFFS(ozmSectionName, ozmPlistGUID, plist, out);
+    ret = ffsCreate(plist, ozmPlistGUID, ozmSectionName, out);
     if(ret) {
         printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(ozmDefaultsFilename));
         return ERR_ERROR;
@@ -285,8 +282,6 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
     QByteArray plistbuf;
     QByteArray binarybuf;
     QByteArray toConvertBinary;
-
-    KextConvert *kext = new KextConvert();
 
     // Check all folders in input-dir
 
@@ -353,8 +348,7 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
     toConvertBinary.append(nullterminator);
     toConvertBinary.append(binarybuf);
 
-//    ret = kext->createFFS(sectionName, guid, toConvertBinary, out);
-    ret = customFFScreate(toConvertBinary, guid, sectionName, out);
+    ret = ffsCreate(toConvertBinary, guid, sectionName, out);
     if(ret) {
         printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(sectionName));
         return ERR_ERROR;
@@ -363,7 +357,7 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
     return ERR_SUCCESS;
 }
 
-UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteArray & out)
+UINT8 ffsCreate(QByteArray body, QString guid, QString sectionName, QByteArray & out)
 {
     QByteArray bufSectionName;
     QByteArray fileBody, header;
