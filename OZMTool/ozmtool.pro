@@ -6,21 +6,14 @@ QT       -= gui
 TARGET    = OZMTool
 TEMPLATE  = app
 CONFIG   += console
-CONFIG-=app_bundle
+CONFIG -= app_bundle
 DEFINES  += _CONSOLE
 
-INCLUDEPATH += ffs/Common
 INCLUDEPATH += include
-INCLUDEPATH += include/X64
 INCLUDEPATH += dsdt2bios/capstone/include
 
 SOURCES  += ozmtool_main.cpp \
  ozmtool.cpp \
- ffs/Common/EfiUtilityMsgs.c \
- ffs/Common/ParseInf.c \
- ffs/Common/CommonLib.c \
- ffs/Common/Crc32.c \
- ffs/kextconvert.cpp \
  plist/Plist.cpp \
  plist/PlistDate.cpp \
  plist/pugixml.cpp \
@@ -53,11 +46,6 @@ SOURCES  += ozmtool_main.cpp \
 
 
 HEADERS  += ozmtool.h \
-   ffs/Common/EfiUtilityMsgs.h \
-   ffs/Common/ParseInf.h \
-   ffs/Common/CommonLib.h \
-   ffs/Common/Crc32.h \
-   ffs/kextconvert.h \
    plist/Plist.hpp \
    plist/base64.hpp \
    plist/pugiconfig.hpp \
