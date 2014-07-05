@@ -45,8 +45,6 @@ typedef uint16_t  CHAR16;
 #define NULL  ((VOID *) 0)
 #endif
 
-#define EFIAPI
-
 #define ERR_SUCCESS                         0
 #define ERR_INVALID_PARAMETER               1
 #define ERR_BUFFER_TOO_SMALL                2
@@ -85,7 +83,22 @@ typedef uint16_t  CHAR16;
 #define ERR_COMPLEX_BLOCK_MAP               35
 #define ERR_DIR_ALREADY_EXIST               36
 #define ERR_DIR_CREATE                      37
+#define ERR_UNKNOWN_PATCH_TYPE              38   
+#define ERR_PATCH_OFFSET_OUT_OF_BOUNDS      39
+#define ERR_INVALID_SYMBOL                  40
+#define ERR_NOTHING_TO_PATCH                41
 #define ERR_NOT_IMPLEMENTED                 0xFF
+
+// UDK porting definitions
+#define IN
+#define OUT
+#define EFIAPI
+#define EFI_STATUS UINT8
+#define EFI_SUCCESS ERR_SUCCESS
+#define EFI_INVALID_PARAMETER ERR_INVALID_PARAMETER 
+#define EFI_OUT_OF_RESOURCES ERR_OUT_OF_RESOURCES
+#define EFI_BUFFER_TOO_SMALL ERR_BUFFER_TOO_SMALL
+#define EFI_ERROR(X) X
 
 // Compression algorithms
 #define COMPRESSION_ALGORITHM_UNKNOWN 0
@@ -108,6 +121,14 @@ typedef uint16_t  CHAR16;
 // Item replace modes
 #define REPLACE_MODE_AS_IS    0
 #define REPLACE_MODE_BODY     1
+
+// Item patch modes
+#define PATCH_MODE_HEADER     0
+#define PATCH_MODE_BODY       1
+
+// Patch types
+#define PATCH_TYPE_OFFSET     'O'
+#define PATCH_TYPE_PATTERN    'P'
 
 // Erase polarity types
 #define ERASE_POLARITY_FALSE   0

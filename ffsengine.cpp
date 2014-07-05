@@ -1132,7 +1132,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_PEI_DEPEX:
     case EFI_SECTION_SMM_DEPEX:
     case EFI_SECTION_COMPATIBILITY16: {
-        headerSize = sizeOfSectionHeaderOfType(sectionHeader->Type);
+        headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
         body = section.mid(headerSize, sectionSize - headerSize);
 
@@ -1509,12 +1509,12 @@ UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, co
     else if (model->type(parent) == Types::File) {
         type = Types::Section;
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)object.constData();
-        headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+        headerSize = sizeOfSectionHeader(commonHeader);
     }
     else if (model->type(parent) == Types::Section) {
         type = Types::Section;
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)object.constData();
-        headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+        headerSize = sizeOfSectionHeader(commonHeader);
     }
     else
         return ERR_NOT_IMPLEMENTED;
@@ -1549,7 +1549,7 @@ UINT8 FfsEngine::replace(const QModelIndex & index, const QByteArray & object, c
     else if (model->type(index) == Types::Section) {
         if (mode == REPLACE_MODE_AS_IS) {
             EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)object.constData();
-            headerSize = sizeOfSectionHeaderOfType(commonHeader->Type);
+            headerSize = sizeOfSectionHeader(commonHeader);
             result = create(index, Types::Section, object.left(headerSize), object.right(object.size() - headerSize), CREATE_MODE_AFTER, Actions::Replace);
         }
         else if (mode == REPLACE_MODE_BODY) {
@@ -1754,7 +1754,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             // Shitty compressed section with a section header between COMPRESSED_SECTION_HEADER and LZMA_HEADER
             // We must determine section header size by checking it's type before we can unpack that non-standard compressed section
             shittySectionHeader = (EFI_COMMON_SECTION_HEADER*)data;
-            shittySectionSize = sizeOfSectionHeaderOfType(shittySectionHeader->Type);
+            shittySectionSize = sizeOfSectionHeader(shittySectionHeader);
 
             // Decompress section data once again
             data += shittySectionSize;
@@ -1797,8 +1797,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
 UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData)
 {
     UINT8* compressed;
-    UINT32 compressedSize = 0;
-
+    
     switch (algorithm) {
     case COMPRESSION_ALGORITHM_NONE:
     {
@@ -1808,10 +1807,11 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         break;
     case COMPRESSION_ALGORITHM_EFI11:
     {
-        if (EfiCompress((UINT8*)data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+        UINT64 compressedSize = 0;
+        if (EfiCompress(data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_STANDARD_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (EfiCompress((UINT8*)data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+        if (EfiCompress(data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
             delete[] compressed;
             return ERR_STANDARD_COMPRESSION_FAILED;
         }
@@ -1822,10 +1822,11 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         break;
     case COMPRESSION_ALGORITHM_TIANO:
     {
-        if (TianoCompress((UINT8*)data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+        UINT64 compressedSize = 0;
+        if (TianoCompress(data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_STANDARD_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (TianoCompress((UINT8*)data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+        if (TianoCompress(data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
             delete[] compressed;
             return ERR_STANDARD_COMPRESSION_FAILED;
         }
@@ -1836,6 +1837,7 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         break;
     case COMPRESSION_ALGORITHM_LZMA:
     {
+        UINT32 compressedSize = 0;
         if (LzmaCompress((const UINT8*)data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
@@ -1850,9 +1852,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         break;
     case COMPRESSION_ALGORITHM_IMLZMA:
     {
+        UINT32 compressedSize = 0;
         QByteArray header = data.left(sizeof(EFI_COMMON_SECTION_HEADER));
         EFI_COMMON_SECTION_HEADER* sectionHeader = (EFI_COMMON_SECTION_HEADER*)header.constData();
-        UINT32 headerSize = sizeOfSectionHeaderOfType(sectionHeader->Type);
+        UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
         header = data.left(headerSize);
         QByteArray newData = data.mid(headerSize);
         if (LzmaCompress((UINT8*)newData.constData(), newData.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
@@ -2645,6 +2648,7 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
 
         // Reconstruction successful
         reconstructed = header.append(reconstructed);
+
         return ERR_SUCCESS;
     }
 
@@ -3198,3 +3202,126 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
     return ERR_SUCCESS;
 }
 
+UINT8 FfsEngine::patch(const QModelIndex & index, const QVector<PatchData> & patches)
+{
+    if (!index.isValid() || patches.isEmpty() || model->rowCount(index))
+        return ERR_INVALID_PARAMETER;
+
+    // Skip removed items
+    if (model->action(index) == Actions::Remove)
+        return ERR_NOTHING_TO_PATCH;
+
+    UINT8 result;
+    
+    // Apply patches to item's body
+    QByteArray body = model->body(index);
+    PatchData current;
+    Q_FOREACH(current, patches)
+    {
+        if (current.type == PATCH_TYPE_OFFSET) {
+            result = patchViaOffset(body, current.offset, current.hexReplacePattern);
+            if (result)
+                return result;
+        }
+        else if (current.type == PATCH_TYPE_PATTERN) {
+            result = patchViaPattern(body, current.hexFindPattern, current.hexReplacePattern);
+            if (result)
+                return result;
+        }
+        else 
+            return ERR_UNKNOWN_PATCH_TYPE;
+    }
+
+    if (body != model->body(index)) {
+        QByteArray patched = model->header(index);
+        patched.append(body);
+        return replace(index, patched, REPLACE_MODE_AS_IS);
+    }
+    
+    return ERR_NOTHING_TO_PATCH;
+}
+
+UINT8 FfsEngine::patchViaOffset(QByteArray & data, const UINT32 offset, const QByteArray & hexReplacePattern)
+{
+    QByteArray body = data;
+    
+    // Skip patterns with odd length
+    if (hexReplacePattern.length() % 2 > 0) 
+        return ERR_INVALID_PARAMETER;
+    
+    // Check offset bounds
+    if (offset > body.length() - hexReplacePattern.length() / 2)
+        return ERR_PATCH_OFFSET_OUT_OF_BOUNDS;
+
+    // Parse replace pattern
+    QByteArray replacePattern;
+    bool converted;
+    for (int i = 0; i < hexReplacePattern.length() / 2; i++) {
+        QByteArray hex = hexReplacePattern.mid(2 * i, 2);
+        UINT8 value = 0;
+
+        if (!hex.contains('.')) { // Normal byte pattern 
+            value = (UINT8)hex.toUShort(&converted, 16);
+            if (!converted)
+                return ERR_INVALID_SYMBOL;
+        }
+        else { // Placeholder byte pattern
+            if (hex[0] == '.' && hex[1] == '.') { // Full byte placeholder
+                value = body.at(offset + i);
+            }
+            else if (hex[0] == '.') {// Upper byte part placeholder
+                hex[0] = '0';
+                value =  (UINT8)(body.at(offset + i) & 0xF0);
+                value += (UINT8)hex.toUShort(&converted, 16);
+                if (!converted)
+                    return ERR_INVALID_SYMBOL;
+            }
+            else if (hex[1] == '.') { // Lower byte part placeholder
+                hex[1] = '0';
+                value = (UINT8)(body.at(offset + i) & 0x0F);
+                value += (UINT8)hex.toUShort(&converted, 16);
+                if (!converted)
+                    return ERR_INVALID_SYMBOL;
+            }
+            else
+                return ERR_INVALID_SYMBOL;
+        }
+
+        // Append calculated value to real pattern
+        replacePattern.append(value);
+    }
+
+    body.replace(offset, replacePattern.length(), replacePattern);
+    msg(tr("patch: replaced %1 bytes at offset 0x%2 %3 -> %4")
+        .arg(replacePattern.length())
+        .arg(offset, 8, 16, QChar('0'))
+        .arg(QString(data.mid(offset, replacePattern.length()).toHex()))
+        .arg(QString(replacePattern.toHex())));
+    data = body;
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::patchViaPattern(QByteArray & data, const QByteArray hexFindPattern, const QByteArray & hexReplacePattern)
+{
+    QByteArray body = data;
+
+    // Skip patterns with odd length
+    if (hexFindPattern.length() % 2 > 0 || hexReplacePattern.length() % 2 > 0)
+        return ERR_INVALID_PARAMETER;
+
+    // Convert file body to hex;
+    QString hexBody = QString(body.toHex());
+    QRegExp regexp = QRegExp(QString(hexFindPattern), Qt::CaseInsensitive);
+    INT64 offset = regexp.indexIn(hexBody);
+    while (offset >= 0) {
+        if (offset % 2 == 0) {
+            UINT8 result = patchViaOffset(body, offset/2, hexReplacePattern);
+            if (result)
+                return result;
+        }
+        offset = regexp.indexIn(hexBody, offset + 1);
+    }
+
+    data = body;
+    return ERR_SUCCESS;
+}

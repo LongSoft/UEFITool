@@ -1,6 +1,7 @@
-/*++
+/* EfiTianoDecompress.h
 
-Copyright (c) 2004 - 2006, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.<BR>
+Copyright (c) 2004 - 2008, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
 which accompanies this distribution.  The full text of the license may be found at        
@@ -11,12 +12,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 Module Name:
 
-Decompress.h
+  Decompress.h
 
 Abstract:
 
-Header file for decompression routine.
-Providing both EFI and Tiano decompress algorithms.
+  Header file for decompression routine.
+  Providing both EFI and Tiano decompress algorithms.
 
 --*/
 
@@ -30,12 +31,13 @@ Providing both EFI and Tiano decompress algorithms.
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 typedef struct {
 	UINT32 CompSize;
 	UINT32 OrigSize;
 } EFI_TIANO_HEADER;
 
-UINT32
+EFI_STATUS
 EFIAPI
 EfiTianoGetInfo (
 VOID                    *Source,
@@ -65,7 +67,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 --*/
 ;
 
-UINT32
+EFI_STATUS
 EFIAPI
 EfiDecompress (
 VOID                    *Source,
@@ -99,7 +101,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 --*/
 ;
 
-UINT32
+EFI_STATUS
 EFIAPI
 TianoDecompress (
 VOID                          *Source,

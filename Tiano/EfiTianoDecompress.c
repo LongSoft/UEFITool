@@ -1,13 +1,14 @@
-/*++
+/*++ EfiTianoDecompress.c
 
-Copyright (c) 2004 - 2006, Intel Corporation. All rights reserved.<BR>
-This program and the accompanying materials                          
-are licensed and made available under the terms and conditions of the BSD License         
-which accompanies this distribution.  The full text of the license may be found at        
-http://opensource.org/licenses/bsd-license.php                                            
+Copyright (c) 2014, Nikolaj Schlej. All rights reserved.<BR>
+Copyright (c) 2004 - 2010, Intel Corporation. All rights reserved.<BR>
+This program and the accompanying materials
+are licensed and made available under the terms and conditions of the BSD License
+which accompanies this distribution.  The full text of the license may be found at
+http://opensource.org/licenses/bsd-license.php
 
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,                     
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.             
+THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 Module Name:
 
@@ -28,7 +29,9 @@ Decompressor. Algorithm Ported from OPSD code (Decomp.asm)
 #define MAXMATCH  256
 #define THRESHOLD 3
 #define CODE_BIT  16
-//#define UINT8_MAX 0xff
+#ifndef UINT8_MAX
+#define UINT8_MAX 0xff
+#endif
 #define BAD_TABLE - 1
 
 //
@@ -47,46 +50,46 @@ Decompressor. Algorithm Ported from OPSD code (Decomp.asm)
 #endif
 
 typedef struct {
-UINT8   *mSrcBase;  // Starting address of compressed data
-UINT8   *mDstBase;  // Starting address of decompressed data
-UINT32  mOutBuf;
-UINT32  mInBuf;
+    UINT8   *mSrcBase;  // Starting address of compressed data
+    UINT8   *mDstBase;  // Starting address of decompressed data
+    UINT32  mOutBuf;
+    UINT32  mInBuf;
 
-UINT16  mBitCount;
-UINT32  mBitBuf;
-UINT32  mSubBitBuf;
-UINT16  mBlockSize;
-UINT32  mCompSize;
-UINT32  mOrigSize;
+    UINT16  mBitCount;
+    UINT32  mBitBuf;
+    UINT32  mSubBitBuf;
+    UINT16  mBlockSize;
+    UINT32  mCompSize;
+    UINT32  mOrigSize;
 
-UINT16  mBadTableFlag;
+    UINT16  mBadTableFlag;
 
-UINT16  mLeft[2 * NC - 1];
-UINT16  mRight[2 * NC - 1];
-UINT8   mCLen[NC];
-UINT8   mPTLen[NPT];
-UINT16  mCTable[4096];
-UINT16  mPTTable[256];
+    UINT16  mLeft[2 * NC - 1];
+    UINT16  mRight[2 * NC - 1];
+    UINT8   mCLen[NC];
+    UINT8   mPTLen[NPT];
+    UINT16  mCTable[4096];
+    UINT16  mPTTable[256];
 
-//
-// The length of the field 'Position Set Code Length Array Size'Block Header.
-// For EFI 1.1 de/compression algorithm, mPBit = 4
-// For Tiano de/compression algorithm, mPBit = 5
-//
-UINT8   mPBit;
+    //
+    // The length of the field 'Position Set Code Length Array Size' in Block Header.
+    // For EFI 1.1 de/compression algorithm, mPBit = 4
+    // For Tiano de/compression algorithm, mPBit = 5
+    //
+    UINT8   mPBit;
 } SCRATCH_DATA;
 
 STATIC
 VOID
-FillBuf (
-SCRATCH_DATA  *Sd,
-UINT16        NumOfBits
+FillBuf(
+IN  SCRATCH_DATA  *Sd,
+IN  UINT16        NumOfBits
 )
 /*++
 
 Routine Description:
 
-Shift mBitBuf NumOfBits left. ReadNumOfBits of bits from source.
+Shift mBitBuf NumOfBits left. Read in NumOfBits of bits from source.
 
 Arguments:
 
@@ -97,48 +100,49 @@ Returns: (VOID)
 
 --*/
 {
-Sd->mBitBuf = (UINT32) (Sd->mBitBuf << NumOfBits);
+    Sd->mBitBuf = (UINT32)(Sd->mBitBuf << NumOfBits);
 
-while (NumOfBits > Sd->mBitCount) {
+    while (NumOfBits > Sd->mBitCount) {
 
-	Sd->mBitBuf |= (UINT32) (Sd->mSubBitBuf << (NumOfBits = (UINT16) (NumOfBits - Sd->mBitCount)));
+        Sd->mBitBuf |= (UINT32)(Sd->mSubBitBuf << (NumOfBits = (UINT16)(NumOfBits - Sd->mBitCount)));
 
-	if (Sd->mCompSize > 0) {
-		//
-		// Get 1 byte into SubBitBuf
-		//
-		Sd->mCompSize--;
-		Sd->mSubBitBuf  = 0;
-		Sd->mSubBitBuf  = Sd->mSrcBase[Sd->mInBuf++];
-		Sd->mBitCount   = 8;
+        if (Sd->mCompSize > 0) {
+            //
+            // Get 1 byte into SubBitBuf
+            //
+            Sd->mCompSize--;
+            Sd->mSubBitBuf = 0;
+            Sd->mSubBitBuf = Sd->mSrcBase[Sd->mInBuf++];
+            Sd->mBitCount = 8;
 
-	} else {
-		//
-		// No more bits from the source, just pad zero bit.
-		//
-		Sd->mSubBitBuf  = 0;
-		Sd->mBitCount   = 8;
+        }
+        else {
+            //
+            // No more bits from the source, just pad zero bit.
+            //
+            Sd->mSubBitBuf = 0;
+            Sd->mBitCount = 8;
 
-	}
-}
+        }
+    }
 
-Sd->mBitCount = (UINT16) (Sd->mBitCount - NumOfBits);
-Sd->mBitBuf |= Sd->mSubBitBuf >> Sd->mBitCount;
+    Sd->mBitCount = (UINT16)(Sd->mBitCount - NumOfBits);
+    Sd->mBitBuf |= Sd->mSubBitBuf >> Sd->mBitCount;
 }
 
 STATIC
 UINT32
-GetBits (
-SCRATCH_DATA  *Sd,
-UINT16        NumOfBits
+GetBits(
+IN  SCRATCH_DATA  *Sd,
+IN  UINT16        NumOfBits
 )
 /*++
 
 Routine Description:
 
-Get NumOfBits of bits from mBitBuf. Fill mBitBuf with subsequent 
-NumOfBits of bits from source. Returns NumOfBits of bits that are 
-popped.
+Get NumOfBits of bits out from mBitBuf. Fill mBitBuf with subsequent
+NumOfBits of bits from source. Returns NumOfBits of bits that are
+popped out.
 
 Arguments:
 
@@ -147,27 +151,27 @@ NumOfBits     - The number of bits to pop and read.
 
 Returns:
 
-The bits that are popped.
+The bits that are popped out.
 
 --*/
 {
-UINT32 Bits;
+    UINT32  OutBits;
 
-Bits = (UINT32) (Sd->mBitBuf >> (BITBUFSIZ - NumOfBits));
+    OutBits = (UINT32)(Sd->mBitBuf >> (BITBUFSIZ - NumOfBits));
 
-FillBuf (Sd, NumOfBits);
+    FillBuf(Sd, NumOfBits);
 
-return Bits;
+    return OutBits;
 }
 
 STATIC
 UINT16
-MakeTable (
-SCRATCH_DATA  *Sd,
-UINT16        NumOfChar,
-UINT8         *BitLen,
-UINT16        TableBits,
-UINT16        *Table
+MakeTable(
+IN  SCRATCH_DATA  *Sd,
+IN  UINT16        NumOfChar,
+IN  UINT8         *BitLen,
+IN  UINT16        TableBits,
+OUT UINT16        *Table
 )
 /*++
 
@@ -190,119 +194,145 @@ BAD_TABLE - The table is corrupted.
 
 --*/
 {
-UINT16  Count[17];
-UINT16  Weight[17];
-UINT16  Start[18];
-UINT16  *Pointer;
-UINT16  Index3;
-UINT16  Index;
-UINT16  Len;
-UINT16  Char;
-UINT16  JuBits;
-UINT16  Avail;
-UINT16  NextCode;
-UINT16  Mask;
+    UINT16  Count[17];
+    UINT16  Weight[17];
+    UINT16  Start[18];
+    UINT16  *Pointer;
+    UINT16  Index3;
+    UINT16  Index;
+    UINT16  Len;
+    UINT16  Char;
+    UINT16  JuBits;
+    UINT16  Avail;
+    UINT16  NextCode;
+    UINT16  Mask;
 
-for (Index = 1; Index <= 16; Index++) {
-	Count[Index] = 0;
-}
+    //
+    // TableBits should not be greater than 16.
+    //
+    if (TableBits >= (sizeof(Count) / sizeof(UINT16))) {
+        return (UINT16)BAD_TABLE;
+    }
 
-for (Index = 0; Index < NumOfChar; Index++) {
-	Count[BitLen[Index]]++;
-}
+    //
+    // Initialize Count array starting from Index 0, as there is a possibility of Count array being uninitialized.
+    //
+    for (Index = 0; Index <= 16; Index++) {
+        Count[Index] = 0;
+    }
 
-Start[1] = 0;
+    for (Index = 0; Index < NumOfChar; Index++) {
+        //
+        // Count array index should not be greater than or equal to its size.
+        //
+        if (BitLen[Index] < (sizeof(Count) / sizeof(UINT16))) {
+            Count[BitLen[Index]]++;
+        }
+        else {
+            return (UINT16)BAD_TABLE;
+        }
+    }
 
-for (Index = 1; Index <= 16; Index++) {
-	Start[Index + 1] = (UINT16) (Start[Index] + (Count[Index] << (16 - Index)));
-}
+    Start[0] = 0;
+    Start[1] = 0;
 
-if (Start[17] != 0) {
-	/*(1U << 16)*/
-	return (UINT16) BAD_TABLE;
-}
+    for (Index = 1; Index <= 16; Index++) {
+        Start[Index + 1] = (UINT16)(Start[Index] + (Count[Index] << (16 - Index)));
+    }
 
-JuBits = (UINT16) (16 - TableBits);
+    if (Start[17] != 0) {
+        /*(1U << 16)*/
+        return (UINT16)BAD_TABLE;
+    }
 
-for (Index = 1; Index <= TableBits; Index++) {
-	Start[Index] >>= JuBits;
-	Weight[Index] = (UINT16) (1U << (TableBits - Index));
-}
+    JuBits = (UINT16)(16 - TableBits);
 
-while (Index <= 16) {
-	Weight[Index] = (UINT16) (1U << (16 - Index));
-	Index++;
-}
+    for (Index = 1; Index <= TableBits; Index++) {
+        Start[Index] >>= JuBits;
+        Weight[Index] = (UINT16)(1U << (TableBits - Index));
+    }
 
-Index = (UINT16) (Start[TableBits + 1] >> JuBits);
+    while (Index <= 16) {
+        Weight[Index] = (UINT16)(1U << (16 - Index));
+        Index++;
+    }
 
-if (Index != 0) {
-	Index3 = (UINT16) (1U << TableBits);
-	while (Index != Index3) {
-		Table[Index++] = 0;
-	}
-}
+    Index = (UINT16)(Start[TableBits + 1] >> JuBits);
 
-Avail = NumOfChar;
-Mask  = (UINT16) (1U << (15 - TableBits));
+    if (Index != 0) {
+        Index3 = (UINT16)(1U << TableBits);
+        while (Index != Index3) {
+            Table[Index++] = 0;
+        }
+    }
 
-for (Char = 0; Char < NumOfChar; Char++) {
+    Avail = NumOfChar;
+    Mask = (UINT16)(1U << (15 - TableBits));
 
-	Len = BitLen[Char];
-	if (Len == 0) {
-		continue;
-	}
+    for (Char = 0; Char < NumOfChar; Char++) {
 
-	NextCode = (UINT16) (Start[Len] + Weight[Len]);
+        Len = BitLen[Char];
+        if (Len == 0 || Len >= 17) {
+            continue;
+        }
 
-    if (Len <= TableBits) {
+        NextCode = (UINT16)(Start[Len] + Weight[Len]);
 
-		for (Index = Start[Len]; Index < NextCode; Index++) {
-            // Check to prevent possible heap corruption
-            if (Index >= (UINT16) (1U << TableBits))
-                return (UINT16)BAD_TABLE;
+        if (Len <= TableBits) {
 
-            Table[Index] = Char;
-		}
+            for (Index = Start[Len]; Index < NextCode; Index++) {
+                // Check to prevent possible heap corruption
+                if (Index >= (UINT16)(1U << TableBits))
+                    return (UINT16)BAD_TABLE;
+                Table[Index] = Char;
+            }
 
-	} else {
+        }
+        else {
 
-		Index3  = Start[Len];
-		Pointer = &Table[Index3 >> JuBits];
-		Index   = (UINT16) (Len - TableBits);
+            Index3 = Start[Len];
+            Pointer = &Table[Index3 >> JuBits];
+            Index = (UINT16)(Len - TableBits);
 
-		while (Index != 0) {
-			if (*Pointer == 0) {
-				Sd->mRight[Avail]                     = Sd->mLeft[Avail] = 0;
-				*Pointer = Avail++;
-			}
+            while (Index != 0) {
+                //
+                // Avail should be lesser than size of mRight and mLeft to prevent buffer overflow.
+                //
+                if ((*Pointer == 0) && (Avail < sizeof(Sd->mRight) / sizeof(UINT16)) && (Avail < sizeof(Sd->mLeft) / sizeof(UINT16))) {
+                    Sd->mRight[Avail] = Sd->mLeft[Avail] = 0;
+                    *Pointer = Avail++;
+                }
 
-			if (Index3 & Mask) {
-				Pointer = &Sd->mRight[*Pointer];
-			} else {
-				Pointer = &Sd->mLeft[*Pointer];
-			}
+                //
+                // *Pointer should be lesser than size of mRight and mLeft to prevent buffer overflow.
+                //
+                if ((Index3 & Mask) && (*Pointer < (sizeof(Sd->mRight) / sizeof(UINT16)))) {
+                    Pointer = &Sd->mRight[*Pointer];
+                }
+                else if (*Pointer < (sizeof(Sd->mLeft) / sizeof(UINT16))) {
+                    Pointer = &Sd->mLeft[*Pointer];
+                }
 
-			Index3 <<= 1;
-			Index--;
-		}
+                Index3 <<= 1;
+                Index--;
+            }
 
-		*Pointer = Char;
+            *Pointer = Char;
 
-	}
+        }
 
-	Start[Len] = NextCode;
-}
-//
-// Succeeds
-//
-return 0;
+        Start[Len] = NextCode;
+    }
+    //
+    // Succeeds
+    //
+    return 0;
 }
 
 STATIC
 UINT32
-DecodeP (
-SCRATCH_DATA  *Sd
+DecodeP(
+IN  SCRATCH_DATA  *Sd
 )
 /*++
 
@@ -320,46 +350,47 @@ The position value decoded.
 
 --*/
 {
-UINT16  Val;
-UINT32  Mask;
-UINT32  Pos;
+    UINT16  Val;
+    UINT32  Mask;
+    UINT32  Pos;
 
-Val = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
+    Val = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
 
-if (Val >= MAXNP) {
-	Mask = 1U << (BITBUFSIZ - 1 - 8);
+    if (Val >= MAXNP) {
+        Mask = 1U << (BITBUFSIZ - 1 - 8);
 
-	do {
+        do {
 
-		if (Sd->mBitBuf & Mask) {
-			Val = Sd->mRight[Val];
-		} else {
-			Val = Sd->mLeft[Val];
-		}
+            if (Sd->mBitBuf & Mask) {
+                Val = Sd->mRight[Val];
+            }
+            else {
+                Val = Sd->mLeft[Val];
+            }
 
-		Mask >>= 1;
-	} while (Val >= MAXNP);
-}
-//
-// Advance what we have read
-//
-FillBuf (Sd, Sd->mPTLen[Val]);
+            Mask >>= 1;
+        } while (Val >= MAXNP);
+    }
+    //
+    // Advance what we have read
+    //
+    FillBuf(Sd, Sd->mPTLen[Val]);
 
-Pos = Val;
-if (Val > 1) {
-	Pos = (UINT32) ((1U << (Val - 1)) + GetBits (Sd, (UINT16) (Val - 1)));
-}
+    Pos = Val;
+    if (Val > 1) {
+        Pos = (UINT32)((1U << (Val - 1)) + GetBits(Sd, (UINT16)(Val - 1)));
+    }
 
-return Pos;
+    return Pos;
 }
 
 STATIC
 UINT16
-ReadPTLen (
-SCRATCH_DATA  *Sd,
-UINT16        nn,
-UINT16        nbit,
-UINT16        Special
+ReadPTLen(
+IN  SCRATCH_DATA  *Sd,
+IN  UINT16        nn,
+IN  UINT16        nbit,
+IN  UINT16        Special
 )
 /*++
 
@@ -372,7 +403,7 @@ Arguments:
 Sd        - The global scratch data
 nn        - Number of symbols
 nbit      - Number of bits needed to represent nn
-Special   - The special symbol that needs to be taken care of 
+Special   - The special symbol that needs to be taken care of
 
 Returns:
 
@@ -381,63 +412,76 @@ BAD_TABLE - Table is corrupted.
 
 --*/
 {
-UINT16  Number;
-UINT16  CharC;
-UINT16  Index;
-UINT32  Mask;
+    UINT16  Number;
+    UINT16  CharC;
+    UINT16  Index;
+    UINT32  Mask;
 
-Number = (UINT16) GetBits (Sd, nbit);
+    Number = (UINT16)GetBits(Sd, nbit);
 
-if (Number == 0) {
-	CharC = (UINT16) GetBits (Sd, nbit);
+    if ((Number > sizeof(Sd->mPTLen)) || (nn > sizeof(Sd->mPTLen))) {
+        //
+        // Fail if Number or nn is greater than size of mPTLen
+        //
+        return (UINT16)BAD_TABLE;
+    }
 
-	for (Index = 0; Index < 256; Index++) {
-		Sd->mPTTable[Index] = CharC;
-	}
+    if (Number == 0) {
+        CharC = (UINT16)GetBits(Sd, nbit);
 
-	for (Index = 0; Index < nn; Index++) {
-		Sd->mPTLen[Index] = 0;
-	}
+        for (Index = 0; Index < 256; Index++) {
+            Sd->mPTTable[Index] = CharC;
+        }
 
-	return 0;
-}
+        for (Index = 0; Index < nn; Index++) {
+            Sd->mPTLen[Index] = 0;
+        }
 
-Index = 0;
+        return 0;
+    }
 
-while (Index < Number) {
+    Index = 0;
 
-	CharC = (UINT16) (Sd->mBitBuf >> (BITBUFSIZ - 3));
+    while (Index < Number) {
 
-	if (CharC == 7) {
-		Mask = 1U << (BITBUFSIZ - 1 - 3);
-		while (Mask & Sd->mBitBuf) {
-			Mask >>= 1;
-			CharC += 1;
-		}
-	}
+        CharC = (UINT16)(Sd->mBitBuf >> (BITBUFSIZ - 3));
 
-	FillBuf (Sd, (UINT16) ((CharC < 7) ? 3 : CharC - 3));
+        if (CharC == 7) {
+            Mask = 1U << (BITBUFSIZ - 1 - 3);
+            while (Mask & Sd->mBitBuf) {
+                Mask >>= 1;
+                CharC += 1;
+            }
+        }
 
-	Sd->mPTLen[Index++] = (UINT8) CharC;
+        FillBuf(Sd, (UINT16)((CharC < 7) ? 3 : CharC - 3));
 
-	if (Index == Special) {
-		CharC = (UINT16) GetBits (Sd, 2);
-		while ((INT16) (--CharC) >= 0) {
-			Sd->mPTLen[Index++] = 0;
-		}
-	}
-}
+        Sd->mPTLen[Index++] = (UINT8)CharC;
 
-while (Index < nn) {
-	Sd->mPTLen[Index++] = 0;
-}
+        if (Index == Special) {
+            CharC = (UINT16)GetBits(Sd, 2);
+            while ((INT16)(--CharC) >= 0) {
+                if (Index >= sizeof(Sd->mPTLen)) {
+                    //
+                    // Fail if Index is greater than or equal to mPTLen
+                    //
+                    return (UINT16)BAD_TABLE;
+                }
+                Sd->mPTLen[Index++] = 0;
+            }
+        }
+    }
 
-return MakeTable (Sd, nn, Sd->mPTLen, 8, Sd->mPTTable);
+    while (Index < nn) {
+        Sd->mPTLen[Index++] = 0;
+    }
+
+    return MakeTable(Sd, nn, Sd->mPTLen, 8, Sd->mPTTable);
 }
 
 STATIC
 VOID
-ReadCLen (
+ReadCLen(
 SCRATCH_DATA  *Sd
 )
 /*++
@@ -454,84 +498,88 @@ Returns: (VOID)
 
 --*/
 {
-UINT16  Number;
-UINT16  CharC;
-UINT16  Index;
-UINT32  Mask;
+    UINT16  Number;
+    UINT16  CharC;
+    UINT16  Index;
+    UINT32  Mask;
 
-Number = (UINT16) GetBits (Sd, CBIT);
+    Number = (UINT16)GetBits(Sd, CBIT);
 
-if (Number == 0) {
-	CharC = (UINT16) GetBits (Sd, CBIT);
+    if (Number == 0) {
+        CharC = (UINT16)GetBits(Sd, CBIT);
 
-	for (Index = 0; Index < NC; Index++) {
-		Sd->mCLen[Index] = 0;
-	}
+        for (Index = 0; Index < NC; Index++) {
+            Sd->mCLen[Index] = 0;
+        }
 
-	for (Index = 0; Index < 4096; Index++) {
-		Sd->mCTable[Index] = CharC;
-	}
+        for (Index = 0; Index < 4096; Index++) {
+            Sd->mCTable[Index] = CharC;
+        }
 
-	return ;
-}
+        return;
+    }
 
-Index = 0;
-while (Index < Number) {
+    Index = 0;
+    while (Index < Number) {
 
-	CharC = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
-	if (CharC >= NT) {
-		Mask = 1U << (BITBUFSIZ - 1 - 8);
+        CharC = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
+        if (CharC >= NT) {
+            Mask = 1U << (BITBUFSIZ - 1 - 8);
 
-		do {
+            do {
 
-			if (Mask & Sd->mBitBuf) {
-				CharC = Sd->mRight[CharC];
-			} else {
-				CharC = Sd->mLeft[CharC];
-			}
+                if (Mask & Sd->mBitBuf) {
+                    CharC = Sd->mRight[CharC];
+                }
+                else {
+                    CharC = Sd->mLeft[CharC];
+                }
 
-			Mask >>= 1;
+                Mask >>= 1;
 
-		} while (CharC >= NT);
-	}
-	//
-	// Advance what we have read
-	//
-	FillBuf (Sd, Sd->mPTLen[CharC]);
+            } while (CharC >= NT);
+        }
+        //
+        // Advance what we have read
+        //
+        FillBuf(Sd, Sd->mPTLen[CharC]);
 
-	if (CharC <= 2) {
+        if (CharC <= 2) {
 
-		if (CharC == 0) {
-			CharC = 1;
-		} else if (CharC == 1) {
-			CharC = (UINT16) (GetBits (Sd, 4) + 3);
-		} else if (CharC == 2) {
-			CharC = (UINT16) (GetBits (Sd, CBIT) + 20);
-		}
+            if (CharC == 0) {
+                CharC = 1;
+            }
+            else if (CharC == 1) {
+                CharC = (UINT16)(GetBits(Sd, 4) + 3);
+            }
+            else if (CharC == 2) {
+                CharC = (UINT16)(GetBits(Sd, CBIT) + 20);
+            }
 
-		while ((INT16) (--CharC) >= 0) {
-			Sd->mCLen[Index++] = 0;
-		}
+            while ((INT16)(--CharC) >= 0) {
+                Sd->mCLen[Index++] = 0;
+            }
 
-	} else {
+        }
+        else {
 
-		Sd->mCLen[Index++] = (UINT8) (CharC - 2);
+            Sd->mCLen[Index++] = (UINT8)(CharC - 2);
 
-	}
-}
+        }
+    }
 
-while (Index < NC) {
-	Sd->mCLen[Index++] = 0;
-}
+    while (Index < NC) {
+        Sd->mCLen[Index++] = 0;
+    }
 
-MakeTable (Sd, NC, Sd->mCLen, 12, Sd->mCTable);
+    MakeTable(Sd, NC, Sd->mCLen, 12, Sd->mCTable);
 
-return ;
+    return;
 }
 
 STATIC
 UINT16
-DecodeC (
+DecodeC(
 SCRATCH_DATA  *Sd
 )
 /*++
@@ -550,54 +598,55 @@ The value decoded.
 
 --*/
 {
-UINT16  Index2;
-UINT32  Mask;
+    UINT16  Index2;
+    UINT32  Mask;
 
-if (Sd->mBlockSize == 0) {
-	//
-	// Starting a new block
-	//
-	Sd->mBlockSize    = (UINT16) GetBits (Sd, 16);
-	Sd->mBadTableFlag = ReadPTLen (Sd, NT, TBIT, 3);
-	if (Sd->mBadTableFlag != 0) {
-		return 0;
-	}
+    if (Sd->mBlockSize == 0) {
+        //
+        // Starting a new block
+        //
+        Sd->mBlockSize = (UINT16)GetBits(Sd, 16);
+        Sd->mBadTableFlag = ReadPTLen(Sd, NT, TBIT, 3);
+        if (Sd->mBadTableFlag != 0) {
+            return 0;
+        }
 
-	ReadCLen (Sd);
+        ReadCLen(Sd);
 
-	Sd->mBadTableFlag = ReadPTLen (Sd, MAXNP, Sd->mPBit, (UINT16) (-1));
-	if (Sd->mBadTableFlag != 0) {
-		return 0;
-	}
-}
+        Sd->mBadTableFlag = ReadPTLen(Sd, MAXNP, Sd->mPBit, (UINT16)(-1));
+        if (Sd->mBadTableFlag != 0) {
+            return 0;
+        }
+    }
 
-Sd->mBlockSize--;
-Index2 = Sd->mCTable[Sd->mBitBuf >> (BITBUFSIZ - 12)];
+    Sd->mBlockSize--;
+    Index2 = Sd->mCTable[Sd->mBitBuf >> (BITBUFSIZ - 12)];
 
-if (Index2 >= NC) {
-	Mask = 1U << (BITBUFSIZ - 1 - 12);
+    if (Index2 >= NC) {
+        Mask = 1U << (BITBUFSIZ - 1 - 12);
 
-	do {
-		if (Sd->mBitBuf & Mask) {
-			Index2 = Sd->mRight[Index2];
-		} else {
-			Index2 = Sd->mLeft[Index2];
-		}
+        do {
+            if (Sd->mBitBuf & Mask) {
+                Index2 = Sd->mRight[Index2];
+            }
+            else {
+                Index2 = Sd->mLeft[Index2];
+            }
 
-		Mask >>= 1;
-	} while (Index2 >= NC);
-}
-//
-// Advance what we have read
-//
-FillBuf (Sd, Sd->mCLen[Index2]);
+            Mask >>= 1;
+        } while (Index2 >= NC);
+    }
+    //
+    // Advance what we have read
+    //
+    FillBuf(Sd, Sd->mCLen[Index2]);
 
-return Index2;
+    return Index2;
 }
 
 STATIC
 VOID
-Decode (
+Decode(
 SCRATCH_DATA  *Sd
 )
 /*++
@@ -614,65 +663,61 @@ Returns: (VOID)
 
 --*/
 {
-UINT16  BytesRemain;
-UINT32  DataIdx;
-UINT16  CharC;
+    UINT16  BytesRemain;
+    UINT32  DataIdx;
+    UINT16  CharC;
 
-BytesRemain = (UINT16) (-1);
+    BytesRemain = (UINT16)(-1);
 
-DataIdx     = 0;
+    DataIdx = 0;
 
-for (;;) {
-	CharC = DecodeC (Sd);
-	if (Sd->mBadTableFlag != 0) {
-		return ;
-	}
-
-	if (CharC < 256) {
-		//
-		// Process an Original character
-		//
-		if (Sd->mOutBuf >= Sd->mOrigSize) {
-			return ;
-		} else {
-			Sd->mDstBase[Sd->mOutBuf++] = (UINT8) CharC;
-		}
-
-	} else {
-		//
-		// Process a Pointer
-		//
-		CharC       = (UINT16) (CharC - (UINT8_MAX + 1 - THRESHOLD));
-
-		BytesRemain = CharC;
-
-		DataIdx     = Sd->mOutBuf - DecodeP (Sd) - 1;
-        if (DataIdx >= Sd->mOrigSize) {
-            Sd->mBadTableFlag = 1;
+    for (;;) {
+        CharC = DecodeC(Sd);
+        if (Sd->mBadTableFlag != 0) {
             return;
         }
-        
-		BytesRemain--;
-		while ((INT16) (BytesRemain) >= 0) {
-			Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
-			if (Sd->mOutBuf >= Sd->mOrigSize) {
-				return ;
-			}
 
-			BytesRemain--;
-		}
-	}
+        if (CharC < 256) {
+            //
+            // Process an Original character
+            //
+            if (Sd->mOutBuf >= Sd->mOrigSize) {
+                return;
+            }
+            else {
+                Sd->mDstBase[Sd->mOutBuf++] = (UINT8)CharC;
+            }
+
+        }
+        else {
+            //
+            // Process a Pointer
+            //
+            CharC = (UINT16)(CharC - (UINT8_MAX + 1 - THRESHOLD));
+
+            BytesRemain = CharC;
+
+            DataIdx = Sd->mOutBuf - DecodeP(Sd) - 1;
+
+            BytesRemain--;
+            while ((INT16)(BytesRemain) >= 0) {
+                Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
+                if (Sd->mOutBuf >= Sd->mOrigSize) {
+                    return;
+                }
+
+                BytesRemain--;
+            }
+        }
+    }
 }
 
-return ;
-}
-
-UINT32
-EfiTianoGetInfo (
-VOID    *Source,
-UINT32  SrcSize,
-UINT32  *DstSize,
-UINT32  *ScratchSize
+EFI_STATUS
+GetInfo(
+IN      VOID    *Source,
+IN      UINT32  SrcSize,
+OUT     UINT32  *DstSize,
+OUT     UINT32  *ScratchSize
 )
 /*++
 
@@ -689,33 +734,33 @@ ScratchSize - The size of scratch buffer.
 
 Returns:
 
-EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successfully retrieved.
+EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successull retrieved.
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
 {
-UINT8 *Src;
+    UINT8 *Src;
 
-*ScratchSize  = sizeof (SCRATCH_DATA);
+    *ScratchSize = sizeof(SCRATCH_DATA);
 
-Src           = Source;
-if (SrcSize < 8) {
-	return ERR_INVALID_PARAMETER;
+    Src = Source;
+    if (SrcSize < 8) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    *DstSize = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
+    return EFI_SUCCESS;
 }
 
-*DstSize = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
-return ERR_SUCCESS;
-}
-
-UINT32
-Decompress (
-VOID    *Source,
-UINT32  SrcSize,
-VOID    *Destination,
-UINT32  DstSize,
-VOID    *Scratch,
-UINT32  ScratchSize,
-UINT8   Version
+EFI_STATUS
+Decompress(
+IN      VOID    *Source,
+IN      UINT32  SrcSize,
+IN OUT  VOID    *Destination,
+IN      UINT32  DstSize,
+IN OUT  VOID    *Scratch,
+IN      UINT32  ScratchSize,
+IN      UINT8   Version
 )
 /*++
 
@@ -742,112 +787,149 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
 {
-UINT32        Index;
-UINT32        CompSize;
-UINT32        OrigSize;
-UINT32        Status;
-SCRATCH_DATA  *Sd;
-UINT8         *Src;
-UINT8         *Dst;
+    UINT32        Index;
+    UINT32        CompSize;
+    UINT32        OrigSize;
+    EFI_STATUS    Status;
+    SCRATCH_DATA  *Sd;
+    UINT8         *Src;
+    UINT8         *Dst;
 
-Status  = ERR_SUCCESS;
-Src     = Source;
-Dst     = Destination;
+    Status = EFI_SUCCESS;
+    Src = Source;
+    Dst = Destination;
 
-if (ScratchSize < sizeof (SCRATCH_DATA)) {
-	return ERR_INVALID_PARAMETER;
+    if (ScratchSize < sizeof(SCRATCH_DATA)) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    Sd = (SCRATCH_DATA *)Scratch;
+
+    if (SrcSize < 8) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    CompSize = Src[0] + (Src[1] << 8) + (Src[2] << 16) + (Src[3] << 24);
+    OrigSize = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
+
+    //
+    // If compressed file size is 0, return
+    //
+    if (OrigSize == 0) {
+        return Status;
+    }
+
+    if (SrcSize < CompSize + 8) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    if (DstSize != OrigSize) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    Src = Src + 8;
+
+    for (Index = 0; Index < sizeof(SCRATCH_DATA); Index++) {
+        ((UINT8 *)Sd)[Index] = 0;
+    }
+    //
+    // The length of the field 'Position Set Code Length Array Size' in Block Header.
+    // For EFI 1.1 de/compression algorithm(Version 1), mPBit = 4
+    // For Tiano de/compression algorithm(Version 2), mPBit = 5
+    //
+    switch (Version) {
+    case 1:
+        Sd->mPBit = 4;
+        break;
+
+    case 2:
+        Sd->mPBit = 5;
+        break;
+
+    default:
+        //
+        // Currently, only have 2 versions
+        //
+        return EFI_INVALID_PARAMETER;
+    }
+
+    Sd->mSrcBase = Src;
+    Sd->mDstBase = Dst;
+    Sd->mCompSize = CompSize;
+    Sd->mOrigSize = OrigSize;
+
+    //
+    // Fill the first BITBUFSIZ bits
+    //
+    FillBuf(Sd, BITBUFSIZ);
+
+    //
+    // Decompress it
+    //
+    Decode(Sd);
+
+    if (Sd->mBadTableFlag != 0) {
+        //
+        // Something wrong with the source
+        //
+        Status = EFI_INVALID_PARAMETER;
+    }
+
+    return Status;
 }
 
-Sd = (SCRATCH_DATA *) Scratch;
-
-if (SrcSize < 8) {
-	return ERR_INVALID_PARAMETER;
-}
-
-CompSize  = Src[0] + (Src[1] << 8) + (Src[2] << 16) + (Src[3] << 24);
-OrigSize  = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
-
-//
-// If compressed file size is 0, return
-//
-if (OrigSize == 0) {
-	return Status;
-}
-
-if (SrcSize < CompSize + 8) {
-	return ERR_INVALID_PARAMETER;
-}
-
-if (DstSize != OrigSize) {
-	return ERR_INVALID_PARAMETER;
-}
-
-Src = Src + 8;
-
-for (Index = 0; Index < sizeof (SCRATCH_DATA); Index++) {
-	((UINT8 *) Sd)[Index] = 0;
-}
-//
-// The length of the field 'Position Set Code Length Array Size'Block Header.
-// For EFI 1.1 de/compression algorithm(Version 1), mPBit = 4
-// For Tiano de/compression algorithm(Version 2), mPBit = 5
-//
-switch (Version) {
-case 1:
-	Sd->mPBit = 4;
-	break;
-
-case 2:
-	Sd->mPBit = 5;
-	break;
-
-default:
-	//
-	// Currently, only have 2 versions
-	//
-	return ERR_INVALID_PARAMETER;
-}
-
-Sd->mSrcBase  = Src;
-Sd->mDstBase  = Dst;
-Sd->mCompSize = CompSize;
-Sd->mOrigSize = OrigSize;
-
-//
-// Fill the first BITBUFSIZ bits
-//
-FillBuf (Sd, BITBUFSIZ);
-
-//
-// Decompress it
-//
-Decode (Sd);
-
-if (Sd->mBadTableFlag != 0) {
-	//
-	// Something wrong with the source
-	//
-	Status = ERR_INVALID_PARAMETER;
-}
-
-return Status;
-}
-
-UINT32
+EFI_STATUS
 EFIAPI
-EfiDecompress (
-VOID                    *Source,
-UINT32                  SrcSize,
-VOID                    *Destination,
-UINT32                  DstSize,
-VOID                    *Scratch,
-UINT32                  ScratchSize
+EfiTianoGetInfo(
+IN      VOID                    *Source,
+IN      UINT32                  SrcSize,
+OUT     UINT32                  *DstSize,
+OUT     UINT32                  *ScratchSize
 )
 /*++
 
 Routine Description:
 
-The implementation is same as that of EFI_DECOMPRESS_PROTOCOL.Decompress().
+The implementation of EFI_DECOMPRESS_PROTOCOL.GetInfo().
+
+Arguments:
+
+This        - The protocol instance pointer
+Source      - The source buffer containing the compressed data.
+SrcSize     - The size of source buffer
+DstSize     - The size of destination buffer.
+ScratchSize - The size of scratch buffer.
+
+Returns:
+
+EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successful retrieved.
+EFI_INVALID_PARAMETER - The source data is corrupted
+
+--*/
+{
+    return GetInfo(
+        Source,
+        SrcSize,
+        DstSize,
+        ScratchSize
+        );
+}
+
+EFI_STATUS
+EFIAPI
+EfiDecompress(
+IN      VOID                    *Source,
+IN      UINT32                  SrcSize,
+IN OUT  VOID                    *Destination,
+IN      UINT32                  DstSize,
+IN OUT  VOID                    *Scratch,
+IN      UINT32                  ScratchSize
+)
+/*++
+
+Routine Description:
+
+The implementation of EFI_DECOMPRESS_PROTOCOL.Decompress().
 
 Arguments:
 
@@ -866,35 +948,35 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
 {
-//
-// For EFI 1.1 de/compression algorithm, the version is 1.
-//
-return Decompress (
-	Source,
-	SrcSize,
-	Destination,
-	DstSize,
-	Scratch,
-	ScratchSize,
-	1
-	);
+    //
+    // For EFI 1.1 de/compression algorithm, the version is 1.
+    //
+    return Decompress(
+        Source,
+        SrcSize,
+        Destination,
+        DstSize,
+        Scratch,
+        ScratchSize,
+        1
+        );
 }
 
-UINT32
+EFI_STATUS
 EFIAPI
-TianoDecompress (
-VOID                          *Source,
-UINT32                        SrcSize,
-VOID                          *Destination,
-UINT32                        DstSize,
-VOID                          *Scratch,
-UINT32                        ScratchSize
+TianoDecompress(
+IN      VOID                          *Source,
+IN      UINT32                        SrcSize,
+IN OUT  VOID                          *Destination,
+IN      UINT32                        DstSize,
+IN OUT  VOID                          *Scratch,
+IN      UINT32                        ScratchSize
 )
 /*++
 
 Routine Description:
 
-The implementation is same as that  of EFI_TIANO_DECOMPRESS_PROTOCOL.Decompress().
+The implementation of EFI_TIANO_DECOMPRESS_PROTOCOL.Decompress().
 
 Arguments:
 
@@ -913,17 +995,16 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
 {
-//
-// For Tiano de/compression algorithm, the version is 2.
-//
-return Decompress (
-	Source,
-	SrcSize,
-	Destination,
-	DstSize,
-	Scratch,
-	ScratchSize,
-	2
-	);
+    //
+    // For Tiano de/compression algorithm, the version is 2.
+    //
+    return Decompress(
+        Source,
+        SrcSize,
+        Destination,
+        DstSize,
+        Scratch,
+        ScratchSize,
+        2
+        );
 }
-

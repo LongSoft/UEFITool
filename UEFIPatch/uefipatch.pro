@@ -1,14 +1,14 @@
 QT       += core
 QT       -= gui
 
-TARGET    = UEFIExtract
+TARGET    = UEFIPatch
 TEMPLATE  = app
 CONFIG   += console
 CONFIG   -= app_bundle
 DEFINES  += _CONSOLE
 
-SOURCES  += uefiextract_main.cpp \
- uefiextract.cpp \
+SOURCES  += uefipatch_main.cpp \
+ uefipatch.cpp \
  ../types.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
@@ -23,7 +23,7 @@ SOURCES  += uefiextract_main.cpp \
  ../Tiano/EfiTianoDecompress.c \
  ../Tiano/EfiTianoCompress.c
 
-HEADERS  += uefiextract.h \
+HEADERS  += uefipatch.h \
  ../basetypes.h \
  ../descriptor.h \
  ../gbe.h \

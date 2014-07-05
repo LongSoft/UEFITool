@@ -165,14 +165,19 @@ QString sectionTypeToQString(const UINT8 type)
     }
 }
 
-UINT32 sizeOfSectionHeaderOfType(const UINT8 type)
+UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header)
 {
-    switch (type)
+    if (!header)
+        return 0;
+
+    switch (header->Type)
     {
     case EFI_SECTION_COMPRESSION:
         return sizeof(EFI_COMMON_SECTION_HEADER);
-    case EFI_SECTION_GUID_DEFINED:
-        return sizeof(EFI_GUID_DEFINED_SECTION);
+    case EFI_SECTION_GUID_DEFINED: {
+        EFI_GUID_DEFINED_SECTION* gdsHeader = (EFI_GUID_DEFINED_SECTION*)header;
+        return gdsHeader->DataOffset;
+        }
     case EFI_SECTION_DISPOSABLE:
         return sizeof(EFI_DISPOSABLE_SECTION);
     case EFI_SECTION_PE32:

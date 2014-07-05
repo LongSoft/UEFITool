@@ -416,7 +416,7 @@ typedef EFI_COMMON_SECTION_HEADER EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
 typedef EFI_COMMON_SECTION_HEADER EFI_USER_INTERFACE_SECTION;
 
 //Section routines
-extern UINT32 sizeOfSectionHeaderOfType(const UINT8 type);
+extern UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header);
 
 // Restore previous packing rules
 #pragma pack(pop)
