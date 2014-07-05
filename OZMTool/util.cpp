@@ -334,7 +334,7 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
     if(bundleVersion.isEmpty())
         bundleVersion = "?";
 
-    sectionName.sprintf("%s-%s",qPrintable(bundleName), qPrintable(bundleVersion));
+    sectionName.sprintf("%s.Rev-%s",qPrintable(bundleName), qPrintable(bundleVersion));
     plistWriteNewBasename(plistbuf, sectionName, newPlist);
 
     guid = kextGUID.arg(kextIndex, 0, 16);
