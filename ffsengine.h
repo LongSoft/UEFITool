@@ -32,6 +32,13 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 class TreeModel;
 
+struct PatchData {
+    UINT8 type;
+    UINT32 offset;
+    QByteArray hexFindPattern;
+    QByteArray hexReplacePattern;
+};
+
 class FfsEngine : public QObject
 {
     Q_OBJECT
@@ -86,7 +93,7 @@ public:
     UINT8 remove(const QModelIndex & index);
     UINT8 rebuild(const QModelIndex & index);
     UINT8 dump(const QModelIndex & index, const QString path);
-    UINT8 patch(const QModelIndex & index, const QByteArray & findPattern, const QByteArray & replacePattern, const UINT8 mode);
+    UINT8 patch(const QModelIndex & index, const QVector<PatchData> & patches);
 
     // Search routines
     UINT8 findHexPattern(const QByteArray & pattern, const UINT8 mode);
@@ -120,12 +127,16 @@ private:
     // Patch routines
     UINT8 patchVtf(QByteArray &vtf);
 
+    // Patch helpers
+    UINT8 patchViaOffset(QByteArray & data, const UINT32 offset, const QByteArray & hexReplacePattern);
+    UINT8 patchViaPattern(QByteArray & data, const QByteArray hexFindPattern, const QByteArray & hexReplacePattern);
+
 #ifndef _CONSOLE
     QQueue<MessageListItem> messageItems;
 #endif
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
-
+    
     // Internal operations
     bool hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
     UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
