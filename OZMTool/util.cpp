@@ -389,6 +389,13 @@ UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteA
     uint32ToUint24(sizeof(EFI_USER_INTERFACE_SECTION)+bufSectionName.size(), UserInterfaceSection->Size);
     UserInterfaceSection->Type = EFI_SECTION_USER_INTERFACE;
 
+    /* Align for next section */
+    UINT8 alignment = fileBody.size() % 4;
+    if (alignment) {
+        alignment = 4 - alignment;
+        fileBody.append(QByteArray(alignment, '\x00'));
+    }
+
     fileBody.append(header, sizeof(EFI_USER_INTERFACE_SECTION));
     fileBody.append(bufSectionName);
 
