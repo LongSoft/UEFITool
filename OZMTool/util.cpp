@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDateTime>
 #include <QUuid>
 #include <qtplist/PListParser.h>
-#include <qtplist/PListSerializer.h>
 #include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
 #include "util.h"
@@ -191,7 +190,11 @@ UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & 
 
 UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
 {
+    int pos, start, end;
     static const QString nameIdentifier = "CFBundleName";
+    static const QString keyBrackets = "<key>%1</key>";
+    static const QString stringStart = "<string>";
+    static const QString stringEnd = "</string>";
     QString plistName;
 
     QVariantMap parsed = PListParser::parsePList(plist).toMap();
@@ -204,14 +207,40 @@ UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
         return ERR_ERROR;
     }
 
-    // Assign new value for CFBundleName
-    parsed.insert(nameIdentifier, newName);
+    /* The following should work, cause plist are *usually* standardized */
 
-    QVariant qv(parsed);
-    QByteArray plistByteArray = PListSerializer::toPList(qv);
+    // Put together string to search
+    QString nameKey = keyBrackets.arg(nameIdentifier);
 
+    // look for key
+    pos = plist.indexOf(nameKey);
+    if(pos < 0) {
+        printf("ERROR: Didn't find '%s' in plist...\n", qPrintable(nameKey));
+        return ERR_ERROR;
+    }
+
+    // move to end of line
+    pos += nameKey.size();
+
+    // find string start & end
+    start = plist.indexOf(stringStart, pos);
+    end = plist.indexOf(stringEnd, pos);
+
+    if((start < 0) || (end < 0)) {
+        printf("ERROR: Didn't find following <string>value</string>\n");
+        return ERR_ERROR;
+    }
+
+    // go to start of value
+    start+= stringStart.size();
+
+    // insert newName inbetween
     out.clear();
-    out.append(plistByteArray);
+    out.append(plist.left(start));
+    out.append(newName);
+    out.append(plist.mid(end));
+
+    fileWrite("/Users/tuxuser/Desktop/trymanual.plist", out);
 
     return ERR_SUCCESS;
 }

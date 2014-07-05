@@ -16,7 +16,6 @@ INCLUDEPATH += dsdt2bios/capstone/include
 SOURCES  += ozmtool_main.cpp \
  ozmtool.cpp \
  qtplist/PListParser.cpp \
- qtplist/PListSerializer.cpp \
  dsdt2bios/capstone/cs.c \
  dsdt2bios/capstone/MCInst.c \
  dsdt2bios/capstone/SStream.c \
@@ -47,7 +46,6 @@ SOURCES  += ozmtool_main.cpp \
 
 HEADERS  += ozmtool.h \
    qtplist/PListParser.h \
-   qtplist/PListSerializer.h \
    dsdt2bios/Dsdt2Bios.h \
    dsdt2bios/PeImage.h \
  ../basetypes.h \
