@@ -483,7 +483,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             } else if(!currKext.fileName().compare(ozmDefaultsFilename)){
                 ret = convertOzmPlist(currKext.filePath(), ffs);
             } else if(currKext.fileName().endsWith(".kext")){
-                ret = convertKext(currKext.filePath(), kextId, out);
+                ret = convertKext(currKext.filePath(), kextId, ffs);
                 kextId++;
             } else
                 continue;

@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QtEndian>
 #include <QDirIterator>
 #include <QDateTime>
+#include <QUuid>
 #include <plist/Plist.hpp>
 #include "ffs/kextconvert.h"
 #include "dsdt2bios/Dsdt2Bios.h"
@@ -352,11 +353,90 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
     toConvertBinary.append(nullterminator);
     toConvertBinary.append(binarybuf);
 
-    ret = kext->createFFS(sectionName, guid, toConvertBinary, out);
+//    ret = kext->createFFS(sectionName, guid, toConvertBinary, out);
+    ret = customFFScreate(toConvertBinary, guid, sectionName, out);
     if(ret) {
         printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(sectionName));
         return ERR_ERROR;
     }
+
+    return ERR_SUCCESS;
+}
+
+UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteArray & out)
+{
+    QByteArray bufSectionName;
+    QByteArray bufFileHdr, bufPE32SectionHdr, bufUserInterfaceSectionHdr;
+    QByteArray bufPE32Section, bufUserInterfaceSection;
+
+    /* FFS PE32 Section */
+//    bufPE32SectionHdr.fill(0, sizeof(EFI_COMMON_SECTION_HEADER));
+    EFI_COMMON_SECTION_HEADER* PE32SectionHeader = (EFI_COMMON_SECTION_HEADER*)bufPE32SectionHdr.data();
+
+    uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER)+body.size(), PE32SectionHeader->Size);
+    PE32SectionHeader->Type = EFI_SECTION_PE32;
+
+    bufPE32Section.append(bufPE32SectionHdr.constData());
+    bufPE32Section.append(body);
+
+    /* FFS User Interface */
+//    bufUserInterfaceSectionHdr.fill(0, sizeof(EFI_USER_INTERFACE_SECTION));
+    EFI_USER_INTERFACE_SECTION* UserInterfaceSection = (EFI_USER_INTERFACE_SECTION*)bufUserInterfaceSectionHdr.data();
+
+    /* Convert sectionName to unicode data */
+    bufSectionName.append(sectionName.toUtf8().constData());
+
+    uint32ToUint24(sizeof(EFI_USER_INTERFACE_SECTION)+bufSectionName.size(), UserInterfaceSection->Size);
+    UserInterfaceSection->Type = EFI_SECTION_USER_INTERFACE;
+
+    bufUserInterfaceSection.append(bufUserInterfaceSectionHdr.constData());
+    bufUserInterfaceSection.append(bufSectionName);
+
+    /* Create a common buf */
+
+    QByteArray bothSections;
+    bothSections.append(bufPE32Section);
+    bothSections.append(bufUserInterfaceSection);
+
+    /* FFS File */
+    const static UINT8 erasePolarity = 0;
+    const static UINT8 revision = 0;
+    const static UINT32 size = bothSections.size();
+
+    QUuid uuid = QUuid(guid);
+    QByteArray baGuid = QByteArray::fromRawData((const char*)&uuid.data1, sizeof(EFI_GUID));
+
+    printf("GUID: %s\n",qPrintable(uuid.toString()));
+
+    bufFileHdr = QByteArray(size - baGuid.size(), erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
+
+    bufFileHdr.prepend(baGuid);
+
+    EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)bufFileHdr.data();
+    uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+size, fileHeader->Size);
+    fileHeader->Attributes = 0x00;
+    fileHeader->Type = EFI_FV_FILETYPE_FREEFORM;
+    fileHeader->State = EFI_FILE_HEADER_CONSTRUCTION | EFI_FILE_HEADER_VALID | EFI_FILE_DATA_VALID;
+    // Invert state bits if erase polarity is true
+    if (erasePolarity == ERASE_POLARITY_TRUE)
+        fileHeader->State = ~fileHeader->State;
+
+    // Calculate header checksum
+    fileHeader->IntegrityCheck.Checksum.Header = 0;
+    fileHeader->IntegrityCheck.Checksum.File = 0;
+    fileHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*)fileHeader, sizeof(EFI_FFS_FILE_HEADER)-1);
+
+    // Set data checksum
+    if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM)
+        fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)bothSections.constData(), bothSections.size());
+    else if (revision == 1)
+        fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
+    else
+        fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
+
+    out.clear();
+    out.append(bufFileHdr);
+    out.append(bothSections);
 
     return ERR_SUCCESS;
 }
