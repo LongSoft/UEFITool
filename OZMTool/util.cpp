@@ -208,10 +208,10 @@ UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
     parsed.insert(nameIdentifier, newName);
 
     QVariant qv(parsed);
-    QString plistString = PListSerializer::toPList(qv);
+    QByteArray plistByteArray = PListSerializer::toPList(qv);
 
     out.clear();
-    out.append(plistString);
+    out.append(plistByteArray);
 
     return ERR_SUCCESS;
 }
