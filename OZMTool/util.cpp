@@ -367,41 +367,36 @@ UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteA
 {
     QByteArray bufSectionName;
     QByteArray bufFileHdr, bufPE32SectionHdr, bufUserInterfaceSectionHdr;
-    QByteArray bufPE32Section, bufUserInterfaceSection;
+//    QByteArray bufPE32Section, bufUserInterfaceSection;
+    QByteArray fileBody;
 
     /* FFS PE32 Section */
-//    bufPE32SectionHdr.fill(0, sizeof(EFI_COMMON_SECTION_HEADER));
+    bufPE32SectionHdr.fill(0, sizeof(EFI_COMMON_SECTION_HEADER));
     EFI_COMMON_SECTION_HEADER* PE32SectionHeader = (EFI_COMMON_SECTION_HEADER*)bufPE32SectionHdr.data();
 
     uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER)+body.size(), PE32SectionHeader->Size);
     PE32SectionHeader->Type = EFI_SECTION_PE32;
 
-    bufPE32Section.append(bufPE32SectionHdr.constData());
-    bufPE32Section.append(body);
+    fileBody.append(bufPE32SectionHdr);
+    fileBody.append(body);
 
     /* FFS User Interface */
-//    bufUserInterfaceSectionHdr.fill(0, sizeof(EFI_USER_INTERFACE_SECTION));
+    bufUserInterfaceSectionHdr.fill(0, sizeof(EFI_USER_INTERFACE_SECTION));
     EFI_USER_INTERFACE_SECTION* UserInterfaceSection = (EFI_USER_INTERFACE_SECTION*)bufUserInterfaceSectionHdr.data();
 
     /* Convert sectionName to unicode data */
-    bufSectionName.append(sectionName.toUtf8().constData());
+    bufSectionName.append((const char*) (sectionName.utf16()), sectionName.size() * 2);
 
     uint32ToUint24(sizeof(EFI_USER_INTERFACE_SECTION)+bufSectionName.size(), UserInterfaceSection->Size);
     UserInterfaceSection->Type = EFI_SECTION_USER_INTERFACE;
 
-    bufUserInterfaceSection.append(bufUserInterfaceSectionHdr.constData());
-    bufUserInterfaceSection.append(bufSectionName);
-
-    /* Create a common buf */
-
-    QByteArray bothSections;
-    bothSections.append(bufPE32Section);
-    bothSections.append(bufUserInterfaceSection);
+    fileBody.append(bufUserInterfaceSectionHdr);
+    fileBody.append(bufSectionName);
 
     /* FFS File */
     const static UINT8 erasePolarity = 0;
     const static UINT8 revision = 0;
-    const static UINT32 size = bothSections.size();
+    const static UINT32 size = fileBody.size();
 
     QUuid uuid = QUuid(guid);
     QByteArray baGuid = QByteArray::fromRawData((const char*)&uuid.data1, sizeof(EFI_GUID));
@@ -428,15 +423,17 @@ UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteA
 
     // Set data checksum
     if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM)
-        fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)bothSections.constData(), bothSections.size());
+        fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)fileBody.constData(), fileBody.size());
     else if (revision == 1)
         fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
     else
         fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
 
     out.clear();
-    out.append(bufFileHdr);
-    out.append(bothSections);
+    out.append(bufFileHdr, sizeof(EFI_FFS_FILE_HEADER));
+    out.append(fileBody);
+
+    fileWrite("/Users/tuxuser/Desktop/ALF.ffs", out);
 
     return ERR_SUCCESS;
 }
