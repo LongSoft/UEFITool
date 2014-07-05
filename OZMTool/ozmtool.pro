@@ -15,9 +15,6 @@ INCLUDEPATH += dsdt2bios/capstone/include
 
 SOURCES  += ozmtool_main.cpp \
  ozmtool.cpp \
- plist/Plist.cpp \
- plist/PlistDate.cpp \
- plist/pugixml.cpp \
  qtplist/PListParser.cpp \
  qtplist/PListSerializer.cpp \
  dsdt2bios/capstone/cs.c \
@@ -49,11 +46,6 @@ SOURCES  += ozmtool_main.cpp \
 
 
 HEADERS  += ozmtool.h \
-   plist/Plist.hpp \
-   plist/base64.hpp \
-   plist/pugiconfig.hpp \
-   plist/pugixml.hpp \
-   plist/PlistDate.hpp \
    qtplist/PListParser.h \
    qtplist/PListSerializer.h \
    dsdt2bios/Dsdt2Bios.h \
