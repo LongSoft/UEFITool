@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDirIterator>
 #include <QDateTime>
 #include <QUuid>
-#include <plist/Plist.hpp>
 #include <qtplist/PListParser.h>
 #include <qtplist/PListSerializer.h>
 #include "dsdt2bios/Dsdt2Bios.h"
