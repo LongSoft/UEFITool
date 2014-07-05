@@ -433,7 +433,5 @@ UINT8 customFFScreate(QByteArray body, QString guid, QString sectionName, QByteA
     out.append(bufFileHdr, sizeof(EFI_FFS_FILE_HEADER));
     out.append(fileBody);
 
-    fileWrite("/Users/tuxuser/Desktop/ALF.ffs", out);
-
     return ERR_SUCCESS;
 }
