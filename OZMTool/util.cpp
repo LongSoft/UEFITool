@@ -240,8 +240,6 @@ UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
     out.append(newName);
     out.append(plist.mid(end));
 
-    fileWrite("/Users/tuxuser/Desktop/trymanual.plist", out);
-
     return ERR_SUCCESS;
 }
 
@@ -419,7 +417,7 @@ UINT8 ffsCreate(QByteArray body, QString guid, QString sectionName, QByteArray &
 
     /* FFS File */
     const static UINT8 revision = 0;
-    const static UINT8 erasePolarity = 1;
+    const static UINT8 erasePolarity = 0;
     const static UINT32 size = fileBody.size();
 
     QUuid uuid = QUuid(guid);
