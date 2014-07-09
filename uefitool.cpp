@@ -123,33 +123,32 @@ void UEFITool::populateUi(const QModelIndex &current)
 
 void UEFITool::search()
 {
-    // Set focus to edit box
-    searchDialog->ui->searchEdit->setFocus();
-
     if (searchDialog->exec() != QDialog::Accepted)
         return;
 
-    int index = searchDialog->ui->dataTypeComboBox->currentIndex();
+    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
+
+    int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
-        QByteArray pattern = QByteArray::fromHex(searchDialog->ui->searchEdit->text().toLatin1());
+        QByteArray pattern = QByteArray::fromHex(searchDialog->ui->hexEdit->text().toLatin1());
         if (pattern.isEmpty())
             return;
         UINT8 mode;
-        if (searchDialog->ui->headerOnlyRadioButton->isChecked())
+        if (searchDialog->ui->hexScopeHeaderRadioButton->isChecked())
             mode = SEARCH_MODE_HEADER;
-        else if (searchDialog->ui->bodyOnlyRadioButton->isChecked())
+        else if (searchDialog->ui->hexScopeBodyRadioButton->isChecked())
             mode = SEARCH_MODE_BODY;
         else
             mode = SEARCH_MODE_ALL;
-        ffsEngine->findHexPattern(pattern, mode);
+        ffsEngine->findHexPattern(rootIndex, pattern, mode);
         showMessages();
     }
     else if (index == 1) { // Text string
-        QString pattern = searchDialog->ui->searchEdit->text();
+        QString pattern = searchDialog->ui->textEdit->text();
         if (pattern.isEmpty())
             return;
-        ffsEngine->findTextPattern(pattern, searchDialog->ui->unicodeCheckBox->isChecked(),
-                                   (Qt::CaseSensitivity) searchDialog->ui->caseSensitiveCheckBox->isChecked());
+        ffsEngine->findTextPattern(rootIndex, pattern, searchDialog->ui->textUnicodeCheckBox->isChecked(),
+                                   (Qt::CaseSensitivity) searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
         showMessages();
     }
 }

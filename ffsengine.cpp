@@ -169,7 +169,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Check for buffer size to be greater or equal to descriptor region size
     if (intelImage.size() < FLASH_DESCRIPTOR_SIZE) {
-        msg(tr("parseInputFile: Input file is smaller then minimum descriptor size of %1 bytes").arg(FLASH_DESCRIPTOR_SIZE));
+        msg(tr("parseIntelImage: Input file is smaller then minimum descriptor size of %1 bytes").arg(FLASH_DESCRIPTOR_SIZE));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
 
@@ -215,56 +215,66 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     if (regionSection->BiosLimit) {
         biosBegin = calculateRegionOffset(regionSection->BiosBase);
         biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+        
+        // Check for Gigabyte specific descriptor map
+        if (biosEnd - biosBegin == intelImage.size()) {
+            if (!meEnd) {
+                msg(tr("parseIntelImage: can determine BIOS region start on Gigabyte-specific descriptor"));
+                return ERR_INVALID_FLASH_DESCRIPTOR;
+            }
+            biosBegin = meEnd;
+        }
+        
         bios = intelImage.mid(biosBegin, biosEnd);
         biosEnd += biosBegin;
     }
     else {
-        msg(tr("parseInputFile: descriptor parsing failed, BIOS region not found in descriptor"));
+        msg(tr("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
 
     // Check for intersections between regions
     if (hasIntersection(descriptorBegin, descriptorEnd, gbeBegin, gbeEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with GbE region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with GbE region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(descriptorBegin, descriptorEnd, meBegin, meEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with ME region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with ME region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(descriptorBegin, descriptorEnd, biosBegin, biosEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with BIOS region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with BIOS region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(descriptorBegin, descriptorEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, descriptor region has intersection with PDR region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(gbeBegin, gbeEnd, meBegin, meEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, GbE region has intersection with ME region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with ME region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(gbeBegin, gbeEnd, biosBegin, biosEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, GbE region has intersection with BIOS region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with BIOS region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(gbeBegin, gbeEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, GbE region has intersection with PDR region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(meBegin, meEnd, biosBegin, biosEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, ME region has intersection with BIOS region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with BIOS region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(meBegin, meEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, ME region has intersection with PDR region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     if (hasIntersection(biosBegin, biosEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseInputFile: descriptor parsing failed, BIOS region has intersection with PDR region"));
+        msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
-
+        
     // Region map is consistent
     QByteArray body;
     QString    name;
@@ -409,12 +419,21 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const
     QString info = tr("Size: %1").
         arg(me.size(), 8, 16, QChar('0'));
 
-    INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
-    if (versionOffset < 0){
-        info += tr("\nVersion: unknown");
-        msg(tr("parseRegion: ME region version is unknown, it can be damaged"), parent);
+    // Search for new signature
+    INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE2);
+    bool versionFound = true;
+    if (versionOffset < 0){ // New signature not found
+        // Search for old signature
+        versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
+        if (versionOffset < 0){
+            info += tr("\nVersion: unknown");
+            msg(tr("parseRegion: ME region version is unknown, it can be damaged"), parent);
+            versionFound = false;
+        }
     }
-    else {
+
+    // Add version information
+    if (versionFound) {
         ME_VERSION* version = (ME_VERSION*)(me.constData() + versionOffset);
         info += tr("\nVersion: %1.%2.%3.%4")
             .arg(version->major)
@@ -2772,12 +2791,7 @@ UINT8 FfsEngine::reconstructImageFile(QByteArray & reconstructed)
 }
 
 // Search routines
-UINT8 FfsEngine::findHexPattern(const QByteArray & pattern, const UINT8 mode)
-{
-    return findHexPatternIn(model->index(0, 0), pattern, mode);
-}
-
-UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode)
+UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode)
 {
     if (pattern.isEmpty())
         return ERR_INVALID_PARAMETER;
@@ -2787,7 +2801,7 @@ UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & 
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findHexPatternIn(index.child(i, index.column()), pattern, mode);
+        findHexPattern(index.child(i, index.column()), pattern, mode);
     }
 
     QByteArray data;
@@ -2816,12 +2830,7 @@ UINT8 FfsEngine::findHexPatternIn(const QModelIndex & index, const QByteArray & 
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive)
-{
-    return findTextPatternIn(model->index(0, 0), pattern, unicode, caseSensitive);
-}
-
-UINT8 FfsEngine::findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive)
+UINT8 FfsEngine::findTextPattern(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive)
 {
     if (pattern.isEmpty())
         return ERR_INVALID_PARAMETER;
@@ -2831,7 +2840,7 @@ UINT8 FfsEngine::findTextPatternIn(const QModelIndex & index, const QString & pa
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findTextPatternIn(index.child(i, index.column()), pattern, unicode, caseSensitive);
+        findTextPattern(index.child(i, index.column()), pattern, unicode, caseSensitive);
     }
 
     if (hasChildren)
@@ -2845,7 +2854,7 @@ UINT8 FfsEngine::findTextPatternIn(const QModelIndex & index, const QString & pa
 
     int offset = -1;
     while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
-        msg(tr("%1 text pattern \"%2\" found in %3 at offset %4")
+        msg(tr("%1 text \"%2\" found in %3 at offset %4")
             .arg(unicode ? "Unicode" : "ASCII")
             .arg(pattern)
             .arg(model->nameString(index))

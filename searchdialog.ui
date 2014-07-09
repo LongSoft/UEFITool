@@ -6,95 +6,70 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>290</width>
-    <height>195</height>
+    <width>340</width>
+    <height>214</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Search</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
-    <widget class="QLabel" name="searchForLabel">
-     <property name="text">
-      <string>Search for:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="dataTypeLabel">
-     <property name="text">
-      <string>Data type:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0" colspan="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QLineEdit" name="searchEdit"/>
-   </item>
-   <item row="1" column="1">
-    <widget class="QComboBox" name="dataTypeComboBox">
-     <item>
-      <property name="text">
-       <string>Hex pattern</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>Text string</string>
-      </property>
-     </item>
-    </widget>
-   </item>
-   <item row="2" column="0" colspan="2">
-    <widget class="QStackedWidget" name="stackedWidget">
+  <property name="modal">
+   <bool>false</bool>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="hexPage">
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="margin">
-        <number>0</number>
-       </property>
-       <item>
+     <widget class="QWidget" name="hexTab">
+      <attribute name="title">
+       <string>Hex pattern</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0">
+        <widget class="QLabel" name="hexLabel">
+         <property name="text">
+          <string>Hex pattern:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="hexEdit"/>
+       </item>
+       <item row="1" column="0" colspan="2">
         <widget class="QGroupBox" name="hexGroupBox">
          <property name="title">
-          <string>Hex pattern search scope</string>
+          <string>Search scope</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="spacing">
+           <number>6</number>
+          </property>
+          <property name="margin">
+           <number>9</number>
+          </property>
           <item>
-           <widget class="QRadioButton" name="allRadioButton">
+           <widget class="QRadioButton" name="hexScopeFullRadioButton">
             <property name="text">
              <string>Header and body</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="headerOnlyRadioButton">
+           <widget class="QRadioButton" name="hexScopeHeaderRadioButton">
             <property name="text">
              <string>Header only</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="bodyOnlyRadioButton">
+           <widget class="QRadioButton" name="hexScopeBodyRadioButton">
             <property name="text">
              <string>Body only</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -103,22 +78,29 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="textPage">
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="spacing">
-        <number>0</number>
-       </property>
-       <property name="margin">
-        <number>0</number>
-       </property>
-       <item>
+     <widget class="QWidget" name="textTab">
+      <attribute name="title">
+       <string>Text</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0">
+        <widget class="QLabel" name="textLabel">
+         <property name="text">
+          <string>Text:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="textEdit"/>
+       </item>
+       <item row="1" column="0" colspan="2">
         <widget class="QGroupBox" name="textGroupBox">
          <property name="title">
-          <string>Text string options</string>
+          <string>Text search options</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QCheckBox" name="unicodeCheckBox">
+           <widget class="QCheckBox" name="textUnicodeCheckBox">
             <property name="text">
              <string>Unicode</string>
             </property>
@@ -128,7 +110,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="caseSensitiveCheckBox">
+           <widget class="QCheckBox" name="textCaseSensitiveCheckBox">
             <property name="text">
              <string>Case sensitive</string>
             </property>
@@ -141,15 +123,19 @@
      </widget>
     </widget>
    </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <tabstops>
-  <tabstop>searchEdit</tabstop>
-  <tabstop>dataTypeComboBox</tabstop>
-  <tabstop>allRadioButton</tabstop>
-  <tabstop>bodyOnlyRadioButton</tabstop>
-  <tabstop>unicodeCheckBox</tabstop>
-  <tabstop>caseSensitiveCheckBox</tabstop>
   <tabstop>buttonBox</tabstop>
  </tabstops>
  <resources/>
@@ -161,12 +147,12 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>173</x>
-     <y>162</y>
+     <x>182</x>
+     <y>185</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
-     <y>216</y>
+     <y>194</y>
     </hint>
    </hints>
   </connection>
@@ -177,28 +163,12 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>173</x>
-     <y>162</y>
+     <x>182</x>
+     <y>185</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
-     <y>216</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>dataTypeComboBox</sender>
-   <signal>activated(int)</signal>
-   <receiver>stackedWidget</receiver>
-   <slot>setCurrentIndex(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>151</x>
-     <y>42</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>88</x>
-     <y>68</y>
+     <y>194</y>
     </hint>
    </hints>
   </connection>
