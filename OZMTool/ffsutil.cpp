@@ -374,12 +374,9 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity)
 {
     int i;
     UINT8 ret;
-    QByteArray compressed, buf;
-    QByteArray created, newHeader, body;
-    QModelIndex rootIdx, currIdx, tmpIdx;
+    QModelIndex rootIdx, currIdx;
 
     static QList<sectionEntry> deleteFfs;
-    static QList<sectionEntry> compressFfs;
     static QList<sectionEntry> OzmFfs;
 
     /* Just temporary... */
@@ -396,18 +393,6 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity)
     getRootIndex(rootIdx);
 
     switch(aggressivity) {
-    case RUN_DELETE:
-        printf("Deleting network BIOS stuff (PXE) to save space...\n");
-        for(i = 0; i<deleteFfs.size(); i++){
-            ret = findFileByGUID(rootIdx,deleteFfs.at(i).GUID,currIdx);
-            if(ret)
-                continue;
-            ret = remove(currIdx);
-            if(ret)
-                printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
-            else
-                printf("* Removed '%s' [%s] succesfully!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
-        }
     case RUN_DEL_OZM_NREQ:
         printf("Deleting non-essential Ozmosis files to save space...\n");
         for(i = 0; i<OzmFfs.size(); i++){
@@ -421,6 +406,18 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity)
                 else
                     printf("* Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
             }
+        }
+    case RUN_DELETE:
+        printf("Deleting network BIOS stuff (PXE) to save space...\n");
+        for(i = 0; i<deleteFfs.size(); i++){
+            ret = findFileByGUID(rootIdx,deleteFfs.at(i).GUID,currIdx);
+            if(ret)
+                continue;
+            ret = remove(currIdx);
+            if(ret)
+                printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
+            else
+                printf("* Removed '%s' [%s] succesfully!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
         }
     case RUN_AS_IS:
         break;

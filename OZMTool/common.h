@@ -13,8 +13,8 @@
 #define MAX_RUNS 4
 
 #define RUN_AS_IS           0
-#define RUN_DEL_OZM_NREQ    1
-#define RUN_DELETE          2
+#define RUN_DELETE          1
+#define RUN_DEL_OZM_NREQ    2
 
 #define MIN_KEXT_ID 0x6
 #define MAX_KEXT_ID 0xF
