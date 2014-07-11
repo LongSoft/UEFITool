@@ -60,10 +60,9 @@ static const sectionEntry optionalFfs[] = {
   {"InjectorKext","DADE1003-1B31-4FE4-8557-26FCEFC78275", FALSE}
 };
 
-#define deletableFfsCount 11
+#define deletableFfsCount 10
 
 static const sectionEntry deletableFfs[] = {
-  {"FileSystem","93022F8C-1F09-47EF-BBB2-5814FF609DF5", FALSE},
   {"TcpDxe","B1625D3C-9D2D-4E0D-B864-8A763EE4EC50",FALSE},
   {"Dhcp4Dxe","8DD9176E-EE87-4F0E-8A84-3F998311F930",FALSE},
   {"Ip4ConfigDxe","8F9296EF-2880-4659-B857-915A8901BDC8",FALSE},
@@ -81,7 +80,11 @@ static const sectionEntry coreDxeSection = {
 };
 
 static const sectionEntry amiBoardSection = {
-  "AmiBoardInfo","9F3A0016-AE55-4288-829D-D22FD344C347", TRUE
+    "AmiBoardInfo","9F3A0016-AE55-4288-829D-D22FD344C347", TRUE
+};
+
+static const sectionEntry filesystemSection = {
+    "FileSystem","93022F8C-1F09-47EF-BBB2-5814FF609DF5", FALSE
 };
 
 #endif // COMMON_H

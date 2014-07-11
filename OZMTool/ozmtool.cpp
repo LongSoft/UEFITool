@@ -273,6 +273,10 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
         return ERR_ERROR;
     }
 
+    ret = nFU->deleteFilesystemFfs();
+    if (ret)
+        printf("Warning: Removing Filesystem FFS failed!\n");
+
     out.clear();
     printf("Reconstructing final image...\n");
     ret = nFU->reconstructImageFile(out);
@@ -530,6 +534,10 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
         printf("ERROR: Freeing space failed!\n");
         return ERR_ERROR;
     }
+
+    ret = fu->deleteFilesystemFfs();
+    if (ret)
+        printf("Warning: Removing Filesystem FFS failed!\n");
 
     out.clear();
     printf("Reconstructing final image...\n");

@@ -323,6 +323,31 @@ UINT8 FFSUtil::injectFile(QByteArray file)
     return ERR_SUCCESS;
 }
 
+UINT8 FFSUtil::deleteFilesystemFfs()
+{
+    UINT8 ret;
+    QModelIndex rootIdx, currIdx;
+
+    getRootIndex(rootIdx);
+
+    printf("Deleting non required Filesystem FFS...\n");
+
+    ret = findFileByGUID(rootIdx, filesystemSection.GUID, currIdx);
+    if(ret) {
+        printf("Warning: '%s' [%s] was not found!\n", qPrintable(filesystemSection.name), qPrintable(filesystemSection.GUID));
+        return ret;
+    }
+
+    ret = remove(currIdx);
+    if(ret) {
+        printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(filesystemSection.name), qPrintable(filesystemSection.GUID));
+        return ret;
+    }
+
+    printf("* Removed '%s' [%s] succesfully!\n", qPrintable(filesystemSection.name), qPrintable(filesystemSection.GUID));
+    return ERR_SUCCESS;
+}
+
 UINT8 FFSUtil::compressDXE()
 {
     UINT8 ret;
