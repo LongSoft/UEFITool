@@ -10,8 +10,6 @@
 #define ERR_RELOCATION                      0xEF
 #define ERR_ERROR                           0xF0
 
-#define MAX_RUNS 4
-
 #define RUN_AS_IS           0
 #define RUN_DELETE          1
 #define RUN_DEL_OZM_NREQ    2
@@ -19,19 +17,9 @@
 #define MIN_KEXT_ID 0x6
 #define MAX_KEXT_ID 0xF
 
-const static QString ozmSectionName = "OzmosisDefaults";
 const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
 static const QString DSDTFilename =  "DSDT.aml";
 const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275";
-const static QString ozmPlistGUID = "99F2839C-57C3-411E-ABC3-ADE5267D960D";
-
-struct kextEntry {
-    QString binaryPath;
-    QString plistPath;
-    QString basename;
-    QString GUID;
-    QString filename;
-};
 
 struct sectionEntry {
     QString name;
@@ -85,6 +73,10 @@ static const sectionEntry amiBoardSection = {
 
 static const sectionEntry filesystemSection = {
     "FileSystem","93022F8C-1F09-47EF-BBB2-5814FF609DF5", FALSE
+};
+
+static const sectionEntry ozmosisDefaults = {
+    "OzmosisDefaults","99F2839C-57C3-411E-ABC3-ADE5267D960D", TRUE
 };
 
 #endif // COMMON_H

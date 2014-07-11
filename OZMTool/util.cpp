@@ -276,7 +276,7 @@ UINT8 convertOzmPlist(QString input, QByteArray & out)
         return ERR_ERROR;
     }
 
-    ret = ffsCreate(plist, ozmPlistGUID, ozmSectionName, out);
+    ret = ffsCreate(plist, ozmosisDefaults.GUID, ozmosisDefaults.name, out);
     if(ret) {
         printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(ozmDefaultsFilename));
         return ERR_ERROR;
