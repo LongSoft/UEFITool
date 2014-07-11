@@ -67,4 +67,5 @@ HEADERS  += ozmtool.h \
     common.h
 
 OTHER_FILES += \
-    README
+    README \
+    build_macos.sh

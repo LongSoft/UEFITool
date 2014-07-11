@@ -27,9 +27,9 @@ public:
 
     UINT8 DSDTExtract(QString inputfile, QString outputdir);
     UINT8 DSDTInject(QString inputfile, QString dsdtfile, QString outputfile);
-    UINT8 OZMUpdate(QString inputfile, QString recentBios, QString outputfile, int aggressivity);
+    UINT8 OZMUpdate(QString inputfile, QString recentBios, QString outputfile, int aggressivity, bool compressdxe);
     UINT8 OZMExtract(QString inputfile, QString outputdir);
-    UINT8 OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile, int aggressivity);
+    UINT8 OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile, int aggressivity, bool compressdxe);
     UINT8 FFSConvert(QString inputdir, QString outputdir);
     UINT8 DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outputfile);
 private:

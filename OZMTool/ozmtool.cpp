@@ -31,10 +31,7 @@ OZMTool::OZMTool(QObject *parent) :
     }
     for(int i = 0; i < optionalFfsCount; i++) {
         OzmFfs.append(optionalFfs[i]);
-    }
-    for(int i = 0; i < compressFfsCount; i++) {
-        compressFfs.append(compressedFfs[i]);
-    }    
+    }   
     for(int i = 0; i < deletableFfsCount; i++) {
         deleteFfs.append(deletableFfs[i]);
     }
@@ -166,7 +163,7 @@ UINT8 OZMTool::DSDTInject(QString inputfile, QString dsdtfile, QString outputfil
 }
 
 
-UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfile, int aggressivity)
+UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfile, int aggressivity, bool compressdxe)
 {
     int i;
     UINT8 ret;
@@ -175,7 +172,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
     QByteArray newBIOS;
     QByteArray ffsbuf;
     QByteArray out;
-    QModelIndex volumeIdx, currIdx;
+    QModelIndex volumeIdx;
 
     FFSUtil *oFU = new FFSUtil();
     FFSUtil *nFU = new FFSUtil();
@@ -197,6 +194,9 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
         printf("Warning: Resetting aggressivity level to 'None' !");
         aggressivity = 0;
     }
+
+    if(compressdxe)
+        printf("Info: Compressing CORE_DXE is selected!\n");
 
     ret = oFU->parseBIOSFile(oldBIOS);
     if (ret) {
@@ -259,6 +259,12 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
     if (ret) {
         printf("ERROR: Recompression of EFI 1.1 files failed!\n");
         return ERR_ERROR;
+    }
+
+    if(compressdxe) {
+        ret = nFU->compressDXE();
+        if (ret)
+            printf("ERROR: Compressing DXE failed!\n");
     }
 
     ret = nFU->runFreeSomeSpace(aggressivity);
@@ -370,7 +376,7 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile, int aggressivity)
+UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile, int aggressivity, bool compressdxe)
 {
     int i, kextId;
     UINT8 ret;
@@ -402,6 +408,9 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
         printf("Warning: Resetting aggressivity level to 'None' !");
         aggressivity = 0;
     }
+
+    if(compressdxe)
+        printf("Info: Compressing CORE_DXE is selected!\n");
 
     ret = fileOpen(inputfile, bios);
     if (ret) {
@@ -508,6 +517,12 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     if (ret) {
         printf("ERROR: Recompression of EFI 1.1 files failed!\n");
         return ERR_ERROR;
+    }
+
+    if(compressdxe) {
+        ret = fu->compressDXE();
+        if (ret)
+            printf("ERROR: Compressing DXE failed!\n");
     }
 
     ret = fu->runFreeSomeSpace(aggressivity);

@@ -42,6 +42,7 @@ public:
     UINT8 getLastSibling(QModelIndex index, QModelIndex &result);
     UINT8 injectDSDT(QByteArray dsdt);
     UINT8 injectFile(QByteArray file);
+    UINT8 compressDXE();
     UINT8 runFreeSomeSpace(int aggressivity);
     UINT8 workaroundRecompressEFI11();
     UINT8 parseBIOSFile(QByteArray & buf);

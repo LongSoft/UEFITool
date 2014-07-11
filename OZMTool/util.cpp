@@ -250,9 +250,6 @@ UINT8 checkAggressivityLevel(int aggressivity) {
     case RUN_AS_IS:
         level = "Do nothing - Inject as-is";
         break;
-    case RUN_COMPRESS:
-         level = "Compress CORE_DXE";
-         break;
     case RUN_DELETE:
          level = "Delete network stuff from BIOS";
          break;

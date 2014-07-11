@@ -13,9 +13,8 @@
 #define MAX_RUNS 4
 
 #define RUN_AS_IS           0
-#define RUN_COMPRESS        1
-#define RUN_DEL_OZM_NREQ    2
-#define RUN_DELETE          3
+#define RUN_DEL_OZM_NREQ    1
+#define RUN_DELETE          2
 
 #define MIN_KEXT_ID 0x6
 #define MAX_KEXT_ID 0xF
@@ -61,12 +60,6 @@ static const sectionEntry optionalFfs[] = {
   {"InjectorKext","DADE1003-1B31-4FE4-8557-26FCEFC78275", FALSE}
 };
 
-#define compressFfsCount 1
-
-static const sectionEntry compressedFfs[] = {
-  {"CORE_DXE","5AE3F37E-4EAE-41AE-8240-35465B5E81EB", TRUE}
-};
-
 #define deletableFfsCount 11
 
 static const sectionEntry deletableFfs[] = {
@@ -81,6 +74,10 @@ static const sectionEntry deletableFfs[] = {
   {"Ip6Dxe","8F92960E-2880-4659-B857-915A8901BDC8",FALSE},
   {"Mtftp6Dxe","61AFA251-8AC8-4440-9AB5-762B1BF05156",FALSE},
   {"Udp6Dxe","10EE54AE-B207-4A4F-ABD8-CB522ECAA3A4",FALSE}
+};
+
+static const sectionEntry coreDxeSection = {
+    "CORE_DXE","5AE3F37E-4EAE-41AE-8240-35465B5E81EB", TRUE
 };
 
 static const sectionEntry amiBoardSection = {

@@ -54,6 +54,7 @@ void usageOzmUpdate()
             "\t-i, --input [file]\t\tInput \"old\" Ozmosis BIOSFile\n"
             "\t-r, --recent [file]\t\tInput \"recent\" clean BIOSFile\n"
             "\t-a, --aggressivity\t\tAggressivity level (see README)\n"
+            "\t-cr, --compressdxe\t\tCompress CORE_DXE\n"
             "\t-o, --out [file]\t\tOutput BIOSFile\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
@@ -62,13 +63,14 @@ void usageOzmCreate()
 {
     printf("ozmcreate command\n" \
             " usage:\n"
-            "\t%s --ozmcreate -a -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
+            "\t%s --ozmcreate -a 1 -cr -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
             " parameters:\n"
             "\t-f, --ffs [dir]\t\tFFS directory (extracted OZM files)\n"
             "\t-d, --dsdt [file]\t\t (optional) DSDT.aml file\n"
             "\t-k, --kext [dir]\t\t (optional) KEXT directory\n"
             "\t-i, --input [file]\t\tInput CLEAN Bios\n"
             "\t-a, --aggressivity\t\tAggressivity level (see README)\n"
+            "\t-cr,--compressdxe\t\tCompress CORE_DXE\n"
             "\t-o, --out [file]\t\tOutput OZM Bios\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
@@ -149,6 +151,7 @@ int main(int argc, char *argv[])
     bool ozmcreate = false;
     bool ffsconvert = false;
     bool dsdt2bios = false;
+    bool compressdxe = false;
     QString inputpath = "";
     QString output = "";
     QString ffsdir = "";
@@ -235,6 +238,13 @@ int main(int argc, char *argv[])
 
         if (strcasecmp(argv[0], "--dsdt2bios") == 0) {
             dsdt2bios = true;
+            argc --;
+            argv ++;
+            continue;
+        }
+
+        if ((strcasecmp(argv[0], "-cr") == 0) || (strcasecmp(argv[0], "--compressdxe") == 0)) {
+            compressdxe = true;
             argc --;
             argv ++;
             continue;
@@ -406,11 +416,11 @@ fail:
     else if (dsdtinject)
         result = w.DSDTInject(inputpath, dsdtfile, output);
     else if (ozmupdate)
-        result = w.OZMUpdate(inputpath, recent, output, aggressivity);
+        result = w.OZMUpdate(inputpath, recent, output, aggressivity, compressdxe);
     else if (ozmextract)
         result = w.OZMExtract(inputpath, output);
     else if (ozmcreate)
-        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile, aggressivity);
+        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile, aggressivity, compressdxe);
     else if (ffsconvert)
         result = w.FFSConvert(inputpath, output);
     else if (dsdt2bios)
