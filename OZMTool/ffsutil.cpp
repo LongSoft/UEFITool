@@ -419,7 +419,7 @@ UINT8 FFSUtil::compressFFS(QByteArray ffs, QByteArray & out)
     compressionHeader->Type = EFI_SECTION_COMPRESSION;
     compressionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
     uint32ToUint24(newHeader.size() + compressedBody.size(), compressionHeader->Size);
-    compressionHeader->UncompressedLength = newHeader.size() + body.size();
+    compressionHeader->UncompressedLength = body.size();
 
     out.append(newHeader);
     out.append(compressedBody);
