@@ -5,10 +5,13 @@ BUILD_DIR=${BASE_DIR}/MacOS
 RELEASE_DIR=${BUILD_DIR}/release
 EXEC_NAME=OZMTool
 
+GIT=git
 QMAKE=qmake
 MAKE=make
 CONFIG_OPTION=release
 OS_ID=osx
+
+VERSION=`${GIT} describe`
 
 if [ `basename ${BASE_DIR}` != "OZMTool" ]
 then
@@ -30,6 +33,6 @@ cp ${BASE_DIR}/README ${RELEASE_DIR}
 
 echo "Packing it up..."
 cd ${RELEASE_DIR}
-zip -r ${BASE_DIR}/${EXEC_NAME}_vXX_${OS_ID}.zip *
+zip -r ${BASE_DIR}/${EXEC_NAME}_${VERSION}_${OS_ID}.zip *
 
 echo "Done!"
