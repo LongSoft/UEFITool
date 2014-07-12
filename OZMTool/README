@@ -61,13 +61,13 @@ USAGE
 ---------
 
 ./OZMTool -h
-./OZMTool --dsdtextract --output outputdir --input OZMBIOS_or_BIOS.ROM
-./OZMTool --dsdtinject --input BIOS.ROM --dsdt DSDT.aml --output outputfile
-./OZMTool --ozmupdate --aggressivity 1 --compressdxe --output RECENT_BIOS.OZM --input BIOS.OZM -r BIOS.CLEAN
-./OZMTool --ozmextract --output outputdir --input OZM.ROM
-./OZMTool --ozmcreate --aggressivity 1 --compressdxe --kext kextdir --ffs ffsdir --dsdt DSDT.aml --output outputfile --input BIOS.ROM
-./OZMTool --ffsconvert --output outputdir --input kextsdir
-./OZMTool --dsdt2bios --input AmiBoardInfo.bin --dsdt DSDT.aml --output patchedAmiBoardInfo.bin
+./OZMTool --dsdtextract --out outputdir --input OZMBIOS_or_BIOS.ROM
+./OZMTool --dsdtinject --input BIOS.ROM --dsdt DSDT.aml --out outputfile
+./OZMTool --ozmupdate --aggressivity 1 --compressdxe --out RECENT_BIOS.OZM --input BIOS.OZM -r BIOS.CLEAN
+./OZMTool --ozmextract --out outputdir --input OZM.ROM
+./OZMTool --ozmcreate --aggressivity 1 --compressdxe --kext kextdir --ffs ffsdir --dsdt DSDT.aml --out outputfile --input BIOS.ROM
+./OZMTool --ffsconvert --out outputdir --input kextsdir
+./OZMTool --dsdt2bios --input AmiBoardInfo.bin --dsdt DSDT.aml --out patchedAmiBoardInfo.bin
 
 
 SOURCE CODE / REPORTING ISSUES

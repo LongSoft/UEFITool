@@ -191,7 +191,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
 
     ret = checkAggressivityLevel(aggressivity);
     if(ret) {
-        printf("Warning: Resetting aggressivity level to 'None' !");
+        printf("Warning: Resetting aggressivity level to 'None' !\n");
         aggressivity = 0;
     }
 
@@ -409,7 +409,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
 
     ret = checkAggressivityLevel(aggressivity);
     if(ret) {
-        printf("Warning: Resetting aggressivity level to 'None' !");
+        printf("Warning: Resetting aggressivity level to 'None' !\n");
         aggressivity = 0;
     }
 
