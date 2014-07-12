@@ -277,7 +277,6 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
     if (ret)
         printf("Warning: Removing Filesystem FFS failed!\n");
 
-    out.clear();
     printf("Reconstructing final image...\n");
     ret = nFU->reconstructImageFile(out);
     if(ret) {
@@ -539,7 +538,6 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     if (ret)
         printf("Warning: Removing Filesystem FFS failed!\n");
 
-    out.clear();
     printf("Reconstructing final image...\n");
     ret = fu->reconstructImageFile(out);
     if(ret) {
