@@ -63,7 +63,7 @@ USAGE
 ./OZMTool -h
 ./OZMTool --dsdtextract --out outputdir --input OZMBIOS_or_BIOS.ROM
 ./OZMTool --dsdtinject --input BIOS.ROM --dsdt DSDT.aml --out outputfile
-./OZMTool --ozmupdate --aggressivity 1 --compressdxe --out RECENT_BIOS.OZM --input BIOS.OZM -r BIOS.CLEAN
+./OZMTool --ozmupdate --aggressivity 1 --compressdxe --out RECENT_OZM_BIOS.ROM --input OLD_OZM.ROM --recent NEW_CLEAN_BIOS.ROM
 ./OZMTool --ozmextract --out outputdir --input OZM.ROM
 ./OZMTool --ozmcreate --aggressivity 1 --compressdxe --kext kextdir --ffs ffsdir --dsdt DSDT.aml --out outputfile --input BIOS.ROM
 ./OZMTool --ffsconvert --out outputdir --input kextsdir
