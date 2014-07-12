@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+#include "../ffs.h"
 #include "ffsutil.h"
 #include "util.h"
 #include "common.h"
@@ -392,6 +393,47 @@ UINT8 FFSUtil::compressDXE()
         return ret;
     }
     printf("* File was injected compressed successfully!\n");
+    return ERR_SUCCESS;
+}
+
+UINT8 FFSUtil::compressFFS(QByteArray ffs, QByteArray & out)
+{
+    UINT8 ret;
+    QByteArray newHeader, body, compressedBody, fileHeader;
+
+    /* Split ffs into ffs-header and body */
+    fileHeader = ffs.left(sizeof(EFI_FFS_FILE_HEADER));
+    body = ffs.mid(sizeof(EFI_FFS_FILE_HEADER));
+
+    /* Create new compression header to tack infront of compressed body */
+    newHeader.fill(0, sizeof(EFI_COMPRESSION_SECTION));
+    EFI_COMPRESSION_SECTION* compressionHeader = (EFI_COMPRESSION_SECTION*)newHeader.data();
+
+    ret = ffsEngine->compress(body, COMPRESSION_ALGORITHM_TIANO, compressedBody);
+    if (ret) {
+        printf("ERROR: Compression failed!\n");
+        return ERR_ERROR;
+    }
+
+    /* Assign infos to compression header */
+    compressionHeader->Type = EFI_SECTION_COMPRESSION;
+    compressionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+    uint32ToUint24(newHeader.size() + compressedBody.size(), compressionHeader->Size);
+    compressionHeader->UncompressedLength = newHeader.size() + body.size();
+
+    out.append(newHeader);
+    out.append(compressedBody);
+
+    /* Set new size and checksums in ffs header */
+    EFI_FFS_FILE_HEADER* ffsHeader = (EFI_FFS_FILE_HEADER*)fileHeader.data();
+    uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+newHeader.size(), ffsHeader->Size);
+    ffsHeader->IntegrityCheck.Checksum.Header = 0;
+    ffsHeader->IntegrityCheck.Checksum.File = 0;
+    ffsHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*)ffsHeader, sizeof(EFI_FFS_FILE_HEADER)-1);
+    ffsHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
+
+    out.prepend(fileHeader);
+
     return ERR_SUCCESS;
 }
 

@@ -633,7 +633,7 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
         }
 
         printf("* Compressing it...\n");
-        ret = fu->compress(out, COMPRESSION_ALGORITHM_EFI11, compressedOut);
+        ret = fu->compressFFS(out, compressedOut);
         if(ret) {
             printf("ERROR: Compression of FFS failed!\n");
             return ERR_ERROR;

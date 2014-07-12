@@ -44,6 +44,7 @@ public:
     UINT8 injectFile(QByteArray file);
     UINT8 deleteFilesystemFfs();
     UINT8 compressDXE();
+    UINT8 compressFFS(QByteArray ffs, QByteArray & out);
     UINT8 runFreeSomeSpace(int aggressivity);
     UINT8 workaroundRecompressEFI11();
     UINT8 parseBIOSFile(QByteArray & buf);
