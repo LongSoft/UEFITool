@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     }
     else {
         result = ERR_INVALID_PARAMETER;
-        std::cout << "UEFIExtract 0.2" << std::endl << std::endl << 
+        std::cout << "UEFIExtract 0.2.1" << std::endl << std::endl << 
             "Usage: uefiextract imagefile\n" << std::endl;
     }
         

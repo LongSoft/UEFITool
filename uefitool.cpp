@@ -123,33 +123,32 @@ void UEFITool::populateUi(const QModelIndex &current)
 
 void UEFITool::search()
 {
-    // Set focus to edit box
-    searchDialog->ui->searchEdit->setFocus();
-
     if (searchDialog->exec() != QDialog::Accepted)
         return;
 
-    int index = searchDialog->ui->dataTypeComboBox->currentIndex();
+    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
+
+    int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
-        QByteArray pattern = QByteArray::fromHex(searchDialog->ui->searchEdit->text().toLatin1());
+        QByteArray pattern = QByteArray::fromHex(searchDialog->ui->hexEdit->text().toLatin1());
         if (pattern.isEmpty())
             return;
         UINT8 mode;
-        if (searchDialog->ui->headerOnlyRadioButton->isChecked())
+        if (searchDialog->ui->hexScopeHeaderRadioButton->isChecked())
             mode = SEARCH_MODE_HEADER;
-        else if (searchDialog->ui->bodyOnlyRadioButton->isChecked())
+        else if (searchDialog->ui->hexScopeBodyRadioButton->isChecked())
             mode = SEARCH_MODE_BODY;
         else
             mode = SEARCH_MODE_ALL;
-        ffsEngine->findHexPattern(pattern, mode);
+        ffsEngine->findHexPattern(rootIndex, pattern, mode);
         showMessages();
     }
     else if (index == 1) { // Text string
-        QString pattern = searchDialog->ui->searchEdit->text();
+        QString pattern = searchDialog->ui->textEdit->text();
         if (pattern.isEmpty())
             return;
-        ffsEngine->findTextPattern(pattern, searchDialog->ui->unicodeCheckBox->isChecked(),
-                                   (Qt::CaseSensitivity) searchDialog->ui->caseSensitiveCheckBox->isChecked());
+        ffsEngine->findTextPattern(rootIndex, pattern, searchDialog->ui->textUnicodeCheckBox->isChecked(),
+                                   (Qt::CaseSensitivity) searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
         showMessages();
     }
 }
@@ -226,10 +225,11 @@ void UEFITool::insert(const UINT8 mode)
     inputFile.close();
 
     UINT8 result = ffsEngine->insert(index, buffer, mode);
-    if (result)
-        QMessageBox::critical(this, tr("Insertion failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
-    else
-        ui->actionSaveImageFile->setEnabled(true);
+    if (result) {
+        QMessageBox::critical(this, tr("Insertion failed"), errorMessage(result), QMessageBox::Ok);
+        return;
+    }
+    ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::insertInto()
@@ -328,10 +328,11 @@ void UEFITool::replace(const UINT8 mode)
     inputFile.close();
 
     UINT8 result = ffsEngine->replace(index, buffer, mode);
-    if (result)
-        QMessageBox::critical(this, tr("Replacing failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
-    else
-        ui->actionSaveImageFile->setEnabled(true);
+    if (result) {
+        QMessageBox::critical(this, tr("Replacing failed"), errorMessage(result), QMessageBox::Ok);
+        return;
+    }
+    ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::extractAsIs()
@@ -417,7 +418,7 @@ void UEFITool::extract(const UINT8 mode)
     QByteArray extracted;
     UINT8 result = ffsEngine->extract(index, extracted, mode);
     if (result) {
-        QMessageBox::critical(this, tr("Extraction failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Extraction failed"), errorMessage(result), QMessageBox::Ok);
         return;
     }
 
@@ -465,7 +466,7 @@ void UEFITool::saveImageFile()
     UINT8 result = ffsEngine->reconstructImageFile(reconstructed);
     showMessages();
     if (result) {
-        QMessageBox::critical(this, tr("Image reconstruction failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Image reconstruction failed"), errorMessage(result), QMessageBox::Ok);
         return;
     }
 
@@ -517,7 +518,7 @@ void UEFITool::openImageFile(QString path)
     UINT8 result = ffsEngine->parseImageFile(buffer);
     showMessages();
     if (result)
-        QMessageBox::critical(this, tr("Image parsing failed"), tr("Error code: %1").arg(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Image parsing failed"), errorMessage(result), QMessageBox::Ok);
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
 

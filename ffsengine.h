@@ -32,6 +32,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 class TreeModel;
 
+QString errorMessage(UINT8 errorCode);
+
 struct PatchData {
     UINT8 type;
     UINT32 offset;
@@ -96,10 +98,8 @@ public:
     UINT8 patch(const QModelIndex & index, const QVector<PatchData> & patches);
 
     // Search routines
-    UINT8 findHexPattern(const QByteArray & pattern, const UINT8 mode);
-    UINT8 findHexPatternIn(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
-    UINT8 findTextPattern(const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
-    UINT8 findTextPatternIn(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+    UINT8 findHexPattern(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
+    UINT8 findTextPattern(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 
 private:
     TreeModel *model;

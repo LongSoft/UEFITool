@@ -18,7 +18,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Make sure we use right packing rules
 #pragma pack(push,1)
 
-const QByteArray ME_VERSION_SIGNATURE("\x24\x4D\x4E\x32", 4);
+const QByteArray ME_VERSION_SIGNATURE("\x24\x4D\x41\x4E", 4);  //$MAN
+const QByteArray ME_VERSION_SIGNATURE2("\x24\x4D\x4E\x32", 4); //$MN2
 
 typedef struct {
     UINT32 signature;
