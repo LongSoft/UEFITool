@@ -71,6 +71,6 @@ ${INSTALL_NAME_TOOL} -change ${QT_LIB_DIR}/${FRAMEWORK_CORE}/Versions/${QT_VER}/
 
 echo "Packing it up..."
 cd ${RELEASE_DIR}
-tar czvf ${BASE_DIR}/${EXEC_NAME}_vXX.tar.gz *
+zip -r ${BASE_DIR}/${EXEC_NAME}_vXX.zip *
 
 echo "Done!"
