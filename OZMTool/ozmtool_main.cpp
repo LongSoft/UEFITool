@@ -16,10 +16,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <iostream>
 #include <string.h>
 #include <stdio.h>
+#include "version.h"
 
 #include "ozmtool.h"
 
-QString version = "v0.1";
 QString appname = "OZMTool";
 
 void usageDsdt2Bios()
@@ -127,7 +127,7 @@ void usageGeneral()
 
 void versionInfo()
 {
-    printf("%s - %s\n",qPrintable(appname), qPrintable(version));
+    printf("%s - %s\n",qPrintable(appname), GIT_VERSION);
 }
 
 void usageAll()
@@ -172,6 +172,7 @@ int main(int argc, char *argv[])
 
 
     if (argc == 1) {
+        versionInfo();
         usageGeneral();
         printf("ERROR: No options supplied!\n");
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
@@ -359,6 +360,8 @@ fail:
 
     int cmds = dsdtextract + dsdtinject + ozmextract + ozmupdate + ozmcreate + ffsconvert + dsdt2bios;
 
+    versionInfo();
+
     if (help) {
         if (cmds > 1)
             usageAll();
@@ -381,8 +384,6 @@ fail:
 
         return ERR_SUCCESS;
     }
-
-    versionInfo();
 
     if (cmds == 0) {
         usageGeneral();

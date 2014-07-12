@@ -12,12 +12,20 @@ CONFIG_OPTION=release
 OS_ID=osx
 
 VERSION=`${GIT} describe`
+VERSION_HEADER=version.h
 
 if [ `basename ${BASE_DIR}` != "OZMTool" ]
 then
   echo "You are not executing from OZMTool directory!"
   exit 1
 fi
+
+echo "#ifndef VERSION_H" > ${VERSION_HEADER}
+echo "#define VERSION_H" >> ${VERSION_HEADER}
+echo "" >> ${VERSION_HEADER}
+echo "#define GIT_VERSION \"${VERSION}\"" >> ${VERSION_HEADER}
+echo "" >> ${VERSION_HEADER}
+echo "#endif // VERSION_H" >> ${VERSION_HEADER}
 
 # Lets begin
 rm -rf ${BUILD_DIR}
