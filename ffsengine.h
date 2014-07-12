@@ -32,6 +32,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 class TreeModel;
 
+QString errorMessage(UINT8 errorCode);
+
 struct PatchData {
     UINT8 type;
     UINT32 offset;
