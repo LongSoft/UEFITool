@@ -63,14 +63,15 @@ void usageOzmCreate()
 {
     printf("ozmcreate command\n" \
             " usage:\n"
-            "\t%s --ozmcreate -a 1 -cr -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
+            "\t%s --ozmcreate -a 1 -cr -ck -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
             " parameters:\n"
             "\t-f, --ffs [dir]\t\tFFS directory (extracted OZM files)\n"
             "\t-d, --dsdt [file]\t\t (optional) DSDT.aml file\n"
             "\t-k, --kext [dir]\t\t (optional) KEXT directory\n"
             "\t-i, --input [file]\t\tInput CLEAN Bios\n"
-            "\t-a, --aggressivity\t\tAggressivity level (see README)\n"
-            "\t-cr,--compressdxe\t\tCompress CORE_DXE\n"
+            "\t-a, --aggressivity\t\t (optional) Aggressivity level (see README)\n"
+            "\t-cr,--compressdxe\t\t (optional) Compress CORE_DXE\n"
+            "\t-ck,--compresskexts\t\t (optional) Compress converted Kexts\n"
             "\t-o, --out [file]\t\tOutput OZM Bios\n"
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
@@ -152,6 +153,7 @@ int main(int argc, char *argv[])
     bool ffsconvert = false;
     bool dsdt2bios = false;
     bool compressdxe = false;
+    bool compresskexts = false;
     QString inputpath = "";
     QString output = "";
     QString ffsdir = "";
@@ -245,6 +247,13 @@ int main(int argc, char *argv[])
 
         if ((strcasecmp(argv[0], "-cr") == 0) || (strcasecmp(argv[0], "--compressdxe") == 0)) {
             compressdxe = true;
+            argc --;
+            argv ++;
+            continue;
+        }
+
+        if ((strcasecmp(argv[0], "-ck") == 0) || (strcasecmp(argv[0], "--compresskexts") == 0)) {
+            compresskexts = true;
             argc --;
             argv ++;
             continue;
@@ -420,7 +429,7 @@ fail:
     else if (ozmextract)
         result = w.OZMExtract(inputpath, output);
     else if (ozmcreate)
-        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile, aggressivity, compressdxe);
+        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile, aggressivity, compressdxe, compresskexts);
     else if (ffsconvert)
         result = w.FFSConvert(inputpath, output);
     else if (dsdt2bios)

@@ -379,11 +379,12 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile, int aggressivity, bool compressdxe)
+UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile,
+                            int aggressivity, bool compressdxe, bool compresskexts)
 {
     int i, kextId;
     UINT8 ret;
-    QByteArray bios, dsdt, ffs, out;
+    QByteArray bios, dsdt, ffs, out, tmp;
     QModelIndex volumeIdxCount;
 
     BOOLEAN insertDSDT = FALSE;
@@ -414,6 +415,9 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
 
     if(compressdxe)
         printf("Info: Compressing CORE_DXE is selected!\n");
+
+    if(compresskexts)
+        printf("Info: Compressing Kexts is selected!\n");
 
     ret = fileOpen(inputfile, bios);
     if (ret) {
@@ -505,6 +509,17 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             if(ret) {
                 printf("ERROR: Converting '%s' to FFS failed!\n", qPrintable(currKext.fileName()));
                 return ERR_ERROR;
+            }
+
+            if(compresskexts){
+                tmp.clear();
+                ret = fu->compressFFS(ffs, tmp);
+                if (ret) {
+                    printf("ERROR: Compressing '%s' failed!\n", qPrintable(currKext.fileName()));
+                    return ret;
+                }
+                ffs.clear();
+                ffs = tmp;
             }
 
             fu->injectFile(ffs);
