@@ -7,35 +7,43 @@ It is based on UEFITool (awesome application!) by CodeRush.
 It includes the following useful tools to help you in this process:
 
         --dsdtextract		Extracts DSDT from BIOS
+	--dsdtinject		Injects DSDT into BIOS
         --ozmupdate		Updates clean BIOS with files from old OZM-flavoured one
         --ozmextract		Extracts Ozmosis files (ffs) from BIOS
         --ozmcreate		Patches Original BIOS with Ozmosis
         --ffsconvert		Converts kext-directories to FFS
         --dsdt2bios		Injects (bigger) DSDT into AmiBoardInfo
+	--help, -h		Print usage (append command to print cmd-usage!)
 
 * DSDTExtract
     Extracts AmiBoardInfo.bin and DSDT.aml from supplied BIOS file
 
+* DSDTInject
+    Inject DSDT into BIOS ROM, you have to supply DSDT.aml
+
 * OZMUpdate
     You supply an (old) ozmosis-flavoured BIOS and a recent BIOS for your motherboard and it
     copies over the Ozmosis stuff + kexts (not DSDT because that can differ between Bios Revisions)
+    It supports --aggressivity and --compressdxe switch (see OZMCreate)
 
 * OZMExtract
     Extracts Ozmosis files from a stock (HermitCrabLabs) Ozmosis Bios.
 
 * OZMCreate
     Creates an Ozmosis image from supplied FFS/Kext/DSDT files (Kext & DSDT is optional).
-    It uses a several-runs concept for creating enough space to fit the files:
-        * 1st run: Try to inject the files as-is
-        * 2nd run: Compress big, existing files in BIOS, then inject Ozmosis
-        * 3rd run: Deletes non-essential Ozmosis files - keeps the Ozmosis base working tho
+    If the image originally does not have enough space, use the -a, --aggressivity switch
+	Possible values for -a :
+        --aggressivity 0: Try to inject the files as-is
+	--aggressivity 1: Deletes files for BIOS Network Support (PXE etc.)
+        --aggressivity 2: Deletes non-essential Ozmosis files - keeps the Ozmosis base working tho
             (deletes: ExtFs, HermitShellX64, OzmosisTheme, DisablerKext, InjectorKext)
-        * 4th run: Deletes files for BIOS Network Support (PXE etc.)
-        If all attempts fail, the output image wont be created (obviously)
+    You also have the option to compress 'CORE_DXE' by supplying -cr, --compressdxe switch!
+
+    If all attempts fail, the output image wont be created (obviously)
 
 * FFSConvert
     Converts files to FFS. It accepts *.kext and OzmosisDefaults.plist.
-    Based on Kext2FFS by FredWst! Big thx!
+    Uses UEFITool's technique to create the FFS :)
 
 * DSDT2Bios
     Patches (bigger than original) DSDT into AmiboardInfo.
@@ -51,7 +59,21 @@ Remember: Flashing the BIOS is dangerous in general.. a hacked one even more!
 
 USAGE
 ---------
+
 ./OZMTool -h
+./OZMTool --dsdtextract --output outputdir --input OZMBIOS_or_BIOS.ROM
+./OZMTool --dsdtinject --input BIOS.ROM --dsdt DSDT.aml --output outputfile
+./OZMTool --ozmupdate --aggressivity 1 --compressdxe --output RECENT_BIOS.OZM --input BIOS.OZM -r BIOS.CLEAN
+./OZMTool --ozmextract --output outputdir --input OZM.ROM
+./OZMTool --ozmcreate --aggressivity 1 --compressdxe --kext kextdir --ffs ffsdir --dsdt DSDT.aml --output outputfile --input BIOS.ROM
+./OZMTool --ffsconvert --output outputdir --input kextsdir
+./OZMTool --dsdt2bios --input AmiBoardInfo.bin --dsdt DSDT.aml --output patchedAmiBoardInfo.bin
+
+
+SOURCE CODE / REPORTING ISSUES
+---------
+Source Code: https://github.com/tuxuser/UEFITool / Branch: OZM
+Bugreports: https://github.com/tuxuser/UEFITool/issues
 
 
 CREDITS
