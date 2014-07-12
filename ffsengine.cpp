@@ -827,7 +827,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     }
     // Other GUID
     else {
-        msgUnknownFS = false;
+        msgUnknownFS = true;
         subtype = Subtypes::UnknownVolume;
     }
 
