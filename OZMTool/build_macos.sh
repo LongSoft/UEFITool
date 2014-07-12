@@ -8,6 +8,7 @@ EXEC_NAME=OZMTool
 QMAKE=qmake
 MAKE=make
 CONFIG_OPTION=release
+OS_ID=osx
 
 if [ `basename ${BASE_DIR}` != "OZMTool" ]
 then
@@ -29,6 +30,6 @@ cp ${BASE_DIR}/README ${RELEASE_DIR}
 
 echo "Packing it up..."
 cd ${RELEASE_DIR}
-zip -r ${BASE_DIR}/${EXEC_NAME}_vXX.zip *
+zip -r ${BASE_DIR}/${EXEC_NAME}_vXX_${OS_ID}.zip *
 
 echo "Done!"

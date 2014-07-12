@@ -18,7 +18,7 @@ QVariant PListParser::parsePList(QIODevice *device) {
 		return result;
 	}
 	QDomElement root = doc.documentElement();
-	if (root.attribute(QString::fromUtf8("version"), QString::fromUtf8("1.0")) != QLatin1String("1.0")) {
+	if (root.attribute(QLatin1String("version"), QLatin1String("1.0")) != QLatin1String("1.0")) {
 		qDebug() << "PListParser Warning: plist is using an unknown format version, parsing might fail unexpectedly";
 	}
 	return parseElement(root.firstChild().toElement());
@@ -39,7 +39,7 @@ QVariant PListParser::parsePList(QByteArray & file) {
         return result;
     }
     QDomElement root = doc.documentElement();
-    if (root.attribute(QString::fromUtf8("version"), QString::fromUtf8("1.0")) != QLatin1String("1.0")) {
+    if (root.attribute(QLatin1String("version"), QLatin1String("1.0")) != QLatin1String("1.0")) {
         qDebug() << "PListParser Warning: plist is using an unknown format version, parsing might fail unexpectedly";
     }
     return parseElement(root.firstChild().toElement());
