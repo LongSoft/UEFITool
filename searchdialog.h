@@ -15,6 +15,7 @@
 #define SEARCHDIALOG_H
 
 #include <QDialog>
+#include <QRegExpValidator>
 #include "ui_searchdialog.h"
 
 class SearchDialog : public QDialog
@@ -27,8 +28,11 @@ public:
     Ui::SearchDialog* ui;
 
 private slots:
-    //void setEditMask();
+    void setEditFocus(int index);
 
+private:
+    QRegExpValidator hexValidator;
+    QRegExpValidator guidValidator;
 };
 
 #endif

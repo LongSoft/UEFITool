@@ -98,7 +98,8 @@ public:
     UINT8 patch(const QModelIndex & index, const QVector<PatchData> & patches);
 
     // Search routines
-    UINT8 findHexPattern(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode);
+    UINT8 findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode);
+    UINT8 findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode);
     UINT8 findTextPattern(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 
 private:
@@ -129,7 +130,7 @@ private:
 
     // Patch helpers
     UINT8 patchViaOffset(QByteArray & data, const UINT32 offset, const QByteArray & hexReplacePattern);
-    UINT8 patchViaPattern(QByteArray & data, const QByteArray hexFindPattern, const QByteArray & hexReplacePattern);
+    UINT8 patchViaPattern(QByteArray & data, const QByteArray & hexFindPattern, const QByteArray & hexReplacePattern);
 
 #ifndef _CONSOLE
     QQueue<MessageListItem> messageItems;

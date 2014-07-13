@@ -18,6 +18,8 @@ UEFITool::UEFITool(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::UEFITool)
 {
+    clipboard = QApplication::clipboard();
+
     // Create UI
     ui->setupUi(this);
     searchDialog = new SearchDialog(this);
@@ -36,6 +38,7 @@ UEFITool::UEFITool(QWidget *parent) :
     connect(ui->actionReplaceBody, SIGNAL(triggered()), this, SLOT(replaceBody()));
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
     connect(ui->actionRebuild, SIGNAL(triggered()), this, SLOT(rebuild()));
+    connect(ui->actionMessagesCopy, SIGNAL(triggered()), this, SLOT(copyMessage()));
     connect(ui->actionMessagesClear, SIGNAL(triggered()), this, SLOT(clearMessages()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
@@ -73,6 +76,7 @@ void UEFITool::init()
     ui->menuVolumeActions->setDisabled(true);
     ui->menuFileActions->setDisabled(true);
     ui->menuSectionActions->setDisabled(true);
+    ui->actionMessagesCopy->setDisabled(true);
 
     // Make new ffsEngine
     if (ffsEngine)
@@ -84,6 +88,7 @@ void UEFITool::init()
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
             this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->messageListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
+    connect(ui->messageListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyAction(QListWidgetItem*)));
 }
 
 void UEFITool::populateUi(const QModelIndex &current)
@@ -119,6 +124,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionInsertAfter->setEnabled(type == Types::File || type == Types::Section);
     ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion) || type == Types::File || type == Types::Section);
     ui->actionReplaceBody->setEnabled(type == Types::File || type == Types::Section);
+    ui->actionMessagesCopy->setEnabled(false);
 }
 
 void UEFITool::search()
@@ -130,7 +136,8 @@ void UEFITool::search()
 
     int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
-        QByteArray pattern = QByteArray::fromHex(searchDialog->ui->hexEdit->text().toLatin1());
+        searchDialog->ui->hexEdit->setFocus();
+        QByteArray pattern = searchDialog->ui->hexEdit->text().toLatin1();
         if (pattern.isEmpty())
             return;
         UINT8 mode;
@@ -143,7 +150,23 @@ void UEFITool::search()
         ffsEngine->findHexPattern(rootIndex, pattern, mode);
         showMessages();
     }
-    else if (index == 1) { // Text string
+    else if (index == 1) { // GUID
+        searchDialog->ui->guidEdit->setFocus();
+        QByteArray pattern = searchDialog->ui->guidEdit->text().toLatin1();
+        if (pattern.isEmpty())
+            return;
+        UINT8 mode;
+        if (searchDialog->ui->guidScopeHeaderRadioButton->isChecked())
+            mode = SEARCH_MODE_HEADER;
+        else if (searchDialog->ui->guidScopeBodyRadioButton->isChecked())
+            mode = SEARCH_MODE_BODY;
+        else
+            mode = SEARCH_MODE_ALL;
+        ffsEngine->findGuidPattern(rootIndex, pattern, mode);
+        showMessages();
+    }
+    else if (index == 2) { // Text string
+        searchDialog->ui->textEdit->setFocus();
         QString pattern = searchDialog->ui->textEdit->text();
         if (pattern.isEmpty())
             return;
@@ -526,11 +549,23 @@ void UEFITool::openImageFile(QString path)
     ui->actionSearch->setEnabled(true);
 }
 
+void UEFITool::copyMessage()
+{
+    clipboard->clear();
+    clipboard->setText(ui->messageListWidget->currentItem()->text());
+}
+
+void UEFITool::enableMessagesCopyAction(QListWidgetItem* item)
+{
+    ui->actionMessagesCopy->setEnabled(item != NULL);
+}
+
 void UEFITool::clearMessages()
 {
     ffsEngine->clearMessages();
     messageItems.clear();
     ui->messageListWidget->clear();
+    ui->actionMessagesCopy->setEnabled(false);
 }
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
