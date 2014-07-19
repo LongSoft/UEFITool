@@ -167,7 +167,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
 {
     int i;
     UINT8 ret;
-    QString guid;
+    QString guid, name;
     QByteArray oldBIOS;
     QByteArray newBIOS;
     QByteArray ffsbuf;
@@ -218,16 +218,23 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
 
     for(i = 0; i < OzmFfs.size(); i++){
         ffsbuf.clear();
+        guid = OzmFfs.at(i).GUID;
 
-        ret = oFU->dumpFileByGUID(OzmFfs.at(i).GUID, ffsbuf, EXTRACT_MODE_AS_IS);
+        ret = oFU->dumpFileByGUID(guid, ffsbuf, EXTRACT_MODE_AS_IS);
         if(ret && OzmFfs.at(i).required) {
-            printf("ERROR: Required file '%s' [%s] not found!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+            printf("ERROR: Required file '%s' [%s] not found!\n", qPrintable(OzmFfs.at(i).name), qPrintable(guid));
             return ERR_FILE_NOT_FOUND;
         }
         else if(ret)
             continue;
 
-        printf("Injecting '%s' [%s] from old into new BIOS...\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+        ret = oFU->getNameByGUID(guid, name);
+        if(ret) {
+            printf("ERROR: Failed to get text of section [%s]\n", qPrintable(guid));
+            continue;
+        }
+
+        printf("Injecting '%s' [%s] from old into new BIOS...\n", qPrintable(name), qPrintable(guid));
 
         ret = nFU->injectFile(ffsbuf);
         if (ret) {
@@ -245,7 +252,13 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
         if(ret)
             continue; // Not found
 
-        printf("Injecting custom ffs [%s] from old into new BIOS...\n", qPrintable(guid));
+        ret = oFU->getNameByGUID(guid, name);
+        if(ret) {
+            printf("ERROR: Failed to get text of section [%s]\n", qPrintable(guid));
+            continue;
+        }
+
+        printf("Injecting custom ffs '%s' [%s] from old into new BIOS...\n", qPrintable(name), qPrintable(guid));
 
         ret = nFU->injectFile(ffsbuf);
         if (ret) {
@@ -320,17 +333,25 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
     }
 
     for(i=0; i<OzmFfs.size(); i++) {
-        ret = fu->dumpFileByGUID(OzmFfs.at(i).GUID, buf, EXTRACT_MODE_AS_IS);
+        guid = OzmFfs.at(i).GUID;
+
+        ret = fu->dumpFileByGUID(guid, buf, EXTRACT_MODE_AS_IS);
         if (ret == ERR_ITEM_NOT_FOUND) {
-            printf("Warning: File '%s' [%s] wasn't found!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+            printf("Warning: File [%s] wasn't found!\n", qPrintable(guid));
             continue;
         }
         if (ret) {
-            printf("ERROR: Dumping '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+            printf("ERROR: Dumping [%s] failed!\n", qPrintable(guid));
             return ret;
         }
 
-        outputFile = pathConcatenate(outputdir,(OzmFfs.at(i).name+".ffs"));
+        ret = fu->getNameByGUID(guid, name);
+        if(ret) {
+            printf("ERROR: Failed to get text of section [%s]\n", qPrintable(guid));
+            continue;
+        }
+
+        outputFile = pathConcatenate(outputdir,(guid+"_"+name+".ffs"));
 
         ret = fileWrite(outputFile, buf);
         if (ret) {
@@ -338,7 +359,7 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
             return ret;
         }
 
-        printf("* '%s' [%s] extracted & saved\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+        printf("* '%s' [%s] extracted & saved\n", qPrintable(name), qPrintable(guid));
         buf.clear();
     }
 
