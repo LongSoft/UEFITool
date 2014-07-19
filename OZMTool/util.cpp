@@ -163,82 +163,20 @@ UINT8 plistReadExecName(QByteArray plist, QString & name)
     return ERR_SUCCESS;
 }
 
-UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & name, QString & version)
+UINT8 plistReadBundleVersion(QByteArray plist, QString & version)
 {
-    static const QString nameIdentifier = "CFBundleName";
     static const QString versionIdentifier = "CFBundleShortVersionString";
-    QString plistName;
     QString plistVersion;
 
     QVariantMap parsed = PListParser::parsePList(plist).toMap();
 
-    if (parsed.contains(nameIdentifier))
-        plistName = parsed.value(nameIdentifier).toString();
     if (parsed.contains(versionIdentifier))
         plistVersion = parsed.value(versionIdentifier).toString();
 
-    if(plistName.isEmpty()) {
-        printf("ERROR: '%s' in plist is blank. Aborting!\n", qPrintable(nameIdentifier));
-        return ERR_ERROR;
-    }
+    if(plistVersion.isEmpty())
+        plistVersion = "?";
 
-    name = plistName;
     version = plistVersion;
-
-    return ERR_SUCCESS;
-}
-
-UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out)
-{
-    int pos, start, end;
-    static const QString nameIdentifier = "CFBundleName";
-    static const QString keyBrackets = "<key>%1</key>";
-    static const QString stringStart = "<string>";
-    static const QString stringEnd = "</string>";
-    QString plistName;
-
-    QVariantMap parsed = PListParser::parsePList(plist).toMap();
-
-    if (parsed.contains(nameIdentifier))
-        plistName = parsed.value(nameIdentifier).toString();
-
-    if(plistName.isEmpty()) {
-        printf("ERROR: '%s' in plist is blank. Aborting!\n", qPrintable(nameIdentifier));
-        return ERR_ERROR;
-    }
-
-    /* The following should work, cause plist are *usually* standardized */
-
-    // Put together string to search
-    QString nameKey = keyBrackets.arg(nameIdentifier);
-
-    // look for key
-    pos = plist.indexOf(nameKey);
-    if(pos < 0) {
-        printf("ERROR: Didn't find '%s' in plist...\n", qPrintable(nameKey));
-        return ERR_ERROR;
-    }
-
-    // move to end of line
-    pos += nameKey.size();
-
-    // find string start & end
-    start = plist.indexOf(stringStart, pos);
-    end = plist.indexOf(stringEnd, pos);
-
-    if((start < 0) || (end < 0)) {
-        printf("ERROR: Didn't find following <string>value</string>\n");
-        return ERR_ERROR;
-    }
-
-    // go to start of value
-    start+= stringStart.size();
-
-    // insert newName inbetween
-    out.clear();
-    out.append(plist.left(start));
-    out.append(newName);
-    out.append(plist.mid(end));
 
     return ERR_SUCCESS;
 }
@@ -285,19 +223,19 @@ UINT8 convertOzmPlist(QString input, QByteArray & out)
     return ERR_SUCCESS;
 }
 
-UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
+UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & out)
 {
     UINT8 ret;
     UINT8 nullterminator = 0;
 
     QString sectionName, guid;
-    QString bundleName, bundleVersion, execName;
+    QString bundleVersion, execName;
     QDir dir;
 
     QFileInfo binaryPath;
     QFileInfo plistPath;
 
-    QByteArray plistbuf, newPlist;
+    QByteArray plistbuf;
     QByteArray binarybuf;
     QByteArray toConvertBinary;
 
@@ -343,27 +281,23 @@ UINT8 convertKext(QString input, int kextIndex, QByteArray & out)
         return ERR_ERROR;
     }
 
-    ret = plistReadBundlenameAndVersion(plistbuf, bundleName, bundleVersion);
-    if (ret) {
-        printf("ERROR: Failed to get bundleName and/or version from Info.plist\n");
-        return ret;
-    }
-
     ret = fileOpen(binaryPath.filePath(), binarybuf);
     if (ret) {
         printf("ERROR: Opening '%s' failed!\n", qPrintable(binaryPath.filePath()));
         return ERR_ERROR;
     }
 
-    if(bundleVersion.isEmpty())
-        bundleVersion = "?";
-
-    sectionName.sprintf("%s.Rev-%s",qPrintable(bundleName), qPrintable(bundleVersion));
-    plistWriteNewBasename(plistbuf, sectionName, newPlist);
+    ret = plistReadBundleVersion(plistbuf, bundleVersion);
+    if (ret) {
+        printf("Info: Unable to get version string...\n");
+        sectionName = basename;
+    }
+    else
+        sectionName.sprintf("%s.Rev-%s",qPrintable(basename), qPrintable(bundleVersion));
 
     guid = kextGUID.arg(kextIndex, 0, 16);
 
-    toConvertBinary.append(newPlist);
+    toConvertBinary.append(plistbuf);
     toConvertBinary.append(nullterminator);
     toConvertBinary.append(binarybuf);
 
