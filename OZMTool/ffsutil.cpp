@@ -374,6 +374,11 @@ UINT8 FFSUtil::compressDXE()
 
     EFI_COMPRESSION_SECTION* compressionHeader = (EFI_COMPRESSION_SECTION*)newHeader.data();
 
+    if(compressionHeader->CompressionType != EFI_NOT_COMPRESSED){
+        printf("Info: CORE_DXE is already compressed!\n");
+        return ERR_SUCCESS;
+    }
+
     printf("* Trying to compress '%s' [%s]\n", qPrintable(coreDxeSection.name), qPrintable(coreDxeSection.GUID));
     ret = compress(body, COMPRESSION_ALGORITHM_TIANO, compressed);
     if(ret) {
