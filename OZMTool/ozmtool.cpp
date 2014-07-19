@@ -246,7 +246,7 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
     for(i = MIN_KEXT_ID; i <= MAX_KEXT_ID; i++) {
         ffsbuf.clear();
 
-        guid = kextGUID.arg(i, 0, 16);
+        guid = kextGUID.arg(i, 1, 16).toUpper();
 
         ret = oFU->dumpFileByGUID(guid, ffsbuf, EXTRACT_MODE_AS_IS);
         if(ret)
@@ -367,7 +367,7 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
     for(i=MIN_KEXT_ID; i<= MAX_KEXT_ID; i++) {
         buf.clear();
 
-        guid = kextGUID.arg(i, 0, 16);
+        guid = kextGUID.arg(i, 1, 16).toUpper();
 
         ret = fu->dumpFileByGUID(guid, buf, EXTRACT_MODE_AS_IS);
         if(ret)

@@ -297,7 +297,7 @@ UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & o
     else
         sectionName.sprintf("%s.Rev-%s",qPrintable(basename), qPrintable(bundleVersion));
 
-    guid = kextGUID.arg(kextIndex, 0, 16);
+    guid = kextGUID.arg(kextIndex, 1, 16).toUpper();
 
     toConvertBinary.append(plistbuf);
     toConvertBinary.append(nullterminator);
