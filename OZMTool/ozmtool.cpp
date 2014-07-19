@@ -489,6 +489,16 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
                 ret = convertKext(currKext.filePath(), 2, ffs);
             } else if(!currKext.fileName().compare("Injector.kext")){
                 ret = convertKext(currKext.filePath(), 3, ffs);
+            } else if(!currKext.fileName().compare("PostbootMounter.kext")){
+                ret = convertKext(currKext.filePath(), 4, out);
+            } else if(!currKext.fileName().compare("PostbootSymbols.kext")){
+                ret = convertKext(currKext.filePath(), 5, out);
+            } else if(!currKext.fileName().compare("CPUSensors.kext")){
+                ret = convertKext(currKext.filePath(), 6, out);
+            } else if(!currKext.fileName().compare("LPCSensors.kext")){
+                ret = convertKext(currKext.filePath(), 7, out);
+            } else if(!currKext.fileName().compare("GPUSensors.kext")){
+                ret = convertKext(currKext.filePath(), 8, out);
             } else if(!currKext.fileName().compare(ozmDefaultsFilename)){
                 ret = convertOzmPlist(currKext.filePath(), ffs);
             } else if(currKext.fileName().endsWith(".kext")){
@@ -616,6 +626,16 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
             ret = convertKext(currKext.filePath(), 2, out);
         } else if(!currKext.fileName().compare("Injector.kext")){
             ret = convertKext(currKext.filePath(), 3, out);
+        } else if(!currKext.fileName().compare("PostbootMounter.kext")){
+            ret = convertKext(currKext.filePath(), 4, out);
+        } else if(!currKext.fileName().compare("PostbootSymbols.kext")){
+            ret = convertKext(currKext.filePath(), 5, out);
+        } else if(!currKext.fileName().compare("CPUSensors.kext")){
+            ret = convertKext(currKext.filePath(), 6, out);
+        } else if(!currKext.fileName().compare("LPCSensors.kext")){
+            ret = convertKext(currKext.filePath(), 7, out);
+        } else if(!currKext.fileName().compare("GPUSensors.kext")){
+            ret = convertKext(currKext.filePath(), 8, out);
         } else if(!currKext.fileName().compare(ozmDefaultsFilename)){
             ret = convertOzmPlist(currKext.filePath(), out);
         } else if(currKext.fileName().endsWith(".kext")){

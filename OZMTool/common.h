@@ -14,7 +14,7 @@
 #define RUN_DELETE          1
 #define RUN_DEL_OZM_NREQ    2
 
-#define MIN_KEXT_ID 0x6
+#define MIN_KEXT_ID 0x9
 #define MAX_KEXT_ID 0xF
 
 const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
@@ -38,14 +38,19 @@ static const sectionEntry requiredFfs[] = {
   {"SmcEmulatorKext","DADE1001-1B31-4FE4-8557-26FCEFC78275",TRUE}
 };
 
-#define optionalFfsCount 5
+#define optionalFfsCount 10
 
 static const sectionEntry optionalFfs[] = {
   {"ExtFs","B34E5765-2E04-4DAF-867F-7F40BE6FC33D", FALSE},
   {"HermitShellX64","C57AD6B7-0515-40A8-9D21-551652854E37", FALSE},
   {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", FALSE},
   {"DisablerKext","DADE1002-1B31-4FE4-8557-26FCEFC78275", FALSE},
-  {"InjectorKext","DADE1003-1B31-4FE4-8557-26FCEFC78275", FALSE}
+  {"InjectorKext","DADE1003-1B31-4FE4-8557-26FCEFC78275", FALSE},
+  {"PostbootMounter","DADE1004-1B31-4FE4-8557-26FCEFC78275", FALSE},
+  {"PostbootSymbols","DADE1005-1B31-4FE4-8557-26FCEFC78275", FALSE},
+  {"CpuSensorsKext","DADE1006-1B31-4FE4-8557-26FCEFC78275", FALSE},
+  {"LpcSensorsKext","DADE1007-1B31-4FE4-8557-26FCEFC78275", FALSE},
+  {"GpuSensorsKext","DADE1008-1B31-4FE4-8557-26FCEFC78275", FALSE}
 };
 
 #define deletableFfsCount 10
