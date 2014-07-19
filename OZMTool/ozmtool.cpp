@@ -484,6 +484,8 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             return ret;
         }
 
+        printf(" * Current file: '%s'...\n", currFFS.fileName());
+
         ret = fu->injectFile(ffs);
         if (ret) {
             printf("ERROR: Injection of file '%s' failed!\n", qPrintable(currFFS.fileName()));
