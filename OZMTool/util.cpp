@@ -173,8 +173,10 @@ UINT8 plistReadBundleVersion(QByteArray plist, QString & version)
     if (parsed.contains(versionIdentifier))
         plistVersion = parsed.value(versionIdentifier).toString();
 
-    if(plistVersion.isEmpty())
-        plistVersion = "?";
+    if(plistVersion.isEmpty()) {
+        version = "?";
+        return ERR_ERROR;
+    }
 
     version = plistVersion;
 
