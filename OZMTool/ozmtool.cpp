@@ -12,7 +12,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include <QDirIterator>
-#include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
 #include "ffsutil.h"
 #include "ozmtool.h"
