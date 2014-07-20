@@ -633,16 +633,20 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
     printf("Diff DSDT (old/new): %X - aligned: %X\n",diffDSDT, alignment);
 #endif
 
-    // Copying data *till* DSDT
-    out.append(amiboardbuf.constData(),offset);
+    /* ToDo: Clean up the following mess ? Maybe.. */
+
+    /* Copy unmodified DOSHeader, modded NTHeader & modded SectionHeader */
+    out.append(amiboardbuf.constData(), HeaderDOS->e_lfanew);
+    out.append((const char*)HeaderNT, sizeof(EFI_IMAGE_NT_HEADERS64));
+    out.append((const char*)Section, sizeof(EFI_IMAGE_SECTION_HEADER)*HeaderNT->FileHeader.NumberOfSections);
+    /* Copy rest of data till DSDT */
+    out.append(amiboardbuf.mid(out.size()).constData(), (offset-out.size()));
     // Copy new DSDT
     out.append(dsdtbuf.constData(), newDSDTsize);
     // Pad the file
     out.append(QByteArray((alignment-diffDSDT), '\x00'));
     // Copy the rest
     out.append(amiboardbuf.mid(offset+oldDSDTsize).constData(), (amiboardbuf.size()-(offset+oldDSDTsize)));
-
-    printf("New AmiBoardInfo Sz: %X - %X\n\n", (amiboardbuf.size()+alignment), out.size());
 
     return ERR_SUCCESS;
 }
