@@ -425,11 +425,14 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 {
     int i;
     INT32 offset, diffDSDT;
-    UINT32 oldDSDTsize = 0, newDSDTsize;
+    UINT32 oldDSDTsize, newDSDTsize, sectionsStart, alignment;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     EFI_IMAGE_NT_HEADERS64 *HeaderNT;
     EFI_IMAGE_SECTION_HEADER *Section;
-    QByteArray patchedAmiBoard;
+
+    const static char *DATA_SECTION = ".data";
+    const static char *EMPTY_SECTION = ".empty";
+    const static char *RELOC_SECTION = ".reloc";
 
     HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboardbuf.data();
 
@@ -446,10 +449,6 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
     oldDSDTsize = getUInt32(amiboardbuf, offset+DSDT_HEADER_SZ, TRUE);
 
-    printf("amiboard Sz: %X\n", amiboardbuf.size());
-    printf("offset: %X\n", offset);
-    printf("oldDSDTSize: %X\n", oldDSDTsize);
-
     if(oldDSDTsize > (UINT32)(amiboardbuf.size()-offset)) {
         printf("ERROR: Read invalid size from DSDT. Aborting!\n");
         return ERR_INVALID_PARAMETER;
@@ -465,16 +464,17 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
     if(diffDSDT <= 0) {
         printf("Info: New DSDT is not larger than old one, no need to patch anything :)\n");
-        QByteArray padbytes;
-        padbytes.fill(0, (diffDSDT * (-1))); // negative val -> positive
+        UINT32 padbytes = (diffDSDT * (-1)); // negative val -> positive
         out.append(amiboardbuf.left(offset)); // Start of PE32
         out.append(dsdtbuf); // new DSDT
-        out.append(padbytes); // padding to match old DSDT location
+        out.append(QByteArray(padbytes, '\x00')); // padding to match old DSDT location
         out.append(amiboardbuf.mid(offset+oldDSDTsize)); // rest of PE32
         return ERR_SUCCESS;
     }
 
-    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)amiboardbuf.mid(HeaderDOS->e_lfanew).data();
+    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)amiboardbuf.mid(HeaderDOS->e_lfanew).constData();
+    sectionsStart = HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64);
+    Section = (EFI_IMAGE_SECTION_HEADER *)amiboardbuf.mid(sectionsStart).constData();
 
 #if 1
     printf("*** IMAGE_FILE_HEADER ***\n");
@@ -538,9 +538,6 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
                HeaderNT->OptionalHeader.DataDirectory[i].Size);
     }
 
-    UINT32 sectionsStart = HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64);
-    Section = (EFI_IMAGE_SECTION_HEADER *)amiboardbuf.mid(sectionsStart).data();
-
     printf("*** Sections ***\n");
 
     for (i = 0 ; i < HeaderNT->FileHeader.NumberOfSections; i++) {
@@ -571,6 +568,81 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
     }
 #endif
 
+    alignment = ALIGN32(diffDSDT);
+    printf(" * Patching header...\n");
+    printf("\tSizeOfInitialzedData: %X --> %X\n",
+           HeaderNT->OptionalHeader.SizeOfInitializedData,
+           HeaderNT->OptionalHeader.SizeOfInitializedData += alignment);
+    printf("\tSizeOfImage: %X --> %X\n",
+           HeaderNT->OptionalHeader.SizeOfImage,
+           HeaderNT->OptionalHeader.SizeOfImage += alignment);
+
+    printf(" * Patching directory entries...\n");
+    for ( i = 0; i < EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES ;i++) {
+
+        if(HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress == 0)
+            continue;
+
+        printf(" - DataDirectory %02X:\n", i);
+        printf("\tVirtualAddress: %X --> %X\n",
+               HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress,
+               HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress += alignment);
+    }
+
+    printf(" * Patching sections...\n");
+    for (i = 0 ; i < HeaderNT->FileHeader.NumberOfSections; i++) {
+
+        if (!strcmp((char *)&Section[i].Name, "")) // Give it a clear name
+            strcpy((char *)&Section[i].Name, EMPTY_SECTION);
+
+        printf(" - Section: %s\n", Section[i].Name);
+
+        if(!strcmp((char *)&Section[i].Name, DATA_SECTION)) {
+            /* DSDT blob starts in .data section */
+            printf("\tSizeOfRawData: %X --> %X\n",
+                   Section[i].SizeOfRawData,
+                   Section[i].SizeOfRawData += alignment);
+        }
+        else if(!strcmp((char *)&Section[i].Name, EMPTY_SECTION)) {
+            /* .empty section is after .data -> needs patching */
+            printf("\tVirtualAddress: %X --> %X\n",
+                   Section[i].VirtualAddress,
+                   Section[i].VirtualAddress += alignment);
+            printf("\tPointerToRawData: %X --> %X\n",
+                   Section[i].PointerToRawData,
+                   Section[i].PointerToRawData += alignment);
+        }
+        else if(!strcmp((char *)&Section[i].Name, RELOC_SECTION)) {
+            /* .reloc section is after .data -> needs patching */
+            printf("\tVirtualAddress: %X --> %X\n",
+                   Section[i].VirtualAddress,
+                   Section[i].VirtualAddress += alignment);
+            printf("\tPointerToRawData: %X --> %X\n",
+                   Section[i].PointerToRawData,
+                   Section[i].PointerToRawData += alignment);
+        }
+        else
+            printf("\tNothing to do here...\n");
+    }
+
+#if 1
+    printf("\n\nOriginal AmiBoardInfo Sz: %X\n", amiboardbuf.size());
+    printf("DSDT is located @ %X\n", offset);
+    printf("Old DSDT Sz: %X\n", oldDSDTsize);
+    printf("New DSDT Sz: %X\n", newDSDTsize);
+    printf("Diff DSDT (old/new): %X - aligned: %X\n",diffDSDT, alignment);
+#endif
+
+    // Copying data *till* DSDT
+    out.append(amiboardbuf.constData(),offset);
+    // Copy new DSDT
+    out.append(dsdtbuf.constData(), newDSDTsize);
+    // Pad the file
+    out.append(QByteArray((alignment-diffDSDT), '\x00'));
+    // Copy the rest
+    out.append(amiboardbuf.mid(offset+oldDSDTsize).constData(), (amiboardbuf.size()-(offset+oldDSDTsize)));
+
+    printf("New AmiBoardInfo Sz: %X - %X\n\n", (amiboardbuf.size()+alignment), out.size());
 
     return ERR_SUCCESS;
 }
