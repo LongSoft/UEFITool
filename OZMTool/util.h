@@ -31,8 +31,7 @@ UINT32 getUInt32(QByteArray & buf, UINT32 start, bool fromBE);
 /* Specific stuff */
 UINT8 getGUIDfromFile(QByteArray object, QString & name);
 UINT8 plistReadExecName(QByteArray plist, QString & name);
-UINT8 plistReadBundlenameAndVersion(QByteArray plist, QString & version);
-UINT8 plistWriteNewBasename(QByteArray plist, QString newName, QByteArray & out);
+UINT8 plistReadBundleVersion(QByteArray plist, QString & version);
 UINT8 checkAggressivityLevel(int aggressivity);
 UINT8 convertOzmPlist(QString input, QByteArray & out);
 UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & out);
