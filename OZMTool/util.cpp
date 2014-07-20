@@ -16,8 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDateTime>
 #include <QUuid>
 #include <qtplist/PListParser.h>
-#include "dsdt2bios/Dsdt2Bios.h"
 #include "../ffs.h"
+#include "../peimage.h"
 #include "util.h"
 
 /* General stuff */
@@ -386,6 +386,191 @@ UINT8 ffsCreate(QByteArray body, QString guid, QString sectionName, QByteArray &
     out.clear();
     out.append(header, sizeof(EFI_FFS_FILE_HEADER));
     out.append(fileBody);
+
+    return ERR_SUCCESS;
+}
+
+UINT8 extractDSDTfromAmiboardInfo(QByteArray amiboardbuf, QByteArray & out)
+{
+    INT32 offset;
+    UINT32 size = 0;
+    EFI_IMAGE_DOS_HEADER *HeaderDOS;
+
+    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboardbuf.data();
+
+    if (HeaderDOS->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
+        printf("Error: Invalid file, not AmiBoardInfo. Aborting!\n");
+        return ERR_INVALID_FILE;
+    }
+
+    offset = amiboardbuf.indexOf(DSDT_HEADER);
+    if(offset < 0) {
+        printf("ERROR: DSDT wasn't found in AmiBoardInfo");
+        return ERR_FILE_NOT_FOUND;
+    }
+
+    size = getUInt32(amiboardbuf, offset+DSDT_HEADER_SZ, TRUE);
+
+    if(size > (UINT32)(amiboardbuf.size()-offset)) {
+        printf("ERROR: Read invalid size from DSDT. Aborting!\n");
+        return ERR_INVALID_PARAMETER;
+    }
+
+    out.append(amiboardbuf.mid(offset, size));
+
+    return ERR_SUCCESS;
+}
+
+UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QByteArray & out)
+{
+    int i;
+    INT32 offset, diffDSDT;
+    UINT32 oldDSDTsize = 0, newDSDTsize;
+    EFI_IMAGE_DOS_HEADER *HeaderDOS;
+    EFI_IMAGE_NT_HEADERS64 *HeaderNT;
+    EFI_IMAGE_SECTION_HEADER *Section;
+    QByteArray patchedAmiBoard;
+
+    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboardbuf.data();
+
+    if (HeaderDOS->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
+        printf("Error: Invalid file, not AmiBoardInfo. Aborting!\n");
+        return ERR_INVALID_FILE;
+    }
+
+    offset = amiboardbuf.indexOf(DSDT_HEADER);
+    if(offset < 0) {
+        printf("ERROR: DSDT wasn't found in AmiBoardInfo");
+        return ERR_FILE_NOT_FOUND;
+    }
+
+    oldDSDTsize = getUInt32(amiboardbuf, offset+DSDT_HEADER_SZ, TRUE);
+
+    printf("amiboard Sz: %X\n", amiboardbuf.size());
+    printf("offset: %X\n", offset);
+    printf("oldDSDTSize: %X\n", oldDSDTsize);
+
+    if(oldDSDTsize > (UINT32)(amiboardbuf.size()-offset)) {
+        printf("ERROR: Read invalid size from DSDT. Aborting!\n");
+        return ERR_INVALID_PARAMETER;
+    }
+
+    if(amiboardbuf.indexOf(UNPATCHABLE_SECTION) > 0) {
+        printf("ERROR: AmiBoardInfo contains '.ROM' section => unpatchable atm!\n");
+        return ERR_ERROR;
+    }
+
+    newDSDTsize = dsdtbuf.size();
+    diffDSDT = newDSDTsize - oldDSDTsize;
+
+    if(diffDSDT <= 0) {
+        printf("Info: New DSDT is not larger than old one, no need to patch anything :)\n");
+        QByteArray padbytes;
+        padbytes.fill(0, (diffDSDT * (-1))); // negative val -> positive
+        out.append(amiboardbuf.left(offset)); // Start of PE32
+        out.append(dsdtbuf); // new DSDT
+        out.append(padbytes); // padding to match old DSDT location
+        out.append(amiboardbuf.mid(offset+oldDSDTsize)); // rest of PE32
+        return ERR_SUCCESS;
+    }
+
+    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)amiboardbuf.mid(HeaderDOS->e_lfanew).data();
+
+#if 1
+    printf("*** IMAGE_FILE_HEADER ***\n");
+    printf(" \
+           Characteristics: %X\n \
+           Machine: %X\n \
+           Num Sections: %i\n \
+           Num Symbols: %i\n \
+           Ptr SymbolTable: %X\n \
+           Sz OptionalHeader: %X\n \
+           TimeStamp: %X\n\n",
+           HeaderNT->FileHeader.Characteristics,
+           HeaderNT->FileHeader.Machine,
+           HeaderNT->FileHeader.NumberOfSections,
+           HeaderNT->FileHeader.NumberOfSymbols,
+           HeaderNT->FileHeader.PointerToSymbolTable,
+           HeaderNT->FileHeader.SizeOfOptionalHeader,
+           HeaderNT->FileHeader.TimeDateStamp);
+
+    printf("*** IMAGE_OPTIONAL_HEADER64 ***\n");
+    printf(" \
+          Entrypoint Addr: %X\n \
+          Base of Code: %X\n \
+          Checksum: %X\n \
+          FileAlignment: %X\n \
+          ImageBase: %llX\n \
+          Magic: %X\n \
+          Num RVA and Sizes: %X\n \
+          SectionAlignment: %X\n \
+          SizeOfCode: %X\n \
+          SizeOfHeaders: %X\n \
+          SizeOfImage: %X\n \
+          SizeOfInitializedData: %X\n \
+          SizeOfUninitializedData: %X\n\n",
+          HeaderNT->OptionalHeader.AddressOfEntryPoint,
+          HeaderNT->OptionalHeader.BaseOfCode,
+          HeaderNT->OptionalHeader.CheckSum,
+          HeaderNT->OptionalHeader.FileAlignment,
+          HeaderNT->OptionalHeader.ImageBase,
+          HeaderNT->OptionalHeader.Magic,
+          HeaderNT->OptionalHeader.NumberOfRvaAndSizes,
+          HeaderNT->OptionalHeader.SectionAlignment,
+          HeaderNT->OptionalHeader.SizeOfCode,
+          HeaderNT->OptionalHeader.SizeOfHeaders,
+          HeaderNT->OptionalHeader.SizeOfImage,
+          HeaderNT->OptionalHeader.SizeOfInitializedData,
+          HeaderNT->OptionalHeader.SizeOfUninitializedData);
+
+    printf("*** Data Directories ***\n");
+
+    for ( i = 0; i < EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES ;i++) {
+
+        if(HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress == 0)
+            continue;
+
+        printf("DataDirectory %02X\n \
+               VirtualAddress: %x\n \
+               Size:           %x\n\n",
+               i,
+               HeaderNT->OptionalHeader.DataDirectory[i].VirtualAddress,
+               HeaderNT->OptionalHeader.DataDirectory[i].Size);
+    }
+
+    UINT32 sectionsStart = HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64);
+    Section = (EFI_IMAGE_SECTION_HEADER *)amiboardbuf.mid(sectionsStart).data();
+
+    printf("*** Sections ***\n");
+
+    for (i = 0 ; i < HeaderNT->FileHeader.NumberOfSections; i++) {
+        printf("Section %02X\n \
+               Name: %s\n \
+               Characteristics: %X\n \
+               Num LineNumbers: %X\n \
+               Num Relocations: %X\n \
+               Ptr LineNumbers: %X\n \
+               Ptr RawData:     %X\n \
+               Ptr Relocations: %X\n \
+               Sz RawData:      %X\n \
+               VirtualAddress:  %X\n \
+               Misc PhysAddress:%X\n \
+               Misc VirtualSize:%X\n",
+               i,
+               Section[i].Name,
+               Section[i].Characteristics,
+               Section[i].NumberOfLinenumbers,
+               Section[i].NumberOfRelocations,
+               Section[i].PointerToLinenumbers,
+               Section[i].PointerToRawData,
+               Section[i].PointerToRelocations,
+               Section[i].SizeOfRawData,
+               Section[i].VirtualAddress,
+               Section[i].Misc.PhysicalAddress,
+               Section[i].Misc.VirtualSize);
+    }
+#endif
+
 
     return ERR_SUCCESS;
 }

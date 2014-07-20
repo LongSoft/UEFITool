@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <QString>
+#include "../peimage.h"
 
 #define ERR_DIR_NOT_EXIST                   0xEB
 #define ERR_FILE_NOT_FOUND                  0xEC
@@ -9,6 +10,11 @@
 #define ERR_REPLACE                         0xEE
 #define ERR_RELOCATION                      0xEF
 #define ERR_ERROR                           0xF0
+
+#define DSDT_HEADER "DSDT"
+#define DSDT_HEADER_SZ 4
+
+#define UNPATCHABLE_SECTION ".ROM"
 
 #define RUN_AS_IS           0
 #define RUN_DELETE          1
@@ -20,6 +26,18 @@
 const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
 static const QString DSDTFilename =  "DSDT.aml";
 const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275";
+
+///
+/// @attention
+/// EFI_IMAGE_HEADERS64 is for use ONLY by tools.
+///
+typedef struct {
+  UINT32                      Signature;
+  EFI_IMAGE_FILE_HEADER       FileHeader;
+  EFI_IMAGE_OPTIONAL_HEADER64 OptionalHeader;
+} EFI_IMAGE_NT_HEADERS64;
+
+#define EFI_IMAGE_SIZEOF_NT_OPTIONAL64_HEADER sizeof (EFI_IMAGE_NT_HEADERS64)
 
 struct sectionEntry {
     QString name;

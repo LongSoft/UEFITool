@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffsutil.h"
 #include "util.h"
 #include "common.h"
-#include "dsdt2bios/Dsdt2Bios.h"
 
 FFSUtil::FFSUtil(void)
 {
@@ -227,11 +226,8 @@ UINT8 FFSUtil::parseBIOSFile(QByteArray & buf)
 UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
 {
     UINT8 ret;
-    UINT32 offset, size, reloc_padding;
     QModelIndex amiSectionIdx;
     QByteArray amiboard, patchedAmiboard;
-
-    Dsdt2Bios *d2b = new Dsdt2Bios();
 
     if(!dsdt.startsWith("DSDT")) {
         printf("ERROR: Input DSDT doesn't contain valid header!\n");
@@ -251,20 +247,10 @@ UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
         return ret;
     }
 
-    printf("* Dumped AmiBoardInfo from BIOS\n");
+    printf("* Dumped AmiBoardInfo from BIOS...\n");
+    printf("* Injecting DSDT into AmiBoardInfo...\n");
 
-    ret = d2b->getDSDTFromAmi(amiboard, offset, size);
-    if(ret) {
-        printf("ERROR: Failed to get DSDT offset and size from AmiBoardInfo!\n");
-        return ret;
-    }
-
-    ret = d2b->injectDSDTIntoAmi(amiboard, dsdt, offset, size, patchedAmiboard, reloc_padding);
-    if(ret == ERR_RELOCATION && (reloc_padding != 0)) {
-        /* Re-running with other reloc_padding */
-        ret = d2b->injectDSDTIntoAmi(amiboard, dsdt, offset, size, patchedAmiboard, reloc_padding);
-    }
-
+    ret = injectDSDTintoAmiboardInfo(amiboard, dsdt, patchedAmiboard);
     if (ret){
         printf("ERROR: Failed to patch DSDT into AmiBoardInfo!\n");
         return ret;

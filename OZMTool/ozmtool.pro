@@ -58,6 +58,7 @@ HEADERS  += ozmtool.h \
  ../ffsengine.h \
  ../treeitem.h \
  ../treemodel.h \
+ ../peimage.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
  ../Tiano/EfiTianoDecompress.h \

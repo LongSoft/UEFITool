@@ -46,10 +46,8 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
     UINT8 ret;
     QString outputFile;
     QByteArray buf, dsdtbuf;
-    UINT32 start, size;
 
     FFSUtil *fu = new FFSUtil();
-    Dsdt2Bios d2b;
 
     ret = dirCreate(outputdir);
     if (ret == ERR_DIR_CREATE) {
@@ -78,8 +76,8 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
         return ret;
     }
 
-    printf("* Extracting DSDT from AmiBoardInfo...\n");
-    ret = d2b.getDSDTFromAmi(buf, start, size);
+    printf("* Extracting DSDT from AmiBoardInfo...\n");    
+    ret = extractDSDTfromAmiboardInfo(buf, dsdtbuf);
     if(ret) {
         printf("ERROR: Extracting DSDT from AmiBoardInfo failed!\n");
         return ret;
@@ -95,9 +93,6 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
     }
 
     outputFile = pathConcatenate(outputdir, DSDTFilename);
-
-    /* Safety - sometimes it needs 1 byte more, different from header description! */
-    dsdtbuf = buf.mid(start, size + 1);
 
     ret = fileWrite(outputFile, dsdtbuf);
     if (ret) {
@@ -703,20 +698,9 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
 UINT8 OZMTool::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outputfile)
 {
     UINT8 ret;
-    UINT32 reloc_padding;
-    UINT32 offset, size;
     QByteArray amiboardinfo;
     QByteArray dsdt;
     QByteArray out;
-
-    Dsdt2Bios *d2b = new Dsdt2Bios();
-
-    reloc_padding = 0;
-
-    if (fileExists(outputfile)) {
-        printf("ERROR: Output file already exists!\n");
-        return ERR_FILE_EXISTS;
-    }
 
     ret = fileOpen(inputfile, amiboardinfo);
     if (ret) {
@@ -730,20 +714,7 @@ UINT8 OZMTool::DSDT2Bios(QString inputfile, QString inputDSDTfile, QString outpu
         return ret;
     }
 
-    printf("Attempting to patch DSDT into AmiBoardInfo\n");
-
-    ret = d2b->getDSDTFromAmi(amiboardinfo, offset, size);
-    if(ret) {
-        printf("ERROR: Failed to get DSDT offset and size from AmiBoardInfo!\n");
-        return ret;
-    }
-
-    ret = d2b->injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
-    if(ret == ERR_RELOCATION && (reloc_padding != 0)) {
-        /* Re-running with other reloc_padding */
-        ret = d2b->injectDSDTIntoAmi(amiboardinfo, dsdt, offset, size, out, reloc_padding);
-    }
-
+    ret = injectDSDTintoAmiboardInfo(amiboardinfo, dsdt, out);
     if (ret) {
         printf("ERROR: Failed to patch AmiBoardInfo with new DSDT!\n");
         return ret;
