@@ -416,7 +416,7 @@ UINT8 extractDSDTfromAmiboardInfo(QByteArray amiboardbuf, QByteArray & out)
         return ERR_INVALID_PARAMETER;
     }
 
-    out.append(amiboardbuf.mid(offset, size));
+    out.append(amiboardbuf.mid(offset, size + 1));
 
     return ERR_SUCCESS;
 }
