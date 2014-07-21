@@ -425,11 +425,19 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 {
     int i;
     INT32 offset, diffDSDT;
+
     UINT32 relocStart, relocSize;
+    int physEntries, logicalEntries;
+    UINT32 index;
+    UINT32 dataLeft;
+    UINT32 baseRelocAddr;
+
     UINT32 oldDSDTsize, newDSDTsize, sectionsStart, alignment;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     EFI_IMAGE_NT_HEADERS64 *HeaderNT;
     EFI_IMAGE_SECTION_HEADER *Section;
+    EFI_IMAGE_BASE_RELOCATION *BASE_RELOCATION;
+    RELOC_ENTRY *RELOCATION_ENTRIES;
 
     const static char *DATA_SECTION = ".data";
     const static char *EMPTY_SECTION = ".empty";
@@ -477,7 +485,9 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
     sectionsStart = HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64);
     Section = (EFI_IMAGE_SECTION_HEADER *)amiboardbuf.mid(sectionsStart).constData();
 
-#if 1
+    relocStart = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+    relocSize = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+
     printf("*** IMAGE_FILE_HEADER ***\n");
     printf(" \
            Characteristics: %X\n \
@@ -568,31 +578,40 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
                Section[i].Misc.VirtualSize);
     }
 
-    relocStart = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
-    relocSize = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+    if(relocStart > 0) {
+        index = 0;
+        dataLeft = relocSize;
+        baseRelocAddr = relocStart;
 
-    EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(relocStart, EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
-    RELOC_ENTRY *RELOC_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(relocStart+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
-    int entries = (BASE_RELOC->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
-    printf(" - Base Relocation:\n");
-    printf(" \
-           VirtualAddress: %X\n \
-           SizeOfBlock: %X\n \
-           Entry Count: %X\n",
-           BASE_RELOC->VirtualAddress,
-           BASE_RELOC->SizeOfBlock,
-           entries);
+        while(dataLeft > 0) {
+            BASE_RELOCATION = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(baseRelocAddr, EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
+            physEntries = (BASE_RELOCATION->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
+            logicalEntries = physEntries - 1; // physEntries needed to calc next Base Relocation Table offset
+            RELOCATION_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(baseRelocAddr+EFI_IMAGE_SIZEOF_BASE_RELOCATION, logicalEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY).constData();
 
-    printf(" - Relocation Entries:\n");
-    for(int j=0; j<entries; j++)
-        printf(" \
-               Relocation %X\n \
-               Offset: %X\n \
-               Type: %X\n",
-               j,
-               RELOC_ENTRIES[j].offset,
-               RELOC_ENTRIES[j].type);
-#endif
+            printf("\n - Relocation Table %X:\n", index);
+            printf(" \
+                   VirtualAddress: %X\n \
+                   SizeOfBlock: %X\n \
+                   Entry Count: %X\n\n",
+                   BASE_RELOCATION->VirtualAddress,
+                   BASE_RELOCATION->SizeOfBlock,
+                   logicalEntries);
+
+            for(int j=0; j<logicalEntries; j++)
+                printf(" \
+                       Relocation %X\n \
+                       Offset: %X\n \
+                       Type: %X\n\n",
+                       j,
+                       RELOCATION_ENTRIES[j].offset,
+                       RELOCATION_ENTRIES[j].type);
+
+            baseRelocAddr += EFI_IMAGE_SIZEOF_BASE_RELOCATION + (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY);
+            dataLeft -= (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY) + EFI_IMAGE_SIZEOF_BASE_RELOCATION;
+            index++;
+        }
+    }
 
     alignment = ALIGN32(diffDSDT);
     printf(" * Patching header...\n");
@@ -651,13 +670,43 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
             printf("\tNothing to do here...\n");
     }
 
-#if 1
+    if(relocStart > 0) {
+        printf(" * Patching actual relocations...\n");
+        index = 0;
+        dataLeft = relocSize;
+        baseRelocAddr = relocStart;
+        while(dataLeft > 0) {
+            BASE_RELOCATION = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(baseRelocAddr, EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
+            physEntries = (BASE_RELOCATION->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
+            logicalEntries = physEntries - 1; // physEntries needed to calc next Base Relocation Table offset
+            RELOCATION_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(baseRelocAddr+EFI_IMAGE_SIZEOF_BASE_RELOCATION, logicalEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY).constData();
+
+            baseRelocAddr += EFI_IMAGE_SIZEOF_BASE_RELOCATION + (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY);
+            dataLeft -= (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY) + EFI_IMAGE_SIZEOF_BASE_RELOCATION;
+            index++;
+
+            printf("\n - Relocation Table %X:\n", index);
+
+            if(BASE_RELOCATION->VirtualAddress < (UINT32)offset) {
+                printf("\n\tNothing to do here - VirtualAddress < DSDTOffset (%X < %X)\n",
+                                BASE_RELOCATION->VirtualAddress, offset);
+                continue;
+            }
+
+            for(int j=0; j<logicalEntries; j++) {
+                printf(" - Relocation: %X\n", j);
+                printf("\tOffset: %X --> %X\n\n",
+                       RELOCATION_ENTRIES[j].offset,
+                       RELOCATION_ENTRIES[j].offset += alignment);
+            }
+        }
+    }
+
     printf("\n\nOriginal AmiBoardInfo Sz: %X\n", amiboardbuf.size());
     printf("DSDT is located @ %X\n", offset);
     printf("Old DSDT Sz: %X\n", oldDSDTsize);
     printf("New DSDT Sz: %X\n", newDSDTsize);
     printf("Diff DSDT (old/new): %X - aligned: %X\n",diffDSDT, alignment);
-#endif
 
     /* ToDo: Clean up the following mess ? Maybe.. */
 
