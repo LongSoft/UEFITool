@@ -568,30 +568,28 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
         if(!strcmp((char *)&Section[i].Name, RELOC_SECTION)) {
             UINT32 start = Section[i].PointerToRawData;
-            UINT32 sz = Section[i].SizeOfRawData;
             EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(start).constData();
-            EFI_IMAGE_RELOCATION *RELOC_ENTRIES = (EFI_IMAGE_RELOCATION*)amiboardbuf.mid(start+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
+            RELOC_ENTRY *RELOC_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(start+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
+            // Seems like SizeOfBlock neews bswap?!
             int entries = (BASE_RELOC->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
             printf(" - Base Relocation:\n");
             printf(" \
-                   VirtualAddress: %04X\n \
-                   SizeOfBlock: %04X\n \
-                   Entries: %02X\n",
+                   VirtualAddress: %X\n \
+                   SizeOfBlock: %X\n \
+                   Entry Count: %X\n",
                    BASE_RELOC->VirtualAddress,
                    BASE_RELOC->SizeOfBlock,
                    entries);
 
             printf(" - Relocation Entries:\n");
-            for(int j=0; j<2; j++) {
+            for(int j=0; j<entries; j++) {
                 printf(" \
-                       Relocation %02X\n \
-                       VirtualAddress: %X\n \
-                       SymbolTableIndex: %X\n \
+                       Relocation %X\n \
+                       Offset: %X\n \
                        Type: %X\n",
                        j,
-                       RELOC_ENTRIES[j].VirtualAddress,
-                       RELOC_ENTRIES[j].SymbolTableIndex,
-                       RELOC_ENTRIES[j].Type);
+                       RELOC_ENTRIES[j].offset,
+                       RELOC_ENTRIES[j].type);
             }
         }
     }
