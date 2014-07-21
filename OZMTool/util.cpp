@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDateTime>
 #include <QUuid>
 #include <qtplist/PListParser.h>
+#include <distorm.h>
 #include "../ffs.h"
 #include "../peimage.h"
 #include "util.h"
@@ -700,6 +701,52 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
                        RELOCATION_ENTRIES[j].offset += alignment);
             }
         }
+    }
+
+    printf(" * Patching addresses in code\n");
+
+    const static UINT32 MAX_INSTRUCTIONS = 1000;
+    _DInst decomposed[MAX_INSTRUCTIONS];
+    _DecodedInst disassembled[MAX_INSTRUCTIONS];
+    _DecodeResult res, res2;
+    _CodeInfo ci = {0};
+    unsigned int decomposedInstructionsCount = 0;
+    unsigned int decodedInstructionsCount = 0;
+    ci.code = (const unsigned char*)amiboardbuf.constData();
+    ci.codeOffset = HeaderNT->OptionalHeader.BaseOfCode;
+    ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode;
+    ci.dt = Decode64Bits;
+
+    /* Actual disassembly */
+    res = distorm_decode(HeaderNT->OptionalHeader.BaseOfCode,
+                   (const unsigned char*)amiboardbuf.constData(),
+                   HeaderNT->OptionalHeader.SizeOfCode,
+                   Decode64Bits,
+                   disassembled,
+                   MAX_INSTRUCTIONS,
+                   &decomposedInstructionsCount);
+
+    /* Decompose for human-readable output */
+    res2 = distorm_decompose(&ci,
+                    decomposed,
+                    MAX_INSTRUCTIONS,
+                    &decodedInstructionsCount);
+
+    if(decodedInstructionsCount != decomposedInstructionsCount) {
+        printf("ERROR: decompose / decode mismatch! Aborting!\n");
+        return ERR_ERROR;
+    }
+
+    for (int i = 0; i < decodedInstructionsCount; i++) {
+
+        if((decomposed[i].disp < 0x900)||decomposed[i].disp > (0x3FFFF & 0xFF000))
+            continue;
+
+        printf("%s%s%s --> 0x%llx\r\n",
+               (char*)disassembled[i].mnemonic.p,
+               disassembled[i].operands.length != 0 ? " " : "",
+               (char*)disassembled[i].operands.p,
+               decomposed[i].disp += alignment);
     }
 
     printf("\n\nOriginal AmiBoardInfo Sz: %X\n", amiboardbuf.size());

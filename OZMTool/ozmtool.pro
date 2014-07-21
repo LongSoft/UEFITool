@@ -10,9 +10,20 @@ CONFIG   += console
 CONFIG -= app_bundle
 DEFINES  += _CONSOLE
 
+INCLUDEPATH += distorm/include
+
 SOURCES  += ozmtool_main.cpp \
  ozmtool.cpp \
  qtplist/PListParser.cpp \
+ distorm/decoder.c \
+ distorm/distorm.c \
+ distorm/instructions.c \
+ distorm/insts.c \
+ distorm/mnemonics.c \
+ distorm/operands.c \
+ distorm/prefix.c \
+ distorm/textdefs.c \
+ distorm/wstring.c \
  ../types.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
@@ -32,6 +43,8 @@ SOURCES  += ozmtool_main.cpp \
 
 HEADERS  += ozmtool.h \
    qtplist/PListParser.h \
+   distorm/decoder.h \
+   distorm/config.h \
  ../basetypes.h \
  ../descriptor.h \
  ../gbe.h \
