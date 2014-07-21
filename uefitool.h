@@ -16,6 +16,7 @@
 
 #include <QMainWindow>
 #include <QByteArray>
+#include <QClipboard>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
@@ -54,7 +55,6 @@ public:
 private slots:
     void init();
     void populateUi(const QModelIndex &current);
-    //void resizeTreeViewColumns();
     void scrollTreeView(QListWidgetItem* item);
 
     void openImageFile();
@@ -78,8 +78,10 @@ private slots:
     
     void remove();
 
+    void copyMessage();
+    void enableMessagesCopyAction(QListWidgetItem* item);
     void clearMessages();
-
+    
     void about();
     void aboutQt();
 
@@ -90,8 +92,9 @@ private:
     Ui::UEFITool* ui;
     FfsEngine* ffsEngine;
     SearchDialog* searchDialog;
-
+    QClipboard* clipboard;
     QQueue<MessageListItem> messageItems;
+
     void showMessages();
     
     void dragEnterEvent(QDragEnterEvent* event);

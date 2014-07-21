@@ -15,13 +15,34 @@
 
 SearchDialog::SearchDialog(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::SearchDialog)
+    ui(new Ui::SearchDialog), 
+    hexValidator(QRegExp("([0-9a-fA-F\\.])*")), 
+    guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))
 {
     // Create UI
     ui->setupUi(this);
+    ui->hexEdit->setValidator(&hexValidator);
+    ui->guidEdit->setValidator(&guidValidator);
+
+    // Connect
+    connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(setEditFocus(int)));
+
+    // Set initial focus
+    setEditFocus(ui->tabWidget->currentIndex());
 }
 
 SearchDialog::~SearchDialog()
 {
     delete ui;
 }
+
+void SearchDialog::setEditFocus(int index)
+{
+    if (index == 0) // Hex pattern
+        ui->hexEdit->setFocus();
+    else if (index == 1) // GUID
+        ui->guidEdit->setFocus();
+    else if (index == 2) // Text
+        ui->textEdit->setFocus();
+}
+

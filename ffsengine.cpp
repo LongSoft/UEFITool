@@ -2961,9 +2961,9 @@ UINT8 FfsEngine::reconstructImageFile(QByteArray & reconstructed)
 }
 
 // Search routines
-UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & pattern, const UINT8 mode)
+UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode)
 {
-    if (pattern.isEmpty())
+    if (hexPattern.isEmpty())
         return ERR_INVALID_PARAMETER;
 
     if (!index.isValid())
@@ -2971,7 +2971,7 @@ UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & pa
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findHexPattern(index.child(i, index.column()), pattern, mode);
+        findHexPattern(index.child(i, index.column()), hexPattern, mode);
     }
 
     QByteArray data;
@@ -2988,13 +2988,93 @@ UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & pa
             data.append(model->header(index)).append(model->body(index)).append(model->tail(index));
     }
 
-    int offset = -1;
-    while ((offset = data.indexOf(pattern, offset + 1)) >= 0) {
-        msg(tr("Hex pattern \"%1\" found in %2 at offset %3")
-            .arg(QString(pattern.toHex()))
-            .arg(model->nameString(index))
-            .arg(offset, 8, 16, QChar('0')),
-            index);
+    // Check for "all substrings" pattern
+    if (hexPattern.count('.') == hexPattern.length())
+        return ERR_SUCCESS;
+
+    QString hexBody = QString(data.toHex());
+    QRegExp regexp = QRegExp(QString(hexPattern), Qt::CaseInsensitive);
+    INT32 offset = regexp.indexIn(hexBody);
+    while (offset >= 0) {
+        if (offset % 2 == 0) {
+            msg(tr("Hex pattern \"%1\" found as \"%2\" in %3 at %4-offset %5")
+                .arg(QString(hexPattern))
+                .arg(hexBody.mid(offset, hexPattern.length()))
+                .arg(model->nameString(index))
+                .arg(mode == SEARCH_MODE_BODY ? tr("body") : tr("header"))
+                .arg(offset/2, 8, 16, QChar('0')),
+                index);
+        }
+        offset = regexp.indexIn(hexBody, offset + 1);
+    }
+
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode)
+{
+    if (guidPattern.isEmpty())
+        return ERR_INVALID_PARAMETER;
+
+    if (!index.isValid())
+        return ERR_SUCCESS;
+
+    bool hasChildren = (model->rowCount(index) > 0);
+    for (int i = 0; i < model->rowCount(index); i++) {
+        findGuidPattern(index.child(i, index.column()), guidPattern, mode);
+    }
+
+    QByteArray data;
+    if (hasChildren) {
+        if (mode != SEARCH_MODE_BODY)
+            data = model->header(index);
+    }
+    else {
+        if (mode == SEARCH_MODE_HEADER)
+            data.append(model->header(index)).append(model->tail(index));
+        else if (mode == SEARCH_MODE_BODY)
+            data.append(model->body(index));
+        else
+            data.append(model->header(index)).append(model->body(index)).append(model->tail(index));
+    }
+
+    QString hexBody = QString(data.toHex());
+    QList<QByteArray> list = guidPattern.split('-');
+    if (list.count() != 5)
+        return ERR_INVALID_PARAMETER;
+    
+    QByteArray hexPattern;
+    // Reverse first GUID block
+    hexPattern.append(list.at(0).mid(6, 2));
+    hexPattern.append(list.at(0).mid(4, 2));
+    hexPattern.append(list.at(0).mid(2, 2));
+    hexPattern.append(list.at(0).mid(0, 2));
+    // Reverse second GUID block
+    hexPattern.append(list.at(1).mid(2, 2));
+    hexPattern.append(list.at(1).mid(0, 2));
+    // Reverse third GUID block
+    hexPattern.append(list.at(2).mid(2, 2));
+    hexPattern.append(list.at(2).mid(0, 2));
+    // Append fourth and fifth GUID blocks as is
+    hexPattern.append(list.at(3)).append(list.at(4));
+
+    // Check for "all substrings" pattern
+    if (hexPattern.count('.') == hexPattern.length())
+        return ERR_SUCCESS;
+
+    QRegExp regexp = QRegExp(QString(hexPattern), Qt::CaseInsensitive);
+    INT32 offset = regexp.indexIn(hexBody);
+    while (offset >= 0) {
+        if (offset % 2 == 0) {
+            msg(tr("GUID pattern \"%1\" found as \"%2\" in %3 at %4-offset %5")
+                .arg(QString(guidPattern))
+                .arg(hexBody.mid(offset, hexPattern.length()))
+                .arg(model->nameString(index))
+                .arg(mode == SEARCH_MODE_BODY ? tr("body") : tr("header"))
+                .arg(offset / 2, 8, 16, QChar('0')),
+                index);
+        }
+        offset = regexp.indexIn(hexBody, offset + 1);
     }
 
     return ERR_SUCCESS;
@@ -3480,7 +3560,7 @@ UINT8 FfsEngine::patchViaOffset(QByteArray & data, const UINT32 offset, const QB
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::patchViaPattern(QByteArray & data, const QByteArray hexFindPattern, const QByteArray & hexReplacePattern)
+UINT8 FfsEngine::patchViaPattern(QByteArray & data, const QByteArray & hexFindPattern, const QByteArray & hexReplacePattern)
 {
     QByteArray body = data;
 
@@ -3491,7 +3571,7 @@ UINT8 FfsEngine::patchViaPattern(QByteArray & data, const QByteArray hexFindPatt
     // Convert file body to hex;
     QString hexBody = QString(body.toHex());
     QRegExp regexp = QRegExp(QString(hexFindPattern), Qt::CaseInsensitive);
-    INT64 offset = regexp.indexIn(hexBody);
+    INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {
             UINT8 result = patchViaOffset(body, offset/2, hexReplacePattern);
