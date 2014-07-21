@@ -26,6 +26,8 @@
 #define ALIGN16(Value) (((Value)+15) & ~15)
 #define ALIGN32(Value) (((Value)+31) & ~31)
 
+#define MAX_DSDT    0x3FFFF
+
 const static QString ozmDefaultsFilename = "OzmosisDefaults.plist";
 static const QString DSDTFilename =  "DSDT.aml";
 const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275";

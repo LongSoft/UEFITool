@@ -705,7 +705,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
     printf(" * Patching addresses in code\n");
 
-    UINT32 noIdeaWhyOverheadNeeded = 0x80; // <--- WHAT IT SAYS ?!?
+    UINT32 noIdeaWhyOverheadNeeded = 0x80; // <--- ToDo: FIXME
     const static UINT32 MAX_INSTRUCTIONS = 1000;
     _DInst decomposed[MAX_INSTRUCTIONS];
     _DecodedInst disassembled[MAX_INSTRUCTIONS];
@@ -741,7 +741,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
     for (int i = 0; i < decodedInstructionsCount; i++) {
 
-        if((decomposed[i].disp < 0x900)||decomposed[i].disp > (0x3FFFF & 0xFF000))
+        if((decomposed[i].disp < (UINT64)offset)||decomposed[i].disp > (MAX_DSDT & 0xFF000))
             continue;
 
         printf("%s%s%s --> 0x%llx\r\n",
@@ -751,6 +751,8 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
                decomposed[i].disp += alignment);
     }
 
+    /* ToDo: Assemble patched code */
+
     printf("\n\nOriginal AmiBoardInfo Sz: %X\n", amiboardbuf.size());
     printf("DSDT is located @ %X\n", offset);
     printf("Old DSDT Sz: %X\n", oldDSDTsize);
@@ -758,6 +760,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
     printf("Diff DSDT (old/new): %X - aligned: %X\n",diffDSDT, alignment);
 
     /* ToDo: Clean up the following mess ? Maybe.. */
+    /* ToDo: Stuff new RELOCATION Section + patched .DATA Section in outputfile */
 
     /* Copy unmodified DOSHeader, modded NTHeader & modded SectionHeader */
     out.append(amiboardbuf.constData(), HeaderDOS->e_lfanew);
