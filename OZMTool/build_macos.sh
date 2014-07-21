@@ -10,6 +10,7 @@ QMAKE=qmake
 MAKE=make
 CONFIG_OPTION=release
 OS_ID=osx
+PACKER=upx
 
 VERSION=`${GIT} describe`
 VERSION_HEADER=${BASE_DIR}/version.h
@@ -41,6 +42,7 @@ cp ${BASE_DIR}/README ${RELEASE_DIR}
 
 echo "Packing it up..."
 cd ${RELEASE_DIR}
+${PACKER} -9 ${EXEC_NAME}
 zip -r ${BASE_DIR}/${EXEC_NAME}_${VERSION}_${OS_ID}.zip *
 
 echo "Reverting version.h"
