@@ -571,7 +571,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
     relocStart = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
     relocSize = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
 
-    EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(relocStart).constData();
+    EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(relocStart, EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
     RELOC_ENTRY *RELOC_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(relocStart+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
     // Seems like SizeOfBlock neews bswap?!
     int entries = (BASE_RELOC->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
