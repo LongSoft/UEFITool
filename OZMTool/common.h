@@ -35,12 +35,19 @@ const static QString kextGUID = "DADE100%1-1B31-4FE4-8557-26FCEFC78275";
 /// EFI_IMAGE_HEADERS64 is for use ONLY by tools.
 ///
 typedef struct {
-  UINT32                      Signature;
-  EFI_IMAGE_FILE_HEADER       FileHeader;
-  EFI_IMAGE_OPTIONAL_HEADER64 OptionalHeader;
+    UINT32                      Signature;
+    EFI_IMAGE_FILE_HEADER       FileHeader;
+    EFI_IMAGE_OPTIONAL_HEADER64 OptionalHeader;
 } EFI_IMAGE_NT_HEADERS64;
 
 #define EFI_IMAGE_SIZEOF_NT_OPTIONAL64_HEADER sizeof (EFI_IMAGE_NT_HEADERS64)
+
+typedef struct {
+    UINT16 offset: 12;
+    UINT16 type:4;
+} RELOC_ENTRY;
+
+#define EFI_IMAGE_SIZEOF_RELOC_ENTRY sizeof (RELOC_ENTRY)
 
 struct sectionEntry {
     QString name;
