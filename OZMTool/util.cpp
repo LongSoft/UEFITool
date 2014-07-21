@@ -685,17 +685,17 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
             dataLeft -= (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY) + EFI_IMAGE_SIZEOF_BASE_RELOCATION;
             index++;
 
-            printf("\n - Relocation Table %X:\n", index);
+            printf(" - Relocation Table %X:\n", index);
 
             if(BASE_RELOCATION->VirtualAddress < (UINT32)offset) {
-                printf("\n\tNothing to do here - VirtualAddress < DSDTOffset (%X < %X)\n",
+                printf("\tNothing to do here - VirtualAddress < DSDTOffset (%X < %X)\n",
                                 BASE_RELOCATION->VirtualAddress, offset);
                 continue;
             }
 
             for(int j=0; j<logicalEntries; j++) {
                 printf(" - Relocation: %X\n", j);
-                printf("\tOffset: %X --> %X\n\n",
+                printf("\tOffset: %X --> %X\n",
                        RELOCATION_ENTRIES[j].offset,
                        RELOCATION_ENTRIES[j].offset += alignment);
             }
