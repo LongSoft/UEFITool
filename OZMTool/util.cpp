@@ -425,6 +425,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 {
     int i;
     INT32 offset, diffDSDT;
+    UINT32 relocStart, relocSize;
     UINT32 oldDSDTsize, newDSDTsize, sectionsStart, alignment;
     EFI_IMAGE_DOS_HEADER *HeaderDOS;
     EFI_IMAGE_NT_HEADERS64 *HeaderNT;
@@ -565,34 +566,34 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
                Section[i].VirtualAddress,
                Section[i].Misc.PhysicalAddress,
                Section[i].Misc.VirtualSize);
-
-        if(!strcmp((char *)&Section[i].Name, RELOC_SECTION)) {
-            UINT32 start = Section[i].PointerToRawData;
-            EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(start).constData();
-            RELOC_ENTRY *RELOC_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(start+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
-            // Seems like SizeOfBlock neews bswap?!
-            int entries = (BASE_RELOC->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
-            printf(" - Base Relocation:\n");
-            printf(" \
-                   VirtualAddress: %X\n \
-                   SizeOfBlock: %X\n \
-                   Entry Count: %X\n",
-                   BASE_RELOC->VirtualAddress,
-                   BASE_RELOC->SizeOfBlock,
-                   entries);
-
-            printf(" - Relocation Entries:\n");
-            for(int j=0; j<entries; j++) {
-                printf(" \
-                       Relocation %X\n \
-                       Offset: %X\n \
-                       Type: %X\n",
-                       j,
-                       RELOC_ENTRIES[j].offset,
-                       RELOC_ENTRIES[j].type);
-            }
-        }
     }
+
+    relocStart = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+    relocSize = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+
+    EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(relocStart).constData();
+    RELOC_ENTRY *RELOC_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(relocStart+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
+    // Seems like SizeOfBlock neews bswap?!
+    int entries = (BASE_RELOC->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
+    printf(" - Base Relocation:\n");
+    printf(" \
+           VirtualAddress: %X\n \
+           SizeOfBlock: %X\n \
+           Entry Count: %X\n",
+           BASE_RELOC->VirtualAddress,
+           BASE_RELOC->SizeOfBlock,
+           entries);
+
+    printf(" - Relocation Entries:\n");
+    //for(int j=0; j<entries; j++)
+    for(int j=0; j<2; j++) // calculated entries-val is wrong
+        printf(" \
+               Relocation %X\n \
+               Offset: %X\n \
+               Type: %X\n",
+               j,
+               RELOC_ENTRIES[j].offset,
+               RELOC_ENTRIES[j].type);
 #endif
 
     alignment = ALIGN32(diffDSDT);
