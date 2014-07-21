@@ -705,22 +705,24 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
     printf(" * Patching addresses in code\n");
 
+    UINT32 noIdeaWhyOverheadNeeded = 0x80; // <--- WHAT IT SAYS ?!?
     const static UINT32 MAX_INSTRUCTIONS = 1000;
     _DInst decomposed[MAX_INSTRUCTIONS];
     _DecodedInst disassembled[MAX_INSTRUCTIONS];
     _DecodeResult res, res2;
     _CodeInfo ci = {0};
-    unsigned int decomposedInstructionsCount = 0;
-    unsigned int decodedInstructionsCount = 0;
     ci.code = (const unsigned char*)amiboardbuf.constData();
     ci.codeOffset = HeaderNT->OptionalHeader.BaseOfCode;
-    ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode;
+    ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode+noIdeaWhyOverheadNeeded;
     ci.dt = Decode64Bits;
 
+    UINT32 decomposedInstructionsCount = 0;
+    UINT32 decodedInstructionsCount = 0;
+
     /* Actual disassembly */
-    res = distorm_decode(HeaderNT->OptionalHeader.BaseOfCode,
-                   (const unsigned char*)amiboardbuf.constData(),
-                   HeaderNT->OptionalHeader.SizeOfCode,
+    res = distorm_decode(ci.codeOffset,
+                   ci.code,
+                   ci.codeLen,
                    Decode64Bits,
                    disassembled,
                    MAX_INSTRUCTIONS,
