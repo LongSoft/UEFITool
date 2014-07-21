@@ -573,7 +573,6 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
 
     EFI_IMAGE_BASE_RELOCATION *BASE_RELOC = (EFI_IMAGE_BASE_RELOCATION*) amiboardbuf.mid(relocStart, EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
     RELOC_ENTRY *RELOC_ENTRIES = (RELOC_ENTRY*)amiboardbuf.mid(relocStart+EFI_IMAGE_SIZEOF_BASE_RELOCATION).constData();
-    // Seems like SizeOfBlock neews bswap?!
     int entries = (BASE_RELOC->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
     printf(" - Base Relocation:\n");
     printf(" \
@@ -585,8 +584,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
            entries);
 
     printf(" - Relocation Entries:\n");
-    //for(int j=0; j<entries; j++)
-    for(int j=0; j<2; j++) // calculated entries-val is wrong
+    for(int j=0; j<entries; j++)
         printf(" \
                Relocation %X\n \
                Offset: %X\n \
