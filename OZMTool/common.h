@@ -4,6 +4,10 @@
 #include <QString>
 #include "../peimage.h"
 
+#if defined(_WIN32) || defined(_WIN64)  
+  #define strcasecmp _stricmp 
+#endif
+
 #define ERR_DIR_NOT_EXIST                   0xEB
 #define ERR_FILE_NOT_FOUND                  0xEC
 #define ERR_FILE_EXISTS                     0xED
