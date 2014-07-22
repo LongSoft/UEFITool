@@ -523,6 +523,9 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
 
         if(!strcmp((char *)&Section[i].Name, DATA_SECTION)) {
             /* DSDT blob starts in .data section */
+            printf("\tPhysicalAddress: %X --> %X\n",
+                   Section[i].Misc.PhysicalAddress,
+                   Section[i].Misc.PhysicalAddress += alignDiffDSDT);
             printf("\tSizeOfRawData: %X --> %X\n",
                    Section[i].SizeOfRawData,
                    Section[i].SizeOfRawData += alignDiffDSDT);
