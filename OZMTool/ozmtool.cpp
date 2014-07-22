@@ -675,7 +675,7 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
             return ERR_ERROR;
         }
 
-        filepath = pathConcatenate(outputdir, currKext.fileName() + ".ffs");
+        filepath = pathConcatenate(outputdir, currKext.baseName() + "Kext" + ".ffs");
         fileWrite(filepath, out);
         if(ret) {
             printf("ERROR: Saving '%s' failed!\n", qPrintable(filepath));
@@ -689,6 +689,7 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
             return ERR_ERROR;
         }
 
+        printf("* Created successfully!\n");
     }
 
     return ERR_SUCCESS;

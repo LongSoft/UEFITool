@@ -291,7 +291,7 @@ UINT8 FFSUtil::injectFile(QByteArray file)
 
     ret = findFileByGUID(rootIdx, guid, currIdx);
     if (ret) {
-        printf("* File [%s] not existant, inserting at the end of volume\n", qPrintable(guid));
+        printf("* File not existant, inserting at the end of volume\n");
         ret = insert(volIdx, file, CREATE_MODE_AFTER);
         if(ret) {
             printf("ERROR: Injection failed!\n");
@@ -300,7 +300,7 @@ UINT8 FFSUtil::injectFile(QByteArray file)
     }
     else {
         /* Found, replace at known index */
-        printf("* File [%s] is already present -> Replacing it!\n", qPrintable(guid));
+        printf("* File is already present -> Replacing it!\n");
         ret = replace(currIdx, file, REPLACE_MODE_AS_IS); // as-is for whole File
         if(ret) {
             printf("ERROR: Replacing failed!\n");
