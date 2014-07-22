@@ -562,15 +562,23 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
 
             baseRelocAddr += EFI_IMAGE_SIZEOF_BASE_RELOCATION + (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY);
             dataLeft -= (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY) + EFI_IMAGE_SIZEOF_BASE_RELOCATION;
-            index++;
+
 
             printf(" - Relocation Table %X:\n", index);
+            index++;
 
             if(BASE_RELOCATION->VirtualAddress < (UINT32)offset) {
                 printf("\tNothing to do here - VirtualAddress < DSDTOffset (%X < %X)\n",
                                 BASE_RELOCATION->VirtualAddress, offset);
                 continue;
             }
+
+            //Testing first relocation entry should be good..
+            UINT32 shiftBy = ((UINT32)RELOCATION_ENTRIES[0].offset + alignDiffDSDT) & 0xF000;
+
+            printf(" - VirtualAddress: %X --> %X\n",
+                    BASE_RELOCATION->VirtualAddress,
+                    BASE_RELOCATION->VirtualAddress += shiftBy);
 
             for(int j=0; j<logicalEntries; j++) {
                 printf(" - Relocation: %X\n", j);
