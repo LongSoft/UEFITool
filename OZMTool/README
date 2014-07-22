@@ -1,4 +1,4 @@
-OZMTool v0.1
+OZMTool v0.2
 --------------
 
 This program was created to make the process of creating an Ozmosis patched BIOS easier
@@ -73,21 +73,28 @@ USAGE
 
 SOURCE CODE / REPORTING ISSUES
 ---------
-Source Code: https://github.com/tuxuser/UEFITool / Branch: OZM
+Source Code: https://github.com/tuxuser/UEFITool / Branch: OZMTool
 Bugreports: https://github.com/tuxuser/UEFITool/issues
 
 
 CREDITS
 ---------
+- The Hermit Crabs Lab -> Ozmosis
 - CodeRush -> UEFITool & help & support
 - FredWst -> Kext2FFS and DSDT2Bios
-- HermitCrabLabs -> Ozmosis
+- Gil Dabah -> distorm
+- Reilly Watson -> qtplist
+- STLVNUB -> testing
+- Thomaso66 -> teaching the basics to me & testing
+- backdash -> testing
 - smx -> help & support
-- Thomaso66 -> teaching the basics to me
 
 
 CHANGELOG
 ---------
 
+24/07/2014 - v0.2
+- First public release
+
 ??/??/???? - v0.1
-- Initial release
+- Internal testing release
