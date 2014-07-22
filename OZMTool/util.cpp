@@ -579,20 +579,19 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
     }
 
     printf(" * Patching addresses in code\n");
-
-    UINT32 noIdeaWhyOverheadNeeded = 0x80; // <--- ToDo: FIXME
     const static UINT32 MAX_INSTRUCTIONS = 1000;
     _DInst decomposed[MAX_INSTRUCTIONS];
     _DecodedInst disassembled[MAX_INSTRUCTIONS];
     _DecodeResult res, res2;
     _CodeInfo ci = {0};
-    ci.code = (const unsigned char*)amiboardbuf.constData();
     ci.codeOffset = HeaderNT->OptionalHeader.BaseOfCode;
-    ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode+noIdeaWhyOverheadNeeded;
+    ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode;
+    ci.code = (const unsigned char*)amiboardbuf.mid(ci.codeOffset,ci.codeLen).constData();
     ci.dt = Decode64Bits;
 
     UINT32 decomposedInstructionsCount = 0;
     UINT32 decodedInstructionsCount = 0;
+    UINT32 patchCount = 0;
 
     /* Actual disassembly */
     res = distorm_decode(ci.codeOffset,
@@ -619,14 +618,28 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray amiboardbuf, QByteArray dsdtbuf, QBy
         if((decomposed[i].disp < (UINT64)offset)||decomposed[i].disp > (MAX_DSDT & 0xFF000))
             continue;
 
-        printf("%s%s%s --> 0x%llx\r\n",
+        UINT32 patchOffset = (decomposed[i].addr-ci.codeOffset)+3;
+        UINT32 *patchValue = (UINT32*)&ci.code[patchOffset];
+
+        printf("offset: %08X: %s%s%s ",
+               patchOffset,
                (char*)disassembled[i].mnemonic.p,
                disassembled[i].operands.length != 0 ? " " : "",
-               (char*)disassembled[i].operands.p,
-               decomposed[i].disp += alignment);
+               (char*)disassembled[i].operands.p);
+        printf("[%x] --> [%x]\n",
+               *patchValue,
+               *patchValue += alignment);
+        patchCount++;
     }
 
-    /* ToDo: Assemble patched code */
+    if(patchCount < 1){
+        printf("ERROR: Something went wrong, didn't patch anything...\n");
+        return ERR_ERROR;
+    }
+
+    printf("Patched %i instructions\n", patchCount);
+
+    amiboardbuf.replace(ci.codeOffset,ci.codeLen, (const char*)ci.code);
     /* ToDo: Clean up the following mess ? Maybe.. */
     /* ToDo: Stuff new RELOCATION Section + patched .DATA Section in outputfile */
 
