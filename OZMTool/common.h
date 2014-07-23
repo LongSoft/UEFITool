@@ -19,6 +19,7 @@
 #define DSDT_HEADER_SZ 4
 
 #define UNPATCHABLE_SECTION ".ROM"
+#define DYNAMIC_BASE        0x40
 
 #define RUN_AS_IS           0
 #define RUN_DELETE          1
