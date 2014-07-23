@@ -1,7 +1,7 @@
 set BASE_DIR=%cd%
 set BUILD_DIR=%BASE_DIR%\Win
 set RELEASE_DIR=%BUILD_DIR%\release
-set EXEC_NAME=OZMTool
+set EXEC_NAME=OZMTool.exe
 
 set GIT=git
 set QMAKE=qmake
@@ -32,9 +32,9 @@ copy %BASE_DIR%\README %RELEASE_DIR%
 echo "Packing it up..."
 cd %RELEASE_DIR%
 %PACKER% -9 %EXEC_NAME%
-%ZIP% a %BASE_DIR%\%EXEC_NAME%_%VERSION%_%OS_ID%.7z *
+%ZIP% a %BASE_DIR%\%EXEC_NAME%_%VERSION%_%OS_ID%.7z %EXEC_NAME% README
 
 echo "Reverting version.h"
 %GIT% checkout %VERSION_HEADER%
-
+cd %BASE_DIR%
 echo "Done!"

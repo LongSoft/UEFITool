@@ -5,7 +5,7 @@
 #include "../peimage.h"
 
 #if defined(_WIN32) || defined(_WIN64)  
-  #define strcasecmp _stricmp 
+  #define strcasecmp _stricmp
 #endif
 
 #define ERR_DIR_NOT_EXIST                   0xEB

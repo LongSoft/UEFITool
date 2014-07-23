@@ -41,9 +41,11 @@ typedef uint16_t  CHAR16;
 #define FALSE ((BOOLEAN)(0==1))
 #endif
 
+/* Will be fixed in next UEFITool
 #ifndef NULL
 #define NULL  ((VOID *) 0)
 #endif
+*/
 
 #define ERR_SUCCESS                         0
 #define ERR_INVALID_PARAMETER               1
