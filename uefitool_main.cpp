@@ -9,7 +9,7 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #include <QApplication>
 #include <QString>
@@ -26,6 +26,6 @@ int main(int argc, char *argv[])
     if (a.arguments().length() > 1)
         w.openImageFile(a.arguments().at(1));
     w.show();
-    
+
     return a.exec();
 }

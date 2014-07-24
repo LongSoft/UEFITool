@@ -41,10 +41,6 @@ typedef uint16_t  CHAR16;
 #define FALSE ((BOOLEAN)(0==1))
 #endif
 
-#ifndef NULL
-#define NULL  ((VOID *) 0)
-#endif
-
 #define ERR_SUCCESS                         0
 #define ERR_INVALID_PARAMETER               1
 #define ERR_BUFFER_TOO_SMALL                2
@@ -83,7 +79,7 @@ typedef uint16_t  CHAR16;
 #define ERR_COMPLEX_BLOCK_MAP               35
 #define ERR_DIR_ALREADY_EXIST               36
 #define ERR_DIR_CREATE                      37
-#define ERR_UNKNOWN_PATCH_TYPE              38   
+#define ERR_UNKNOWN_PATCH_TYPE              38
 #define ERR_PATCH_OFFSET_OUT_OF_BOUNDS      39
 #define ERR_INVALID_SYMBOL                  40
 #define ERR_NOTHING_TO_PATCH                41
@@ -95,7 +91,7 @@ typedef uint16_t  CHAR16;
 #define EFIAPI
 #define EFI_STATUS UINT8
 #define EFI_SUCCESS ERR_SUCCESS
-#define EFI_INVALID_PARAMETER ERR_INVALID_PARAMETER 
+#define EFI_INVALID_PARAMETER ERR_INVALID_PARAMETER
 #define EFI_OUT_OF_RESOURCES ERR_OUT_OF_RESOURCES
 #define EFI_BUFFER_TOO_SMALL ERR_BUFFER_TOO_SMALL
 #define EFI_ERROR(X) X

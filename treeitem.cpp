@@ -15,13 +15,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "types.h"
 
-
-
-
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
-                   const QString & name, const QString & text, const QString & info,
-                   const QByteArray & header, const QByteArray & body, const QByteArray & tail,
-                   TreeItem *parent)
+    const QString & name, const QString & text, const QString & info,
+    const QByteArray & header, const QByteArray & body, const QByteArray & tail,
+    TreeItem *parent)
 {
     itemAction = Actions::NoAction;
     itemType = type;
@@ -95,7 +92,7 @@ int TreeItem::columnCount() const
 
 QVariant TreeItem::data(int column) const
 {
-    switch(column)
+    switch (column)
     {
     case 0: //Name
         return itemName;
@@ -206,7 +203,7 @@ void TreeItem::setAction(const UINT8 action)
 
     // On insert action, set insert action for children
     if (action == Actions::Insert)
-        for(int i = 0; i < childCount(); i++)
+        for (int i = 0; i < childCount(); i++)
             child(i)->setAction(Actions::Insert);
 
     // Set rebuild action for parent, if it has no action now

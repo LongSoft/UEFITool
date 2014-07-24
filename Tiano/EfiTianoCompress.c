@@ -500,7 +500,6 @@ VOID
     // Special usage of 'next'
     //
     mNext[LoopVar4] = mPos;
-
 }
 
 /**
@@ -914,7 +913,6 @@ IN UINT32   x
         mSubBitBuf |= x << (mBitCount -= LoopVar8);
     }
     else {
-
         Temp = (UINT8)(mSubBitBuf | (x >> (LoopVar8 -= mBitCount)));
         if (mDst < mDstUpperLimit) {
             *mDst++ = Temp;
@@ -925,7 +923,6 @@ IN UINT32   x
             mSubBitBuf = x << (mBitCount = UINT8_BIT - LoopVar8);
         }
         else {
-
             Temp = (UINT8)(x >> (LoopVar8 - UINT8_BIT));
             if (mDst < mDstUpperLimit) {
                 *mDst++ = Temp;
@@ -1031,7 +1028,7 @@ VOID
             }
         }
         else {
-            ASSERT((LoopVar3 + 2)<(2 * NT - 1));
+            ASSERT((LoopVar3 + 2) < (2 * NT - 1));
             mTFreq[LoopVar3 + 2]++;
         }
     }
@@ -1135,7 +1132,7 @@ VOID
             }
         }
         else {
-            ASSERT((LoopVar3 + 2)<NPT);
+            ASSERT((LoopVar3 + 2) < NPT);
             PutBits(mPTLen[LoopVar3 + 2], mPTCode[LoopVar3 + 2]);
         }
     }
@@ -1456,7 +1453,6 @@ IN OUT   UINT64 *DstSize
         *DstSize = mCompSize + 1 + 8;
         return EFI_SUCCESS;
     }
-
 }
 
 UINT8 EfiCompress(CONST VOID* SrcBuffer, CONST UINT64 SrcSize, VOID* DstBuffer, UINT64* DstSize)

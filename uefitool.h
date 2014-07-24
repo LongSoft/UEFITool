@@ -9,7 +9,7 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #ifndef __UEFITOOL_H__
 #define __UEFITOOL_H__
@@ -39,20 +39,20 @@
 #include "searchdialog.h"
 
 namespace Ui {
-class UEFITool;
+    class UEFITool;
 }
 
 class UEFITool : public QMainWindow
 {
     Q_OBJECT
-    
+
 public:
     explicit UEFITool(QWidget *parent = 0);
     ~UEFITool();
 
     void openImageFile(QString path);
 
-private slots:
+    private slots:
     void init();
     void populateUi(const QModelIndex &current);
     void scrollTreeView(QListWidgetItem* item);
@@ -64,24 +64,24 @@ private slots:
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
-    
+
     void insert(const UINT8 mode);
     void insertInto();
     void insertBefore();
     void insertAfter();
-    
+
     void replace(const UINT8 mode);
     void replaceAsIs();
     void replaceBody();
 
     void rebuild();
-    
+
     void remove();
 
     void copyMessage();
     void enableMessagesCopyAction(QListWidgetItem* item);
     void clearMessages();
-    
+
     void about();
     void aboutQt();
 
@@ -93,10 +93,11 @@ private:
     FfsEngine* ffsEngine;
     SearchDialog* searchDialog;
     QClipboard* clipboard;
+    QString currentDir;
     QQueue<MessageListItem> messageItems;
 
     void showMessages();
-    
+
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
     void contextMenuEvent(QContextMenuEvent* event);

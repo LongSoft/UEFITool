@@ -116,7 +116,6 @@ QString compressionTypeToQString(UINT8 algorithm)
     }
 }
 
-
 QString actionTypeToQString(UINT8 action)
 {
     switch (action) {
@@ -138,4 +137,3 @@ QString actionTypeToQString(UINT8 action)
         return QObject::tr("Unknown");
     }
 }
-

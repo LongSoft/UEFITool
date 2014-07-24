@@ -3,13 +3,13 @@
 Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
 Copyright (c) 2006 - 2010, Intel Corporation. All rights reserved.
 Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.
-This program and the accompanying materials                          
-are licensed and made available under the terms and conditions of the BSD License         
-which accompanies this distribution.  The full text of the license may be found at        
-http://opensource.org/licenses/bsd-license.php.                                           
+This program and the accompanying materials
+are licensed and made available under the terms and conditions of the BSD License
+which accompanies this distribution.  The full text of the license may be found at
+http://opensource.org/licenses/bsd-license.php.
 
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,                     
-WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.             
+THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
@@ -26,7 +26,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER 11
 #define EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER      12
 #define EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER      13
-
 
 //
 // PE32+ Machine type for EFI images
@@ -424,9 +423,9 @@ typedef struct {
 #define EFI_IMAGE_REL_I386_SECREL   0x000B
 #define EFI_IMAGE_REL_I386_REL32    0x0014  // PC-relative 32-bit reference to the symbols virtual address
 
-// 
+//
 // x64 processor relocation types.
-// 
+//
 #define IMAGE_REL_AMD64_ABSOLUTE  0x0000
 #define IMAGE_REL_AMD64_ADDR64    0x0001
 #define IMAGE_REL_AMD64_ADDR32    0x0002
@@ -517,7 +516,6 @@ typedef struct {
 //
 #define EFI_IMAGE_SIZEOF_ARCHIVE_MEMBER_HDR 60
 
-
 //
 // DLL Support
 //
@@ -573,7 +571,6 @@ typedef struct {
     EFI_IMAGE_THUNK_DATA  *FirstThunk;
 } EFI_IMAGE_IMPORT_DESCRIPTOR;
 
-
 //
 // Debug Directory Format
 //
@@ -620,7 +617,6 @@ typedef struct {
     //
 } EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY;
 
-
 //
 // Debug Data Structure defined by Apple Mach-O to COFF utility.
 //
@@ -654,16 +650,16 @@ typedef struct {
 typedef struct {
     union {
         struct {
-            UINT32  NameOffset:31;
-            UINT32  NameIsString:1;
+            UINT32  NameOffset : 31;
+            UINT32  NameIsString : 1;
         } s;
         UINT32  Id;
     } u1;
     union {
         UINT32  OffsetToData;
         struct {
-            UINT32  OffsetToDirectory:31;
-            UINT32  DataIsDirectory:1;
+            UINT32  OffsetToDirectory : 31;
+            UINT32  DataIsDirectory : 1;
         } s;
     } u2;
 } EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY;

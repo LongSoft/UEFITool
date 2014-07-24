@@ -26,8 +26,8 @@ typedef struct {
 #define GBE_VERSION_OFFSET 10
 
 typedef struct {
-    UINT8 id:    4;
-    UINT8 minor: 4;
+    UINT8 id : 4;
+    UINT8 minor : 4;
     UINT8 major;
 } GBE_VERSION;
 

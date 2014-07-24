@@ -35,9 +35,9 @@ public:
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
     QVariant headerData(int section, Qt::Orientation orientation,
-                        int role = Qt::DisplayRole) const;
+        int role = Qt::DisplayRole) const;
     QModelIndex index(int row, int column,
-                      const QModelIndex &parent = QModelIndex()) const;
+        const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &index) const;
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
@@ -69,9 +69,9 @@ public:
     UINT8 compression(const QModelIndex &index) const;
 
     QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
-                        const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),
-                        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
-                        const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
+        const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
+        const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     QModelIndex findParentOfType(const QModelIndex & index, UINT8 type) const;
 

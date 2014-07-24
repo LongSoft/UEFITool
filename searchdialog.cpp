@@ -9,15 +9,15 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #include "searchdialog.h"
 
 SearchDialog::SearchDialog(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::SearchDialog), 
-    hexValidator(QRegExp("([0-9a-fA-F\\.])*")), 
-    guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))
+QDialog(parent),
+ui(new Ui::SearchDialog),
+hexValidator(QRegExp("([0-9a-fA-F\\.])*")),
+guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))
 {
     // Create UI
     ui->setupUi(this);
@@ -40,9 +40,10 @@ void SearchDialog::setEditFocus(int index)
 {
     if (index == 0) // Hex pattern
         ui->hexEdit->setFocus();
-    else if (index == 1) // GUID
+    else if (index == 1) { // GUID
         ui->guidEdit->setFocus();
+        ui->guidEdit->setCursorPosition(0);
+    }
     else if (index == 2) // Text
         ui->textEdit->setFocus();
 }
-

@@ -25,86 +25,84 @@ static ISzAlloc SzAllocForLzma = { &AllocForLzma, &FreeForLzma };
 
 SRes OnProgress(void *p, UInt64 inSize, UInt64 outSize)
 {
-	return SZ_OK;
+    return SZ_OK;
 }
 
 static ICompressProgress g_ProgressCallback = { &OnProgress };
 
 STATIC
-	UINT64
-	EFIAPI
-	RShiftU64 (
-	UINT64                    Operand,
-	UINT32                     Count
-	)
+UINT64
+EFIAPI
+RShiftU64(
+UINT64                    Operand,
+UINT32                     Count
+)
 {
-	return Operand >> Count;
+    return Operand >> Count;
 }
 
 VOID
-	SetEncodedSizeOfBuf(
-	UINT64 EncodedSize,
-	UINT8 *EncodedData
-	)
+SetEncodedSizeOfBuf(
+UINT64 EncodedSize,
+UINT8 *EncodedData
+)
 {
-	INT32   Index;
+    INT32   Index;
 
-	EncodedData[LZMA_PROPS_SIZE]  = EncodedSize & 0xFF;
-	for (Index = LZMA_PROPS_SIZE+1; Index <= LZMA_PROPS_SIZE + 7; Index++)
-	{
-		EncodedSize = RShiftU64(EncodedSize, 8);
-		EncodedData[Index] = EncodedSize & 0xFF;
-	}
+    EncodedData[LZMA_PROPS_SIZE] = EncodedSize & 0xFF;
+    for (Index = LZMA_PROPS_SIZE + 1; Index <= LZMA_PROPS_SIZE + 7; Index++)
+    {
+        EncodedSize = RShiftU64(EncodedSize, 8);
+        EncodedData[Index] = EncodedSize & 0xFF;
+    }
 }
 
 INT32
-	EFIAPI
-	LzmaCompress (
-	CONST UINT8  *Source,
-	UINT32       SourceSize,
-	UINT8    *Destination,
-	UINT32   *DestinationSize
-	)
+EFIAPI
+LzmaCompress(
+CONST UINT8  *Source,
+UINT32       SourceSize,
+UINT8    *Destination,
+UINT32   *DestinationSize
+)
 {
-	SRes              LzmaResult;
-	CLzmaEncProps     props;
-	SizeT propsSize = LZMA_PROPS_SIZE;
-	SizeT destLen = SourceSize + SourceSize / 3 + 128;
+    SRes              LzmaResult;
+    CLzmaEncProps     props;
+    SizeT propsSize = LZMA_PROPS_SIZE;
+    SizeT destLen = SourceSize + SourceSize / 3 + 128;
 
-	if (*DestinationSize < destLen)
-	{
-		*DestinationSize = destLen;
-		return ERR_BUFFER_TOO_SMALL;
-	}
+    if (*DestinationSize < destLen)
+    {
+        *DestinationSize = destLen;
+        return ERR_BUFFER_TOO_SMALL;
+    }
 
-	LzmaEncProps_Init(&props);
-	props.dictSize = LZMA_DICTIONARY_SIZE;
-	props.level = 9;
-	props.fb = 273;
+    LzmaEncProps_Init(&props);
+    props.dictSize = LZMA_DICTIONARY_SIZE;
+    props.level = 9;
+    props.fb = 273;
 
-	LzmaResult = LzmaEncode(
-		(Byte*)((UINT8*)Destination + LZMA_HEADER_SIZE), 
-		&destLen,
-		Source, 
-		SourceSize,
-		&props, 
-		(UINT8*)Destination, 
-		&propsSize, 
-		props.writeEndMark,
-		&g_ProgressCallback, 
-		&SzAllocForLzma, 
-		&SzAllocForLzma);
+    LzmaResult = LzmaEncode(
+        (Byte*)((UINT8*)Destination + LZMA_HEADER_SIZE),
+        &destLen,
+        Source,
+        SourceSize,
+        &props,
+        (UINT8*)Destination,
+        &propsSize,
+        props.writeEndMark,
+        &g_ProgressCallback,
+        &SzAllocForLzma,
+        &SzAllocForLzma);
 
-	*DestinationSize = destLen + LZMA_HEADER_SIZE;
+    *DestinationSize = destLen + LZMA_HEADER_SIZE;
 
-	SetEncodedSizeOfBuf((UINT64)SourceSize, Destination);
+    SetEncodedSizeOfBuf((UINT64)SourceSize, Destination);
 
-	if (LzmaResult == SZ_OK) {
-		return ERR_SUCCESS;
-	} else {
-		return ERR_INVALID_PARAMETER;
-	}
+    if (LzmaResult == SZ_OK) {
+        return ERR_SUCCESS;
+    }
+    else {
+        return ERR_INVALID_PARAMETER;
+    }
 }
-
-
-

@@ -51,21 +51,20 @@ typedef struct {
     UINT16 ReservedZero;            // Still unknown, zeros in all descriptors I have seen
 } FLASH_DESCRIPTOR_MAP;
 
-
 // Component section
-// Flash parameters DWORD structure 
+// Flash parameters DWORD structure
 typedef struct {
-    UINT8 FirstChipDensity            : 3;
-    UINT8 SecondChipDensity           : 3;
-    UINT8 ReservedZero0               : 2;  // Still unknown, zeros in all descriptors I have seen
-    UINT8 ReservedZero1               : 8;  // Still unknown, zeros in all descriptors I have seen
-    UINT8 ReservedZero2               : 4;  // Still unknown, zeros in all descriptors I have seen
-    UINT8 FastReadEnabled             : 1;
-    UINT8 FastReadFreqency            : 3;
-    UINT8 FlashReadStatusFrequency    : 3;
-    UINT8 FlashWriteFrequency         : 3;
+    UINT8 FirstChipDensity : 3;
+    UINT8 SecondChipDensity : 3;
+    UINT8 ReservedZero0 : 2;  // Still unknown, zeros in all descriptors I have seen
+    UINT8 ReservedZero1 : 8;  // Still unknown, zeros in all descriptors I have seen
+    UINT8 ReservedZero2 : 4;  // Still unknown, zeros in all descriptors I have seen
+    UINT8 FastReadEnabled : 1;
+    UINT8 FastReadFreqency : 3;
+    UINT8 FlashReadStatusFrequency : 3;
+    UINT8 FlashWriteFrequency : 3;
     UINT8 DualOutputFastReadSupported : 1;
-    UINT8 ReservedZero3               : 1;  // Still unknown, zero in all descriptors I have seen
+    UINT8 ReservedZero3 : 1;  // Still unknown, zero in all descriptors I have seen
 } FLASH_PARAMETERS;
 
 // Flash densities

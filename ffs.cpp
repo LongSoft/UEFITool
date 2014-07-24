@@ -13,25 +13,25 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QObject>
 #include "ffs.h"
 
-const UINT8 ffsAlignmentTable[] = 
-{0, 4, 7, 9, 10, 12, 15, 16};
+const UINT8 ffsAlignmentTable[] =
+{ 0, 4, 7, 9, 10, 12, 15, 16 };
 
 UINT8 calculateChecksum8(UINT8* buffer, UINT32 bufferSize)
 {
-    if(!buffer)
+    if (!buffer)
         return 0;
-    
+
     UINT8 counter = 0;
 
-    while(bufferSize--)
+    while (bufferSize--)
         counter += buffer[bufferSize];
 
-    return (UINT8) 0x100 - counter;
+    return (UINT8)0x100 - counter;
 }
 
 UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize)
 {
-    if(!buffer)
+    if (!buffer)
         return 0;
 
     UINT16 counter = 0;
@@ -40,53 +40,53 @@ UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize)
     bufferSize /= sizeof(UINT16);
 
     for (; index < bufferSize; index++) {
-        counter = (UINT16) (counter + buffer[index]);
+        counter = (UINT16)(counter + buffer[index]);
     }
 
-    return (UINT16) 0x10000 - counter;
+    return (UINT16)0x10000 - counter;
 }
 
 VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 {
-    ffsSize[2] = (UINT8) ((size) >> 16);
-    ffsSize[1] = (UINT8) ((size) >>  8);
-    ffsSize[0] = (UINT8) ((size)      );
+    ffsSize[2] = (UINT8)((size) >> 16);
+    ffsSize[1] = (UINT8)((size) >> 8);
+    ffsSize[0] = (UINT8)((size));
 }
 
 UINT32 uint24ToUint32(UINT8* ffsSize)
 {
     return (ffsSize[2] << 16) +
-            (ffsSize[1] << 8)  +
-            ffsSize[0];
+        (ffsSize[1] << 8) +
+        ffsSize[0];
 }
 
 QString guidToQString(const EFI_GUID& guid)
 {
-    QByteArray baGuid = QByteArray::fromRawData((const char*) guid.Data, sizeof(EFI_GUID));
-    UINT32 i32    = *(UINT32*)baGuid.left(4).constData();
-    UINT16 i16_0  = *(UINT16*)baGuid.mid(4, 2).constData();
-    UINT16 i16_1  = *(UINT16*)baGuid.mid(6, 2).constData();
-    UINT8 i8_0    = *(UINT8*)baGuid.mid(8, 1).constData();
-    UINT8 i8_1    = *(UINT8*)baGuid.mid(9, 1).constData();
-    UINT8 i8_2    = *(UINT8*)baGuid.mid(10, 1).constData();
-    UINT8 i8_3    = *(UINT8*)baGuid.mid(11, 1).constData();
-    UINT8 i8_4    = *(UINT8*)baGuid.mid(12, 1).constData();
-    UINT8 i8_5    = *(UINT8*)baGuid.mid(13, 1).constData();
-    UINT8 i8_6    = *(UINT8*)baGuid.mid(14, 1).constData();
-    UINT8 i8_7    = *(UINT8*)baGuid.mid(15, 1).constData();
-    
+    QByteArray baGuid = QByteArray::fromRawData((const char*)guid.Data, sizeof(EFI_GUID));
+    UINT32 i32 = *(UINT32*)baGuid.left(4).constData();
+    UINT16 i16_0 = *(UINT16*)baGuid.mid(4, 2).constData();
+    UINT16 i16_1 = *(UINT16*)baGuid.mid(6, 2).constData();
+    UINT8 i8_0 = *(UINT8*)baGuid.mid(8, 1).constData();
+    UINT8 i8_1 = *(UINT8*)baGuid.mid(9, 1).constData();
+    UINT8 i8_2 = *(UINT8*)baGuid.mid(10, 1).constData();
+    UINT8 i8_3 = *(UINT8*)baGuid.mid(11, 1).constData();
+    UINT8 i8_4 = *(UINT8*)baGuid.mid(12, 1).constData();
+    UINT8 i8_5 = *(UINT8*)baGuid.mid(13, 1).constData();
+    UINT8 i8_6 = *(UINT8*)baGuid.mid(14, 1).constData();
+    UINT8 i8_7 = *(UINT8*)baGuid.mid(15, 1).constData();
+
     return QString("%1-%2-%3-%4%5-%6%7%8%9%10%11")
-            .arg(i32, 8,   16, QChar('0'))
-            .arg(i16_0, 4, 16, QChar('0'))
-            .arg(i16_1, 4, 16, QChar('0'))
-            .arg(i8_0, 2,  16, QChar('0'))
-            .arg(i8_1, 2,  16, QChar('0'))
-            .arg(i8_2, 2,  16, QChar('0'))
-            .arg(i8_3, 2,  16, QChar('0'))
-            .arg(i8_4, 2,  16, QChar('0'))
-            .arg(i8_5, 2,  16, QChar('0'))
-            .arg(i8_6, 2,  16, QChar('0'))
-            .arg(i8_7, 2,  16, QChar('0')).toUpper();
+        .arg(i32, 8, 16, QChar('0'))
+        .arg(i16_0, 4, 16, QChar('0'))
+        .arg(i16_1, 4, 16, QChar('0'))
+        .arg(i8_0, 2, 16, QChar('0'))
+        .arg(i8_1, 2, 16, QChar('0'))
+        .arg(i8_2, 2, 16, QChar('0'))
+        .arg(i8_3, 2, 16, QChar('0'))
+        .arg(i8_4, 2, 16, QChar('0'))
+        .arg(i8_5, 2, 16, QChar('0'))
+        .arg(i8_6, 2, 16, QChar('0'))
+        .arg(i8_7, 2, 16, QChar('0')).toUpper();
 }
 
 QString fileTypeToQString(const UINT8 type)
@@ -177,7 +177,7 @@ UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header)
     case EFI_SECTION_GUID_DEFINED: {
         EFI_GUID_DEFINED_SECTION* gdsHeader = (EFI_GUID_DEFINED_SECTION*)header;
         return gdsHeader->DataOffset;
-        }
+    }
     case EFI_SECTION_DISPOSABLE:
         return sizeof(EFI_DISPOSABLE_SECTION);
     case EFI_SECTION_PE32:
