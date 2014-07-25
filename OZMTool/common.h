@@ -86,11 +86,12 @@ static const sectionEntry requiredFfs[] = {
   {"SmcEmulatorKext","DADE1001-1B31-4FE4-8557-26FCEFC78275", "FakeSMC.kext", SRC_KEXT, EFI_FV_FILETYPE_FREEFORM, 0, TRUE}
 };
 
-#define optionalFfsCount 10
+#define optionalFfsCount 11
 
 static const sectionEntry optionalFfs[] = {
   {"ExtFs","B34E5765-2E04-4DAF-867F-7F40BE6FC33D", "extfs.efi", SRC_EFI, EFI_FV_FILETYPE_DRIVER, 0, FALSE},
   {"HermitShellX64","C57AD6B7-0515-40A8-9D21-551652854E37", "hermitshellx64.efi", SRC_EFI, EFI_FV_FILETYPE_APPLICATION, 0, FALSE},
+  {"Shell", "7C04A583-9E3E-4F1C-AD65-E05268D0B4D1", "shell.efi", SRC_EFI, EFI_FV_FILETYPE_APPLICATION, 0, FALSE},
   {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", "theme.bin", SRC_UNDEFINED, EFI_FV_FILETYPE_FREEFORM, 0, FALSE},
   {"DisablerKext","DADE1002-1B31-4FE4-8557-26FCEFC78275", "Disabler.kext", SRC_KEXT, EFI_FV_FILETYPE_FREEFORM, 0, FALSE},
   {"InjectorKext","DADE1003-1B31-4FE4-8557-26FCEFC78275", "Injector.kext", SRC_KEXT, EFI_FV_FILETYPE_FREEFORM, 0, FALSE},
