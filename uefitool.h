@@ -79,7 +79,8 @@ public:
     void remove();
 
     void copyMessage();
-    void enableMessagesCopyAction(QListWidgetItem* item);
+    void copyAllMessages();
+    void enableMessagesCopyActions(QListWidgetItem* item);
     void clearMessages();
 
     void about();

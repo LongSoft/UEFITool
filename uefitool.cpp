@@ -39,6 +39,7 @@ ui(new Ui::UEFITool)
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
     connect(ui->actionRebuild, SIGNAL(triggered()), this, SLOT(rebuild()));
     connect(ui->actionMessagesCopy, SIGNAL(triggered()), this, SLOT(copyMessage()));
+    connect(ui->actionMessagesCopyAll, SIGNAL(triggered()), this, SLOT(copyAllMessages()));
     connect(ui->actionMessagesClear, SIGNAL(triggered()), this, SLOT(clearMessages()));
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
@@ -80,6 +81,7 @@ void UEFITool::init()
     ui->menuFileActions->setDisabled(true);
     ui->menuSectionActions->setDisabled(true);
     ui->actionMessagesCopy->setDisabled(true);
+    ui->actionMessagesCopyAll->setDisabled(true);
 
     // Make new ffsEngine
     if (ffsEngine)
@@ -91,7 +93,7 @@ void UEFITool::init()
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->messageListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
-    connect(ui->messageListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyAction(QListWidgetItem*)));
+    connect(ui->messageListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
 }
 
 void UEFITool::populateUi(const QModelIndex &current)
@@ -562,9 +564,21 @@ void UEFITool::copyMessage()
     clipboard->setText(ui->messageListWidget->currentItem()->text());
 }
 
-void UEFITool::enableMessagesCopyAction(QListWidgetItem* item)
+void UEFITool::copyAllMessages()
+{
+    QString text;
+    clipboard->clear();
+    for(INT32 i = 0; i < ui->messageListWidget->count(); i++)
+        text.append(ui->messageListWidget->item(i)->text()).append("\n");
+
+    clipboard->clear();
+    clipboard->setText(text);
+}
+
+void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
 {
     ui->actionMessagesCopy->setEnabled(item != NULL);
+    ui->actionMessagesCopyAll->setEnabled(item != NULL);
 }
 
 void UEFITool::clearMessages()
@@ -573,6 +587,7 @@ void UEFITool::clearMessages()
     messageItems.clear();
     ui->messageListWidget->clear();
     ui->actionMessagesCopy->setEnabled(false);
+    ui->actionMessagesCopyAll->setEnabled(false);
 }
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)

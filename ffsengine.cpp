@@ -1490,7 +1490,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             return ERR_NOT_IMPLEMENTED;
         }
 
-        if (result)
+        if (result && result != ERR_VOLUMES_NOT_FOUND)
             return result;
 
         // Set action
@@ -1548,7 +1548,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 
         // Parse file
         result = parseFile(created, fileIndex, erasePolarity ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index, mode);
-        if (result)
+        if (result && result != ERR_VOLUMES_NOT_FOUND)
             return result;
 
         // Set action
@@ -1599,7 +1599,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Parse section
             QModelIndex sectionIndex;
             result = parseSection(created, sectionIndex, index, mode);
-            if (result)
+            if (result && result != ERR_VOLUMES_NOT_FOUND)
                 return result;
 
             // Set create action
@@ -1625,7 +1625,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Parse section
             QModelIndex sectionIndex;
             result = parseSection(created, sectionIndex, index, mode);
-            if (result)
+            if (result && result != ERR_VOLUMES_NOT_FOUND)
                 return result;
 
             // Set create action
@@ -1645,7 +1645,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Parse section
             QModelIndex sectionIndex;
             result = parseSection(created, sectionIndex, index, mode);
-            if (result)
+            if (result && result != ERR_VOLUMES_NOT_FOUND)
                 return result;
 
             // Set create action

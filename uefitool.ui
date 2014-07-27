@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.18.4</string>
+   <string>UEFITool 0.18.5</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -269,6 +269,8 @@
       <string>&amp;Messages</string>
      </property>
      <addaction name="actionMessagesCopy"/>
+     <addaction name="actionMessagesCopyAll"/>
+     <addaction name="separator"/>
      <addaction name="actionMessagesClear"/>
     </widget>
     <addaction name="menuCapsuleActions"/>
@@ -491,6 +493,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="actionMessagesCopyAll">
+   <property name="text">
+    <string>C&amp;opy All</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+C</string>
    </property>
   </action>
  </widget>

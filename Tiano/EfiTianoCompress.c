@@ -132,10 +132,11 @@ VOID* CopyMem(VOID* dst, CONST VOID* src, size_t size) {
 }
 
 VOID* AllocateZeroPool(size_t size) {
+    VOID* pool;
     if (!size)
         return NULL;
 
-    VOID* pool = malloc(size);
+    pool = malloc(size);
     memset(pool, 0x00, size);
     return pool;
 }
@@ -1457,16 +1458,16 @@ IN OUT   UINT64 *DstSize
 
 UINT8 EfiCompress(CONST VOID* SrcBuffer, CONST UINT64 SrcSize, VOID* DstBuffer, UINT64* DstSize)
 {
-    mPBit = 4;
     VOID* buffer = (VOID*)SrcBuffer;
     UINT64 size = SrcSize;
+    mPBit = 4;
     return Compress(buffer, size, DstBuffer, DstSize);
 }
 
 UINT8 TianoCompress(CONST VOID* SrcBuffer, CONST UINT64 SrcSize, VOID* DstBuffer, UINT64* DstSize)
 {
-    mPBit = 5;
     VOID* buffer = (VOID*)SrcBuffer;
     UINT64 size = SrcSize;
+    mPBit = 5;
     return Compress(buffer, size, DstBuffer, DstSize);
 }
