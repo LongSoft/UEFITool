@@ -335,50 +335,34 @@ UINT8 FFSUtil::deleteFilesystemFfs()
     return ERR_SUCCESS;
 }
 
+
 UINT8 FFSUtil::compressDXE()
 {
     UINT8 ret;
-    QModelIndex rootIdx, tmpIdx, currIdx;
-    QByteArray compressed, created, newHeader, body;
+    QModelIndex rootIdx, currIdx;
+    QByteArray buf, compressed;
 
     getRootIndex(rootIdx);
 
     printf("Compressing CORE_DXE to save space...\n");
 
-    ret = findFileByGUID(rootIdx, coreDxeSection.GUID, tmpIdx);
+    ret = findFileByGUID(rootIdx, coreDxeSection.GUID, currIdx);
     if(ret)
         return ret;
 
-    ret = findSectionByIndex(tmpIdx, EFI_SECTION_COMPRESSION, currIdx);
-    if(ret) {
-        printf("Warning: Failed to get compressed section for [%s] for compression!\n", qPrintable(coreDxeSection.GUID));
+    ret = dumpFileByGUID(coreDxeSection.GUID, buf, EXTRACT_MODE_AS_IS);
+    if (ret) {
+        printf("ERROR: Failed to dump '%s' [%s] !\n", qPrintable(coreDxeSection.name), qPrintable(coreDxeSection.GUID));
         return ret;
     }
 
-    newHeader = ffsEngine->treeModel()->header(currIdx);
-    body = ffsEngine->treeModel()->body(currIdx);
-
-    EFI_COMPRESSION_SECTION* compressionHeader = (EFI_COMPRESSION_SECTION*)newHeader.data();
-
-    if(compressionHeader->CompressionType != EFI_NOT_COMPRESSED){
-        printf("Info: CORE_DXE is already compressed!\n");
-        return ERR_SUCCESS;
-    }
-
-    printf("* Trying to compress '%s' [%s]\n", qPrintable(coreDxeSection.name), qPrintable(coreDxeSection.GUID));
-    ret = compress(body, COMPRESSION_ALGORITHM_TIANO, compressed);
-    if(ret) {
-        printf("Warning: Compressing '%s' [%s] failed!\n", qPrintable(coreDxeSection.name), qPrintable(coreDxeSection.GUID));
+    ret = compressFFS(buf, compressed);
+    if (ret) {
+        printf("ERROR: Failed to re/compress '%s'' [%s] !\n", qPrintable(coreDxeSection.name), qPrintable(coreDxeSection.GUID));
         return ret;
     }
 
-    /* Set new compressionType + size */
-    compressionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
-    uint32ToUint24(newHeader.size() + compressed.size(), compressionHeader->Size);
-
-    created.append(newHeader).append(compressed);
-
-    ret = replace(currIdx, created, REPLACE_MODE_AS_IS);
+    ret = replace(currIdx, compressed, REPLACE_MODE_AS_IS);
     if(ret) {
         printf("Warning: Injecting compressed '%s' [%s] failed!\n", qPrintable(coreDxeSection.name), qPrintable(coreDxeSection.GUID));
         return ret;
@@ -387,18 +371,40 @@ UINT8 FFSUtil::compressDXE()
     return ERR_SUCCESS;
 }
 
+
 UINT8 FFSUtil::compressFFS(QByteArray ffs, QByteArray & out)
 {
     UINT8 ret;
-    QByteArray newHeader, body, compressedBody, fileHeader;
+    QByteArray body, compressedBody;
+    EFI_COMPRESSION_SECTION* compressionHeader = {0};
 
-    /* Split ffs into ffs-header and body */
-    fileHeader = ffs.left(sizeof(EFI_FFS_FILE_HEADER));
-    body = ffs.mid(sizeof(EFI_FFS_FILE_HEADER));
+    unsigned char *buf = (unsigned char*) ffs.data();
 
-    /* Create new compression header to tack infront of compressed body */
-    newHeader.fill(0, sizeof(EFI_COMPRESSION_SECTION));
-    EFI_COMPRESSION_SECTION* compressionHeader = (EFI_COMPRESSION_SECTION*)newHeader.data();
+    // Split ffs into ffs-header and body
+    EFI_FFS_FILE_HEADER* ffsHeader = (EFI_FFS_FILE_HEADER*)buf;
+    EFI_COMMON_SECTION_HEADER* sectionHeader = (EFI_COMMON_SECTION_HEADER*)&buf[sizeof(EFI_FFS_FILE_HEADER)];
+    UINT8 algo;
+
+    if(sectionHeader->Type == EFI_SECTION_COMPRESSION) {
+        compressionHeader = (EFI_COMPRESSION_SECTION*) sectionHeader;
+
+        if(compressionHeader->CompressionType == EFI_STANDARD_COMPRESSION ||
+           compressionHeader->CompressionType == EFI_CUSTOMIZED_COMPRESSION) {
+            printf("Info: File seems already compressed!\n");
+            out = ffs;
+            return ERR_SUCCESS;
+        }
+        compressedBody = ffs.mid(sizeof(EFI_FFS_FILE_HEADER)+sizeof(EFI_COMPRESSION_SECTION));
+        ret = decompress(compressedBody, compressionHeader->CompressionType, body, &algo);
+        if (ret) {
+            printf("ERROR: Decompression failed!\n");
+            return ERR_ERROR;
+        }
+        compressedBody.clear();
+    }
+    else {
+        body = ffs.mid(sizeof(EFI_FFS_FILE_HEADER));
+    }
 
     ret = ffsEngine->compress(body, COMPRESSION_ALGORITHM_TIANO, compressedBody);
     if (ret) {
@@ -406,47 +412,33 @@ UINT8 FFSUtil::compressFFS(QByteArray ffs, QByteArray & out)
         return ERR_ERROR;
     }
 
-    /* Assign infos to compression header */
+    // Assign infos to compression header
     compressionHeader->Type = EFI_SECTION_COMPRESSION;
     compressionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
-    uint32ToUint24(newHeader.size() + compressedBody.size(), compressionHeader->Size);
+    uint32ToUint24(sizeof(EFI_COMPRESSION_SECTION) + compressedBody.size(), compressionHeader->Size);
     compressionHeader->UncompressedLength = body.size();
 
-    out.append(newHeader);
+    out.append((const char*)compressionHeader, sizeof(EFI_COMPRESSION_SECTION));
     out.append(compressedBody);
 
-    /* Set new size and checksums in ffs header */
-    EFI_FFS_FILE_HEADER* ffsHeader = (EFI_FFS_FILE_HEADER*)fileHeader.data();
-    uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+newHeader.size(), ffsHeader->Size);
+    // Set new size and checksums in ffs header
+    uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+out.size(), ffsHeader->Size);
     ffsHeader->IntegrityCheck.Checksum.Header = 0;
     ffsHeader->IntegrityCheck.Checksum.File = 0;
     ffsHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*)ffsHeader, sizeof(EFI_FFS_FILE_HEADER)-1);
     ffsHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
 
-    out.prepend(fileHeader);
+    out.prepend((const char *)ffsHeader, sizeof(EFI_FFS_FILE_HEADER));
 
     return ERR_SUCCESS;
 }
+
 
 UINT8 FFSUtil::runFreeSomeSpace(int aggressivity)
 {
     int i;
     UINT8 ret;
     QModelIndex rootIdx, currIdx;
-
-    static QList<sectionEntry> deleteFfs;
-    static QList<sectionEntry> OzmFfs;
-
-    /* Just temporary... */
-    for(int i = 0; i < requiredFfsCount; i++) {
-        OzmFfs.append(requiredFfs[i]);
-    }
-    for(int i = 0; i < optionalFfsCount; i++) {
-        OzmFfs.append(optionalFfs[i]);
-    }
-    for(int i = 0; i < deletableFfsCount; i++) {
-        deleteFfs.append(deletableFfs[i]);
-    }
 
     getRootIndex(rootIdx);
 

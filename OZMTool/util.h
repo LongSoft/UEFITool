@@ -33,9 +33,9 @@ UINT8 getGUIDfromFile(QByteArray object, QString & name);
 UINT8 plistReadExecName(QByteArray plist, QString & name);
 UINT8 plistReadBundleVersion(QByteArray plist, QString & version);
 UINT8 checkAggressivityLevel(int aggressivity);
-UINT8 convertOzmPlist(QString input, QByteArray & out);
-UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & out);
-UINT8 ffsCreate(QByteArray body, QString guid, QString sectionName, QByteArray & out);
+UINT8 convertBinary(QString input, QString guid, QString sectionName, QByteArray & out);
+UINT8 convertKext(QString input, QString guid, QString basename, QByteArray & out);
+UINT8 freeformCreate(QByteArray binary, QString guid, QString sectionName, QByteArray & fileOut);
 UINT8 extractDSDTfromAmiboardInfo(QByteArray amiboardbuf, QByteArray & out);
 UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray & out);
 

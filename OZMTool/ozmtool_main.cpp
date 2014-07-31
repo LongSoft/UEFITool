@@ -68,6 +68,7 @@ void usageOzmCreate()
             "\t-f, --ffs [dir]\t\tFFS directory (extracted OZM files)\n"
             "\t-d, --dsdt [file]\t\t (optional) DSDT.aml file\n"
             "\t-k, --kext [dir]\t\t (optional) KEXT directory\n"
+            "\t-e, --efi [dir]\t\t (optional) EFI directory\n"
             "\t-i, --input [file]\t\tInput CLEAN Bios\n"
             "\t-a, --aggressivity\t\t (optional) Aggressivity level (see README)\n"
             "\t-cr,--compressdxe\t\t (optional) Compress CORE_DXE\n"
@@ -158,6 +159,7 @@ int main(int argc, char *argv[])
     QString output = "";
     QString ffsdir = "";
     QString kextdir = "";
+    QString efidir = "";
     QString dsdtfile = "";
     QString recent = "";
     int aggressivity = 0;
@@ -279,6 +281,18 @@ int main(int argc, char *argv[])
                 goto fail;
             }
             kextdir = argv[1];
+            argc -= 2;
+            argv += 2;
+            continue;
+        }
+
+        if ((strcasecmp(argv[0], "-e") == 0) || (strcasecmp(argv[0], "--efi") == 0)) {
+            if (argv[1] == NULL || argv[1][0] == '-') {
+                printf("Invalid option value\n"
+                       "Input KEXT directory is missing for -k option\n");
+                goto fail;
+            }
+            efidir = argv[1];
             argc -= 2;
             argv += 2;
             continue;
@@ -430,7 +444,7 @@ fail:
     else if (ozmextract)
         result = w.OZMExtract(inputpath, output);
     else if (ozmcreate)
-        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, dsdtfile, aggressivity, compressdxe, compresskexts);
+        result = w.OZMCreate(inputpath, output, ffsdir, kextdir, efidir, dsdtfile, aggressivity, compressdxe, compresskexts);
     else if (ffsconvert)
         result = w.FFSConvert(inputpath, output);
     else if (dsdt2bios)

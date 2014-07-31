@@ -206,7 +206,7 @@ UINT8 checkAggressivityLevel(int aggressivity) {
     return ERR_SUCCESS;
 }
 
-UINT8 convertOzmPlist(QString input, QByteArray & out)
+UINT8 convertBinary(QString input, QString guid, QString sectionName, QByteArray & out)
 {
     UINT8 ret;
     QByteArray plist;
@@ -217,7 +217,7 @@ UINT8 convertOzmPlist(QString input, QByteArray & out)
         return ERR_ERROR;
     }
 
-    ret = ffsCreate(plist, ozmosisDefaults.GUID, ozmosisDefaults.name, out);
+    ret = freeformCreate(plist, guid, sectionName, out);
     if(ret) {
         printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(ozmDefaultsFilename));
         return ERR_ERROR;
@@ -226,12 +226,12 @@ UINT8 convertOzmPlist(QString input, QByteArray & out)
     return ERR_SUCCESS;
 }
 
-UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & out)
+UINT8 convertKext(QString input, QString guid, QString basename, QByteArray & out)
 {
     UINT8 ret;
     UINT8 nullterminator = 0;
 
-    QString sectionName, guid;
+    QString sectionName;
     QString bundleVersion, execName;
     QDir dir;
 
@@ -243,11 +243,6 @@ UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & o
     QByteArray toConvertBinary;
 
     // Check all folders in input-dir
-
-    if(kextIndex > 0xF) {
-        printf("ERROR: Invalid kextIndex '%i' supplied!\n", kextIndex);
-        return ERR_ERROR;
-    }
 
     dir.setPath(input);
     dir = dir.filePath("Contents");
@@ -298,13 +293,11 @@ UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & o
     else
         sectionName.sprintf("%s.Rev-%s",qPrintable(basename), qPrintable(bundleVersion));
 
-    guid = kextGUID.arg(kextIndex, 1, 16).toUpper();
-
     toConvertBinary.append(plistbuf);
     toConvertBinary.append(nullterminator);
     toConvertBinary.append(binarybuf);
 
-    ret = ffsCreate(toConvertBinary, guid, sectionName, out);
+    ret = freeformCreate(toConvertBinary, guid, sectionName, out);
     if(ret) {
         printf("ERROR: KEXT2FFS failed on '%s'\n", qPrintable(sectionName));
         return ERR_ERROR;
@@ -313,82 +306,145 @@ UINT8 convertKext(QString input, int kextIndex, QString basename, QByteArray & o
     return ERR_SUCCESS;
 }
 
-UINT8 ffsCreate(QByteArray body, QString guid, QString sectionName, QByteArray & out)
+UINT8 fileCreate(QByteArray fileBody, QString fileGuid, UINT8 fileType, UINT8 fileAttributes, UINT8 revision, UINT8 erasePolarity, QByteArray & fileOut)
 {
-    QByteArray bufSectionName;
+    QUuid uuid = QUuid(fileGuid);
+    EFI_FFS_FILE_HEADER *ffsHeader = {0};
+
+    if(uuid.isNull()) {
+        printf("ERROR: Invalid GUID supplied!\n");
+        return ERR_ERROR;
+    }
+
+    switch(fileType) {
+    case EFI_FV_FILETYPE_RAW:
+    case EFI_FV_FILETYPE_FREEFORM:
+    case EFI_FV_FILETYPE_SECURITY_CORE:
+    case EFI_FV_FILETYPE_PEI_CORE:
+    case EFI_FV_FILETYPE_DXE_CORE:
+    case EFI_FV_FILETYPE_PEIM:
+    case EFI_FV_FILETYPE_DRIVER:
+    case EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER:
+    case EFI_FV_FILETYPE_APPLICATION:
+    case EFI_FV_FILETYPE_SMM:
+    case EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE:
+    case EFI_FV_FILETYPE_COMBINED_SMM_DXE:
+    case EFI_FV_FILETYPE_SMM_CORE:
+        ffsHeader->Attributes = fileAttributes;
+        ffsHeader->State = EFI_FILE_HEADER_CONSTRUCTION | EFI_FILE_HEADER_VALID | EFI_FILE_DATA_VALID;
+        ffsHeader->Type = fileType;
+        uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+fileBody.size(), ffsHeader->Size);
+        memcpy(&ffsHeader->Name, &uuid.data1, sizeof(EFI_GUID));
+        break;
+    default:
+        printf("Info: Unsupported fileType supplied!\n");
+        return ERR_ERROR;
+    }
+
+    ffsHeader->Attributes |= (erasePolarity == ERASE_POLARITY_TRUE) ? '\xFF' : '\x00';
+    if (erasePolarity == ERASE_POLARITY_TRUE)
+        ffsHeader->State = ~ffsHeader->State;
+
+
+    // Calculate header checksum
+    ffsHeader->IntegrityCheck.Checksum.Header = 0;
+    ffsHeader->IntegrityCheck.Checksum.File = 0;
+    ffsHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*)ffsHeader, sizeof(EFI_FFS_FILE_HEADER)-1);
+
+    // Set data checksum
+    if (ffsHeader->Attributes & FFS_ATTRIB_CHECKSUM)
+        ffsHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)fileBody.constData(), fileBody.size());
+    else if (revision == 1)
+        ffsHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
+    else
+        ffsHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
+
+    fileOut.append((const char*)ffsHeader, sizeof(EFI_FFS_FILE_HEADER));
+    fileOut.append(fileBody);
+
+    return ERR_SUCCESS;
+}
+
+UINT8 sectionCreate(QByteArray body, UINT8 sectionType, QByteArray & sectionOut)
+{
+    UINT8 alignment;
     QByteArray fileBody, header;
+    EFI_COMPRESSION_SECTION *compressedSection = {0};
+    EFI_COMMON_SECTION_HEADER *sectionHeader = {0};
 
-    /* FFS PE32 Section */
-    header.fill(0, sizeof(EFI_COMMON_SECTION_HEADER));
-    EFI_COMMON_SECTION_HEADER* PE32SectionHeader = (EFI_COMMON_SECTION_HEADER*)header.data();
 
-    uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER)+body.size(), PE32SectionHeader->Size);
-    PE32SectionHeader->Type = EFI_SECTION_PE32;
+    FfsEngine *fe = new FfsEngine();
 
-    fileBody.append(header, sizeof(EFI_COMMON_SECTION_HEADER));
-    fileBody.append(body);
+    switch (sectionType) {
+    case EFI_SECTION_COMPRESSION:
+        fe->compress(body, COMPRESSION_ALGORITHM_TIANO, fileBody);
 
-    /* FFS User Interface */
-    header.clear();
-    header.fill(0, sizeof(EFI_USER_INTERFACE_SECTION));
-    EFI_USER_INTERFACE_SECTION* UserInterfaceSection = (EFI_USER_INTERFACE_SECTION*)header.data();
+        compressedSection->CompressionType = COMPRESSION_ALGORITHM_TIANO;
+        compressedSection->Type = EFI_SECTION_COMPRESSION;
+        compressedSection->UncompressedLength = fileBody.size();
+        uint32ToUint24(sizeof(EFI_COMPRESSION_SECTION)+body.size(), compressedSection->Size);
 
-    /* Convert sectionName to unicode data */
-    bufSectionName.append((const char*) (sectionName.utf16()), sectionName.size() * 2);
+        header.append((const char*)compressedSection, sizeof(EFI_COMPRESSION_SECTION));
+        break;
+    case EFI_SECTION_PE32:
+    case EFI_SECTION_PIC:
+    case EFI_SECTION_TE:
+    case EFI_SECTION_DXE_DEPEX:
+    case EFI_SECTION_PEI_DEPEX:
+    case EFI_SECTION_SMM_DEPEX:
+    case EFI_SECTION_COMPATIBILITY16:
+    case EFI_SECTION_USER_INTERFACE:
+        sectionHeader->Type = sectionType;
+        uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER)+body.size(), sectionHeader->Size);
 
-    uint32ToUint24(sizeof(EFI_USER_INTERFACE_SECTION)+bufSectionName.size(), UserInterfaceSection->Size);
-    UserInterfaceSection->Type = EFI_SECTION_USER_INTERFACE;
+        header.append((const char*)sectionHeader, sizeof(EFI_COMMON_SECTION_HEADER));
+        fileBody.append(body);
+        break;
+    default:
+        printf("ERROR: Invalid sectionType supplied!\n");
+        return ERR_ERROR;
+    }
 
-    /* Align for next section */
-    UINT8 alignment = fileBody.size() % 4;
+    alignment = fileBody.size() % 4;
     if (alignment) {
         alignment = 4 - alignment;
         fileBody.append(QByteArray(alignment, '\x00'));
     }
 
-    fileBody.append(header, sizeof(EFI_USER_INTERFACE_SECTION));
-    fileBody.append(bufSectionName);
-
-    /* FFS File */
-    const static UINT8 revision = 0;
-    const static UINT8 erasePolarity = 0;
-    const static UINT32 size = fileBody.size();
-
-    QUuid uuid = QUuid(guid);
-
-    header.clear();
-    header.fill(0, sizeof(EFI_FFS_FILE_HEADER));
-    EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)header.data();
-
-    uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER)+size, fileHeader->Size);
-    fileHeader->Attributes = 0x00;
-    fileHeader->Attributes |= (erasePolarity == ERASE_POLARITY_TRUE) ? '\xFF' : '\x00';
-    fileHeader->Type = EFI_FV_FILETYPE_FREEFORM;
-    fileHeader->State = EFI_FILE_HEADER_CONSTRUCTION | EFI_FILE_HEADER_VALID | EFI_FILE_DATA_VALID;
-    // Invert state bits if erase polarity is true
-    if (erasePolarity == ERASE_POLARITY_TRUE)
-        fileHeader->State = ~fileHeader->State;
-
-    memcpy(&fileHeader->Name, &uuid.data1, sizeof(EFI_GUID));
-
-    // Calculate header checksum
-    fileHeader->IntegrityCheck.Checksum.Header = 0;
-    fileHeader->IntegrityCheck.Checksum.File = 0;
-    fileHeader->IntegrityCheck.Checksum.Header = calculateChecksum8((UINT8*)fileHeader, sizeof(EFI_FFS_FILE_HEADER)-1);
-
-    // Set data checksum
-    if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM)
-        fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((UINT8*)fileBody.constData(), fileBody.size());
-    else if (revision == 1)
-        fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
-    else
-        fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
-
-    out.clear();
-    out.append(header, sizeof(EFI_FFS_FILE_HEADER));
-    out.append(fileBody);
+    sectionOut.append(header);
+    sectionOut.append(fileBody);
 
     return ERR_SUCCESS;
+}
+
+UINT8 freeformCreate(QByteArray binary, QString guid, QString sectionName, QByteArray & fileOut)
+{
+    UINT8 ret;
+    QByteArray rawSection, userSection, ffs, body;
+
+    ret = sectionCreate(binary, EFI_SECTION_RAW, rawSection);
+    if(ret) {
+        printf("ERROR: Failed to create PE32 Section!\n");
+        return ERR_ERROR;
+    }
+    ret = sectionCreate(QByteArray((const char*)sectionName.utf16()), EFI_SECTION_USER_INTERFACE, userSection);
+    if(ret) {
+        printf("ERROR: Failed to create User Interface Section!\n");
+        return ERR_ERROR;
+    }
+
+    body.append(rawSection);
+    body.append(userSection);
+
+    ret = fileCreate(body, guid, EFI_FV_FILETYPE_FREEFORM, 0, 0, ERASE_POLARITY_FALSE, ffs);
+    if(ret) {
+        printf("ERROR: Failed to create FFS Header!\n");
+        return ERR_ERROR;
+    }
+
+    fileOut = ffs;
+
+    return 0;
 }
 
 UINT8 extractDSDTfromAmiboardInfo(QByteArray amiboardbuf, QByteArray & out)
