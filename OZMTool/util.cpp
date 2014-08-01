@@ -427,6 +427,8 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     int i;
     INT32 offset, diffDSDT;
 
+    BOOLEAN hasDotROM = FALSE;
+    BOOLEAN needsCodePatching = TRUE;
     UINT32 relocStart, relocSize;
     int physEntries, logicalEntries;
     UINT32 index;
@@ -460,8 +462,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     }
 
     if(ami.indexOf(UNPATCHABLE_SECTION) > 0) {
-        printf("ERROR: AmiBoardInfo contains '.ROM' section => unpatchable atm!\n");
-        return ERR_ERROR;
+        hasDotROM = TRUE;
     }
 
     oldDSDTsize = getUInt32(ami, offset+DSDT_HEADER_SZ, TRUE);
@@ -490,6 +491,14 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
 
     relocStart = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
     relocSize = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+
+    if((HeaderNT->OptionalHeader.DllCharacteristics & DYNAMIC_BASE) && hasDotROM) {
+        needsCodePatching = FALSE;
+        printf("Info: PE32 has DYNAMIC_BASE set -> no Code Patching required...\n");
+    } else if (hasDotROM) {
+        printf("ERROR: PE32 has .ROM but not DYNAMIC_BASE set -> Unpatchable atm..\n");
+        return ERR_ERROR;
+    }
 
     alignDiffDSDT = ALIGN32(diffDSDT);
 
@@ -593,67 +602,68 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     }
 
 
+    if (needsCodePatching) {
+        printf(" * Patching addresses in code\n");
+        const static UINT32 MAX_INSTRUCTIONS = 1000;
+        _DInst decomposed[MAX_INSTRUCTIONS];
+        _DecodedInst disassembled[MAX_INSTRUCTIONS];
+        _DecodeResult res, res2;
+        _CodeInfo ci = {0};
+        ci.codeOffset = HeaderNT->OptionalHeader.BaseOfCode;
+        ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode;
+        ci.code = (const unsigned char*)&amiboardbuf[ci.codeOffset];
+        ci.dt = Decode64Bits;
 
-    printf(" * Patching addresses in code\n");
-    const static UINT32 MAX_INSTRUCTIONS = 1000;
-    _DInst decomposed[MAX_INSTRUCTIONS];
-    _DecodedInst disassembled[MAX_INSTRUCTIONS];
-    _DecodeResult res, res2;
-    _CodeInfo ci = {0};
-    ci.codeOffset = HeaderNT->OptionalHeader.BaseOfCode;
-    ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode;
-    ci.code = (const unsigned char*)&amiboardbuf[ci.codeOffset];
-    ci.dt = Decode64Bits;
+        UINT32 decomposedInstructionsCount = 0;
+        UINT32 decodedInstructionsCount = 0;
+        UINT32 patchCount = 0;
 
-    UINT32 decomposedInstructionsCount = 0;
-    UINT32 decodedInstructionsCount = 0;
-    UINT32 patchCount = 0;
+        /* Actual disassembly */
+        res = distorm_decode(ci.codeOffset,
+                             ci.code,
+                             ci.codeLen,
+                             Decode64Bits,
+                             disassembled,
+                             MAX_INSTRUCTIONS,
+                             &decomposedInstructionsCount);
 
-    /* Actual disassembly */
-    res = distorm_decode(ci.codeOffset,
-                   ci.code,
-                   ci.codeLen,
-                   Decode64Bits,
-                   disassembled,
-                   MAX_INSTRUCTIONS,
-                   &decomposedInstructionsCount);
+        /* Decompose for human-readable output */
+        res2 = distorm_decompose(&ci,
+                                 decomposed,
+                                 MAX_INSTRUCTIONS,
+                                 &decodedInstructionsCount);
 
-    /* Decompose for human-readable output */
-    res2 = distorm_decompose(&ci,
-                    decomposed,
-                    MAX_INSTRUCTIONS,
-                    &decodedInstructionsCount);
+        if(decodedInstructionsCount != decomposedInstructionsCount) {
+            printf("ERROR: decompose / decode mismatch! Aborting!\n");
+            return ERR_ERROR;
+        }
 
-    if(decodedInstructionsCount != decomposedInstructionsCount) {
-        printf("ERROR: decompose / decode mismatch! Aborting!\n");
-        return ERR_ERROR;
+        for (int i = 0; i < decodedInstructionsCount; i++) {
+
+            if((decomposed[i].disp < (UINT64)offset)||decomposed[i].disp > (MAX_DSDT & 0xFF000))
+                continue;
+
+            UINT32 patchOffset = (decomposed[i].addr-ci.codeOffset)+3;
+            UINT32 *patchValue = (UINT32*)&ci.code[patchOffset];
+
+            printf("offset: %08X: %s%s%s ",
+                   patchOffset,
+                   (char*)disassembled[i].mnemonic.p,
+                   disassembled[i].operands.length != 0 ? " " : "",
+                   (char*)disassembled[i].operands.p);
+            printf("[%x] --> [%x]\n",
+                   *patchValue,
+                   *patchValue += alignDiffDSDT);
+            patchCount++;
+        }
+
+        if(patchCount < 1){
+            printf("ERROR: Something went wrong, didn't patch anything...\n");
+            return ERR_ERROR;
+        }
+
+        printf("Patched %i instructions\n", patchCount);
     }
-
-    for (int i = 0; i < decodedInstructionsCount; i++) {
-
-        if((decomposed[i].disp < (UINT64)offset)||decomposed[i].disp > (MAX_DSDT & 0xFF000))
-            continue;
-
-        UINT32 patchOffset = (decomposed[i].addr-ci.codeOffset)+3;
-        UINT32 *patchValue = (UINT32*)&ci.code[patchOffset];
-
-        printf("offset: %08X: %s%s%s ",
-               patchOffset,
-               (char*)disassembled[i].mnemonic.p,
-               disassembled[i].operands.length != 0 ? " " : "",
-               (char*)disassembled[i].operands.p);
-        printf("[%x] --> [%x]\n",
-               *patchValue,
-               *patchValue += alignDiffDSDT);
-        patchCount++;
-    }
-
-    if(patchCount < 1){
-        printf("ERROR: Something went wrong, didn't patch anything...\n");
-        return ERR_ERROR;
-    }
-
-    printf("Patched %i instructions\n", patchCount);
 
     /* Copy data till DSDT */
     out.append((const char*)amiboardbuf, offset);
