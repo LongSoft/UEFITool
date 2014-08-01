@@ -34,11 +34,11 @@ void usageDsdt2Bios()
             "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
 }
 
-void usageFfsConvert()
+void usageKext2Ffs()
 {
-    printf("ffsconvert command\n"
+    printf("kext2ffs command\n"
             " usage:\n"
-            "\t%s --ffsconvert -o outputdir -i kextsdir\n\n"
+            "\t%s --kext2ffs -o outputdir -i kextsdir\n\n"
             " parameters:\n"
             "\t-i, --input [dir]\t\tInput kexts directory\n"
             "\t-o, --out [dir]\t\tOutput ffs directory\n"
@@ -121,7 +121,7 @@ void usageGeneral()
             "\t--ozmupdate\t\tUpdates clean BIOS with files from old OZM-flavoured one\n"
             "\t--ozmextract\t\tExtracts Ozmosis files (ffs) from BIOS\n"
             "\t--ozmcreate\t\tPatches Original BIOS with Ozmosis\n"
-            "\t--ffsconvert\t\tConverts kext-directories to FFS\n"
+            "\t--kext2ffs\t\tConverts kext-directories to FFS\n"
             "\t--dsdt2bios\t\tInjects (bigger) DSDT into AmiBoardInfo\n"
             "\t--help, -h\t\tPrint this\n\n",qPrintable(appname));
 }
@@ -139,7 +139,7 @@ void usageAll()
     usageOzmUpdate();
     usageOzmExtract();
     usageOzmCreate();
-    usageFfsConvert();
+    usageKext2Ffs();
     usageDsdt2Bios();
 }
 
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
     bool ozmupdate = false;
     bool ozmextract = false;
     bool ozmcreate = false;
-    bool ffsconvert = false;
+    bool kext2ffs = false;
     bool dsdt2bios = false;
     bool compressdxe = false;
     bool compresskexts = false;
@@ -234,8 +234,8 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (strcasecmp(argv[0], "--ffsconvert") == 0) {
-            ffsconvert = true;
+        if (strcasecmp(argv[0], "--kext2ffs") == 0) {
+            kext2ffs = true;
             argc --;
             argv ++;
             continue;
@@ -372,7 +372,7 @@ fail:
         return ERR_GENERIC_CALL_NOT_SUPPORTED;
     }
 
-    int cmds = dsdtextract + dsdtinject + ozmextract + ozmupdate + ozmcreate + ffsconvert + dsdt2bios;
+    int cmds = dsdtextract + dsdtinject + ozmextract + ozmupdate + ozmcreate + kext2ffs + dsdt2bios;
 
     versionInfo();
 
@@ -389,8 +389,8 @@ fail:
             usageOzmExtract();
         else if (ozmcreate)
             usageOzmCreate();
-        else if (ffsconvert)
-            usageFfsConvert();
+        else if (kext2ffs)
+            usageKext2Ffs();
         else if (dsdt2bios)
             usageDsdt2Bios();
         else
@@ -445,8 +445,8 @@ fail:
         result = w.OZMExtract(inputpath, output);
     else if (ozmcreate)
         result = w.OZMCreate(inputpath, output, ffsdir, kextdir, efidir, dsdtfile, aggressivity, compressdxe, compresskexts);
-    else if (ffsconvert)
-        result = w.FFSConvert(inputpath, output);
+    else if (kext2ffs)
+        result = w.Kext2Ffs(inputpath, output);
     else if (dsdt2bios)
         result = w.DSDT2Bios(inputpath, dsdtfile, output);
 

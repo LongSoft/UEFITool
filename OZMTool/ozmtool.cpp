@@ -649,7 +649,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     return ERR_SUCCESS;
 }
 
-UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
+UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
 {
     int i;
     UINT8 ret;
