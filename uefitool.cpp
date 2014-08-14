@@ -16,7 +16,8 @@
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
-ui(new Ui::UEFITool)
+ui(new Ui::UEFITool), 
+version(tr("0.18.6"))
 {
     clipboard = QApplication::clipboard();
 
@@ -24,6 +25,9 @@ ui(new Ui::UEFITool)
     ui->setupUi(this);
     searchDialog = new SearchDialog(this);
     ffsEngine = NULL;
+
+	// Set window title
+	this->setWindowTitle(tr("UEFITool %1").arg(version));
 
     // Connect signals to slots
     connect(ui->actionOpenImageFile, SIGNAL(triggered()), this, SLOT(openImageFile()));
@@ -71,6 +75,9 @@ void UEFITool::init()
     // Clear components
     ui->messageListWidget->clear();
     ui->infoEdit->clear();
+
+	// Set window title
+	this->setWindowTitle(tr("UEFITool %1").arg(version));
 
     // Disable menus
     ui->menuCapsuleActions->setDisabled(true);
@@ -544,6 +551,8 @@ void UEFITool::openImageFile(QString path)
     inputFile.close();
 
     init();
+	this->setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
+
     UINT8 result = ffsEngine->parseImageFile(buffer);
     showMessages();
     if (result)

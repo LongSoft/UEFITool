@@ -1240,18 +1240,36 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             // Tiano compressed section
             if (QByteArray((const char*)&guidDefinedSectionHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_TIANO) {
                 algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
-                info += tr("\nCompression type: Tiano");
-                result = decompress(body, EFI_STANDARD_COMPRESSION, decompressed, &algorithm);
+               
+				result = decompress(body, EFI_STANDARD_COMPRESSION, decompressed, &algorithm);
                 if (result)
                     parseCurrentSection = false;
+				
+				if (algorithm == COMPRESSION_ALGORITHM_TIANO) {
+					info += tr("\nCompression type: Tiano");
+					info += tr("\nDecompressed size: %1").arg(decompressed.length(), 8, 16, QChar('0'));
+				}
+				else if (algorithm == COMPRESSION_ALGORITHM_EFI11) {
+					info += tr("\nCompression type: EFI 1.1");
+					info += tr("\nDecompressed size: %1").arg(decompressed.length(), 8, 16, QChar('0'));
+				}
+				else 
+					info += tr("\nCompression type: unknown");
             }
             // LZMA compressed section
             else if (QByteArray((const char*)&guidDefinedSectionHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_LZMA) {
                 algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
-                info += tr("\nCompression type: LZMA");
+                
                 result = decompress(body, EFI_CUSTOMIZED_COMPRESSION, decompressed, &algorithm);
-                if (result)
+				if (result)
                     parseCurrentSection = false;
+				
+				if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
+					info += tr("\nCompression type: LZMA");
+					info += tr("\nDecompressed size: %1").arg(decompressed.length(), 8, 16, QChar('0'));
+				}
+				else
+					info += tr("\nCompression type: unknown");
             }
             // Unknown GUIDed section
             else {
@@ -1342,10 +1360,12 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
 
         // Special case of PEI Core
-        if ((sectionHeader->Type == EFI_SECTION_PE32 || sectionHeader->Type == EFI_SECTION_TE) && model->subtype(parent) == EFI_FV_FILETYPE_PEI_CORE) {
+        if ((sectionHeader->Type == EFI_SECTION_PE32 || sectionHeader->Type == EFI_SECTION_TE) 
+			&& model->subtype(parent) == EFI_FV_FILETYPE_PEI_CORE
+			&& oldPeiCoreEntryPoint == 0) {
             result = getEntryPoint(model->body(index), oldPeiCoreEntryPoint);
             if (result)
-                msg(tr("parseSection: Can't get entry point of image file"), index);
+                msg(tr("parseSection: Can't get original PEI core entry point"), index);
         }
     }
         break;
