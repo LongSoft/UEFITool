@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.18.6"))
+version(tr("0.18.7"))
 {
     clipboard = QApplication::clipboard();
 

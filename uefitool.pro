@@ -14,6 +14,7 @@ SOURCES  += uefitool_main.cpp \
  treeitem.cpp \
  treemodel.cpp \
  messagelistitem.cpp \
+ guidlineedit.cpp \
  LZMA/LzmaCompress.c \
  LZMA/LzmaDecompress.c \
  LZMA/SDK/C/LzFind.c \
@@ -35,6 +36,7 @@ HEADERS  += uefitool.h \
  treeitem.h \
  treemodel.h \
  messagelistitem.h \
+ guidlineedit.h \
  LZMA/LzmaCompress.h \
  LZMA/LzmaDecompress.h \
  Tiano/EfiTianoDecompress.h \

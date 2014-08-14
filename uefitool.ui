@@ -497,7 +497,7 @@
   </action>
   <action name="actionMessagesCopyAll">
    <property name="text">
-    <string>C&amp;opy All</string>
+    <string>C&amp;opy all</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+C</string>
