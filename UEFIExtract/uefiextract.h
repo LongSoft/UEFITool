@@ -31,10 +31,13 @@ public:
     explicit UEFIExtract(QObject *parent = 0);
     ~UEFIExtract();
 
-    UINT8 extractAll(QString path);
+	UINT8 init(const QString & path);
+    UINT8 extract(QString guid = QString());
 
 private:
     FfsEngine* ffsEngine;
+	QFileInfo fileInfo;
+
 };
 
 #endif

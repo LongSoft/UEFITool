@@ -25,24 +25,44 @@ int main(int argc, char *argv[])
 
     UEFIExtract w;
     UINT8 result = ERR_SUCCESS;
-    if (a.arguments().length() > 1) {
-        result = w.extractAll(a.arguments().at(1));
-        switch (result) {
-        case ERR_DIR_ALREADY_EXIST:
-            std::cout << "Dump directory already exist, please remove it" << std::endl;
-            break;
-        case ERR_DIR_CREATE:
-            std::cout << "Can't create directory" << std::endl;
-            break;
-        case ERR_FILE_OPEN:
-            std::cout << "Can't create file" << std::endl;
-            break;
-        }
+    if (a.arguments().length() > 1 ) {
+		w.init(a.arguments().at(1));
+
+		if (a.arguments().length() == 2) {
+			result = w.extract();
+			switch (result) {
+			case ERR_DIR_ALREADY_EXIST:
+				std::cout << "Dump directory already exist, please remove it" << std::endl;
+				break;
+			case ERR_DIR_CREATE:
+				std::cout << "Can't create directory" << std::endl;
+				break;
+			case ERR_FILE_OPEN:
+				std::cout << "Can't create file" << std::endl;
+				break;
+			}
+		}
+		else {
+			for (int i = 2; i < a.arguments().length(); i++) {
+				result = w.extract(a.arguments().at(i));
+				switch (result) {
+				case ERR_DIR_ALREADY_EXIST:
+					std::cout << "Dump directory already exist, please remove it" << std::endl;
+					break;
+				case ERR_DIR_CREATE:
+					std::cout << "Can't create directory" << std::endl;
+					break;
+				case ERR_FILE_OPEN:
+					std::cout << "Can't create file" << std::endl;
+					break;
+				}
+			}
+		}
     }
     else {
         result = ERR_INVALID_PARAMETER;
-        std::cout << "UEFIExtract 0.2.2" << std::endl << std::endl << 
-            "Usage: uefiextract imagefile\n" << std::endl;
+        std::cout << "UEFIExtract 0.3.0" << std::endl << std::endl << 
+            "Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ...]\n" << std::endl;
     }
         
     return result;

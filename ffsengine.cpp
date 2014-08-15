@@ -3432,51 +3432,57 @@ UINT32 FfsEngine::crc32(UINT32 initial, const UINT8* buffer, UINT32 length)
     return(crc32 ^ 0xFFFFFFFF);
 }
 
-UINT8 FfsEngine::dump(const QModelIndex & index, const QString path)
+UINT8 FfsEngine::dump(const QModelIndex & index, const QString & path, const QString & guid)
 {
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
 
     QDir dir;
-    if (dir.cd(path))
-        return ERR_DIR_ALREADY_EXIST;
+		
+	if (guid.isEmpty() || 
+		guidToQString(*(EFI_GUID*)model->header(index).constData()) == guid || 
+		guidToQString(*(EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData()) == guid) {
+	
+		if (dir.cd(path))
+			return ERR_DIR_ALREADY_EXIST;
 
-    if (!dir.mkpath(path))
-        return ERR_DIR_CREATE;
+		if (!dir.mkpath(path))
+			return ERR_DIR_CREATE;
 
-    QFile file;
-    if (!model->header(index).isEmpty()) {
-        file.setFileName(tr("%1/header.bin").arg(path));
-        if (!file.open(QFile::WriteOnly))
-            return ERR_FILE_OPEN;
-        file.write(model->header(index));
-        file.close();
-    }
+		QFile file;
+		if (!model->header(index).isEmpty()) {
+			file.setFileName(tr("%1/header.bin").arg(path));
+			if (!file.open(QFile::WriteOnly))
+				return ERR_FILE_OPEN;
+			file.write(model->header(index));
+			file.close();
+		}
 
-    if (!model->body(index).isEmpty()) {
-        file.setFileName(tr("%1/body.bin").arg(path));
-        if (!file.open(QFile::WriteOnly))
-            return ERR_FILE_OPEN;
-        file.write(model->body(index));
-        file.close();
-    }
+		if (!model->body(index).isEmpty()) {
+			file.setFileName(tr("%1/body.bin").arg(path));
+			if (!file.open(QFile::WriteOnly))
+				return ERR_FILE_OPEN;
+			file.write(model->body(index));
+			file.close();
+		}
 
-    QString info = tr("Type: %1\nSubtype: %2\n%3%4")
-        .arg(model->typeString(index))
-        .arg(model->subtypeString(index))
-        .arg(model->textString(index).isEmpty() ? "" : tr("Text: %1\n").arg(model->textString(index)))
-        .arg(model->info(index));
-    file.setFileName(tr("%1/info.txt").arg(path));
-    if (!file.open(QFile::Text | QFile::WriteOnly))
-        return ERR_FILE_OPEN;
-    file.write(info.toLatin1());
-    file.close();
+		QString info = tr("Type: %1\nSubtype: %2\n%3%4")
+			.arg(model->typeString(index))
+			.arg(model->subtypeString(index))
+			.arg(model->textString(index).isEmpty() ? "" : tr("Text: %1\n").arg(model->textString(index)))
+			.arg(model->info(index));
+		file.setFileName(tr("%1/info.txt").arg(path));
+		if (!file.open(QFile::Text | QFile::WriteOnly))
+			return ERR_FILE_OPEN;
+		file.write(info.toLatin1());
+		file.close();
+	}
 
     UINT8 result;
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex childIndex = index.child(i, 0);
         QString childPath = tr("%1/%2 %3").arg(path).arg(i).arg(model->textString(childIndex).isEmpty() ? model->nameString(childIndex) : model->textString(childIndex));
-        result = dump(childIndex, childPath);
+        result = dump(childIndex, childPath, guid);
         if (result)
             return result;
     }
