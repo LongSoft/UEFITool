@@ -193,7 +193,7 @@ void FfsEngine::msg(const QString & message, const QModelIndex & index)
 #ifndef _CONSOLE
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 #else
-    std::cout << message.toLatin1().constData() << std::endl;
+	std::cout << message.toLatin1().constData() << std::endl;
 #endif
 }
 
@@ -3434,11 +3434,21 @@ UINT32 FfsEngine::crc32(UINT32 initial, const UINT8* buffer, UINT32 length)
 
 UINT8 FfsEngine::dump(const QModelIndex & index, const QString & path, const QString & guid)
 {
+	dumped = false;
+	UINT8 result = recursiveDump(index, path, guid);
+	if (result)
+		return result;
+	else if (!dumped)
+		return ERR_ITEM_NOT_FOUND;
+	return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::recursiveDump(const QModelIndex & index, const QString & path, const QString & guid)
+{
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
 
     QDir dir;
-		
 	if (guid.isEmpty() || 
 		guidToQString(*(EFI_GUID*)model->header(index).constData()) == guid || 
 		guidToQString(*(EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData()) == guid) {
@@ -3476,13 +3486,14 @@ UINT8 FfsEngine::dump(const QModelIndex & index, const QString & path, const QSt
 			return ERR_FILE_OPEN;
 		file.write(info.toLatin1());
 		file.close();
-	}
+		dumped = true;
+	} 
 
     UINT8 result;
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex childIndex = index.child(i, 0);
         QString childPath = tr("%1/%2 %3").arg(path).arg(i).arg(model->textString(childIndex).isEmpty() ? model->nameString(childIndex) : model->textString(childIndex));
-        result = dump(childIndex, childPath, guid);
+        result = recursiveDump(childIndex, childPath, guid);
         if (result)
             return result;
     }

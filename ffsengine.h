@@ -141,6 +141,10 @@ private:
     // Internal operations
     bool hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
     UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
+
+	// Recursive dump
+	bool dumped;
+	UINT8 recursiveDump(const QModelIndex & index, const QString & path, const QString & filter);
 };
 
 #endif

@@ -25,45 +25,36 @@ int main(int argc, char *argv[])
 
     UEFIExtract w;
     UINT8 result = ERR_SUCCESS;
+	UINT32 returned = 0;
+
+	if (a.arguments().length() > 32) {
+		std::cout << "Too many arguments" << std::endl;
+		return 1;
+	}
+
     if (a.arguments().length() > 1 ) {
-		w.init(a.arguments().at(1));
+		if (w.init(a.arguments().at(1)))
+			return 1;
 
 		if (a.arguments().length() == 2) {
 			result = w.extract();
-			switch (result) {
-			case ERR_DIR_ALREADY_EXIST:
-				std::cout << "Dump directory already exist, please remove it" << std::endl;
-				break;
-			case ERR_DIR_CREATE:
-				std::cout << "Can't create directory" << std::endl;
-				break;
-			case ERR_FILE_OPEN:
-				std::cout << "Can't create file" << std::endl;
-				break;
-			}
+			if (result)
+				return 2;
 		}
 		else {
 			for (int i = 2; i < a.arguments().length(); i++) {
 				result = w.extract(a.arguments().at(i));
-				switch (result) {
-				case ERR_DIR_ALREADY_EXIST:
-					std::cout << "Dump directory already exist, please remove it" << std::endl;
-					break;
-				case ERR_DIR_CREATE:
-					std::cout << "Can't create directory" << std::endl;
-					break;
-				case ERR_FILE_OPEN:
-					std::cout << "Can't create file" << std::endl;
-					break;
-				}
+				if (result)
+					returned |= (1 << (i - 1));
 			}
+			return returned;
 		}
+		
     }
     else {
-        result = ERR_INVALID_PARAMETER;
-        std::cout << "UEFIExtract 0.3.0" << std::endl << std::endl << 
-            "Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ...]\n" << std::endl;
-    }
-        
-    return result;
+        std::cout << "UEFIExtract 0.3.1" << std::endl << std::endl << 
+			"Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl <<
+			"Returned value is a bit mask where 0 on position N meant File with GUID_N was found and unpacked, 1 otherwise" << std::endl;
+		return 1;
+	}
 }

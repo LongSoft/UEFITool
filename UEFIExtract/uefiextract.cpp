@@ -40,20 +40,10 @@ UINT8 UEFIExtract::init(const QString & path)
 	QByteArray buffer = inputFile.readAll();
 	inputFile.close();
 
-	UINT8 result = ffsEngine->parseImageFile(buffer);
-	if (result)
-		return result;
-
-	return ERR_SUCCESS;
+	return ffsEngine->parseImageFile(buffer);
 }
 
 UINT8 UEFIExtract::extract(QString guid)
 {
-    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
-
-	UINT8 result = ffsEngine->dump(rootIndex, fileInfo.fileName().append(".dump"), guid);
-	if (result)
-		return result;
-		
-    return ERR_SUCCESS;
+	return ffsEngine->dump(ffsEngine->treeModel()->index(0, 0), fileInfo.fileName().append(".dump"), guid);
 }
