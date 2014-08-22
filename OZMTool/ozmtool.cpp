@@ -515,7 +515,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
                 break;
             case SRC_NOT_SET:
             default:
-                printf("Info: '%s' doesn't look like a valid kext or OzmosisDefaults!\n", qPrintable(currKext.fileName()));
+                printf("Info: '%s' doesn't look like a valid kext, Defaults.plist or Theme.bin!\n", qPrintable(currKext.fileName()));
                 continue;
             }
 
@@ -711,7 +711,7 @@ UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
             break;
         case SRC_NOT_SET:
         default:
-            printf("Info: '%s' doesn't look like a valid kext or OzmosisDefaults!\n", qPrintable(currKext.fileName()));
+            printf("Info: '%s' doesn't look like a valid kext, Defaults.plist or Theme.bin!\n", qPrintable(currKext.fileName()));
             continue;
         }
 

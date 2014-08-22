@@ -86,9 +86,9 @@ static const QList<sectionEntry> OzmFfs{
     {"HermitShellX64","C57AD6B7-0515-40A8-9D21-551652854E37", "hermitshellx64.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
     {"Shell", "7C04A583-9E3E-4F1C-AD65-E05268D0B4D1", "shell.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
     // Defaults
-    {"OzmosisDefaults","99F2839C-57C3-411E-ABC3-ADE5267D960D", "OzmosisDefaults.plist", SRC_BINARY, EFI_SECTION_RAW, TRUE},
+    {"OzmosisDefaults","99F2839C-57C3-411E-ABC3-ADE5267D960D", "Defaults.plist", SRC_BINARY, EFI_SECTION_RAW, TRUE},
     // Theme
-    {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", "theme.bin", SRC_BINARY, EFI_SECTION_RAW, FALSE},
+    {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", "Theme.bin", SRC_BINARY, EFI_SECTION_RAW, FALSE},
     // Kernel Extensions
     {"SmcEmulatorKext","DADE1001-1B31-4FE4-8557-26FCEFC78275", "FakeSMC.kext", SRC_KEXT, EFI_SECTION_RAW, TRUE},
     {"DisablerKext","DADE1002-1B31-4FE4-8557-26FCEFC78275", "Disabler.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE},
