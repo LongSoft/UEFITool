@@ -17,26 +17,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ozmtool.h"
 #include "common.h"
 
-static QList<sectionEntry> deleteFfs;
-static QList<sectionEntry> compressFfs;
-static QList<sectionEntry> OzmFfs;
 
 OZMTool::OZMTool(QObject *parent) :
     QObject(parent)
-{
-    /* how to store those initially */
-    for(int i = 0; i < requiredFfsCount; i++) {
-        OzmFfs.append(requiredFfs[i]);
-    }
-    for(int i = 0; i < optionalFfsCount; i++) {
-        OzmFfs.append(optionalFfs[i]);
-    }   
-    for(int i = 0; i < deletableFfsCount; i++) {
-        deleteFfs.append(deletableFfs[i]);
-    }
-}
-
-OZMTool::~OZMTool()
 {
 }
 
@@ -387,18 +370,23 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
     return ERR_SUCCESS;
 }
 
-UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputDSDTfile,
+UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFSdir, QString inputKextdir, QString inputEFIdir, QString inputDSDTfile,
                             int aggressivity, bool compressdxe, bool compresskexts)
 {
     int i, kextId;
     UINT8 ret;
+    UINT8 srcType, sectionType;
+    QString guid, sectionName;
     QByteArray bios, dsdt, ffs, out, tmp;
-    QModelIndex volumeIdxCount;
+    QModelIndex volumeIdxCount, tmpIdx, rootIdx, currIdx;
 
     BOOLEAN insertDSDT = FALSE;
     BOOLEAN insertKexts = FALSE;
+    BOOLEAN insertEfi = FALSE;
 
     FFSUtil *fu = new FFSUtil();
+
+    fu->getRootIndex(rootIdx);
 
     if (!dirExists(inputFFSdir)) {
         printf("ERROR: FFS directory '%s' couldn't be found!\n", qPrintable(inputFFSdir));
@@ -409,6 +397,9 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
         insertKexts = TRUE;
     else
         printf("Warning: No KEXT-dir given! Injecting only Ozmosis files!\n");
+
+    if (!inputKextdir.isEmpty() && dirExists(inputKextdir))
+        insertEfi = TRUE;
 
     if (!inputDSDTfile.isEmpty() && fileExists(inputDSDTfile))
         insertDSDT = TRUE;
@@ -487,42 +478,46 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
         }
     }
 
-    QDirIterator diKext(inputKextdir);
-    QFileInfo currKext;
-
     if(insertKexts) {
+        QDirIterator diKext(inputKextdir);
+        QFileInfo currKext;
 
         printf("Converting Kext & injecting into BIOS...\n");
-
         kextId = MIN_KEXT_ID;
 
         while (diKext.hasNext()) {
             ffs.clear();
             currKext = diKext.next();
+            srcType = SRC_NOT_SET;
 
-            if(!currKext.fileName().compare("FakeSMC.kext")){
-                ret = convertKext(currKext.filePath(), 1, "SmcEmulatorKext", ffs);
-            } else if(!currKext.fileName().compare("Disabler.kext")){
-                ret = convertKext(currKext.filePath(), 2, "DisablerKext", ffs);
-            } else if(!currKext.fileName().compare("Injector.kext")){
-                ret = convertKext(currKext.filePath(), 3, "InjectorKext", ffs);
-            } else if(!currKext.fileName().compare("PostbootMounter.kext")){
-                ret = convertKext(currKext.filePath(), 4, "PostbootMounter", ffs);
-            } else if(!currKext.fileName().compare("PostbootSymbols.kext")){
-                ret = convertKext(currKext.filePath(), 5, "PostbootSymbols", ffs);
-            } else if(!currKext.fileName().compare("CPUSensors.kext")){
-                ret = convertKext(currKext.filePath(), 6, "CpuSensorsKext", ffs);
-            } else if(!currKext.fileName().compare("LPCSensors.kext")){
-                ret = convertKext(currKext.filePath(), 7, "LpcSensorsKext", ffs);
-            } else if(!currKext.fileName().compare("GPUSensors.kext")){
-                ret = convertKext(currKext.filePath(), 8, "GpuSensorsKext", ffs);
-            } else if(!currKext.fileName().compare(ozmDefaultsFilename)){
-                ret = convertOzmPlist(currKext.filePath(), ffs);
-            } else if(currKext.fileName().endsWith(".kext")){
-                ret = convertKext(currKext.filePath(), kextId, currKext.baseName(), ffs);
-                kextId++;
-            } else
+            for(i=0; i < OzmFfs.size(); i++) {
+                if(!currKext.fileName().compare(OzmFfs.at(i).srcName)) {
+                    srcType = OzmFfs.at(i).srcType;
+                    guid = OzmFfs.at(i).GUID;
+                    sectionName = OzmFfs.at(i).name;
+                    break;
+                }
+                else if(currKext.fileName().endsWith(".kext")) {
+                    srcType = SRC_KEXT;
+                    guid = kextGUID.arg(16, 1, kextId);
+                    sectionName = currKext.baseName();
+                    kextId++;
+                    break;
+                }
+            }
+
+            switch(srcType) {
+            case SRC_KEXT:
+                ret = convertKext(currKext.filePath(), guid, sectionName, ffs);
+                break;
+            case SRC_BINARY:
+                ret = convertBinary(currKext.filePath(), guid, sectionName, ffs);
+                break;
+            case SRC_NOT_SET:
+            default:
+                printf("Info: '%s' doesn't look like a valid kext, Defaults.plist or Theme.bin!\n", qPrintable(currKext.fileName()));
                 continue;
+            }
 
             printf("* Current file '%s'...\n", qPrintable(currKext.fileName()));
 
@@ -545,6 +540,55 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             fu->injectFile(ffs);
             if (ret) {
                 printf("ERROR: Injection of file '%s' failed!\n", qPrintable(currKext.fileName()));
+                return ret;
+            }
+        }
+    }
+
+    if (insertEfi) {
+        QDirIterator diEfi(inputEFIdir);
+        QFileInfo currEfi;
+
+        printf("Injecting bare (EFI) files...\n");
+
+        while (diEfi.hasNext()) {
+            ffs.clear();
+            srcType = SRC_NOT_SET;
+            currEfi = diEfi.next();
+
+            for(i=0; i < OzmFfs.size(); i++) {
+                if(currEfi.fileName().compare(OzmFfs.at(i).srcName))
+                    continue;
+                sectionType = OzmFfs.at(i).sectionType;
+                srcType = OzmFfs.at(i).srcType;
+                guid = OzmFfs.at(i).GUID;
+                sectionName = OzmFfs.at(i).name;
+            }
+
+            if(srcType != SRC_EFI)
+                continue;
+
+            ret = fu->findFileByGUID(rootIdx, guid, tmpIdx);
+            if (ret) {
+                printf("ERROR: File '%s' [%s] wasn't found!\n", qPrintable(sectionName), qPrintable(guid));
+                continue;
+            }
+
+            ret = fu->findSectionByIndex(tmpIdx, sectionType, currIdx);
+            if (ret) {
+                printf("ERROR: Section wasn't found in [%s] !\n", qPrintable(guid));
+                return ret;
+            }
+
+            ret = fileOpen(currEfi.filePath(), ffs);
+            if (ret) {
+                printf("ERROR: Opening '%s' failed!\n", qPrintable(diFFS.filePath()));
+                return ret;
+            }
+
+            ret = fu->replace(currIdx, ffs, REPLACE_MODE_BODY);
+            if (ret) {
+                printf("ERROR: Replacing body of [%s] failed!\n", qPrintable(guid));
                 return ret;
             }
         }
@@ -605,8 +649,9 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     return ERR_SUCCESS;
 }
 
-UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
+UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
 {
+    int i;
     UINT8 ret;
     int kextId;
     QString filepath;
@@ -627,6 +672,8 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
 
     QDirIterator diKext(inputdir);
     QFileInfo currKext;
+    UINT8 srcType;
+    QString sectionName, guid;
 
     printf("Converting Kexts...\n");
 
@@ -637,29 +684,36 @@ UINT8 OZMTool::FFSConvert(QString inputdir, QString outputdir)
         compressedOut.clear();
         currKext = diKext.next();
 
-        if(!currKext.fileName().compare("FakeSMC.kext")){
-            ret = convertKext(currKext.filePath(), 1, "SmcEmulatorKext", out);
-        } else if(!currKext.fileName().compare("Disabler.kext")){
-            ret = convertKext(currKext.filePath(), 2, "DisablerKext", out);
-        } else if(!currKext.fileName().compare("Injector.kext")){
-            ret = convertKext(currKext.filePath(), 3, "InjectorKext", out);
-        } else if(!currKext.fileName().compare("PostbootMounter.kext")){
-            ret = convertKext(currKext.filePath(), 4, "PostbootMounter", out);
-        } else if(!currKext.fileName().compare("PostbootSymbols.kext")){
-            ret = convertKext(currKext.filePath(), 5, "PostbootSymbols", out);
-        } else if(!currKext.fileName().compare("CPUSensors.kext")){
-            ret = convertKext(currKext.filePath(), 6, "CpuSensorsKext", out);
-        } else if(!currKext.fileName().compare("LPCSensors.kext")){
-            ret = convertKext(currKext.filePath(), 7, "LpcSensorsKext", out);
-        } else if(!currKext.fileName().compare("GPUSensors.kext")){
-            ret = convertKext(currKext.filePath(), 8, "GpuSensorsKext", out);
-        } else if(!currKext.fileName().compare(ozmDefaultsFilename)){
-            ret = convertOzmPlist(currKext.filePath(), out);
-        } else if(currKext.fileName().endsWith(".kext")){
-            ret = convertKext(currKext.filePath(), kextId, currKext.baseName(), out);
-            kextId++;
-        } else
+        srcType = SRC_NOT_SET;
+
+        for(i=0; i < OzmFfs.size(); i++) {
+            if(!currKext.fileName().compare(OzmFfs.at(i).srcName)) {
+                srcType = OzmFfs.at(i).srcType;
+                guid = OzmFfs.at(i).GUID;
+                sectionName = OzmFfs.at(i).name;
+                break;
+            }
+            else if(currKext.fileName().endsWith(".kext")) {
+                srcType = SRC_KEXT;
+                guid = kextGUID.arg(16, 1, kextId);
+                sectionName = currKext.baseName();
+                kextId++;
+                break;
+            }
+        }
+
+        switch(srcType) {
+        case SRC_KEXT:
+            ret = convertKext(currKext.filePath(), guid, sectionName, out);
+            break;
+        case SRC_BINARY:
+            ret = convertBinary(currKext.filePath(), guid, sectionName, out);
+            break;
+        case SRC_NOT_SET:
+        default:
+            printf("Info: '%s' doesn't look like a valid kext, Defaults.plist or Theme.bin!\n", qPrintable(currKext.fileName()));
             continue;
+        }
 
         printf("* Current file '%s'...\n", qPrintable(currKext.fileName()));
 
