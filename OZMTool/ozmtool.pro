@@ -6,8 +6,8 @@ QT       -= gui
 
 TARGET    = OZMTool
 TEMPLATE  = app
-CONFIG   += c++11
 CONFIG   += console
+CONFIG += static
 CONFIG -= app_bundle
 DEFINES  += _CONSOLE
 

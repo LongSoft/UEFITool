@@ -193,13 +193,13 @@ UINT8 OZMTool::OZMUpdate(QString inputfile, QString recentBios, QString outputfi
         return ret;
     }
 
-    for(i = 0; i < OzmFfs.size(); i++){
+    for(i = 0; i < OZMFFS_SIZE; i++){
         ffsbuf.clear();
-        guid = OzmFfs.at(i).GUID;
+        guid = OzmFfs[i].GUID;
 
         ret = oFU->dumpFileByGUID(guid, ffsbuf, EXTRACT_MODE_AS_IS);
-        if(ret && OzmFfs.at(i).required) {
-            printf("ERROR: Required file '%s' [%s] not found!\n", qPrintable(OzmFfs.at(i).name), qPrintable(guid));
+        if(ret && OzmFfs[i].required) {
+            printf("ERROR: Required file '%s' [%s] not found!\n", qPrintable(OzmFfs[i].name), qPrintable(guid));
             return ERR_FILE_NOT_FOUND;
         }
         else if(ret)
@@ -309,8 +309,8 @@ UINT8 OZMTool::OZMExtract(QString inputfile, QString outputdir)
         return ret;
     }
 
-    for(i=0; i<OzmFfs.size(); i++) {
-        guid = OzmFfs.at(i).GUID;
+    for(i=0; i<OZMFFS_SIZE; i++) {
+        guid = OzmFfs[i].GUID;
 
         ret = fu->dumpFileByGUID(guid, buf, EXTRACT_MODE_AS_IS);
         if (ret == ERR_ITEM_NOT_FOUND) {
@@ -490,11 +490,11 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             currKext = diKext.next();
             srcType = SRC_NOT_SET;
 
-            for(i=0; i < OzmFfs.size(); i++) {
-                if(!currKext.fileName().compare(OzmFfs.at(i).srcName)) {
-                    srcType = OzmFfs.at(i).srcType;
-                    guid = OzmFfs.at(i).GUID;
-                    sectionName = OzmFfs.at(i).name;
+            for(i=0; i < OZMFFS_SIZE; i++) {
+                if(!currKext.fileName().compare(OzmFfs[i].srcName)) {
+                    srcType = OzmFfs[i].srcType;
+                    guid = OzmFfs[i].GUID;
+                    sectionName = OzmFfs[i].name;
                     break;
                 }
                 else if(currKext.fileName().endsWith(".kext")) {
@@ -556,13 +556,13 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
             srcType = SRC_NOT_SET;
             currEfi = diEfi.next();
 
-            for(i=0; i < OzmFfs.size(); i++) {
-                if(currEfi.fileName().compare(OzmFfs.at(i).srcName))
+            for(i=0; i < OZMFFS_SIZE; i++) {
+                if(currEfi.fileName().compare(OzmFfs[i].srcName))
                     continue;
-                sectionType = OzmFfs.at(i).sectionType;
-                srcType = OzmFfs.at(i).srcType;
-                guid = OzmFfs.at(i).GUID;
-                sectionName = OzmFfs.at(i).name;
+                sectionType = OzmFfs[i].sectionType;
+                srcType = OzmFfs[i].srcType;
+                guid = OzmFfs[i].GUID;
+                sectionName = OzmFfs[i].name;
             }
 
             if(srcType != SRC_EFI)
@@ -637,12 +637,12 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
         return ret;
     }
 
-    for(i=0; i<OzmFfs.size(); i++) {
+    for(i=0; i<OZMFFS_SIZE; i++) {
         ffs.clear();
-        if(OzmFfs.at(i).required) {
-            ret = verifyFU->dumpFileByGUID(OzmFfs.at(i).GUID, ffs, EXTRACT_MODE_AS_IS);
+        if(OzmFfs[i].required) {
+            ret = verifyFU->dumpFileByGUID(OzmFfs[i].GUID, ffs, EXTRACT_MODE_AS_IS);
             if(ret)
-                printf("ERROR: Failed to dump '%s' [%s] !\n",qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                printf("ERROR: Failed to dump '%s' [%s] !\n",qPrintable(OzmFfs[i].name), qPrintable(OzmFfs[i].GUID));
         }
     }
 
@@ -686,11 +686,11 @@ UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
 
         srcType = SRC_NOT_SET;
 
-        for(i=0; i < OzmFfs.size(); i++) {
-            if(!currKext.fileName().compare(OzmFfs.at(i).srcName)) {
-                srcType = OzmFfs.at(i).srcType;
-                guid = OzmFfs.at(i).GUID;
-                sectionName = OzmFfs.at(i).name;
+        for(i=0; i < OZMFFS_SIZE; i++) {
+            if(!currKext.fileName().compare(OzmFfs[i].srcName)) {
+                srcType = OzmFfs[i].srcType;
+                guid = OzmFfs[i].GUID;
+                sectionName = OzmFfs[i].name;
                 break;
             }
             else if(currKext.fileName().endsWith(".kext")) {

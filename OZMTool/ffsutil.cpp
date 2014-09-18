@@ -445,29 +445,29 @@ UINT8 FFSUtil::runFreeSomeSpace(int aggressivity)
     switch(aggressivity) {
     case RUN_DEL_OZM_NREQ:
         printf("Deleting non-essential Ozmosis files to save space...\n");
-        for(i = 0; i<OzmFfs.size(); i++){
-            if(!OzmFfs.at(i).required){
-                ret = findFileByGUID(rootIdx,OzmFfs.at(i).GUID,currIdx);
+        for(i = 0; i<OZMFFS_SIZE; i++){
+            if(!OzmFfs[i].required){
+                ret = findFileByGUID(rootIdx,OzmFfs[i].GUID,currIdx);
                 if(ret)
                     continue;
                 ret = remove(currIdx);
                 if(ret)
-                    printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                    printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(OzmFfs[i].name), qPrintable(OzmFfs[i].GUID));
                 else
-                    printf("* Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs.at(i).name), qPrintable(OzmFfs.at(i).GUID));
+                    printf("* Removed '%s' [%s] succesfully!\n", qPrintable(OzmFfs[i].name), qPrintable(OzmFfs[i].GUID));
             }
         }
     case RUN_DELETE:
         printf("Deleting network BIOS stuff (PXE) to save space...\n");
-        for(i = 0; i<deleteFfs.size(); i++){
-            ret = findFileByGUID(rootIdx,deleteFfs.at(i).GUID,currIdx);
+        for(i = 0; i<DELETABLEFFS_SIZE; i++){
+            ret = findFileByGUID(rootIdx,deletableFfs[i].GUID,currIdx);
             if(ret)
                 continue;
             ret = remove(currIdx);
             if(ret)
-                printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
+                printf("Warning: Removing entry '%s' [%s] failed!\n", qPrintable(deletableFfs[i].name), qPrintable(deletableFfs[i].GUID));
             else
-                printf("* Removed '%s' [%s] succesfully!\n", qPrintable(deleteFfs.at(i).name), qPrintable(deleteFfs.at(i).GUID));
+                printf("* Removed '%s' [%s] succesfully!\n", qPrintable(deletableFfs[i].name), qPrintable(deletableFfs[i].GUID));
         }
     case RUN_AS_IS:
         break;

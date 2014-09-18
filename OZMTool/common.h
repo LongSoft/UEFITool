@@ -75,7 +75,9 @@ struct sectionEntry {
     BOOLEAN required;
 };
 
-static const QList<sectionEntry> OzmFfs{
+#define OZMFFS_SIZE 17
+
+static const sectionEntry OzmFfs[]{
     // Filesystem
     {"PartitionDxe","1FA1F39E-FEFF-4AAE-BD7B-38A070A3B609", "partitiondxe.efi", SRC_EFI, EFI_SECTION_PE32, TRUE},
     {"EnhancedFat","961578FE-B6B7-44C3-AF35-6BC705CD2B1F", "enhancedfat.efi", SRC_EFI, EFI_SECTION_PE32, TRUE},
@@ -85,11 +87,10 @@ static const QList<sectionEntry> OzmFfs{
     {"Ozmosis","AAE65279-0761-41D1-BA13-4A3C1383603F", "ozmosis.efi", SRC_EFI, EFI_SECTION_PE32, TRUE},
     // EFI / EDK Shell
     {"HermitShellX64","C57AD6B7-0515-40A8-9D21-551652854E37", "hermitshellx64.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
-    {"Shell", "7C04A583-9E3E-4F1C-AD65-E05268D0B4D1", "shell.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
     // Defaults
     {"OzmosisDefaults","99F2839C-57C3-411E-ABC3-ADE5267D960D", "Defaults.plist", SRC_BINARY, EFI_SECTION_RAW, TRUE},
     // Theme
-    {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", "Theme.bin", SRC_BINARY, EFI_SECTION_RAW, FALSE},
+    {"OzmosisTheme","AC255206-DCF9-4837-8353-72BBBC0AC849", "Theme.bin", SRC_BINARY, EFI_SECTION_RAW, TRUE},
     // Kernel Extensions
     {"SmcEmulatorKext","DADE1001-1B31-4FE4-8557-26FCEFC78275", "FakeSMC.kext", SRC_KEXT, EFI_SECTION_RAW, TRUE},
     {"DisablerKext","DADE1002-1B31-4FE4-8557-26FCEFC78275", "Disabler.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE},
@@ -98,10 +99,13 @@ static const QList<sectionEntry> OzmFfs{
     {"PostbootSymbols","DADE1005-1B31-4FE4-8557-26FCEFC78275", "PostbootSymbols.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE},
     {"CpuSensorsKext","DADE1006-1B31-4FE4-8557-26FCEFC78275", "CPUSensors.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE},
     {"LpcSensorsKext","DADE1007-1B31-4FE4-8557-26FCEFC78275", "LPCSensors.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE},
-    {"GpuSensorsKext","DADE1008-1B31-4FE4-8557-26FCEFC78275", "GPUSensors.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE}
+    {"GpuSensorsKext","DADE1008-1B31-4FE4-8557-26FCEFC78275", "GPUSensors.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE},
+    {"VoodooHdaKext", "DADE1009-1B31-4FE4-8557-26FCEFC78275", "VoodooHDA.kext", SRC_KEXT, EFI_SECTION_RAW, FALSE}
 };
 
-static const QList<sectionEntry> deleteFfs{
+#define DELETABLEFFS_SIZE 10
+
+static const sectionEntry deletableFfs[]{
   {"TcpDxe","B1625D3C-9D2D-4E0D-B864-8A763EE4EC50", "tcpdxe.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
   {"Dhcp4Dxe","8DD9176E-EE87-4F0E-8A84-3F998311F930", "dhcp4dxe.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
   {"Ip4ConfigDxe","8F9296EF-2880-4659-B857-915A8901BDC8", "ip4configdxe.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
