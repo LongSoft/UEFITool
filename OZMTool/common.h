@@ -30,7 +30,7 @@
 #define RUN_DEL_OZM_NREQ    2
 
 /* KEXT CONVERSION */
-#define MIN_KEXT_ID 0x9
+#define MIN_KEXT_ID 0xA
 #define MAX_KEXT_ID 0xF
 
 #define ALIGN16(Value) (((Value)+15) & ~15)
