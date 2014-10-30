@@ -176,6 +176,7 @@ FfsEngine::FfsEngine(QObject *parent)
     model = new TreeModel();
     oldPeiCoreEntryPoint = 0;
     newPeiCoreEntryPoint = 0;
+	dumped = false;
 }
 
 FfsEngine::~FfsEngine(void)
