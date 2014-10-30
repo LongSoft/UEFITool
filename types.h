@@ -69,6 +69,12 @@ namespace Subtypes {
         BiosRegion,
         PdrRegion
     };
+
+	enum PaddingSubtypes {
+		ZeroPadding = 110,
+		OnePadding,
+		DataPadding
+	};
 };
 
 // *ToQString conversion routines

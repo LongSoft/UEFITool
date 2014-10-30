@@ -146,11 +146,11 @@ typedef struct {
 
 // VSCC table entry structure
 typedef struct {
-    UINT8   VendorId;       // JEDEC VendorID byte
-    UINT8   DeviceId0;      // JEDEC DeviceID first byte
-    UINT8   DeviceId1;      // JEDEC DeviceID second byte
-    UINT8   ReservedZero;   // Reserved, must be zero
-    UINT32  VsccId;         // VSCC ID, normally it is 0x20052005 or 0x20152015
+    UINT8   VendorId;          // JEDEC VendorID byte
+    UINT8   DeviceId0;         // JEDEC DeviceID first byte
+    UINT8   DeviceId1;         // JEDEC DeviceID second byte
+    UINT8   ReservedZero;      // Reserved, must be zero
+    UINT32  VsccRegisterValue; // VSCC register value
 } VSCC_TABLE_ENTRY;
 
 // Base address and size of OEM section

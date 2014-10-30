@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.18.7"))
+version(tr("0.18.8"))
 {
     clipboard = QApplication::clipboard();
 
@@ -621,6 +621,8 @@ void UEFITool::showMessages()
     for (int i = 0; i < messageItems.count(); i++) {
         ui->messageListWidget->addItem(new MessageListItem(messageItems.at(i)));
     }
+
+	ui->messageListWidget->scrollToBottom();
 }
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)

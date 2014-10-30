@@ -70,7 +70,14 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         else
             return QObject::tr("Unknown");
     case Types::Padding:
-        return "";
+		if (subtype == Subtypes::ZeroPadding)
+			return QObject::tr("0x00s");
+		else if (subtype == Subtypes::OnePadding)
+			return QObject::tr("0xFFs");
+		else if (subtype == Subtypes::DataPadding)
+			return QObject::tr("Non-UEFI data");
+		else
+			return "";
     case Types::Volume:
         if (subtype == Subtypes::BootVolume)
             return QObject::tr("Boot");
