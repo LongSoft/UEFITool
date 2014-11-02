@@ -111,6 +111,8 @@ private:
 
     // Parsing helpers
 	UINT8 getPaddingType(const QByteArray & padding);
+    void  parseAprioriRawSection(const QByteArray & body, QString & parsed);
+    UINT8 parseDepexSection(const QByteArray & body, QString & parsed);
 	UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
@@ -124,7 +126,7 @@ private:
     UINT8 getBase(const QByteArray& file, UINT32& base);
     UINT8 getEntryPoint(const QByteArray& file, UINT32 &entryPoint);
     UINT8 rebase(QByteArray & executable, const UINT32 base);
-    void rebasePeiFiles(const QModelIndex & index);
+    void  rebasePeiFiles(const QModelIndex & index);
 
     // Patch routines
     UINT8 patchVtf(QByteArray &vtf);

@@ -162,6 +162,9 @@ QString errorMessage(UINT8 errorCode)
     case ERR_NOTHING_TO_PATCH:
         msg = QObject::tr("Nothing to patch");
         break;
+    case ERR_DEPEX_PARSE_FAILED:
+        msg = QObject::tr("Dependency expression parsing failed");
+        break;
     default:
         msg = QObject::tr("Unknown error %1").arg(errorCode);
         break;
@@ -621,7 +624,7 @@ UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, con
 
     // Parse PDR region as BIOS space
     UINT8 result = parseBios(pdr, index);
-    if (result && result != ERR_VOLUMES_NOT_FOUND)
+    if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
         return result;
 
     return ERR_SUCCESS;
@@ -969,7 +972,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         // Parse file
         QModelIndex fileIndex;
         result = parseFile(file, fileIndex, empty == '\xFF' ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index);
-        if (result && result != ERR_VOLUMES_NOT_FOUND)
+        if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
             msg(tr("parseVolume: FFS file parsing failed with error \"%1\"").arg(errorMessage(result)), index);
 
         // Show messages
@@ -1144,7 +1147,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
     UINT8 result;
     if (parseAsBios) {
         result = parseBios(body, index);
-        if (result && result != ERR_VOLUMES_NOT_FOUND)
+        if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
             msg(tr("parseFile: Parsing file as BIOS failed with error \"%1\"").arg(errorMessage(result)), index);
         return result;
     }
@@ -1191,6 +1194,112 @@ UINT8 FfsEngine::parseSections(const QByteArray & body, const QModelIndex & pare
         // Exit from loop if no sections left
         if (sectionOffset >= bodySize)
             break;
+    }
+
+    return ERR_SUCCESS;
+}
+
+void FfsEngine::parseAprioriRawSection(const QByteArray & body, QString & parsed)
+{
+    parsed.clear();
+
+    UINT32 count = body.size() / sizeof(EFI_GUID);
+    if (count > 0) {
+        for (UINT32 i = 0; i < count; i++) {
+            EFI_GUID* guid = (EFI_GUID*)body.data() + i;
+            parsed += tr("\n%1").arg(guidToQString(*guid));
+        }
+    }
+}
+
+UINT8 FfsEngine::parseDepexSection(const QByteArray & body, QString & parsed)
+{
+    parsed.clear();
+    // Check data to be present
+    if (!body.size())
+        return ERR_INVALID_PARAMETER;
+
+    EFI_GUID * guid;
+    UINT8* current = (UINT8*)body.data();
+    
+    // Special cases of first opcode
+    switch (*current) {
+    case EFI_DEP_BEFORE:
+        if (body.size() != 2*EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID))
+            return ERR_DEPEX_PARSE_FAILED;
+        guid = (EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
+        parsed += tr("\nBEFORE %1").arg(guidToQString(*guid));
+        current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
+        if (*current != EFI_DEP_END)
+            return ERR_DEPEX_PARSE_FAILED;
+        return ERR_SUCCESS;
+    case EFI_DEP_AFTER:
+        if (body.size() != 2 * EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID))
+            return ERR_DEPEX_PARSE_FAILED;
+        guid = (EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
+        parsed += tr("\nAFTER %1").arg(guidToQString(*guid));
+        current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
+        if (*current != EFI_DEP_END)
+            return ERR_DEPEX_PARSE_FAILED;
+        return ERR_SUCCESS;
+    case EFI_DEP_SOR:
+        if (body.size() <= 2 * EFI_DEP_OPCODE_SIZE) {
+            return ERR_DEPEX_PARSE_FAILED;
+        }
+        parsed += tr("\nSOR");
+        current += EFI_DEP_OPCODE_SIZE;
+        break;
+    default:
+        break;
+    }
+
+    // Parse the rest of depex 
+    while (current - (UINT8*)body.data() < body.size()) {
+        switch (*current) {
+        case EFI_DEP_BEFORE:
+        case EFI_DEP_AFTER:
+        case EFI_DEP_SOR:
+            return ERR_DEPEX_PARSE_FAILED;
+        case EFI_DEP_PUSH:
+            // Check that the rest of depex has correct size
+            if (body.size() - (current - (UINT8*)body.data()) <= EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)) {
+                parsed.clear();
+                return ERR_DEPEX_PARSE_FAILED;
+            }
+            guid = (EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
+            parsed += tr("\nPUSH %1").arg(guidToQString(*guid));
+            current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
+            break;
+        case EFI_DEP_AND:
+            parsed += tr("\nAND");
+            current += EFI_DEP_OPCODE_SIZE;
+            break;
+        case EFI_DEP_OR:
+            parsed += tr("\nOR");
+            current += EFI_DEP_OPCODE_SIZE;
+            break;
+        case EFI_DEP_NOT:
+            parsed += tr("\nNOT");
+            current += EFI_DEP_OPCODE_SIZE;
+            break;
+        case EFI_DEP_TRUE:
+            parsed += tr("\nTRUE");
+            current += EFI_DEP_OPCODE_SIZE;
+            break;
+        case EFI_DEP_FALSE:
+            parsed += tr("\nFALSE");
+            current += EFI_DEP_OPCODE_SIZE;
+            break;
+        case EFI_DEP_END:
+            parsed += tr("\nEND");
+            current += EFI_DEP_OPCODE_SIZE;
+            // Check that END is the last opcode
+            if (current - (UINT8*)body.data() < body.size()) {
+                parsed.clear();
+                return ERR_DEPEX_PARSE_FAILED;
+            }
+            break;
+        }
     }
 
     return ERR_SUCCESS;
@@ -1372,13 +1481,40 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             return result;
     }
         break;
-        // Leaf sections
+
+    // Leaf sections
+    case EFI_SECTION_DXE_DEPEX:
+    case EFI_SECTION_PEI_DEPEX:
+    case EFI_SECTION_SMM_DEPEX: {
+        bool msgDepexParseFailed = false;
+        headerSize = sizeOfSectionHeader(sectionHeader);
+        header = section.left(headerSize);
+        body = section.mid(headerSize, sectionSize - headerSize);
+
+        // Get info
+        info = tr("Type: 0x%1\nSize: 0x%2")
+            .arg(sectionHeader->Type, 2, 16, QChar('0'))
+            .arg(body.size(), 6, 16, QChar('0'));
+
+        // Parse dependency expression
+        QString str;
+        result = parseDepexSection(body, str);
+        if (result)
+            msgDepexParseFailed = true;
+        else if (str.count())
+            info += tr("\nParsed expression:%1").arg(str);
+
+        // Add tree item
+        index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+
+        // Show messages
+        if (msgDepexParseFailed)
+            msg(tr("parseSection: dependency expression parsing failed"), index);
+    }
+        break;
     case EFI_SECTION_PE32:
     case EFI_SECTION_TE:
     case EFI_SECTION_PIC:
-    case EFI_SECTION_DXE_DEPEX:
-    case EFI_SECTION_PEI_DEPEX:
-    case EFI_SECTION_SMM_DEPEX:
     case EFI_SECTION_COMPATIBILITY16: {
         headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
@@ -1466,13 +1602,14 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Parse section body as BIOS space
         result = parseBios(body, index);
-        if (result && result != ERR_VOLUMES_NOT_FOUND) {
+        if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME) {
             msg(tr("parseSection: Parsing firmware volume image section as BIOS failed with error \"%1\"").arg(errorMessage(result)), index);
             return result;
         }
     }
         break;
     case EFI_SECTION_RAW: {
+        bool parsed = false;
         header = section.left(sizeof(EFI_RAW_SECTION));
         body = section.mid(sizeof(EFI_RAW_SECTION), sectionSize - sizeof(EFI_RAW_SECTION));
 
@@ -1481,14 +1618,46 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             .arg(sectionHeader->Type, 2, 16, QChar('0'))
             .arg(body.size(), 6, 16, QChar('0'));
 
+        // Check for apriori file
+        QModelIndex parentFile = model->findParentOfType(parent, Types::File);
+        QByteArray parentFileGuid = model->header(parentFile).left(sizeof(EFI_GUID));
+        if (parentFileGuid == EFI_PEI_APRIORI_FILE_GUID) {
+            // Mark file as parsed
+            parsed = true;
+
+            // Parse apriori file list
+            QString str;
+            parseAprioriRawSection(body, str);
+            if (str.count())
+                info += tr("\nFile list:%1").arg(str);
+
+            // Rename parent file
+            model->setTextString(parentFile, tr("PEI apriori file"));
+        }
+        else if (parentFileGuid == EFI_DXE_APRIORI_FILE_GUID) {
+            // Mark file as parsed
+            parsed = true;
+
+            // Parse apriori file list
+            QString str;
+            parseAprioriRawSection(body, str);
+            if (str.count())
+                info += tr("\nFile list:%1").arg(str);
+
+            // Rename parent file
+            model->setTextString(parentFile, tr("DXE apriori file"));
+        }
+
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
 
         // Parse section body as BIOS space
-        result = parseBios(body, index);
-        if (result && result != ERR_VOLUMES_NOT_FOUND) {
-            msg(tr("parseSection: Parsing raw section as BIOS failed with error \"%1\"").arg(errorMessage(result)), index);
-            return result;
+        if (!parsed) { 
+            result = parseBios(body, index);
+            if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME) {
+                msg(tr("parseSection: Parsing raw section as BIOS failed with error \"%1\"").arg(errorMessage(result)), index);
+                return result;
+            }
         }
     }
         break;
@@ -1543,7 +1712,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             return ERR_NOT_IMPLEMENTED;
         }
 
-        if (result && result != ERR_VOLUMES_NOT_FOUND)
+        if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
             return result;
 
         // Set action
@@ -1601,7 +1770,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 
         // Parse file
         result = parseFile(created, fileIndex, erasePolarity ? ERASE_POLARITY_TRUE : ERASE_POLARITY_FALSE, index, mode);
-        if (result && result != ERR_VOLUMES_NOT_FOUND)
+        if (result && result != ERR_VOLUMES_NOT_FOUND  && result != ERR_INVALID_VOLUME)
             return result;
 
         // Set action
@@ -1652,7 +1821,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Parse section
             QModelIndex sectionIndex;
             result = parseSection(created, sectionIndex, index, mode);
-            if (result && result != ERR_VOLUMES_NOT_FOUND)
+            if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
                 return result;
 
             // Set create action
@@ -1678,7 +1847,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Parse section
             QModelIndex sectionIndex;
             result = parseSection(created, sectionIndex, index, mode);
-            if (result && result != ERR_VOLUMES_NOT_FOUND)
+            if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
                 return result;
 
             // Set create action
@@ -1698,7 +1867,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             // Parse section
             QModelIndex sectionIndex;
             result = parseSection(created, sectionIndex, index, mode);
-            if (result && result != ERR_VOLUMES_NOT_FOUND)
+            if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
                 return result;
 
             // Set create action

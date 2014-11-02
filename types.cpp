@@ -71,11 +71,11 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Unknown");
     case Types::Padding:
 		if (subtype == Subtypes::ZeroPadding)
-			return QObject::tr("0x00s");
+			return QObject::tr("Empty(0)");
 		else if (subtype == Subtypes::OnePadding)
-			return QObject::tr("0xFFs");
+			return QObject::tr("Empty(1)");
 		else if (subtype == Subtypes::DataPadding)
-			return QObject::tr("Non-UEFI data");
+			return QObject::tr("NonEmpty");
 		else
 			return "";
     case Types::Volume:

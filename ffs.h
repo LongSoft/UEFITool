@@ -302,6 +302,14 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
 
+// PEI apriori file
+const QByteArray EFI_PEI_APRIORI_FILE_GUID
+("\x0A\xCC\x45\x1B\x6A\x15\x8A\x42\xAF\x62\x49\x86\x4D\xA0\xE6\xE6", 16);
+
+// DXE apriori file
+const QByteArray EFI_DXE_APRIORI_FILE_GUID
+("\xE7\x0E\x51\xFC\xDC\xFF\xD4\x11\xBD\x41\x00\x80\xC7\x3C\x88\x81", 16);
+
 // Volume top file
 const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
@@ -419,6 +427,39 @@ typedef EFI_COMMON_SECTION_HEADER EFI_USER_INTERFACE_SECTION;
 
 //Section routines
 extern UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header);
+
+//*****************************************************************************
+// EFI Dependency Expression
+//*****************************************************************************
+
+#define EFI_DEP_OPCODE_SIZE   1
+
+///
+/// If present, this must be the first and only opcode,
+/// EFI_DEP_BEFORE is only used by DXE driver.
+///
+#define EFI_DEP_BEFORE        0x00
+
+///
+/// If present, this must be the first and only opcode,
+/// EFI_DEP_AFTER is only used by DXE driver.
+///
+#define EFI_DEP_AFTER         0x01
+
+#define EFI_DEP_PUSH          0x02
+#define EFI_DEP_AND           0x03
+#define EFI_DEP_OR            0x04
+#define EFI_DEP_NOT           0x05
+#define EFI_DEP_TRUE          0x06
+#define EFI_DEP_FALSE         0x07
+#define EFI_DEP_END           0x08
+
+
+///
+/// If present, this must be the first opcode,
+/// EFI_DEP_SOR is only used by DXE driver.
+///
+#define EFI_DEP_SOR           0x09
 
 // Restore previous packing rules
 #pragma pack(pop)

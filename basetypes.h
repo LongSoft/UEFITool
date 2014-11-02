@@ -83,6 +83,7 @@ typedef uint16_t  CHAR16;
 #define ERR_PATCH_OFFSET_OUT_OF_BOUNDS      39
 #define ERR_INVALID_SYMBOL                  40
 #define ERR_NOTHING_TO_PATCH                41
+#define ERR_DEPEX_PARSE_FAILED              42
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions
