@@ -75,7 +75,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
 		else if (subtype == Subtypes::OnePadding)
 			return QObject::tr("Empty(1)");
 		else if (subtype == Subtypes::DataPadding)
-			return QObject::tr("NonEmpty");
+			return QObject::tr("Nonempty");
 		else
 			return "";
     case Types::Volume:
