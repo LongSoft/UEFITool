@@ -438,7 +438,7 @@ void UEFITool::extract(const UINT8 mode)
             else if (model->subtype(index) == EFI_SECTION_RAW)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
-                path = QFileDialog::getSaveFileName(this, tr("Save section body to file"), currentDir, "Binary files (*.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save section body to file"), currentDir, "Binary files (*.bin);;All files (*)");
         }
             break;
         default:
