@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.18.9"))
+version(tr("0.18.9.2"))
 {
     clipboard = QApplication::clipboard();
 
@@ -230,11 +230,11 @@ void UEFITool::insert(const UINT8 mode)
     QString path;
     switch (type) {
     case Types::Volume:
-        path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"), currentDir, "FFS files (*.ffs *.bin);;All files (*.*)");
+        path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"), currentDir, "FFS files (*.ffs *.bin);;All files (*)");
         break;
     case Types::File:
     case Types::Section:
-        path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"), currentDir, "Section files (*.sct *.bin);;All files (*.*)");
+        path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"), currentDir, "Section files (*.sct *.bin);;All files (*)");
         break;
     default:
         return;
@@ -303,39 +303,39 @@ void UEFITool::replace(const UINT8 mode)
     QString path;
     if (model->type(index) == Types::Region) {
         if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select region file to replace selected object"), currentDir, "Region files (*.rgn *.bin);;All files (*.*)");
+            path = QFileDialog::getOpenFileName(this, tr("Select region file to replace selected object"), currentDir, "Region files (*.rgn *.bin);;All files (*)");
         }
         else
             return;
     }
     else if (model->type(index) == Types::File) {
         if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace selected object"), currentDir, "FFS files (*.ffs *.bin);;All files (*.*)");
+            path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace selected object"), currentDir, "FFS files (*.ffs *.bin);;All files (*)");
         }
         else if (mode == REPLACE_MODE_BODY) {
             if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
-                path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*.*)");
+                path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_FV_FILETYPE_PAD) // Pad file body can't be replaced
                 return;
             else
-                path = QFileDialog::getOpenFileName(this, tr("Select FFS file body to replace body"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*.*)");
+                path = QFileDialog::getOpenFileName(this, tr("Select FFS file body to replace body"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
         }
         else
             return;
     }
     else if (model->type(index) == Types::Section) {
         if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select section file to replace selected object"), currentDir, "Section files (*.sec *.bin);;All files (*.*)");
+            path = QFileDialog::getOpenFileName(this, tr("Select section file to replace selected object"), currentDir, "Section files (*.sec *.bin);;All files (*)");
         }
         else if (mode == REPLACE_MODE_BODY) {
             if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
-                path = QFileDialog::getOpenFileName(this, tr("Select FFS file body file to replace body"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*.*)");
+                path = QFileDialog::getOpenFileName(this, tr("Select FFS file body file to replace body"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
-                path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace body"), currentDir, "Volume files (*.vol *.bin);;All files (*.*)");
+                path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace body"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_SECTION_RAW)
-                path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*.*)");
+                path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
-                path = QFileDialog::getOpenFileName(this, tr("Select file to replace body"), currentDir, "Binary files (*.bin);;All files (*.*)");
+                path = QFileDialog::getOpenFileName(this, tr("Select file to replace body"), currentDir, "Binary files (*.bin);;All files (*)");
         }
         else
             return;
@@ -394,59 +394,59 @@ void UEFITool::extract(const UINT8 mode)
     if (mode == EXTRACT_MODE_AS_IS) {
         switch (type) {
         case Types::Capsule:
-            path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"), currentDir, "Capsule files (*.cap *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"), currentDir, "Capsule files (*.cap *.bin);;All files (*)");
             break;
         case Types::Image:
-            path = QFileDialog::getSaveFileName(this, tr("Save image to file"), currentDir, "Image files (*.rom *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save image to file"), currentDir, "Image files (*.rom *.bin);;All files (*)");
             break;
         case Types::Region:
-            path = QFileDialog::getSaveFileName(this, tr("Save region to file"), currentDir, "Region files (*.rgn *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save region to file"), currentDir, "Region files (*.rgn *.bin);;All files (*)");
             break;
         case Types::Padding:
-            path = QFileDialog::getSaveFileName(this, tr("Save padding to file"), currentDir, "Padding files (*.pad *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save padding to file"), currentDir, "Padding files (*.pad *.bin);;All files (*)");
             break;
         case Types::Volume:
-            path = QFileDialog::getSaveFileName(this, tr("Save volume to file"), currentDir, "Volume files (*.vol *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save volume to file"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
             break;
         case Types::File:
-            path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"), currentDir, "FFS files (*.ffs *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"), currentDir, "FFS files (*.ffs *.bin);;All files (*)");
             break;
         case Types::Section:
-            path = QFileDialog::getSaveFileName(this, tr("Save section file to file"), currentDir, "Section files (*.sct *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save section file to file"), currentDir, "Section files (*.sct *.bin);;All files (*)");
             break;
         default:
-            path = QFileDialog::getSaveFileName(this, tr("Save object to file"), currentDir, "Binary files (*.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save object to file"), currentDir, "Binary files (*.bin);;All files (*)");
         }
     }
     else if (mode == EXTRACT_MODE_BODY) {
         switch (type) {
         case Types::Capsule:
-            path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), currentDir, "Image files (*.rom *.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), currentDir, "Image files (*.rom *.bin);;All files (*)");
             break;
         case Types::File: {
             if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
-                path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
-                path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
         }
             break;
         case Types::Section: {
             if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
-                path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
-                path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"), currentDir, "Volume files (*.vol *.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_SECTION_RAW)
-                path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*.*)");
+                path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to file"), currentDir, "Binary files (*.bin);;All files (*.*)");
         }
             break;
         default:
-            path = QFileDialog::getSaveFileName(this, tr("Save object to file"), currentDir, "Binary files (*.bin);;All files (*.*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save object to file"), currentDir, "Binary files (*.bin);;All files (*)");
         }
     }
     else
-        path = QFileDialog::getSaveFileName(this, tr("Save object to file"), currentDir, "Binary files (*.bin);;All files (*.*)");
+        path = QFileDialog::getSaveFileName(this, tr("Save object to file"), currentDir, "Binary files (*.bin);;All files (*)");
 
     if (path.trimmed().isEmpty())
         return;
@@ -493,7 +493,7 @@ void UEFITool::exit()
 
 void UEFITool::saveImageFile()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
+    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi *.dec);;All files (*)");
 
     if (path.isEmpty())
         return;
@@ -523,7 +523,7 @@ void UEFITool::saveImageFile()
 
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi);;All files (*.*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi *.dec);;All files (*)");
     openImageFile(path);
 }
 
