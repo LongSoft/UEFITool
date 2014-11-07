@@ -27,8 +27,8 @@ UINT32                     Count
     return Operand << Count;
 }
 
-static void * AllocForLzma(void *p, size_t size) { return malloc(size); }
-static void FreeForLzma(void *p, void *address) { free(address); }
+static void * AllocForLzma(void *p, size_t size) { (void)p; return malloc(size); }
+static void FreeForLzma(void *p, void *address) { (void)p; free(address); }
 static ISzAlloc SzAllocForLzma = { &AllocForLzma, &FreeForLzma };
 
 /*

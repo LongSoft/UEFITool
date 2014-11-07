@@ -365,7 +365,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
 
         // Check for Gigabyte specific descriptor map
-        if (biosEnd - biosBegin == intelImage.size()) {
+        if (biosEnd - biosBegin == (UINT32)intelImage.size()) {
             if (!meEnd) {
                 msg(tr("parseIntelImage: can determine BIOS region start from Gigabyte-specific descriptor"));
                 return ERR_INVALID_FLASH_DESCRIPTOR;
@@ -1262,7 +1262,7 @@ UINT8 FfsEngine::parseDepexSection(const QByteArray & body, QString & parsed)
             return ERR_DEPEX_PARSE_FAILED;
         case EFI_DEP_PUSH:
             // Check that the rest of depex has correct size
-            if (body.size() - (current - (UINT8*)body.data()) <= EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)) {
+            if ((UINT32)body.size() - (UINT32)(current - (UINT8*)body.data()) <= EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)) {
                 parsed.clear();
                 return ERR_DEPEX_PARSE_FAILED;
             }
