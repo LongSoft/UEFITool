@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.19.0"))
+version(tr("0.19.1"))
 {
     clipboard = QApplication::clipboard();
 
@@ -149,7 +149,7 @@ void UEFITool::search()
     int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
         searchDialog->ui->hexEdit->setFocus();
-        QByteArray pattern = searchDialog->ui->hexEdit->text().toLatin1();
+        QByteArray pattern = searchDialog->ui->hexEdit->text().toLatin1().replace(" ", "");
         if (pattern.isEmpty())
             return;
         UINT8 mode;

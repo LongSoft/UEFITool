@@ -252,9 +252,9 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
         QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
         QString name = tr("UEFI capsule");
         QString info = tr("Header size: 0x%1\nFlags: 0x%2\nImage size: 0x%3")
-            .arg(capsuleHeader->HeaderSize, 8, 16, QChar('0'))
-            .arg(capsuleHeader->Flags, 8, 16, QChar('0'))
-            .arg(capsuleHeader->CapsuleImageSize, 8, 16, QChar('0'));
+            .hexarg(capsuleHeader->HeaderSize, 8)
+            .hexarg(capsuleHeader->Flags, 8)
+            .hexarg(capsuleHeader->CapsuleImageSize, 8);
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
     }
@@ -268,9 +268,9 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
         QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
         QString name = tr("AMI Aptio capsule");
         QString info = tr("Header size: 0x%1\nFlags: 0x%2\nImage size: 0x%3")
-            .arg(aptioCapsuleHeader->RomImageOffset, 4, 16, QChar('0'))
-            .arg(aptioCapsuleHeader->CapsuleHeader.Flags, 8, 16, QChar('0'))
-            .arg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - aptioCapsuleHeader->RomImageOffset, 8, 16, QChar('0'));
+            .hexarg(aptioCapsuleHeader->RomImageOffset, 4)
+            .hexarg(aptioCapsuleHeader->CapsuleHeader.Flags, 8)
+            .hexarg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - aptioCapsuleHeader->RomImageOffset, 8);
         //!TODO: more info about Aptio capsule
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::AptioCapsule, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
@@ -295,7 +295,7 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
     // Get info
     QString name = tr("BIOS image");
     QString info = tr("Size: 0x%1")
-        .arg(flashImage.size(), 8, 16, QChar('0'));
+        .hexarg(flashImage.size(), 8);
 
     // Add tree item
     index = model->addItem(Types::Image, Subtypes::BiosImage, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), flashImage, QByteArray(), index);
@@ -431,7 +431,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     // Intel image
     name = tr("Intel image");
     info = tr("Size: 0x%1\nFlash chips: %2\nRegions: %3\nMasters: %4\nPCH straps: %5\nPROC straps: %6\nICC table entries: %7")
-        .arg(intelImage.size(), 8, 16, QChar('0'))
+        .hexarg(intelImage.size(), 8)
         .arg(descriptorMap->NumberOfFlashChips + 1) //
         .arg(descriptorMap->NumberOfRegions + 1)    // Zero-based numbers in storage
         .arg(descriptorMap->NumberOfMasters + 1)    //
@@ -446,36 +446,36 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     // Get descriptor info
     body = intelImage.left(FLASH_DESCRIPTOR_SIZE);
     name = tr("Descriptor region");
-    info = tr("Size: 0x%1").arg(FLASH_DESCRIPTOR_SIZE, 4, 16, QChar('0'));
+    info = tr("Size: 0x%1").hexarg(FLASH_DESCRIPTOR_SIZE, 8);
 
     // Check regions presence once again
     QVector<UINT32> offsets;
     if (regionSection->GbeLimit) {
         offsets.append(gbeBegin);
-        info += tr("\nGbE region offset:  0x%1").arg(gbeBegin, 8, 16, QChar('0'));
+        info += tr("\nGbE region offset:  0x%1").hexarg(gbeBegin, 8);
     }
     if (regionSection->MeLimit) {
         offsets.append(meBegin);
-        info += tr("\nME region offset:   0x%1").arg(meBegin, 8, 16, QChar('0'));
+        info += tr("\nME region offset:   0x%1").hexarg(meBegin, 8);
     }
     if (regionSection->BiosLimit) {
         offsets.append(biosBegin);
-        info += tr("\nBIOS region offset: 0x%1").arg(biosBegin, 8, 16, QChar('0'));
+        info += tr("\nBIOS region offset: 0x%1").hexarg(biosBegin, 8);
     }
     if (regionSection->PdrLimit) {
         offsets.append(pdrBegin);
-        info += tr("\nPDR region offset:  0x%1").arg(pdrBegin, 8, 16, QChar('0'));
+        info += tr("\nPDR region offset:  0x%1").hexarg(pdrBegin, 8);
     }
 
     // Region access settings
     info += tr("\nRegion access settings:");
-    info += tr("\nBIOS:0x%1%2  ME:0x%3%4  GbE:0x%5%6")
-		.arg(masterSection->BiosRead, 2, 16, QChar('0'))
-		.arg(masterSection->BiosWrite, 2, 16, QChar('0'))
-		.arg(masterSection->MeRead, 2, 16, QChar('0'))
-		.arg(masterSection->MeWrite, 2, 16, QChar('0'))
-		.arg(masterSection->GbeRead, 2, 16, QChar('0'))
-		.arg(masterSection->GbeWrite, 2, 16, QChar('0'));
+    info += tr("\nBIOS:0x%1%2 ME:0x%3%4 GbE:0x%5%6")
+        .hexarg(masterSection->BiosRead, 2)
+        .hexarg(masterSection->BiosWrite, 2)
+        .hexarg(masterSection->MeRead, 2)
+        .hexarg(masterSection->MeWrite, 2)
+        .hexarg(masterSection->GbeRead, 2)
+        .hexarg(masterSection->GbeWrite, 2);
 
     // BIOS access table
     info += tr("\nBIOS access table:");
@@ -500,9 +500,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 	UINT8 vsscTableSize = upperMap->VsccTableSize * sizeof(UINT32) / sizeof(VSCC_TABLE_ENTRY);
 	for (int i = 0; i < vsscTableSize; i++) {
 		info += tr("\n0x%1%2%3")
-			.arg(vsccTableEntry->VendorId, 2, 16, QChar('0'))
-			.arg(vsccTableEntry->DeviceId0, 2, 16, QChar('0'))
-			.arg(vsccTableEntry->DeviceId1, 2, 16, QChar('0'));
+            .hexarg(vsccTableEntry->VendorId, 2)
+            .hexarg(vsccTableEntry->DeviceId0, 2)
+            .hexarg(vsccTableEntry->DeviceId1, 2);
 		vsccTableEntry++;
 	}
 
@@ -552,13 +552,13 @@ UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, QModelIndex & index, con
     GBE_MAC*     mac = (GBE_MAC*)gbe.constData();
     GBE_VERSION* version = (GBE_VERSION*)(gbe.constData() + GBE_VERSION_OFFSET);
     QString      info = tr("Size: 0x%1\nMAC: %2:%3:%4:%5:%6:%7\nVersion: %8.%9")
-        .arg(gbe.size(), 8, 16, QChar('0'))
-        .arg(mac->vendor[0], 2, 16, QChar('0'))
-        .arg(mac->vendor[1], 2, 16, QChar('0'))
-        .arg(mac->vendor[2], 2, 16, QChar('0'))
-        .arg(mac->device[0], 2, 16, QChar('0'))
-        .arg(mac->device[1], 2, 16, QChar('0'))
-        .arg(mac->device[2], 2, 16, QChar('0'))
+        .hexarg(gbe.size(), 8)
+        .hexarg(mac->vendor[0], 2)
+        .hexarg(mac->vendor[1], 2)
+        .hexarg(mac->vendor[2], 2)
+        .hexarg(mac->device[0], 2)
+        .hexarg(mac->device[1], 2)
+        .hexarg(mac->device[2], 2)
         .arg(version->major)
         .arg(version->minor);
 
@@ -576,7 +576,7 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const
     // Get info
     QString name = tr("ME region");
     QString info = tr("Size: 0x%1").
-        arg(me.size(), 8, 16, QChar('0'));
+        hexarg(me.size(), 8);
 
     // Search for new signature
     INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE2);
@@ -617,7 +617,7 @@ UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, con
     // Get info
     QString name = tr("PDR region");
     QString info = tr("Size: 0x%1").
-        arg(pdr.size(), 8, 16, QChar('0'));
+        hexarg(pdr.size(), 8);
 
     // Add tree item
     index = model->addItem(Types::Region, Subtypes::PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, QByteArray(), parent, mode);
@@ -638,7 +638,7 @@ UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, QModelIndex & index, c
     // Get info
     QString name = tr("BIOS region");
     QString info = tr("Size: 0x%1").
-        arg(bios.size(), 8, 16, QChar('0'));
+        hexarg(bios.size(), 8);
 
     // Add tree item
     index = model->addItem(Types::Region, Subtypes::BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, QByteArray(), parent, mode);
@@ -673,7 +673,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         QByteArray padding = bios.left(prevVolumeOffset);
         name = tr("Padding");
         info = tr("Size: 0x%1")
-            .arg(padding.size(), 8, 16, QChar('0'));
+            .hexarg(padding.size(), 8);
 		
         // Add tree item
 		model->addItem(Types::Padding, getPaddingType(padding), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, QByteArray(), parent);
@@ -683,12 +683,14 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
     UINT32 volumeOffset = prevVolumeOffset;
     UINT32 prevVolumeSize = 0;
     UINT32 volumeSize = 0;
+    UINT32 bmVolumeSize = 0;
 
     while (true)
     {
         bool msgAlignmentBitsSet = false;
         bool msgUnaligned = false;
         bool msgUnknownRevision = false;
+        bool msgSizeMismach = false;
 
         // Padding between volumes
         if (volumeOffset > prevVolumeOffset + prevVolumeSize) {
@@ -697,15 +699,20 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
             // Get info
             name = tr("Padding");
             info = tr("Size: 0x%1")
-                .arg(padding.size(), 8, 16, QChar('0'));
+                .hexarg(padding.size(), 8);
             // Add tree item
 			model->addItem(Types::Padding, getPaddingType(padding), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, QByteArray(), parent);
         }
 
         // Get volume size
-        result = getVolumeSize(bios, volumeOffset, volumeSize);
+        result = getVolumeSize(bios, volumeOffset, volumeSize, bmVolumeSize);
         if (result)
             return result;
+
+        // Check reported size
+        if (volumeSize != bmVolumeSize)
+            msgSizeMismach = true;
+        //!TODO: now we trust header size, sometimes it's the bmVolumeSize that is OK, need to implement some settings for it
 
         //Check that volume is fully present in input
         if (volumeOffset + volumeSize > (UINT32)bios.size()) {
@@ -748,6 +755,10 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
             msg(tr("parseBios: Unaligned revision 2 volume"), index);
         if (msgUnknownRevision)
             msg(tr("parseBios: Unknown volume revision %1").arg(volumeHeader->Revision), index);
+        if (msgSizeMismach)
+            msg(tr("parseBios: Volume size stored in header 0x%1 differs from calculated using block map 0x%2")
+            .hexarg(volumeSize, 8)
+            .hexarg(bmVolumeSize, 8), index);
 
         // Go to next volume
         prevVolumeOffset = volumeOffset;
@@ -762,7 +773,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
                 // Get info
                 name = tr("Padding");
                 info = tr("Size: 0x%1")
-                    .arg(padding.size(), 8, 16, QChar('0'));
+                    .hexarg(padding.size(), 8);
                 // Add tree item
 				model->addItem(Types::Padding, getPaddingType(padding), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, QByteArray(), parent);
             }
@@ -784,7 +795,7 @@ UINT8 FfsEngine::findNextVolume(const QByteArray & bios, UINT32 volumeOffset, UI
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize)
+UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize)
 {
     // Populate volume header
     EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + volumeOffset);
@@ -795,30 +806,23 @@ UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UIN
 
     // Calculate volume size using BlockMap
     EFI_FV_BLOCK_MAP_ENTRY* entry = (EFI_FV_BLOCK_MAP_ENTRY*)(bios.constData() + volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
-    UINT32 bmVolumeSize = 0;
+    UINT32 calcVolumeSize = 0;
     while (entry->NumBlocks != 0 && entry->Length != 0) {
         if ((void*)entry > bios.constData() + bios.size())
             return ERR_INVALID_VOLUME;
 
-        bmVolumeSize += entry->NumBlocks * entry->Length;
+        calcVolumeSize += entry->NumBlocks * entry->Length;
         entry += 1;
     }
 
-    // Check calculated and stored volume sizes to be the same
-    if (volumeHeader->FvLength != bmVolumeSize) {
-        // Use smaller value as volume size
-        volumeSize = volumeHeader->FvLength < bmVolumeSize ? volumeHeader->FvLength : bmVolumeSize;
-    }
-    else
-        volumeSize = bmVolumeSize;
-
+    volumeSize = volumeHeader->FvLength;
+    bmVolumeSize = calcVolumeSize;
     return ERR_SUCCESS;
 }
 
 UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     bool msgUnknownFS = false;
-    bool msgSizeMismach = false;
     bool msgInvalidChecksum = false;
 
     // Populate volume header
@@ -872,17 +876,11 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Get volume size
     UINT8 result;
     UINT32 volumeSize;
+    UINT32 bmVolumeSize;
 
-    result = getVolumeSize(volume, 0, volumeSize);
+    result = getVolumeSize(volume, 0, volumeSize, bmVolumeSize);
     if (result)
         return result;
-
-    // Check reported size
-    if (volumeSize != volumeHeader->FvLength)
-        msgSizeMismach = true;
-    // Trust header size
-    else
-        volumeSize = volumeHeader->FvLength;
 
     // Check header checksum by recalculating it
     if (subtype == Subtypes::NormalVolume && calculateChecksum16((UINT16*)volumeHeader, volumeHeader->HeaderLength))
@@ -892,16 +890,16 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     QString name = guidToQString(volumeHeader->FileSystemGuid);
     QString info = tr("FileSystem GUID: %1\nSize: 0x%2\nRevision: %3\nAttributes: 0x%4\nErase polarity: %5\nHeader size: 0x%6")
         .arg(guidToQString(volumeHeader->FileSystemGuid))
-        .arg(volumeSize, 8, 16, QChar('0'))
+        .hexarg(volumeSize, 8)
         .arg(volumeHeader->Revision)
-        .arg(volumeHeader->Attributes, 8, 16, QChar('0'))
+        .hexarg(volumeHeader->Attributes, 8)
         .arg(empty ? "1" : "0")
-        .arg(headerSize, 4, 16, QChar('0'));
+        .hexarg(headerSize, 4);
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
         info += tr("\nExtended header size: 0x%1\nVolume name: %2")
-            .arg(extendedHeader->ExtHeaderSize, 8, 16, QChar('0'))
+            .arg(extendedHeader->ExtHeaderSize, 8)
             .arg(guidToQString(extendedHeader->FvName));
     }
 
@@ -913,10 +911,6 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Show messages
     if (msgUnknownFS)
         msg(tr("parseVolume: Unknown file system %1").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
-    if (msgSizeMismach)
-        msg(tr("parseVolume: Volume size stored in header 0x%1 differs from calculated using block map 0x%2")
-        .arg(volumeHeader->FvLength, 8, 16, QChar('0'))
-        .arg(volumeSize, 8, 16, QChar('0')), index);
     if (msgInvalidChecksum)
         msg(tr("parseVolume: Volume header checksum is invalid"), index);
 
@@ -1120,10 +1114,10 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
         name = tr("Padding");
     info = tr("Name: %1\nType: 0x%2\nAttributes: 0x%3\nSize: 0x%4\nState: 0x%5")
         .arg(guidToQString(fileHeader->Name))
-        .arg(fileHeader->Type, 2, 16, QChar('0'))
-        .arg(fileHeader->Attributes, 2, 16, QChar('0'))
-        .arg(uint24ToUint32(fileHeader->Size), 6, 16, QChar('0'))
-        .arg(fileHeader->State, 2, 16, QChar('0'));
+        .hexarg(fileHeader->Type, 2)
+        .hexarg(fileHeader->Attributes, 2)
+        .hexarg(uint24ToUint32(fileHeader->Size), 6)
+        .hexarg(fileHeader->State, 2);
 
     // Add tree item
     index = model->addItem(Types::File, fileHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, tail, parent, mode);
@@ -1136,7 +1130,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
     if (msgInvalidTailValue)
         msg(tr("parseFile: Invalid tail value"), index);
     if (msgInvalidType)
-        msg(tr("parseFile: Unknown file type 0x%1").arg(fileHeader->Type, 2, 16, QChar('0')), index);
+        msg(tr("parseFile: Unknown file type 0x%1").arg(fileHeader->Type, 2), index);
 	if (msgNonEmptyPadFile)
 		msg(tr("parseFile: Non-empty pad file contents will be destroyed after volume modification"), index);
 
@@ -1334,10 +1328,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2\nCompression type: %3\nDecompressed size: 0x%4")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'))
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6)
             .arg(compressionTypeToQString(algorithm))
-            .arg(compressedSectionHeader->UncompressedLength, 8, 16, QChar('0'));
+            .hexarg(compressedSectionHeader->UncompressedLength, 8);
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, algorithm, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1372,10 +1366,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         name = guidToQString(guidDefinedSectionHeader->SectionDefinitionGuid);
         info = tr("GUID: %1\nType: 0x%2\nSize: 0x%3\nData offset: 0x%4\nAttributes: 0x%5")
             .arg(name)
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'))
-            .arg(guidDefinedSectionHeader->DataOffset, 4, 16, QChar('0'))
-            .arg(guidDefinedSectionHeader->Attributes, 4, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6)
+            .hexarg(guidDefinedSectionHeader->DataOffset, 4)
+            .hexarg(guidDefinedSectionHeader->Attributes, 4);
 
         UINT8 algorithm = COMPRESSION_ALGORITHM_NONE;
         // Check if section requires processing
@@ -1390,11 +1384,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 				
 				if (algorithm == COMPRESSION_ALGORITHM_TIANO) {
 					info += tr("\nCompression type: Tiano");
-					info += tr("\nDecompressed size: 0x%1").arg(decompressed.length(), 8, 16, QChar('0'));
+                    info += tr("\nDecompressed size: 0x%1").hexarg(decompressed.length(), 8);
 				}
 				else if (algorithm == COMPRESSION_ALGORITHM_EFI11) {
 					info += tr("\nCompression type: EFI 1.1");
-					info += tr("\nDecompressed size: 0x%1").arg(decompressed.length(), 8, 16, QChar('0'));
+                    info += tr("\nDecompressed size: 0x%1").hexarg(decompressed.length(), 8);
 				}
 				else 
 					info += tr("\nCompression type: unknown");
@@ -1409,7 +1403,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 				
 				if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
 					info += tr("\nCompression type: LZMA");
-					info += tr("\nDecompressed size: 0x%1").arg(decompressed.length(), 8, 16, QChar('0'));
+                    info += tr("\nDecompressed size: 0x%1").hexarg(decompressed.length(), 8);
 				}
 				else
 					info += tr("\nCompression type: unknown");
@@ -1465,7 +1459,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             // Get signature
             QByteArray signature = body.left(*(UINT32*)body.constData());
             // Get info for it
-            QString signatureInfo = tr("Size: 0x%1").arg(signature.size(), 8, 16, QChar('0'));
+            QString signatureInfo = tr("Size: 0x%1").hexarg(signature.size(), 8);
             // Add it to the tree
             QModelIndex signatureIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Padding"), tr("Intel signature"), signatureInfo, QByteArray(), signature, QByteArray(), index, mode);
 
@@ -1491,8 +1485,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("parseSection: 0x%1\nSize: 0x%2")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6);
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1515,8 +1509,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6);
 
         // Parse dependency expression
         QString str;
@@ -1544,8 +1538,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6);
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1567,8 +1561,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgHeader = (EFI_FREEFORM_SUBTYPE_GUID_SECTION*)sectionHeader;
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2\nSubtype GUID: %3")
-            .arg(fsgHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'))
+            .hexarg(fsgHeader->Type, 2)
+            .hexarg(body.size(), 6)
             .arg(guidToQString(fsgHeader->SubTypeGuid));
 
         // Add tree item
@@ -1583,8 +1577,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2\nBuild number: %3\nVersion string: %4")
-            .arg(versionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'))
+            .hexarg(versionHeader->Type, 2)
+            .hexarg(body.size(), 6)
             .arg(versionHeader->BuildNumber)
             .arg(QString::fromUtf16((const ushort*)body.constData()));
 
@@ -1599,8 +1593,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2\nText: %3")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'))
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6)
             .arg(text);
 
         // Add tree item
@@ -1616,8 +1610,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6);
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1637,8 +1631,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6);
 
         // Check for apriori file
         QModelIndex parentFile = model->findParentOfType(parent, Types::File);
@@ -1688,12 +1682,12 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         body = section.mid(sizeof(EFI_COMMON_SECTION_HEADER), sectionSize - sizeof(EFI_COMMON_SECTION_HEADER));
         // Get info
         info = tr("Type: 0x%1\nSize: 0x%2")
-            .arg(sectionHeader->Type, 2, 16, QChar('0'))
-            .arg(body.size(), 6, 16, QChar('0'));
+            .hexarg(sectionHeader->Type, 2)
+            .hexarg(body.size(), 6);
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
-        msg(tr("parseSection: Section with unknown type 0x%1").arg(sectionHeader->Type, 2, 16, QChar('0')), index);
+        msg(tr("parseSection: Section with unknown type 0x%1").hexarg(sectionHeader->Type, 2), index);
     }
     return ERR_SUCCESS;
 }
@@ -2227,7 +2221,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
         delete[] decompressed;
         return ERR_SUCCESS;
     default:
-        msg(tr("decompress: Unknown compression type (%1)").arg(compressionType));
+        msg(tr("decompress: Unknown compression type %1").arg(compressionType));
         if (algorithm)
             *algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
         return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
@@ -2311,7 +2305,7 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
     }
         break;
     default:
-        msg(tr("compress: Unknown compression algorithm (%1)").arg(algorithm));
+        msg(tr("compress: Unknown compression algorithm %1").arg(algorithm));
         return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
     }
 }
@@ -2435,14 +2429,14 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         // Check size of reconstructed image, it must be same
         if (reconstructed.size() > model->body(index).size()) {
             msg(tr("reconstructIntelImage: reconstructed body size 0x%1 is bigger then original 0x%2")
-                .arg(reconstructed.size(), 8, 16, QChar('0'))
-                .arg(model->body(index).size(), 8, 16, QChar('0')), index);
+                .hexarg(reconstructed.size(), 8)
+                .hexarg(model->body(index).size(), 8), index);
             return ERR_INVALID_PARAMETER;
         }
         else if (reconstructed.size() < model->body(index).size()) {
             msg(tr("reconstructIntelImage: reconstructed body size 0x%1 is smaller then original 0x%2")
-                .arg(reconstructed.size(), 8, 16, QChar('0'))
-                .arg(model->body(index).size(), 8, 16, QChar('0')), index);
+                .hexarg(reconstructed.size(), 8)
+                .hexarg(model->body(index).size(), 8), index);
             return ERR_INVALID_PARAMETER;
         }
 
@@ -2490,14 +2484,14 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
         // Check size of reconstructed region, it must be same
         if (reconstructed.size() > model->body(index).size()) {
             msg(tr("reconstructRegion: reconstructed region size 0x%1 is bigger then original 0x%2")
-                .arg(reconstructed.size(), 8, 16, QChar('0'))
-                .arg(model->body(index).size(), 8, 16, QChar('0')), index);
+                .hexarg(reconstructed.size(), 8)
+                .hexarg(model->body(index).size(), 8), index);
             return ERR_INVALID_PARAMETER;
         }
         else if (reconstructed.size() < model->body(index).size()) {
             msg(tr("reconstructRegion: reconstructed region size 0x%1 is smaller then original 0x%2")
-                .arg(reconstructed.size(), 8, 16, QChar('0'))
-                .arg(model->body(index).size(), 8, 16, QChar('0')), index);
+                .hexarg(reconstructed.size(), 8)
+                .hexarg(model->body(index).size(), 8), index);
             return ERR_INVALID_PARAMETER;
         }
 
@@ -2540,9 +2534,11 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
 
         // Get volume size
         UINT32 volumeSize;
-        result = getVolumeSize(header, 0, volumeSize);
+        UINT32 bmVolumeSize;
+        result = getVolumeSize(header, 0, volumeSize, bmVolumeSize);
         if (result)
             return result;
+        //!TODO: now we trust header size, sometimes it's the bmVolumeSize that is OK, need to implement some settings for it
 
         // Reconstruct volume body
         if (model->rowCount(index)) {
@@ -3246,10 +3242,10 @@ UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & he
         if (offset % 2 == 0) {
             msg(tr("Hex pattern \"%1\" found as \"%2\" in %3 at %4-offset 0x%5")
                 .arg(QString(hexPattern))
-                .arg(hexBody.mid(offset, hexPattern.length()))
+                .arg(hexBody.mid(offset, hexPattern.length()).toUpper())
                 .arg(model->nameString(index))
                 .arg(mode == SEARCH_MODE_BODY ? tr("body") : tr("header"))
-                .arg(offset / 2, 8, 16, QChar('0')),
+                .hexarg(offset / 2, 8),
                 index);
         }
         offset = regexp.indexIn(hexBody, offset + 1);
@@ -3315,10 +3311,10 @@ UINT8 FfsEngine::findGuidPattern(const QModelIndex & index, const QByteArray & g
         if (offset % 2 == 0) {
             msg(tr("GUID pattern \"%1\" found as \"%2\" in %3 at %4-offset 0x%5")
                 .arg(QString(guidPattern))
-                .arg(hexBody.mid(offset, hexPattern.length()))
+                .arg(hexBody.mid(offset, hexPattern.length()).toUpper())
                 .arg(model->nameString(index))
                 .arg(mode == SEARCH_MODE_BODY ? tr("body") : tr("header"))
-                .arg(offset / 2, 8, 16, QChar('0')),
+                .hexarg(offset / 2, 8),
                 index);
         }
         offset = regexp.indexIn(hexBody, offset + 1);
@@ -3355,7 +3351,7 @@ UINT8 FfsEngine::findTextPattern(const QModelIndex & index, const QString & patt
             .arg(unicode ? "Unicode" : "ASCII")
             .arg(pattern)
             .arg(model->nameString(index))
-            .arg(unicode ? offset * 2 : offset, 8, 16, QChar('0')),
+            .hexarg(unicode ? offset * 2 : offset, 8),
             index);
     }
 
@@ -3716,7 +3712,7 @@ UINT8 FfsEngine::recursiveDump(const QModelIndex & index, const QString & path, 
     UINT8 result;
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex childIndex = index.child(i, 0);
-        QString childPath = tr("%1/%2 %3").arg(path).arg(i).arg(model->textString(childIndex).isEmpty() ? model->nameString(childIndex) : model->textString(childIndex));
+        QString childPath = QString("%1/%2 %3").arg(path).arg(i).arg(model->textString(childIndex).isEmpty() ? model->nameString(childIndex) : model->textString(childIndex));
         result = recursiveDump(childIndex, childPath, guid);
         if (result)
             return result;
@@ -3817,9 +3813,9 @@ UINT8 FfsEngine::patchViaOffset(QByteArray & data, const UINT32 offset, const QB
     body.replace(offset, replacePattern.length(), replacePattern);
     msg(tr("patch: replaced %1 bytes at offset 0x%2 %3 -> %4")
         .arg(replacePattern.length())
-        .arg(offset, 8, 16, QChar('0'))
-        .arg(QString(data.mid(offset, replacePattern.length()).toHex()))
-        .arg(QString(replacePattern.toHex())));
+        .hexarg(offset, 8)
+        .arg(QString(data.mid(offset, replacePattern.length()).toHex()).toUpper())
+        .arg(QString(replacePattern.toHex())).toUpper());
     data = body;
     return ERR_SUCCESS;
 }

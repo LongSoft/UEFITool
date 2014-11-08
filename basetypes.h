@@ -148,4 +148,7 @@ typedef struct {
 #include <assert.h>
 #define ASSERT(x) assert(x)
 
+//Hexarg macro
+#define hexarg(X, Y) arg(QString("%1").arg((X),(Y),16,QChar('0')).toUpper())
+
 #endif

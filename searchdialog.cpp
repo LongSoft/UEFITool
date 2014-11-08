@@ -16,7 +16,7 @@
 SearchDialog::SearchDialog(QWidget *parent) :
 QDialog(parent),
 ui(new Ui::SearchDialog),
-hexValidator(QRegExp("([0-9a-fA-F\\.])*")),
+hexValidator(QRegExp("([0-9a-fA-F\\. ])*")),
 guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))
 {
     // Create UI
