@@ -197,6 +197,7 @@ void FfsEngine::msg(const QString & message, const QModelIndex & index)
 #ifndef _CONSOLE
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 #else
+    (void) index;
 	std::cout << message.toLatin1().constData() << std::endl;
 #endif
 }
@@ -3815,7 +3816,7 @@ UINT8 FfsEngine::patchViaOffset(QByteArray & data, const UINT32 offset, const QB
         .arg(replacePattern.length())
         .hexarg(offset, 8)
         .arg(QString(data.mid(offset, replacePattern.length()).toHex()).toUpper())
-        .arg(QString(replacePattern.toHex())).toUpper());
+        .arg(QString(replacePattern.toHex()).toUpper()));
     data = body;
     return ERR_SUCCESS;
 }

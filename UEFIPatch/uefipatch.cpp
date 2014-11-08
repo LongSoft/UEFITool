@@ -62,7 +62,7 @@ UINT8 UEFIPatch::patchFromFile(QString path)
         // Use sharp sign as commentary
         if (line.count() == 0 || line[0] == '#')
             continue;
-        
+
         QList<QByteArray> list = line.split(' ');
         if (list.count() < 3)
             continue;
