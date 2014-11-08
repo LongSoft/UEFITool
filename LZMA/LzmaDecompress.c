@@ -95,8 +95,8 @@ UINT32      *DestinationSize
 {
     UInt64  DecodedSize;
 
-    ASSERT(SourceSize >= LZMA_HEADER_SIZE);
-
+    ASSERT(SourceSize >= LZMA_HEADER_SIZE); (void)SourceSize;
+    
     DecodedSize = GetDecodedSizeOfBuf((UINT8*)Source);
 
     *DestinationSize = (UINT32)DecodedSize;

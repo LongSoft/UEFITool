@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.18.10"))
+version(tr("0.19.0"))
 {
     clipboard = QApplication::clipboard();
 
@@ -508,6 +508,7 @@ void UEFITool::saveImageFile()
 
     QFile outputFile;
     outputFile.setFileName(path);
+
     if (!outputFile.open(QFile::WriteOnly)) {
         QMessageBox::critical(this, tr("Image reconstruction failed"), tr("Can't open output file for rewriting"), QMessageBox::Ok);
         return;

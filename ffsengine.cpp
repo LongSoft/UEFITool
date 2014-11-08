@@ -1355,6 +1355,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_GUID_DEFINED:
     {
         bool parseCurrentSection = true;
+        bool parseAsIntelSigned = false;
         bool msgUnknownGuid = false;
         bool msgInvalidCrc = false;
         bool msgUnknownAuth = false;
@@ -1413,6 +1414,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 				else
 					info += tr("\nCompression type: unknown");
             }
+            // Intel signed section
+            else if (QByteArray((const char*)&guidDefinedSectionHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_INTEL_SIGNED) {
+                parseAsIntelSigned = true;
+            }
+            
             // Unknown GUIDed section
             else {
                 msgUnknownGuid = true;
@@ -1454,6 +1460,22 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         if (!parseCurrentSection) {
             msg(tr("parseSection: GUID defined section can not be processed"), index);
+        }
+        else if (parseAsIntelSigned) { // Parse as intel signed sections
+            // Get signature
+            QByteArray signature = body.left(*(UINT32*)body.constData());
+            // Get info for it
+            QString signatureInfo = tr("Size: 0x%1").arg(signature.size(), 8, 16, QChar('0'));
+            // Add it to the tree
+            QModelIndex signatureIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Padding"), tr("Intel signature"), signatureInfo, QByteArray(), signature, QByteArray(), index, mode);
+
+            // Get internal lzma section data
+            QByteArray lzmaSection = body.mid(signature.size());
+            // Parse internal section
+            QModelIndex lzmaSectionIndex;
+            result = parseSections(lzmaSection, index);
+            if (result)
+                return result;
         }
         else { // Parse decompressed data
             result = parseSections(decompressed, index);
@@ -2678,8 +2700,7 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                 UINT32 vtfOffset = volumeSize - header.size() - vtf.size();
 
                 if (vtfOffset % 8) {
-                    msg(tr("reconstructVolume: %1: Wrong size of Volume Top File")
-                        .arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                    msg(tr("reconstructVolume: wrong size of the Volume Top File"), index);
                     return ERR_INVALID_FILE;
                 }
                 // Insert pad file to fill the gap
@@ -2696,7 +2717,7 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                 }
                 // No more space left in volume
                 else if (vtfOffset < offset) {
-                    msg(tr("reconstructVolume: %1: volume has no free space left").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                    msg(tr("reconstructVolume: volume has no free space left"), index);
                     return ERR_INVALID_VOLUME;
                 }
 
@@ -2728,7 +2749,7 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                     // Root volume can't be grown yet
                     UINT8 parentType = model->type(index.parent());
                     if (parentType != Types::File && parentType != Types::Section) {
-                        msg(tr("reconstructVolume: %1: root volume can't be grown").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
+                        msg(tr("reconstructVolume: root volume can't be grown"), index);
                         return ERR_INVALID_VOLUME;
                     }
 
@@ -2788,7 +2809,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
 
         // Check erase polarity
         if (erasePolarity == ERASE_POLARITY_UNKNOWN) {
-            msg(tr("reconstructFile: %1, unknown erase polarity").arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("reconstructFile: unknown erase polarity"), index);
             return ERR_INVALID_PARAMETER;
         }
 
@@ -2803,35 +2824,30 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
         if (state & EFI_FILE_HEADER_INVALID) {
             // File marked to have invalid header and must be deleted
             // Do not add anything to queue
-            msg(tr("reconstructFile: %1, file is HEADER_INVALID state, and will be removed from reconstructed image")
-                .arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("reconstructFile: file is HEADER_INVALID state, and will be removed from reconstructed image"), index);
             return ERR_SUCCESS;
         }
         else if (state & EFI_FILE_DELETED) {
             // File marked to have been deleted form and must be deleted
             // Do not add anything to queue
-            msg(tr("reconstructFile: %1, file is in DELETED state, and will be removed from reconstructed image")
-                .arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("reconstructFile: file is in DELETED state, and will be removed from reconstructed image"), index);
             return ERR_SUCCESS;
         }
         else if (state & EFI_FILE_MARKED_FOR_UPDATE) {
             // File is marked for update, the mark must be removed
-            msg(tr("reconstructFile: %1, file MARKED_FOR_UPDATE state cleared")
-                .arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("reconstructFile: file's MARKED_FOR_UPDATE state cleared"), index);
         }
         else if (state & EFI_FILE_DATA_VALID) {
             // File is in good condition, reconstruct it
         }
         else if (state & EFI_FILE_HEADER_VALID) {
             // Header is valid, but data is not, so file must be deleted
-            msg(tr("reconstructFile: %1, file is in HEADER_VALID (but not in DATA_VALID) state, and will be removed from reconstructed image")
-                .arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("reconstructFile: file is in HEADER_VALID (but not in DATA_VALID) state, and will be removed from reconstructed image"), index);
             return ERR_SUCCESS;
         }
         else if (state & EFI_FILE_HEADER_CONSTRUCTION) {
             // Header construction not finished, so file must be deleted
-            msg(tr("reconstructFile: %1, file is in HEADER_CONSTRUCTION (but not in DATA_VALID) state, and will be removed from reconstructed image")
-                .arg(guidToQString(fileHeader->Name)), index);
+            msg(tr("reconstructFile: file is in HEADER_CONSTRUCTION (but not in DATA_VALID) state, and will be removed from reconstructed image"), index);
             return ERR_SUCCESS;
         }
 
@@ -3020,9 +3036,15 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                         *(UINT32*)(header.data() + sizeof(EFI_GUID_DEFINED_SECTION)) = crc;
                     }
                     else {
-                        msg(tr("reconstructSection: %1: GUID defined section authentication info can become invalid")
+                        msg(tr("reconstructSection: GUID defined section authentication info can become invalid")
                             .arg(guidToQString(guidDefinedHeader->SectionDefinitionGuid)), index);
                     }
+                }
+                // Check for Intel signed section
+                if (guidDefinedHeader->Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED
+                    && QByteArray((const char*)&guidDefinedHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_INTEL_SIGNED) {
+                    msg(tr("reconstructSection: GUID defined section signature can become invalid")
+                        .arg(guidToQString(guidDefinedHeader->SectionDefinitionGuid)), index);
                 }
                 // Replace new section body
                 reconstructed = compressed;
@@ -3131,7 +3153,7 @@ UINT8 FfsEngine::reconstruct(const QModelIndex &index, QByteArray& reconstructed
             return result;
         break;
     default:
-        msg(tr("reconstruct: unknown item type (%1)").arg(model->type(index)), index);
+        msg(tr("reconstruct: unknown item type %1").arg(model->type(index)), index);
         return ERR_UNKNOWN_ITEM_TYPE;
     }
 
