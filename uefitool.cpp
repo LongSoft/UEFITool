@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.19.1"))
+version(tr("0.19.1.1"))
 {
     clipboard = QApplication::clipboard();
 
@@ -631,7 +631,7 @@ void UEFITool::scrollTreeView(QListWidgetItem* item)
     MessageListItem* messageItem = static_cast<MessageListItem*>(item);
     QModelIndex index = messageItem->index();
     if (index.isValid()) {
-        ui->structureTreeView->scrollTo(index);
+        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->clearSelection();
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select);
     }
