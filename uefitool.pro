@@ -21,8 +21,9 @@ SOURCES  += uefitool_main.cpp \
  LZMA/SDK/C/LzmaDec.c \
  LZMA/SDK/C/LzmaEnc.c \
  Tiano/EfiTianoDecompress.c \
- Tiano/EfiTianoCompress.c
-
+ Tiano/EfiTianoCompress.c \
+ Tiano/EfiTianoCompressLegacy.c
+ 
 HEADERS  += uefitool.h \
  searchdialog.h \
  basetypes.h \

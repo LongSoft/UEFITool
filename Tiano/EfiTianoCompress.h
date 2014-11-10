@@ -55,15 +55,23 @@ extern "C" {
     EFI_INVALID_PARAMETER - Parameter supplied is wrong.
 
     --*/
-    UINT8
+    EFI_STATUS
         TianoCompress(
         CONST VOID   *SrcBuffer,
-        CONST UINT64  SrcSize,
+        UINT32  SrcSize,
         VOID   *DstBuffer,
-        UINT64  *DstSize
+        UINT32  *DstSize
         )
         ;
 
+    EFI_STATUS
+        TianoCompressLegacy(
+        CONST VOID   *SrcBuffer,
+        UINT32  SrcSize,
+        VOID   *DstBuffer,
+        UINT32  *DstSize
+        )
+        ;
     /*++
 
     Routine Description:
@@ -87,12 +95,20 @@ extern "C" {
     EFI_INVALID_PARAMETER - Parameter supplied is wrong.
 
     --*/
-    UINT8
+    EFI_STATUS
         EfiCompress(
         CONST VOID   *SrcBuffer,
-        CONST UINT64  SrcSize,
+        UINT32  SrcSize,
         VOID   *DstBuffer,
-        UINT64  *DstSize
+        UINT32  *DstSize
+        )
+        ;
+    EFI_STATUS
+        EfiCompressLegacy(
+        CONST VOID   *SrcBuffer,
+        UINT32  SrcSize,
+        VOID   *DstBuffer,
+        UINT32  *DstSize
         )
         ;
 

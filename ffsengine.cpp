@@ -895,7 +895,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         .arg(volumeHeader->Revision)
         .hexarg(volumeHeader->Attributes, 8)
         .arg(empty ? "1" : "0")
-        .hexarg(headerSize, 4);
+        .hexarg(headerSize, 8);
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
@@ -2242,7 +2242,28 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         break;
     case COMPRESSION_ALGORITHM_EFI11:
     {
-        UINT64 compressedSize = 0;
+        // Try legacy function first
+        UINT32 compressedSize = 0;
+        if (EfiCompressLegacy(data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+            return ERR_STANDARD_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (EfiCompressLegacy(data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+            delete[] compressed;
+            return ERR_STANDARD_COMPRESSION_FAILED;
+        }
+        compressedData = QByteArray((const char*)compressed, compressedSize);
+        
+        // Check that compressed data can be decompressed normally
+        QByteArray decompressed;
+        if (decompress(compressedData, EFI_STANDARD_COMPRESSION, decompressed, NULL) == ERR_SUCCESS
+            && decompressed == data) {
+            delete[] compressed;
+            return ERR_SUCCESS;
+        }
+        delete[] compressed;
+
+        // Legacy function failed, use current one
+        compressedSize = 0;
         if (EfiCompress(data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_STANDARD_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
@@ -2251,13 +2272,36 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
             return ERR_STANDARD_COMPRESSION_FAILED;
         }
         compressedData = QByteArray((const char*)compressed, compressedSize);
+        
+        // New functions will be trusted here, because another check will reduce performance
         delete[] compressed;
         return ERR_SUCCESS;
     }
         break;
     case COMPRESSION_ALGORITHM_TIANO:
     {
-        UINT64 compressedSize = 0;
+        // Try legacy function first
+        UINT32 compressedSize = 0;
+        if (TianoCompressLegacy(data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+            return ERR_STANDARD_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (TianoCompressLegacy(data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+            delete[] compressed;
+            return ERR_STANDARD_COMPRESSION_FAILED;
+        }
+        compressedData = QByteArray((const char*)compressed, compressedSize);
+
+        // Check that compressed data can be decompressed normally
+        QByteArray decompressed;
+        if (decompress(compressedData, EFI_STANDARD_COMPRESSION, decompressed, NULL) == ERR_SUCCESS
+            && decompressed == data) {
+            delete[] compressed;
+            return ERR_SUCCESS;
+        }
+        delete[] compressed;
+
+        // Legacy function failed, use current one
+        compressedSize = 0;
         if (TianoCompress(data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
             return ERR_STANDARD_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
@@ -2266,6 +2310,8 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
             return ERR_STANDARD_COMPRESSION_FAILED;
         }
         compressedData = QByteArray((const char*)compressed, compressedSize);
+
+        // New functions will be trusted here, because another check will reduce performance
         delete[] compressed;
         return ERR_SUCCESS;
     }
