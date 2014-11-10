@@ -900,7 +900,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
         info += tr("\nExtended header size: 0x%1\nVolume name: %2")
-            .arg(extendedHeader->ExtHeaderSize, 8)
+            .hexarg(extendedHeader->ExtHeaderSize, 8)
             .arg(guidToQString(extendedHeader->FvName));
     }
 
