@@ -359,7 +359,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
         
         // Check for Gigabyte specific descriptor map
-        if (biosEnd - biosBegin == intelImage.size()) {
+        if (biosEnd - biosBegin == (unsigned int) intelImage.size()) {
             if (!meEnd) {
                 msg(tr("parseIntelImage: can determine BIOS region start from Gigabyte-specific descriptor"));
                 return ERR_INVALID_FLASH_DESCRIPTOR;
