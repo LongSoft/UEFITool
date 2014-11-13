@@ -1,4 +1,4 @@
-OZMTool v0.2
+OZMTool v0.3
 --------------
 
 This program was created to make the process of creating an Ozmosis patched BIOS easier
@@ -92,6 +92,13 @@ CREDITS
 
 CHANGELOG
 ---------
+
+13/11/2014 - v0.3
+- Adding option to replace .efi files inside FFS capsules (Drivers, Ozmosis)
+- Cleanup ffs creation
+- Adding GUIDs for Ozmosis build 1479
+- Renamed "ffsconvert" to "kext2ffs"
+- Bump custom kext start index to 0xA - so custom kext don't overwrite ozmosis stuff
 
 24/07/2014 - v0.2
 - First public release
