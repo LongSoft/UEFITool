@@ -664,7 +664,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
         _DInst decomposed[MAX_INSTRUCTIONS];
         _DecodedInst disassembled[MAX_INSTRUCTIONS];
         _DecodeResult res, res2;
-        _CodeInfo ci = {0};
+        _CodeInfo ci = {0, 0, 0, 0, Decode64Bits, 0};
         ci.codeOffset = HeaderNT->OptionalHeader.BaseOfCode;
         ci.codeLen = HeaderNT->OptionalHeader.SizeOfCode;
         ci.code = (const unsigned char*)&amiboardbuf[ci.codeOffset];
@@ -694,7 +694,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
             return ERR_ERROR;
         }
 
-        for (int i = 0; i < decodedInstructionsCount; i++) {
+        for (int i = 0; i < (int) decodedInstructionsCount; i++) {
 
             if((decomposed[i].disp < (UINT64)offset)||decomposed[i].disp > (MAX_DSDT & 0xFF000))
                 continue;

@@ -77,7 +77,7 @@ struct sectionEntry {
 
 #define OZMFFS_SIZE 17
 
-static const sectionEntry OzmFfs[]{
+static const sectionEntry OzmFfs[] = {
     // Filesystem
     {"PartitionDxe","1FA1F39E-FEFF-4AAE-BD7B-38A070A3B609", "partitiondxe.efi", SRC_EFI, EFI_SECTION_PE32, TRUE},
     {"EnhancedFat","961578FE-B6B7-44C3-AF35-6BC705CD2B1F", "enhancedfat.efi", SRC_EFI, EFI_SECTION_PE32, TRUE},
@@ -105,7 +105,7 @@ static const sectionEntry OzmFfs[]{
 
 #define DELETABLEFFS_SIZE 10
 
-static const sectionEntry deletableFfs[]{
+static const sectionEntry deletableFfs[] = {
   {"TcpDxe","B1625D3C-9D2D-4E0D-B864-8A763EE4EC50", "tcpdxe.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
   {"Dhcp4Dxe","8DD9176E-EE87-4F0E-8A84-3F998311F930", "dhcp4dxe.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
   {"Ip4ConfigDxe","8F9296EF-2880-4659-B857-915A8901BDC8", "ip4configdxe.efi", SRC_EFI, EFI_SECTION_PE32, FALSE},
