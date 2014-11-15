@@ -1462,12 +1462,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             // Get info for it
             QString signatureInfo = tr("Size: 0x%1").hexarg(signature.size(), 8);
             // Add it to the tree
-            QModelIndex signatureIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Padding"), tr("Intel signature"), signatureInfo, QByteArray(), signature, QByteArray(), index, mode);
+            model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Padding"), tr("Intel signature"), signatureInfo, QByteArray(), signature, QByteArray(), index, mode);
 
             // Get internal lzma section data
             QByteArray lzmaSection = body.mid(signature.size());
-            // Parse internal section
-            QModelIndex lzmaSectionIndex;
+            // Parse internal sections
             result = parseSections(lzmaSection, index);
             if (result)
                 return result;

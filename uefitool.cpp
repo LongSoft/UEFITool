@@ -56,6 +56,19 @@ version(tr("0.19.2"))
     // Set current directory
     currentDir = ".";
 
+    // Set monospace font for some controls
+    QFont font("Courier New", 10);
+#if defined Q_OS_OSX
+    font = QFont("Menlo", 10);
+#elif defined Q_OS_WIN
+    font = QFont("Consolas", 9);
+#endif
+    ui->infoEdit->setFont(font);
+    ui->messageListWidget->setFont(font);
+    ui->structureTreeView->setFont(font);
+    searchDialog->ui->guidEdit->setFont(font);
+    searchDialog->ui->hexEdit->setFont(font);
+
     // Initialize non-persistent data
     init();
 
