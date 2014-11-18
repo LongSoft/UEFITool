@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.19.2"))
+version(tr("0.19.3"))
 {
     clipboard = QApplication::clipboard();
 
@@ -26,8 +26,8 @@ version(tr("0.19.2"))
     searchDialog = new SearchDialog(this);
     ffsEngine = NULL;
 
-	// Set window title
-	this->setWindowTitle(tr("UEFITool %1").arg(version));
+    // Set window title
+    this->setWindowTitle(tr("UEFITool %1").arg(version));
 
     // Connect signals to slots
     connect(ui->actionOpenImageFile, SIGNAL(triggered()), this, SLOT(openImageFile()));
@@ -89,8 +89,8 @@ void UEFITool::init()
     ui->messageListWidget->clear();
     ui->infoEdit->clear();
 
-	// Set window title
-	this->setWindowTitle(tr("UEFITool %1").arg(version));
+    // Set window title
+    this->setWindowTitle(tr("UEFITool %1").arg(version));
 
     // Disable menus
     ui->menuCapsuleActions->setDisabled(true);
@@ -485,7 +485,8 @@ void UEFITool::extract(const UINT8 mode)
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2014, Nikolaj Schlej aka <b>CodeRush</b>.<br><br>"
+        "Copyright (c) 2014, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
+        "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
         "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
         "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
         "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
@@ -565,7 +566,7 @@ void UEFITool::openImageFile(QString path)
     inputFile.close();
 
     init();
-	this->setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
+    this->setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
 
     UINT8 result = ffsEngine->parseImageFile(buffer);
     showMessages();
@@ -636,7 +637,7 @@ void UEFITool::showMessages()
         ui->messageListWidget->addItem(new MessageListItem(messageItems.at(i)));
     }
 
-	ui->messageListWidget->scrollToBottom();
+    ui->messageListWidget->scrollToBottom();
 }
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)

@@ -70,11 +70,11 @@ namespace Subtypes {
         PdrRegion
     };
 
-	enum PaddingSubtypes {
-		ZeroPadding = 110,
-		OnePadding,
-		DataPadding
-	};
+    enum PaddingSubtypes {
+        ZeroPadding = 110,
+        OnePadding,
+        DataPadding
+    };
 };
 
 // *ToQString conversion routines

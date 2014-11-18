@@ -95,8 +95,8 @@ private:
     SearchDialog* searchDialog;
     QClipboard* clipboard;
     QString currentDir;
-	QQueue<MessageListItem> messageItems;
-	const QString version;
+    QQueue<MessageListItem> messageItems;
+    const QString version;
 
     void showMessages();
 

@@ -14,12 +14,12 @@
 #include "guidlineedit.h"
 
 GuidLineEdit::GuidLineEdit(QWidget * parent)
-	:QLineEdit(parent)
+    :QLineEdit(parent)
 {
 }
 
 GuidLineEdit::GuidLineEdit(const QString & contents, QWidget * parent)
-	:QLineEdit(contents, parent)
+    :QLineEdit(contents, parent)
 {
 }
 
@@ -29,33 +29,33 @@ GuidLineEdit::~GuidLineEdit()
 
 void GuidLineEdit::keyPressEvent(QKeyEvent * event)
 {
-	if (event == QKeySequence::Delete || event->key() == Qt::Key_Backspace)
-	{
-		int pos = cursorPosition();
-		if (event->key() == Qt::Key_Backspace && pos > 0) {
-			cursorBackward(false);
-			pos = cursorPosition();
-		}
-		
-		QString txt = text();
-		QString selected = selectedText();
+    if (event == QKeySequence::Delete || event->key() == Qt::Key_Backspace)
+    {
+        int pos = cursorPosition();
+        if (event->key() == Qt::Key_Backspace && pos > 0) {
+            cursorBackward(false);
+            pos = cursorPosition();
+        }
+        
+        QString txt = text();
+        QString selected = selectedText();
 
-		if (!selected.isEmpty()) {
-			pos = QLineEdit::selectionStart();
-			for (int i = pos; i < pos + selected.count(); i++)
-				if (txt[i] != QChar('-'))
-					txt[i] = QChar('.');
-		}
-		else 
-			txt[pos] = QChar('.');
+        if (!selected.isEmpty()) {
+            pos = QLineEdit::selectionStart();
+            for (int i = pos; i < pos + selected.count(); i++)
+                if (txt[i] != QChar('-'))
+                    txt[i] = QChar('.');
+        }
+        else 
+            txt[pos] = QChar('.');
 
-		setCursorPosition(0);
-		insert(txt);
-		setCursorPosition(pos);
+        setCursorPosition(0);
+        insert(txt);
+        setCursorPosition(pos);
 
-		return;
-	}
+        return;
+    }
 
-	// Call original event handler
-	QLineEdit::keyPressEvent(event);
+    // Call original event handler
+    QLineEdit::keyPressEvent(event);
 }

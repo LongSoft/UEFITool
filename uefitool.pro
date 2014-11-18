@@ -23,7 +23,7 @@ SOURCES  += uefitool_main.cpp \
  Tiano/EfiTianoDecompress.c \
  Tiano/EfiTianoCompress.c \
  Tiano/EfiTianoCompressLegacy.c
- 
+
 HEADERS  += uefitool.h \
  searchdialog.h \
  basetypes.h \
@@ -42,7 +42,6 @@ HEADERS  += uefitool.h \
  LZMA/LzmaDecompress.h \
  Tiano/EfiTianoDecompress.h \
  Tiano/EfiTianoCompress.h
-           
 
 FORMS    += uefitool.ui \
  searchdialog.ui

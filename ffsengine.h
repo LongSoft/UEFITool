@@ -110,10 +110,10 @@ private:
     UINT32 newPeiCoreEntryPoint;
 
     // Parsing helpers
-	UINT8 getPaddingType(const QByteArray & padding);
+    UINT8 getPaddingType(const QByteArray & padding);
     void  parseAprioriRawSection(const QByteArray & body, QString & parsed);
     UINT8 parseDepexSection(const QByteArray & body, QString & parsed);
-	UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
+    UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
@@ -145,9 +145,9 @@ private:
     bool hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
     UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
 
-	// Recursive dump
-	bool dumped;
-	UINT8 recursiveDump(const QModelIndex & index, const QString & path, const QString & filter);
+    // Recursive dump
+    bool dumped;
+    UINT8 recursiveDump(const QModelIndex & index, const QString & path, const QString & filter);
 };
 
 #endif

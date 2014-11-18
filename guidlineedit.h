@@ -24,12 +24,12 @@
 class GuidLineEdit : public QLineEdit
 {
 public:
-	GuidLineEdit(QWidget * parent = 0);
-	GuidLineEdit(const QString & contents, QWidget * parent = 0);
-	~GuidLineEdit();
+    GuidLineEdit(QWidget * parent = 0);
+    GuidLineEdit(const QString & contents, QWidget * parent = 0);
+    ~GuidLineEdit();
 
 protected:
-	void keyPressEvent(QKeyEvent * event);
+    void keyPressEvent(QKeyEvent * event);
 
 };
 
