@@ -2146,6 +2146,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
         scratch = new UINT8[scratchSize];
 
         // Decompress section data
+
         //TODO: separate EFI1.1 from Tiano another way
         // Try Tiano decompression first
         if (ERR_SUCCESS != TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
@@ -2153,6 +2154,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             if (ERR_SUCCESS != EfiDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
                 if (algorithm)
                     *algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
+
                 delete[] decompressed;
                 delete[] scratch;
                 return ERR_STANDARD_DECOMPRESSION_FAILED;

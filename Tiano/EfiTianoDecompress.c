@@ -681,6 +681,12 @@ Returns: (VOID)
 
             DataIdx = Sd->mOutBuf - DecodeP(Sd) - 1;
 
+            // Check to prevent possible heap corruption
+            if (DataIdx >= Sd->mOrigSize - BytesRemain) {
+                Sd->mBadTableFlag = 1;
+                return;
+            }
+
             BytesRemain--;
             while ((INT16)(BytesRemain) >= 0) {
                 Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
