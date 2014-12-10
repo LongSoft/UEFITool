@@ -160,6 +160,8 @@ QString sectionTypeToQString(const UINT8 type)
         return QObject::tr("PEI dependency");
     case EFI_SECTION_SMM_DEPEX:
         return QObject::tr("SMM dependency");
+    case SCT_SECTION_POSTCODE:
+        return QObject::tr("SCT postcode");
     default:
         return QObject::tr("Unknown");
     }
@@ -173,11 +175,10 @@ UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header)
     switch (header->Type)
     {
     case EFI_SECTION_COMPRESSION:
-        return sizeof(EFI_COMMON_SECTION_HEADER);
+        return sizeof(EFI_COMPRESSION_SECTION);
     case EFI_SECTION_GUID_DEFINED: {
         EFI_GUID_DEFINED_SECTION* gdsHeader = (EFI_GUID_DEFINED_SECTION*)header;
-        return gdsHeader->DataOffset;
-    }
+        return gdsHeader->DataOffset; }
     case EFI_SECTION_DISPOSABLE:
         return sizeof(EFI_DISPOSABLE_SECTION);
     case EFI_SECTION_PE32:
@@ -204,6 +205,8 @@ UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header)
         return sizeof(EFI_PEI_DEPEX_SECTION);
     case EFI_SECTION_SMM_DEPEX:
         return sizeof(EFI_SMM_DEPEX_SECTION);
+    case SCT_SECTION_POSTCODE:
+        return sizeof(SCT_POSTCODE_SECTION);
     default:
         return sizeof(EFI_COMMON_SECTION_HEADER);
     }

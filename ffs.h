@@ -289,7 +289,6 @@ typedef struct {
 #define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
-//#define FFS_ATTRIB_LARGE_FILE       0x01 //This attribute is removed in new PI 1.3 specification, nice
 
 // FFS alignment table
 extern const UINT8 ffsAlignmentTable[];
@@ -361,6 +360,7 @@ typedef struct {
 #define EFI_SECTION_RAW                     0x19
 #define EFI_SECTION_PEI_DEPEX               0x1B
 #define EFI_SECTION_SMM_DEPEX               0x1C
+#define SCT_SECTION_POSTCODE                0xF0 // Specific to Phoenix SCT images
 
 // Compression section
 typedef struct {
@@ -414,6 +414,13 @@ typedef struct {
     UINT8    Type;
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
+
+// Phoenix SCT postcode section
+typedef struct {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   Postcode;
+} SCT_POSTCODE_SECTION;
 
 // Other sections
 typedef EFI_COMMON_SECTION_HEADER EFI_DISPOSABLE_SECTION;

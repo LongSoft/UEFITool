@@ -1677,6 +1677,23 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         }
     }
         break;
+    case SCT_SECTION_POSTCODE: {
+        header = section.left(sizeof(SCT_POSTCODE_SECTION));
+        body = section.mid(sizeof(SCT_POSTCODE_SECTION), sectionSize - sizeof(SCT_POSTCODE_SECTION));
+
+        SCT_POSTCODE_SECTION* postcodeHeader = (SCT_POSTCODE_SECTION*)sectionHeader;
+
+        // Get info
+        info = tr("Type: 0x%1\nSize: 0x%2\nPostcode: 0x%3")
+            .hexarg(postcodeHeader->Type, 2)
+            .hexarg(body.size(), 6)
+            .hexarg(postcodeHeader->Postcode, 2);
+
+        // Add tree item
+        index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+    }
+        break;
+
     default:
         header = section.left(sizeof(EFI_COMMON_SECTION_HEADER));
         body = section.mid(sizeof(EFI_COMMON_SECTION_HEADER), sectionSize - sizeof(EFI_COMMON_SECTION_HEADER));
