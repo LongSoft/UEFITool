@@ -376,7 +376,7 @@ UINT8 FFSUtil::compressFFS(QByteArray ffs, QByteArray & out)
 {
     UINT8 ret;
     QByteArray body, compressedBody;
-    EFI_COMPRESSION_SECTION* compressionHeader = {0};
+    EFI_COMPRESSION_SECTION *compressionHeader = new EFI_COMPRESSION_SECTION();//{0};
 
     unsigned char *buf = (unsigned char*) ffs.data();
 
