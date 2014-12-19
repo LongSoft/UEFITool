@@ -194,11 +194,16 @@ TreeModel* FfsEngine::treeModel() const
 
 void FfsEngine::msg(const QString & message, const QModelIndex & index)
 {
+#ifndef _DISABLE_ENGINE_MESSAGES
 #ifndef _CONSOLE
     messageItems.enqueue(MessageListItem(message, NULL, 0, index));
 #else
     (void) index;
     std::cout << message.toLatin1().constData() << std::endl;
+#endif
+#else
+    (void)message;
+    (void)index;
 #endif
 }
 
@@ -3271,10 +3276,14 @@ UINT8 FfsEngine::reconstructImageFile(QByteArray & reconstructed)
 // Search routines
 UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode)
 {
+    if (!index.isValid())
+        return ERR_SUCCESS;
+
     if (hexPattern.isEmpty())
         return ERR_INVALID_PARAMETER;
 
-    if (!index.isValid())
+    // Check for "all substrings" pattern
+    if (hexPattern.count('.') == hexPattern.length())
         return ERR_SUCCESS;
 
     bool hasChildren = (model->rowCount(index) > 0);
@@ -3289,16 +3298,12 @@ UINT8 FfsEngine::findHexPattern(const QModelIndex & index, const QByteArray & he
     }
     else {
         if (mode == SEARCH_MODE_HEADER)
-            data.append(model->header(index)).append(model->tail(index));
+            data.append(model->header(index));
         else if (mode == SEARCH_MODE_BODY)
             data.append(model->body(index));
         else
             data.append(model->header(index)).append(model->body(index)).append(model->tail(index));
     }
-
-    // Check for "all substrings" pattern
-    if (hexPattern.count('.') == hexPattern.length())
-        return ERR_SUCCESS;
 
     QString hexBody = QString(data.toHex());
     QRegExp regexp = QRegExp(QString(hexPattern), Qt::CaseInsensitive);
@@ -3339,7 +3344,7 @@ UINT8 FfsEngine::findGuidPattern(const QModelIndex & index, const QByteArray & g
     }
     else {
         if (mode == SEARCH_MODE_HEADER)
-            data.append(model->header(index)).append(model->tail(index));
+            data.append(model->header(index));
         else if (mode == SEARCH_MODE_BODY)
             data.append(model->body(index));
         else
@@ -3495,13 +3500,13 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
         return ERR_SUCCESS;
     }
 
-    EFI_IMAGE_BASE_RELOCATION   *RelocBase;
-    EFI_IMAGE_BASE_RELOCATION   *RelocBaseEnd;
-    UINT16                      *Reloc;
-    UINT16                      *RelocEnd;
-    UINT16                      *F16;
-    UINT32                      *F32;
-    UINT64                      *F64;
+    EFI_IMAGE_BASE_RELOCATION *RelocBase;
+    EFI_IMAGE_BASE_RELOCATION *RelocBaseEnd;
+    UINT16                    *Reloc;
+    UINT16                    *RelocEnd;
+    UINT16                    *F16;
+    UINT32                    *F32;
+    UINT64                    *F64;
 
     // Run the whole relocation block
     RelocBase = (EFI_IMAGE_BASE_RELOCATION*)(file.data() + relocOffset - teFixup);
