@@ -86,7 +86,7 @@ UINT8 UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPatt
         UINT8  u8_7  = *(UINT8*)(data.constData()  + 14);
         UINT8  u8_8  = *(UINT8*)(data.constData()  + 15);
 
-        QString guid = QString("%1-%2-%3-%4%5%6%7%8%9%10%11\n").hexarg(u32, 8).hexarg(u16_1, 4).hexarg(u16_2, 4).hexarg(u8_1, 2).hexarg(u8_2, 2)
+        QString guid = QString("%1-%2-%3-%4%5-%6%7%8%9%10%11\n").hexarg(u32, 8).hexarg(u16_1, 4).hexarg(u16_2, 4).hexarg(u8_1, 2).hexarg(u8_2, 2)
             .hexarg(u8_3, 2).hexarg(u8_4, 2).hexarg(u8_5, 2).hexarg(u8_6, 2).hexarg(u8_7, 2).hexarg(u8_8, 2);
 
         result.append(guid);

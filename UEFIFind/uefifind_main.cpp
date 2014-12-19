@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
         return ERR_SUCCESS;
     }
     else {
-        std::cout << "UEFIFind 0.1.0" << std::endl << std::endl <<
+        std::cout << "UEFIFind 0.1.1" << std::endl << std::endl <<
             "Usage: uefifind {header | body | all} {list | count} pattern imagefile\n";
         return ERR_INVALID_PARAMETER;
     }
