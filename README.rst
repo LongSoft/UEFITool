@@ -1,5 +1,6 @@
 UEFITool
 ========
+.. image:: https://raw.githubusercontent.com/LongSoft/UEFITool/master/uefitool.ico
 .. image:: https://scan.coverity.com/projects/1812/badge.svg?flat=1
     :target: https://scan.coverity.com/projects/1812/
 
