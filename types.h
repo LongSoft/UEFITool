@@ -59,7 +59,10 @@ namespace Subtypes {
         NormalVolume = 90,
         BootVolume,
         UnknownVolume,
-        NvramVolume
+        NvramVolume,
+        AppleCrcVolume,
+        UnknownAppleCrcVolume,
+        BootAppleCrcVolume
     };
 
     enum RegionSubtypes {

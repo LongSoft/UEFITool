@@ -361,6 +361,7 @@ typedef struct {
 #define EFI_SECTION_PEI_DEPEX               0x1B
 #define EFI_SECTION_SMM_DEPEX               0x1C
 #define SCT_SECTION_POSTCODE                0xF0 // Specific to Phoenix SCT images
+#define HP_SECTION_POSTCODE                 0x20 // Specific to HP images
 
 // Compression section
 typedef struct {
@@ -415,12 +416,12 @@ typedef struct {
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
 
-// Phoenix SCT postcode section
+// Phoenix SCT and HP postcode section
 typedef struct {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   Postcode;
-} SCT_POSTCODE_SECTION;
+} POSTCODE_SECTION;
 
 // Other sections
 typedef EFI_COMMON_SECTION_HEADER EFI_DISPOSABLE_SECTION;

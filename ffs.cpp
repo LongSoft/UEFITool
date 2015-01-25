@@ -160,6 +160,8 @@ QString sectionTypeToQString(const UINT8 type)
         return QObject::tr("PEI dependency");
     case EFI_SECTION_SMM_DEPEX:
         return QObject::tr("SMM dependency");
+    case HP_SECTION_POSTCODE:
+        return QObject::tr("HP postcode");
     case SCT_SECTION_POSTCODE:
         return QObject::tr("SCT postcode");
     default:
@@ -205,8 +207,10 @@ UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header)
         return sizeof(EFI_PEI_DEPEX_SECTION);
     case EFI_SECTION_SMM_DEPEX:
         return sizeof(EFI_SMM_DEPEX_SECTION);
+    case HP_SECTION_POSTCODE:
+        return sizeof(POSTCODE_SECTION);
     case SCT_SECTION_POSTCODE:
-        return sizeof(SCT_POSTCODE_SECTION);
+        return sizeof(POSTCODE_SECTION);
     default:
         return sizeof(EFI_COMMON_SECTION_HEADER);
     }

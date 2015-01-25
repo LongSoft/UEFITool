@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.19.5"))
+version(tr("0.19.6"))
 {
     clipboard = QApplication::clipboard();
 
@@ -140,7 +140,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
     ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
-    ui->actionExtractBody->setDisabled(model->hasEmptyHeader(current));
+    ui->actionExtractBody->setDisabled(model->hasEmptyBody(current));
     ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
         (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||

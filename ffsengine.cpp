@@ -257,10 +257,10 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
         QString name = tr("UEFI capsule");
-        QString info = tr("Header size: 0x%1\nFlags: 0x%2\nImage size: 0x%3")
-            .hexarg(capsuleHeader->HeaderSize, 8)
+        QString info = tr("Header size: 0x%1(%2)\nFlags: 0x%3\nImage size: 0x%4(%5)")
+            .hexarg(capsuleHeader->HeaderSize, 4).arg(capsuleHeader->HeaderSize)
             .hexarg(capsuleHeader->Flags, 8)
-            .hexarg(capsuleHeader->CapsuleImageSize, 8);
+            .hexarg(capsuleHeader->CapsuleImageSize, 8).arg(capsuleHeader->HeaderSize);
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
     }
@@ -273,10 +273,10 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
         QString name = tr("AMI Aptio capsule");
-        QString info = tr("Header size: 0x%1\nFlags: 0x%2\nImage size: 0x%3")
-            .hexarg(aptioCapsuleHeader->RomImageOffset, 4)
+        QString info = tr("Header size: 0x%1(%2)\nFlags: 0x%3\nImage size: 0x%4(%5)")
+            .hexarg(capsuleHeaderSize, 4).arg(capsuleHeaderSize)
             .hexarg(aptioCapsuleHeader->CapsuleHeader.Flags, 8)
-            .hexarg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - aptioCapsuleHeader->RomImageOffset, 8);
+            .hexarg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - capsuleHeaderSize, 8).arg(aptioCapsuleHeader->CapsuleHeader.CapsuleImageSize - capsuleHeaderSize);
         //!TODO: more info about Aptio capsule
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::AptioCapsule, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
@@ -300,8 +300,8 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
 
     // Get info
     QString name = tr("BIOS image");
-    QString info = tr("Size: 0x%1")
-        .hexarg(flashImage.size(), 8);
+    QString info = tr("Size: 0x%1(%2)")
+        .hexarg(flashImage.size(), 8).arg(flashImage.size());
 
     // Add tree item
     index = model->addItem(Types::Image, Subtypes::BiosImage, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), flashImage, QByteArray(), index);
@@ -436,8 +436,8 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Intel image
     name = tr("Intel image");
-    info = tr("Size: 0x%1\nFlash chips: %2\nRegions: %3\nMasters: %4\nPCH straps: %5\nPROC straps: %6\nICC table entries: %7")
-        .hexarg(intelImage.size(), 8)
+    info = tr("Size: 0x%1(%2)\nFlash chips: %3\nRegions: %4\nMasters: %5\nPCH straps: %6\nPROC straps: %7\nICC table entries: %8")
+        .hexarg(intelImage.size(), 8).arg(intelImage.size())
         .arg(descriptorMap->NumberOfFlashChips + 1) //
         .arg(descriptorMap->NumberOfRegions + 1)    // Zero-based numbers in storage
         .arg(descriptorMap->NumberOfMasters + 1)    //
@@ -452,7 +452,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     // Get descriptor info
     body = intelImage.left(FLASH_DESCRIPTOR_SIZE);
     name = tr("Descriptor region");
-    info = tr("Size: 0x%1").hexarg(FLASH_DESCRIPTOR_SIZE, 8);
+    info = tr("Size: 0x%1(%2)").hexarg(FLASH_DESCRIPTOR_SIZE, 8).arg(FLASH_DESCRIPTOR_SIZE);
 
     // Check regions presence once again
     QVector<UINT32> offsets;
@@ -557,8 +557,8 @@ UINT8 FfsEngine::parseGbeRegion(const QByteArray & gbe, QModelIndex & index, con
     QString      name = tr("GbE region");
     GBE_MAC*     mac = (GBE_MAC*)gbe.constData();
     GBE_VERSION* version = (GBE_VERSION*)(gbe.constData() + GBE_VERSION_OFFSET);
-    QString      info = tr("Size: 0x%1\nMAC: %2:%3:%4:%5:%6:%7\nVersion: %8.%9")
-        .hexarg(gbe.size(), 8)
+    QString      info = tr("Size: 0x%1(%2)\nMAC: %3:%4:%5:%6:%7:%8\nVersion: %9.%10")
+        .hexarg(gbe.size(), 8).arg(gbe.size())
         .hexarg(mac->vendor[0], 2)
         .hexarg(mac->vendor[1], 2)
         .hexarg(mac->vendor[2], 2)
@@ -581,8 +581,8 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const
 
     // Get info
     QString name = tr("ME region");
-    QString info = tr("Size: 0x%1").
-        hexarg(me.size(), 8);
+    QString info = tr("Size: 0x%1(%2)").
+        hexarg(me.size(), 8).arg(me.size());
 
     // Search for new signature
     INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE2);
@@ -622,8 +622,8 @@ UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, con
 
     // Get info
     QString name = tr("PDR region");
-    QString info = tr("Size: 0x%1").
-        hexarg(pdr.size(), 8);
+    QString info = tr("Size: 0x%1(%2)").
+        hexarg(pdr.size(), 8).arg(pdr.size());
 
     // Add tree item
     index = model->addItem(Types::Region, Subtypes::PdrRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), pdr, QByteArray(), parent, mode);
@@ -643,8 +643,8 @@ UINT8 FfsEngine::parseBiosRegion(const QByteArray & bios, QModelIndex & index, c
 
     // Get info
     QString name = tr("BIOS region");
-    QString info = tr("Size: 0x%1").
-        hexarg(bios.size(), 8);
+    QString info = tr("Size: 0x%1(%2)").
+        hexarg(bios.size(), 8).arg(bios.size());
 
     // Add tree item
     index = model->addItem(Types::Region, Subtypes::BiosRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), bios, QByteArray(), parent, mode);
@@ -678,8 +678,8 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         // Get info
         QByteArray padding = bios.left(prevVolumeOffset);
         name = tr("Padding");
-        info = tr("Size: 0x%1")
-            .hexarg(padding.size(), 8);
+        info = tr("Size: 0x%1(%2)")
+            .hexarg(padding.size(), 8).arg(padding.size());
         
         // Add tree item
         model->addItem(Types::Padding, getPaddingType(padding), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, QByteArray(), parent);
@@ -704,8 +704,8 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
             QByteArray padding = bios.mid(prevVolumeOffset + prevVolumeSize, paddingSize);
             // Get info
             name = tr("Padding");
-            info = tr("Size: 0x%1")
-                .hexarg(padding.size(), 8);
+            info = tr("Size: 0x%1(%2)")
+                .hexarg(padding.size(), 8).arg(padding.size());
             // Add tree item
             model->addItem(Types::Padding, getPaddingType(padding), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, QByteArray(), parent);
         }
@@ -778,8 +778,8 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
                 QByteArray padding = bios.right(endPaddingSize);
                 // Get info
                 name = tr("Padding");
-                info = tr("Size: 0x%1")
-                    .hexarg(padding.size(), 8);
+                info = tr("Size: 0x%1(%2)")
+                    .hexarg(padding.size(), 8).arg(padding.size());
                 // Add tree item
                 model->addItem(Types::Padding, getPaddingType(padding), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), padding, QByteArray(), parent);
             }
@@ -857,7 +857,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     else if (QByteArray((const char*)&volumeHeader->FileSystemGuid, sizeof(EFI_GUID)) == EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID) {
         // Code can be added here
     }
-    // Apple Boot Volume FFS GUID
+    // Apple Boot Volume 2 FFS GUID
     else if (QByteArray((const char*)&volumeHeader->FileSystemGuid, sizeof(EFI_GUID)) == EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID) {
         // Code can be added here
     }
@@ -880,32 +880,52 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
     // Get volume size
-    UINT8 result;
     UINT32 volumeSize;
     UINT32 bmVolumeSize;
 
-    result = getVolumeSize(volume, 0, volumeSize, bmVolumeSize);
+    UINT8 result = getVolumeSize(volume, 0, volumeSize, bmVolumeSize);
     if (result)
         return result;
 
+    // Check for Apple CRC32 in ZeroVector
+    UINT32 crc32FromZeroVector = *(UINT32*)(volume.constData() + 8);
+    if (crc32FromZeroVector != 0) {
+        // Calculate CRC32 of the volume body
+        UINT32 crc = crc32(0, NULL, 0);
+        crc = crc32(crc, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
+        if (crc == crc32FromZeroVector) {
+            subtype = (subtype == Subtypes::UnknownVolume) ? Subtypes::UnknownAppleCrcVolume : Subtypes::AppleCrcVolume;
+        }
+    }
+
     // Check header checksum by recalculating it
-    if (subtype == Subtypes::NormalVolume && calculateChecksum16((UINT16*)volumeHeader, volumeHeader->HeaderLength))
+    if ((subtype == Subtypes::NormalVolume || subtype == Subtypes::AppleCrcVolume) && calculateChecksum16((UINT16*)volumeHeader, volumeHeader->HeaderLength))
         msgInvalidChecksum = true;
 
     // Get info
     QString name = guidToQString(volumeHeader->FileSystemGuid);
-    QString info = tr("FileSystem GUID: %1\nSize: 0x%2\nRevision: %3\nAttributes: 0x%4\nErase polarity: %5\nHeader size: 0x%6")
+    QString info = tr("FileSystem GUID: %1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nRevision: %6\nAttributes: 0x%7\nErase polarity: %8\nZeroVector:\n%9 %10 %11 %12 %13 %14 %15 %16\n%17 %18 %19 %20 %21 %22 %23 %24")
         .arg(guidToQString(volumeHeader->FileSystemGuid))
-        .hexarg(volumeSize, 8)
+        .hexarg(headerSize, 8).arg(headerSize)
+        .hexarg(volumeSize - headerSize, 8).arg(volumeSize - headerSize)
         .arg(volumeHeader->Revision)
         .hexarg(volumeHeader->Attributes, 8)
         .arg(empty ? "1" : "0")
-        .hexarg(headerSize, 8);
+        .hexarg(volumeHeader->ZeroVector[0],  2).hexarg(volumeHeader->ZeroVector[1],  2).hexarg(volumeHeader->ZeroVector[2],  2).hexarg(volumeHeader->ZeroVector[3],  2)
+        .hexarg(volumeHeader->ZeroVector[4],  2).hexarg(volumeHeader->ZeroVector[5],  2).hexarg(volumeHeader->ZeroVector[6],  2).hexarg(volumeHeader->ZeroVector[7],  2)
+        .hexarg(volumeHeader->ZeroVector[8],  2).hexarg(volumeHeader->ZeroVector[9],  2).hexarg(volumeHeader->ZeroVector[10], 2).hexarg(volumeHeader->ZeroVector[11], 2)
+        .hexarg(volumeHeader->ZeroVector[12], 2).hexarg(volumeHeader->ZeroVector[13], 2).hexarg(volumeHeader->ZeroVector[14], 2).hexarg(volumeHeader->ZeroVector[15], 2);
+    
+    // Apple CRC32 volume
+    if (subtype == Subtypes::AppleCrcVolume || subtype == Subtypes::UnknownAppleCrcVolume) {
+        info += tr("\nCRC32 in ZeroVector: valid");
+    }
+
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
-        info += tr("\nExtended header size: 0x%1\nVolume name: %2")
-            .hexarg(extendedHeader->ExtHeaderSize, 8)
+        info += tr("\nExtended header size: 0x%1(%2)\nVolume GUID: %3")
+            .hexarg(extendedHeader->ExtHeaderSize, 8).arg(extendedHeader->ExtHeaderSize)
             .arg(guidToQString(extendedHeader->FvName));
     }
 
@@ -921,7 +941,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         msg(tr("parseVolume: Volume header checksum is invalid"), index);
 
     // Do not parse the contents of volumes other then normal
-    if (subtype != Subtypes::NormalVolume)
+    if (subtype != Subtypes::NormalVolume && subtype != Subtypes::AppleCrcVolume)
         return ERR_SUCCESS;
 
     // Search for and parse all files
@@ -1069,11 +1089,17 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
         break;
     case EFI_FV_FILETYPE_SECURITY_CORE:
         // Set parent volume type to BootVolume
-        model->setSubtype(parent, Subtypes::BootVolume);
+        if (model->subtype(parent) == Subtypes::AppleCrcVolume || model->subtype(parent) == Subtypes::BootAppleCrcVolume)
+            model->setSubtype(parent, Subtypes::BootAppleCrcVolume);
+        else
+            model->setSubtype(parent, Subtypes::BootVolume);
         break;
     case EFI_FV_FILETYPE_PEI_CORE:
         // Set parent volume type to BootVolume
-        model->setSubtype(parent, Subtypes::BootVolume);
+        if (model->subtype(parent) == Subtypes::AppleCrcVolume || model->subtype(parent) == Subtypes::BootAppleCrcVolume)
+            model->setSubtype(parent, Subtypes::BootAppleCrcVolume);
+        else
+            model->setSubtype(parent, Subtypes::BootVolume);
         break;
     case EFI_FV_FILETYPE_DXE_CORE:
         break;
@@ -1118,11 +1144,12 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
         name = guidToQString(fileHeader->Name);
     else
         name = tr("Padding");
-    info = tr("Name: %1\nType: 0x%2\nAttributes: 0x%3\nSize: 0x%4\nState: 0x%5")
+    info = tr("Name: %1\nType: 0x%2\nAttributes: 0x%3\nHeader size: 0x%4(%5)\nBody size: 0x%6(%7)\nState: 0x%8")
         .arg(guidToQString(fileHeader->Name))
         .hexarg(fileHeader->Type, 2)
         .hexarg(fileHeader->Attributes, 2)
-        .hexarg(uint24ToUint32(fileHeader->Size), 6)
+        .hexarg(header.size(), 2).arg(header.size())
+        .hexarg(uint24ToUint32(fileHeader->Size) - header.size(), 6).arg(uint24ToUint32(fileHeader->Size) - header.size())
         .hexarg(fileHeader->State, 2);
 
     // Add tree item
@@ -1333,11 +1360,12 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             parseCurrentSection = false;
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2\nCompression type: %3\nDecompressed size: 0x%4")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nCompression type: %6\nDecompressed size: 0x%7(%8)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
             .arg(compressionTypeToQString(algorithm))
-            .hexarg(compressedSectionHeader->UncompressedLength, 8);
+            .hexarg(compressedSectionHeader->UncompressedLength, 8).arg(compressedSectionHeader->UncompressedLength);
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, algorithm, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1370,10 +1398,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get info
         name = guidToQString(guidDefinedSectionHeader->SectionDefinitionGuid);
-        info = tr("GUID: %1\nType: 0x%2\nSize: 0x%3\nData offset: 0x%4\nAttributes: 0x%5")
+        info = tr("GUID: %1\nType: 0x%2\nHeader size: 0x%3(%4)\nBody size: 0x%5(%6)\nData offset: 0x%7\nAttributes: 0x%8")
             .arg(name)
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
             .hexarg(guidDefinedSectionHeader->DataOffset, 4)
             .hexarg(guidDefinedSectionHeader->Attributes, 4);
 
@@ -1390,11 +1419,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
                 
                 if (algorithm == COMPRESSION_ALGORITHM_TIANO) {
                     info += tr("\nCompression type: Tiano");
-                    info += tr("\nDecompressed size: 0x%1").hexarg(decompressed.length(), 8);
+                    info += tr("\nDecompressed size: 0x%1(%2)").hexarg(decompressed.length(), 8).arg(decompressed.length());
                 }
                 else if (algorithm == COMPRESSION_ALGORITHM_EFI11) {
                     info += tr("\nCompression type: EFI 1.1");
-                    info += tr("\nDecompressed size: 0x%1").hexarg(decompressed.length(), 8);
+                    info += tr("\nDecompressed size: 0x%1(%2)").hexarg(decompressed.length(), 8).arg(decompressed.length());
                 }
                 else 
                     info += tr("\nCompression type: unknown");
@@ -1409,7 +1438,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
                 
                 if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
                     info += tr("\nCompression type: LZMA");
-                    info += tr("\nDecompressed size: 0x%1").hexarg(decompressed.length(), 8);
+                    info += tr("\nDecompressed size: 0x%1(%2)").hexarg(decompressed.length(), 8).arg(decompressed.length());
                 }
                 else
                     info += tr("\nCompression type: unknown");
@@ -1461,15 +1490,15 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         if (!parseCurrentSection) {
             msg(tr("parseSection: GUID defined section can not be processed"), index);
         }
-        else if (parseAsIntelSigned) { // Parse as intel signed sections
+        else if (parseAsIntelSigned) { // Parse as Intel signed sections
             // Get signature
             QByteArray signature = body.left(*(UINT32*)body.constData());
             // Get info for it
-            QString signatureInfo = tr("Size: 0x%1").hexarg(signature.size(), 8);
+            QString signatureInfo = tr("Size: 0x%1(%2)").hexarg(signature.size(), 8).arg(signature.size());
             // Add it to the tree
             model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Padding"), tr("Intel signature"), signatureInfo, QByteArray(), signature, QByteArray(), index, mode);
 
-            // Get internal lzma section data
+            // Get internal LZMA section data
             QByteArray lzmaSection = body.mid(signature.size());
             // Parse internal sections
             result = parseSections(lzmaSection, index);
@@ -1489,9 +1518,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         body = section.mid(sizeof(EFI_DISPOSABLE_SECTION), sectionSize - sizeof(EFI_DISPOSABLE_SECTION));
 
         // Get info
-        info = tr("parseSection: 0x%1\nSize: 0x%2")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6);
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size());
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1513,9 +1543,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         body = section.mid(headerSize, sectionSize - headerSize);
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6);
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size());
 
         // Parse dependency expression
         QString str;
@@ -1542,9 +1573,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         body = section.mid(headerSize, sectionSize - headerSize);
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6);
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size());
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1565,9 +1597,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgHeader = (EFI_FREEFORM_SUBTYPE_GUID_SECTION*)sectionHeader;
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2\nSubtype GUID: %3")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nSubtype GUID: %6")
             .hexarg(fsgHeader->Type, 2)
-            .hexarg(body.size(), 6)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
             .arg(guidToQString(fsgHeader->SubTypeGuid));
 
         // Add tree item
@@ -1581,9 +1614,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         EFI_VERSION_SECTION* versionHeader = (EFI_VERSION_SECTION*)sectionHeader;
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2\nBuild number: %3\nVersion string: %4")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nBuild number: %6\nVersion string: %7")
             .hexarg(versionHeader->Type, 2)
-            .hexarg(body.size(), 6)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
             .arg(versionHeader->BuildNumber)
             .arg(QString::fromUtf16((const ushort*)body.constData()));
 
@@ -1597,9 +1631,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         QString text = QString::fromUtf16((const ushort*)body.constData());
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2\nText: %3")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nText: %6")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
             .arg(text);
 
         // Add tree item
@@ -1614,9 +1649,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         body = section.mid(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION), sectionSize - sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6);
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size());
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -1635,9 +1671,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         body = section.mid(sizeof(EFI_RAW_SECTION), sectionSize - sizeof(EFI_RAW_SECTION));
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6);
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size());
 
         // Check for apriori file
         QModelIndex parentFile = model->findParentOfType(parent, Types::File);
@@ -1682,16 +1719,35 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         }
     }
         break;
-    case SCT_SECTION_POSTCODE: {
-        header = section.left(sizeof(SCT_POSTCODE_SECTION));
-        body = section.mid(sizeof(SCT_POSTCODE_SECTION), sectionSize - sizeof(SCT_POSTCODE_SECTION));
 
-        SCT_POSTCODE_SECTION* postcodeHeader = (SCT_POSTCODE_SECTION*)sectionHeader;
+    case HP_SECTION_POSTCODE: {
+        header = section.left(sizeof(POSTCODE_SECTION));
+        body = section.mid(sizeof(POSTCODE_SECTION), sectionSize - sizeof(POSTCODE_SECTION));
+
+        POSTCODE_SECTION* postcodeHeader = (POSTCODE_SECTION*)sectionHeader;
 
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2\nPostcode: 0x%3")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nPostcode: 0x%6")
             .hexarg(postcodeHeader->Type, 2)
-            .hexarg(body.size(), 6)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
+            .hexarg(postcodeHeader->Postcode, 2);
+
+        // Add tree item
+        index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+    }
+                               break;
+    case SCT_SECTION_POSTCODE: {
+        header = section.left(sizeof(POSTCODE_SECTION));
+        body = section.mid(sizeof(POSTCODE_SECTION), sectionSize - sizeof(POSTCODE_SECTION));
+
+        POSTCODE_SECTION* postcodeHeader = (POSTCODE_SECTION*)sectionHeader;
+
+        // Get info
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)\nPostcode: 0x%6")
+            .hexarg(postcodeHeader->Type, 2)
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size())
             .hexarg(postcodeHeader->Postcode, 2);
 
         // Add tree item
@@ -1703,9 +1759,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         header = section.left(sizeof(EFI_COMMON_SECTION_HEADER));
         body = section.mid(sizeof(EFI_COMMON_SECTION_HEADER), sectionSize - sizeof(EFI_COMMON_SECTION_HEADER));
         // Get info
-        info = tr("Type: 0x%1\nSize: 0x%2")
+        info = tr("Type: 0x%1\nHeader size: 0x%2(%3)\nBody size: 0x%4(%5)")
             .hexarg(sectionHeader->Type, 2)
-            .hexarg(body.size(), 6);
+            .hexarg(header.size(), 2).arg(header.size())
+            .hexarg(body.size(), 6).arg(body.size());
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
@@ -2844,6 +2901,24 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
 
         // Reconstruction successful
         reconstructed = header.append(reconstructed);
+
+        // Recalculate CRC32 in ZeroVector, if needed
+        if (model->subtype(index) == Subtypes::AppleCrcVolume || model->subtype(index) == Subtypes::UnknownAppleCrcVolume) {
+            // Get current CRC32 value from volume header
+            UINT32 current = *(UINT32*)(reconstructed.constData() + 8);
+            // Calculate new value
+            UINT32 crc = crc32(0, NULL, 0);
+            crc = crc32(crc, (const UINT8*)reconstructed.constData() + volumeHeader->HeaderLength, reconstructed.size() - volumeHeader->HeaderLength);
+            // Update the value
+            if (current != crc) {
+                *(UINT32*)(reconstructed.data() + 8) = crc;
+
+                // Recalculate header checksum again
+                volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*)reconstructed.data();
+                volumeHeader->Checksum = 0;
+                volumeHeader->Checksum = calculateChecksum16((UINT16*)volumeHeader, volumeHeader->HeaderLength);
+            }
+        }
         return ERR_SUCCESS;
     }
 

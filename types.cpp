@@ -85,6 +85,12 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Unknown");
         else if (subtype == Subtypes::NvramVolume)
             return QObject::tr("NVRAM");
+        else if (subtype == Subtypes::AppleCrcVolume)
+            return QObject::tr("AppleCRC");
+        else if (subtype == Subtypes::UnknownAppleCrcVolume)
+            return QObject::tr("AppleCRC Unknown");
+        else if (subtype == Subtypes::BootAppleCrcVolume)
+            return QObject::tr("AppleCRC Boot");
         else
             return "";
     case Types::Capsule:
