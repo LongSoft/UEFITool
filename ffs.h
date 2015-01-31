@@ -118,16 +118,7 @@ const QByteArray EFI_SONY_FILE_SYSTEM_GUID
 
 
 //Vector of volume GUIDs with FFSv2-compatible files
-const QVector<QByteArray> FFSv2Volumes
-({ 
-    EFI_FIRMWARE_FILE_SYSTEM_GUID, 
-    EFI_FIRMWARE_FILE_SYSTEM2_GUID,
-    EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID,
-    EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID,
-    EFI_INTEL_FILE_SYSTEM_GUID,
-    EFI_INTEL_FILE_SYSTEM2_GUID,
-    EFI_SONY_FILE_SYSTEM_GUID
-});
+extern const QVector<QByteArray> FFSv2Volumes;
 
 // Firmware volume signature
 const QByteArray EFI_FV_SIGNATURE("_FVH", 4);

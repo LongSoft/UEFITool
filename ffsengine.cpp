@@ -191,12 +191,13 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
         //!TODO: more info about Aptio capsule
 
         // Fill attributes
-        CAPSULE_ATTRIBUTES attributes = { 0 };
-        attributes.Type = ATTR_CAPSULE_TYPE_APTIO;
-        attributes.Signed = signedCapsule;
+        UINT32 attr = 0;
+        CAPSULE_ATTRIBUTES* attributes = (CAPSULE_ATTRIBUTES*)&attr;
+        attributes->Type = ATTR_CAPSULE_TYPE_APTIO;
+        attributes->Signed = signedCapsule;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, *(UINT32*)&attributes, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
+        index = model->addItem(Types::Capsule, attr, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body);
         
         // Show message about possible Aptio signature break
         if (signedCapsule) {
@@ -537,12 +538,13 @@ UINT8 FfsEngine::parseMeRegion(const QByteArray & me, QModelIndex & index, const
     }
 
     // Fill attributes
-    REGION_ATTRIBUTES attributes = { 0 };
-    attributes.Type = ATTR_REGION_TYPE_ME;
-    attributes.Empty = emptyRegion;
+    UINT32 attr = 0;
+    REGION_ATTRIBUTES* attributes = (REGION_ATTRIBUTES*)&attr;
+    attributes->Type = ATTR_REGION_TYPE_ME;
+    attributes->Empty = emptyRegion;
 
     // Add tree item
-    index = model->addItem(Types::Region, *(UINT32*)&attributes, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, parent, mode);
+    index = model->addItem(Types::Region, attr, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), me, parent, mode);
 
     // Show messages
     if (emptyRegion) {
@@ -785,13 +787,14 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     headerSize = ALIGN8(headerSize);
 
     // Check for volume structure to be known
-    VOLUME_ATTRIBUTES attributes = { 0 };
-    attributes.Unknown = true;
+    UINT32 attr = 0;
+    VOLUME_ATTRIBUTES* attributes = (VOLUME_ATTRIBUTES*)&attr;
+    attributes->Unknown = true;
     
     // Check for FFS v2 volume
     if (FFSv2Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))) {
-        attributes.Unknown = false;
-        attributes.FsVersion = 2;
+        attributes->Unknown = false;
+        attributes->FsVersion = 2;
     }
 
     //!TODO:Check for FFS v3 volume
@@ -815,13 +818,13 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         // Calculate CRC32 of the volume body
         UINT32 crc = crc32(0, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
         if (crc == crc32FromZeroVector) {
-            attributes.ZeroVectorCrc = true;
+            attributes->ZeroVectorCrc = true;
         }
     }
 
     // Check header checksum by recalculating it
     bool msgInvalidChecksum = false;
-    if (!attributes.Unknown && calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength))
+    if (!attributes->Unknown && calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength))
         msgInvalidChecksum = true;
 
     // Get info
@@ -841,7 +844,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         .arg(empty ? "1" : "0");
     
     // Apple CRC32 volume
-    if (attributes.ZeroVectorCrc) {
+    if (attributes->ZeroVectorCrc) {
         info += tr("\nCRC32 in ZeroVector: valid");
     }
 
@@ -856,10 +859,10 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Add tree item
     QByteArray  header = volume.left(headerSize);
     QByteArray  body = volume.mid(headerSize, volumeSize - headerSize);
-    index = model->addItem(Types::Volume, *(UINT32*)&attributes, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, parent, mode);
+    index = model->addItem(Types::Volume, attr, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, parent, mode);
 
     // Show messages
-    if (attributes.Unknown) {
+    if (attributes->Unknown) {
         msg(tr("parseVolume: Unknown file system %1").arg(guidToQString(volumeHeader->FileSystemGuid)), index);
         // Do not parse unknown volumes
         return ERR_SUCCESS;

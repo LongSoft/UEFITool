@@ -1,6 +1,6 @@
 /*++ EfiTianoDecompress.c
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.<BR>
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.<BR>
 Copyright (c) 2004 - 2010, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
@@ -702,10 +702,10 @@ Returns: (VOID)
 
 EFI_STATUS
 GetInfo(
-IN      VOID    *Source,
-IN      UINT32  SrcSize,
-OUT     UINT32  *DstSize,
-OUT     UINT32  *ScratchSize
+IN      const VOID    *Source,
+IN      UINT32        SrcSize,
+OUT     UINT32        *DstSize,
+OUT     UINT32        *ScratchSize
 )
 /*++
 
@@ -727,7 +727,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
 {
-    UINT8 *Src;
+    const UINT8 *Src;
 
     *ScratchSize = sizeof(SCRATCH_DATA);
 
@@ -742,13 +742,13 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 EFI_STATUS
 Decompress(
-IN      VOID    *Source,
-IN      UINT32  SrcSize,
-IN OUT  VOID    *Destination,
-IN      UINT32  DstSize,
-IN OUT  VOID    *Scratch,
-IN      UINT32  ScratchSize,
-IN      UINT8   Version
+IN      const VOID *Source,
+IN      UINT32     SrcSize,
+IN OUT  VOID       *Destination,
+IN      UINT32     DstSize,
+IN OUT  VOID       *Scratch,
+IN      UINT32     ScratchSize,
+IN      UINT8      Version
 )
 /*++
 
@@ -780,7 +780,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
     UINT32        OrigSize;
     EFI_STATUS    Status;
     SCRATCH_DATA  *Sd;
-    UINT8         *Src;
+    const UINT8         *Src;
     UINT8         *Dst;
 
     Status = EFI_SUCCESS;
@@ -841,7 +841,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
         return EFI_INVALID_PARAMETER;
     }
 
-    Sd->mSrcBase = Src;
+    Sd->mSrcBase = (UINT8*)Src;
     Sd->mDstBase = Dst;
     Sd->mCompSize = CompSize;
     Sd->mOrigSize = OrigSize;
@@ -869,7 +869,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 EFI_STATUS
 EFIAPI
 EfiTianoGetInfo(
-IN      VOID                    *Source,
+IN      const VOID              *Source,
 IN      UINT32                  SrcSize,
 OUT     UINT32                  *DstSize,
 OUT     UINT32                  *ScratchSize
@@ -906,7 +906,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 EFI_STATUS
 EFIAPI
 EfiDecompress(
-IN      VOID                    *Source,
+IN      const VOID              *Source,
 IN      UINT32                  SrcSize,
 IN OUT  VOID                    *Destination,
 IN      UINT32                  DstSize,
@@ -953,7 +953,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 EFI_STATUS
 EFIAPI
 TianoDecompress(
-IN      VOID                          *Source,
+IN      const VOID                    *Source,
 IN      UINT32                        SrcSize,
 IN OUT  VOID                          *Destination,
 IN      UINT32                        DstSize,

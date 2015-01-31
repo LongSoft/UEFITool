@@ -78,11 +78,11 @@ private:
     UINT8      itemType;
     UINT32     itemAttributes;
     UINT8      itemCompression;
+    QString    itemName;
+    QString    itemText;
+    QString    itemInfo;
     QByteArray itemHeader;
     QByteArray itemBody;
-    QString itemName;
-    QString itemText;
-    QString itemInfo;
     TreeItem *parentItem;
 };
 
