@@ -1,6 +1,6 @@
 /* peimage.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 Copyright (c) 2006 - 2010, Intel Corporation. All rights reserved.
 Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.
 This program and the accompanying materials
@@ -223,6 +223,12 @@ typedef struct {
     UINT32                    NumberOfRvaAndSizes;
     EFI_IMAGE_DATA_DIRECTORY  DataDirectory[EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES];
 } EFI_IMAGE_OPTIONAL_HEADER64;
+
+// Union for pointers to either PE32 or PE32+ headers
+typedef union _EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION {
+    const EFI_IMAGE_OPTIONAL_HEADER32* H32;
+    const EFI_IMAGE_OPTIONAL_HEADER64* H64;
+} EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION;
 
 typedef struct
 {

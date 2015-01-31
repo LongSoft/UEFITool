@@ -1,6 +1,6 @@
 /* treemodel.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -42,35 +42,27 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
-    QString nameString(const QModelIndex &index) const;
-    QString actionString(const QModelIndex &index) const;
-    QString typeString(const QModelIndex &index) const;
-    QString subtypeString(const QModelIndex &index) const;
-    QString textString(const QModelIndex &index) const;
-
     void setAction(const QModelIndex &index, const UINT8 action);
-    void setTypeString(const QModelIndex &index, const QString &text);
-    void setSubtypeString(const QModelIndex &index, const QString &text);
-    void setNameString(const QModelIndex &index, const QString &text);
-    void setTextString(const QModelIndex &index, const QString &text);
+    void setType(const QModelIndex &index, const UINT8 type);
+    void setAttributes(const QModelIndex &index, const UINT32 attributes);
+    void setName(const QModelIndex &index, const QString &name);
+    void setText(const QModelIndex &index, const QString &text);
 
-    void setSubtype(const QModelIndex & index, UINT8 subtype);
-
+    QString name(const QModelIndex &index) const;
+    QString text(const QModelIndex &index) const;
+    QString info(const QModelIndex &index) const;
     UINT8 type(const QModelIndex &index) const;
-    UINT8 subtype(const QModelIndex &index) const;
+    UINT32 attributes(const QModelIndex &index) const;
     QByteArray header(const QModelIndex &index) const;
     bool hasEmptyHeader(const QModelIndex &index) const;
     QByteArray body(const QModelIndex &index) const;
     bool hasEmptyBody(const QModelIndex &index) const;
-    QByteArray tail(const QModelIndex &index) const;
-    bool hasEmptyTail(const QModelIndex &index) const;
-    QString info(const QModelIndex &index) const;
     UINT8 action(const QModelIndex &index) const;
     UINT8 compression(const QModelIndex &index) const;
 
-    QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
+    QModelIndex addItem(const UINT8 type, const UINT32 attributes = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(),
         const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     QModelIndex findParentOfType(const QModelIndex & index, UINT8 type) const;

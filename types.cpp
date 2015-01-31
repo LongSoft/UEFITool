@@ -1,6 +1,6 @@
 /* types.cpp
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -19,15 +19,15 @@ QString regionTypeToQString(const UINT8 type)
 {
     switch (type)
     {
-    case Subtypes::DescriptorRegion:
+    case ATTR_REGION_TYPE_DESCRIPTOR:
         return QObject::tr("Descriptor");
-    case Subtypes::GbeRegion:
+    case ATTR_REGION_TYPE_GBE:
         return QObject::tr("GbE");
-    case Subtypes::MeRegion:
-        return QObject::tr("ME");
-    case Subtypes::BiosRegion:
+    case ATTR_REGION_TYPE_ME:
+        return QObject::tr("ME/TXE");
+    case ATTR_REGION_TYPE_BIOS:
         return QObject::tr("BIOS");
-    case Subtypes::PdrRegion:
+    case ATTR_REGION_TYPE_PDR:
         return QObject::tr("PDR");
     default:
         return QObject::tr("Unknown");
@@ -58,60 +58,76 @@ QString itemTypeToQString(const UINT8 type)
     }
 }
 
-QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
+QString itemAttributesToQString(const UINT8 type, const UINT8 attributes)
 {
     switch (type) {
     case Types::Root:
     case Types::Image:
-        if (subtype == Subtypes::IntelImage)
+        if (attributes == ATTR_IMAGE_TYPE_DESCRIPTOR)
             return QObject::tr("Intel");
-        else if (subtype == Subtypes::BiosImage)
-            return QObject::tr("BIOS");
+        else if (attributes == ATTR_IMAGE_TYPE_UEFI)
+            return QObject::tr("UEFI");
         else
             return QObject::tr("Unknown");
     case Types::Padding:
-        if (subtype == Subtypes::ZeroPadding)
-            return QObject::tr("Empty(0x00)");
-        else if (subtype == Subtypes::OnePadding)
-            return QObject::tr("Empty(0xFF)");
-        else if (subtype == Subtypes::DataPadding)
-            return QObject::tr("Nonempty");
-        else
-            return "";
-    case Types::Volume:
-        if (subtype == Subtypes::BootVolume)
-            return QObject::tr("Boot");
-        else if (subtype == Subtypes::UnknownVolume)
-            return QObject::tr("Unknown");
-        else if (subtype == Subtypes::NvramVolume)
-            return QObject::tr("NVRAM");
-        else if (subtype == Subtypes::AppleCrcVolume)
-            return QObject::tr("AppleCRC");
-        else if (subtype == Subtypes::UnknownAppleCrcVolume)
-            return QObject::tr("AppleCRC Unknown");
-        else if (subtype == Subtypes::BootAppleCrcVolume)
-            return QObject::tr("AppleCRC Boot");
-        else
-            return "";
-    case Types::Capsule:
-        if (subtype == Subtypes::AptioCapsule)
-            return QObject::tr("AMI Aptio");
-        else if (subtype == Subtypes::UefiCapsule)
-            return QObject::tr("UEFI 2.0");
+        if (attributes == ATTR_PADDING_ZERO_EMPTY)
+            return QObject::tr("Empty (0x00)");
+        else if (attributes == ATTR_PADDING_ONE_EMPTY)
+            return QObject::tr("Empty (0xFF)");
+        else if (attributes == ATTR_PADDING_DATA)
+            return QObject::tr("Non-empty");
         else
             return QObject::tr("Unknown");
+    case Types::Volume: {
+        QString string;
+        VOLUME_ATTRIBUTES* volumeAttr = (VOLUME_ATTRIBUTES*)&attributes;
+        if (volumeAttr->ZeroVectorCrc)
+            string += QObject::tr("ZVCRC ");
+
+        if (volumeAttr->VtfPresent)
+            string += QObject::tr("Boot ");
+
+        if (volumeAttr->Unknown) {
+            string += QObject::tr("Unknown");
+            return string;
+        }
+
+        if (volumeAttr->FsVersion == 2 || volumeAttr->FsVersion == 3)
+            string += QObject::tr("FFSv%1").arg(volumeAttr->FsVersion);
+        else
+            return QObject::tr("Unknown FFS version");
+
+        return string;
+    }
+    case Types::Capsule: {
+        QString string;
+        CAPSULE_ATTRIBUTES* capsuleAttr = (CAPSULE_ATTRIBUTES*)&attributes;
+        if (capsuleAttr->Type == ATTR_CAPSULE_TYPE_APTIO)
+            string += QObject::tr("Aptio ");
+        else if (capsuleAttr->Type == ATTR_CAPSULE_TYPE_UEFI20)
+            string += QObject::tr("UEFI 2.0 ");
+        else 
+            return QObject::tr("Unknown type");
+
+        if (capsuleAttr->Signed)
+            string += QObject::tr("signed");
+        else
+            string += QObject::tr("unsigned");
+
+        return string;
+    }
     case Types::Region:
-        return regionTypeToQString(subtype);
+        return regionTypeToQString(attributes);
     case Types::File:
-        return fileTypeToQString(subtype);
+        return fileTypeToQString(attributes);
     case Types::Section:
-        return sectionTypeToQString(subtype);
+        return sectionTypeToQString(attributes);
     default:
         return QObject::tr("Unknown");
     }
 }
 
-QString compressionTypeToQString(UINT8 algorithm)
+QString compressionTypeToQString(const UINT8 algorithm)
 {
     switch (algorithm) {
     case COMPRESSION_ALGORITHM_NONE:
@@ -129,7 +145,7 @@ QString compressionTypeToQString(UINT8 algorithm)
     }
 }
 
-QString actionTypeToQString(UINT8 action)
+QString actionTypeToQString(const UINT8 action)
 {
     switch (action) {
     case Actions::NoAction:

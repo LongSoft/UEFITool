@@ -1,6 +1,6 @@
 /* EFI11/Tiano Compress Implementation
 
-Copyright (c) 2014, Nikolaj Schlej
+Copyright (c) 2015, Nikolaj Schlej
 Copyright (c) 2006 - 2008, Intel Corporation
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
@@ -278,7 +278,7 @@ STATIC NODE   mPos, mMatchPos, mAvail, *mPosition, *mParent, *mPrev, *mNext = NU
 //
 // functions
 //
-UINT8
+EFI_STATUS
 EfiCompressLegacy(
 CONST VOID   *SrcBuffer,
 UINT32  SrcSize,
@@ -373,7 +373,7 @@ EFI_INVALID_PARAMETER - Parameter supplied is wrong.
 
 }
 
-UINT8
+EFI_STATUS
 TianoCompressLegacy (
 CONST VOID   *SrcBuffer,
 UINT32  SrcSize,

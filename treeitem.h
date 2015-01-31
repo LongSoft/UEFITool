@@ -1,6 +1,6 @@
 /* treeitem.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -24,9 +24,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class TreeItem
 {
 public:
-    TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
+    TreeItem(const UINT8 type, const UINT32 attributes = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & tail = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(),
         TreeItem *parent = 0);
     ~TreeItem();
 
@@ -45,42 +45,42 @@ public:
     TreeItem *parent();
 
     // Reading operations for item parameters
-    UINT8 type() const;
-    UINT8 subtype() const;
-    QByteArray header() const;
-    bool hasEmptyHeader() const;
-    QByteArray body() const;
-    bool hasEmptyBody() const;
-    QByteArray tail() const;
-    bool hasEmptyTail() const;
-    QString info() const;
-    UINT8 action() const;
-    UINT8 compression() const;
-
-    // Some values can be changed after item construction
-    void setAction(const UINT8 action);
-    void setSubtype(const UINT8 subtype);
-    void setTypeName(const QString &text);
-    void setSubtypeName(const QString &text);
+    QString name() const;
     void setName(const QString &text);
+
+    UINT8 type() const;
+    void setType(const UINT8 type);
+
+    UINT32 attributes() const;
+    void setAttributes(const UINT32 attributes);
+
+    QString text() const;
     void setText(const QString &text);
 
-private:
-    // Set default names after construction
-    // They can later be changed by set* methods
-    void setDefaultNames();
+    QByteArray header() const;
+    bool hasEmptyHeader() const;
 
+    QByteArray body() const;
+    bool hasEmptyBody() const;
+    
+    QString info() const;
+    void addInfo(const QString &info);
+    void setInfo(const QString &info);
+    
+    UINT8 action() const;
+    void setAction(const UINT8 action);
+
+    UINT8 compression() const;
+
+private:
     QList<TreeItem*> childItems;
-    UINT8 itemAction;
-    UINT8 itemType;
-    UINT8 itemSubtype;
-    UINT8 itemCompression;
+    UINT8      itemAction;
+    UINT8      itemType;
+    UINT32     itemAttributes;
+    UINT8      itemCompression;
     QByteArray itemHeader;
     QByteArray itemBody;
-    QByteArray itemTail;
     QString itemName;
-    QString itemTypeName;
-    QString itemSubtypeName;
     QString itemText;
     QString itemInfo;
     TreeItem *parentItem;

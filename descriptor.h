@@ -1,6 +1,6 @@
 /* descriptor.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -20,7 +20,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push,1)
 
 // Flash descriptor header
-typedef struct {
+typedef struct _FLASH_DESCRIPTOR_HEADER {
     UINT8 FfVector[16];            // Must be 16 0xFFs
     UINT32 Signature;              // 0x0FF0A55A
 } FLASH_DESCRIPTOR_HEADER;
@@ -33,7 +33,7 @@ typedef struct {
 
 // Descriptor map
 // Base fields are storing bits [11:4] of actual base addresses, all other bits are 0
-typedef struct {
+typedef struct _FLASH_DESCRIPTOR_MAP {
     UINT8  ComponentBase;           // 0x03 on most machines
     UINT8  NumberOfFlashChips;      // Zero-based number of flash chips installed on board
     UINT8  RegionBase;              // 0x04 on most machines
@@ -53,7 +53,7 @@ typedef struct {
 
 // Component section
 // Flash parameters DWORD structure
-typedef struct {
+typedef struct _FLASH_PARAMETERS {
     UINT8 FirstChipDensity : 3;
     UINT8 SecondChipDensity : 3;
     UINT8 ReservedZero0 : 2;  // Still unknown, zeros in all descriptors I have seen
@@ -81,7 +81,7 @@ typedef struct {
 #define FLASH_FREQUENCY_50MHZ  0x04
 
 // Component section structure
-typedef struct {
+typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION {
     FLASH_PARAMETERS FlashParameters;
     UINT8            InvalidInstruction0;  // Instructions for SPI chip, that must not be executed, like FLASH ERASE
     UINT8            InvalidInstruction1;  //
@@ -94,7 +94,7 @@ typedef struct {
 // Region section
 // All base and limit register are storing upper part of actual UINT32 base and limit
 // If limit is zero - region is not present
-typedef struct {
+typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
     UINT16 ReservedZero;                  // Still unknown, zero in all descriptors I have seen
     UINT16 FlashBlockEraseSize;           // Size of block erased by single BLOCK ERASE command
     UINT16 BiosBase;
@@ -113,7 +113,7 @@ typedef struct {
 #define FLASH_BLOCK_ERASE_SIZE_64KB 0x000F
 
 // Master section
-typedef struct {
+typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION {
     UINT16 BiosId;
     UINT8 BiosRead;
     UINT8 BiosWrite;
@@ -138,14 +138,14 @@ typedef struct {
 #define FLASH_DESCRIPTOR_UPPER_MAP_BASE 0x0EFC
 
 // Descriptor upper map structure
-typedef struct {
+typedef struct _FLASH_DESCRIPTOR_UPPER_MAP {
     UINT8 VsccTableBase; // Base address of VSCC Table for ME, bits [11:4]
     UINT8 VsccTableSize; // Counted in UINT32s
     UINT16 ReservedZero; // Still unknown, zero in all descriptors I have seen
 } FLASH_DESCRIPTOR_UPPER_MAP;
 
 // VSCC table entry structure
-typedef struct {
+typedef struct _VSCC_TABLE_ENTRY {
     UINT8   VendorId;          // JEDEC VendorID byte
     UINT8   DeviceId0;         // JEDEC DeviceID first byte
     UINT8   DeviceId1;         // JEDEC DeviceID second byte
@@ -162,9 +162,9 @@ typedef struct {
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
-extern UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit);
+extern const UINT8* calculateAddress8(const UINT8* baseAddress, const UINT8 baseOrLimit);
 // 16 bit base or limit
-extern UINT8* calculateAddress16(UINT8* baseAddress, const UINT16 baseOrLimit);
+extern const UINT8* calculateAddress16(const UINT8* baseAddress, const UINT16 baseOrLimit);
 
 // Calculate offset of region using it's base
 extern UINT32 calculateRegionOffset(const UINT16 base);

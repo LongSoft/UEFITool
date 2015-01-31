@@ -1,6 +1,6 @@
 /* EfiTianoDecompress.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.<BR>
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.<BR>
 Copyright (c) 2004 - 2008, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
@@ -40,7 +40,7 @@ extern "C" {
     EFI_STATUS
         EFIAPI
         EfiTianoGetInfo(
-        VOID                    *Source,
+        const VOID              *Source,
         UINT32                  SrcSize,
         UINT32                  *DstSize,
         UINT32                  *ScratchSize
@@ -70,7 +70,7 @@ extern "C" {
     EFI_STATUS
         EFIAPI
         EfiDecompress(
-        VOID                    *Source,
+        const VOID                    *Source,
         UINT32                  SrcSize,
         VOID                    *Destination,
         UINT32                  DstSize,
@@ -104,7 +104,7 @@ extern "C" {
     EFI_STATUS
         EFIAPI
         TianoDecompress(
-        VOID                          *Source,
+        const VOID                          *Source,
         UINT32                        SrcSize,
         VOID                          *Destination,
         UINT32                        DstSize,

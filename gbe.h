@@ -1,6 +1,6 @@
 /* gbe.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -18,14 +18,14 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Make sure we use right packing rules
 #pragma pack(push,1)
 
-typedef struct {
+typedef struct _GBE_MAC_ADDRESS {
     UINT8 vendor[3];
     UINT8 device[3];
-} GBE_MAC;
+} GBE_MAC_ADDRESS;
 
 #define GBE_VERSION_OFFSET 10
 
-typedef struct {
+typedef struct _GBE_VERSION {
     UINT8 id : 4;
     UINT8 minor : 4;
     UINT8 major;

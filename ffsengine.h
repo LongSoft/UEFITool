@@ -1,6 +1,6 @@
 /* ffsengine.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -110,7 +110,7 @@ private:
     UINT32 newPeiCoreEntryPoint;
 
     // Parsing helpers
-    UINT8 getPaddingType(const QByteArray & padding);
+    UINT32 getPaddingType(const QByteArray & padding);
     void  parseAprioriRawSection(const QByteArray & body, QString & parsed);
     UINT8 parseDepexSection(const QByteArray & body, QString & parsed);
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);

@@ -1,6 +1,6 @@
 /* ffs.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -15,6 +15,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <QByteArray>
 #include <QString>
+#include <QVector>
 #include "basetypes.h"
 
 // C++ functions
@@ -25,9 +26,6 @@ extern QString fileTypeToQString(const UINT8 type);
 // Section type to QString routine
 extern QString sectionTypeToQString(const UINT8 type);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 // Make sure we use right packing rules
 #pragma pack(push,1)
 
@@ -35,7 +33,7 @@ extern "C" {
 // EFI Capsule
 //*****************************************************************************
 // Capsule header
-typedef struct {
+typedef struct _EFI_CAPSULE_HEADER {
     EFI_GUID  CapsuleGuid;
     UINT32    HeaderSize;
     UINT32    Flags;
@@ -52,7 +50,7 @@ const QByteArray EFI_CAPSULE_GUID
 ("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
 
 // AMI Aptio extended capsule header
-typedef struct {
+typedef struct _APTIO_CAPSULE_HEADER {
     EFI_CAPSULE_HEADER    CapsuleHeader;
     UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
     // the capsule volume
@@ -63,22 +61,28 @@ typedef struct {
     //ROM_AREA			  RomAreaMap[1];
 } APTIO_CAPSULE_HEADER;
 
-// AMI Aptio extended capsule GUID
-const QByteArray APTIO_CAPSULE_GUID
+// AMI Aptio signed extended capsule GUID
+const QByteArray APTIO_SIGNED_CAPSULE_GUID
 ("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
+
+// AMI Aptio unsigned extended capsule GUID
+const QByteArray APTIO_UNSIGNED_CAPSULE_GUID
+("\x90\xBB\xEE\x14\x0A\x89\xDB\x43\xAE\xD1\x5D\x3C\x45\x88\xA4\x18", 16);
+
+//14EEBB90-890A-43DB-AED1-5D3C4588A418
 
 //*****************************************************************************
 // EFI Firmware Volume
 //*****************************************************************************
 // Firmware block map entry
 // FvBlockMap ends with an entry {0x00000000, 0x00000000}
-typedef struct {
+typedef struct _EFI_FV_BLOCK_MAP_ENTRY {
     UINT32  NumBlocks;
     UINT32  Length;
 } EFI_FV_BLOCK_MAP_ENTRY;
 
 // Volume header
-typedef struct {
+typedef struct _EFI_FIRMWARE_VOLUME_HEADER {
     UINT8                  ZeroVector[16];
     EFI_GUID               FileSystemGuid;
     UINT64                 FvLength;
@@ -92,15 +96,38 @@ typedef struct {
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];
 } EFI_FIRMWARE_VOLUME_HEADER;
 
-// File system GUIDs
+// Standard file system GUIDs
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
 ("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
+const QByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
+("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
+// Vendor-specific file system GUIDs
 const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
 ("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
 const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID
 ("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
-const QByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
-("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
+const QByteArray EFI_INTEL_FILE_SYSTEM_GUID
+("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
+//AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0 //Intel 1
+const QByteArray EFI_INTEL_FILE_SYSTEM2_GUID
+("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
+//D6A1CD70-4B33-4994-A6EA-375F2CCC5437 //Intel 2
+const QByteArray EFI_SONY_FILE_SYSTEM_GUID
+("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
+//4F494156-AED6-4D64-A537-B8A5557BCEEC //Sony 1
+
+
+//Vector of volume GUIDs with FFSv2-compatible files
+const QVector<QByteArray> FFSv2Volumes
+({ 
+    EFI_FIRMWARE_FILE_SYSTEM_GUID, 
+    EFI_FIRMWARE_FILE_SYSTEM2_GUID,
+    EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID,
+    EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID,
+    EFI_INTEL_FILE_SYSTEM_GUID,
+    EFI_INTEL_FILE_SYSTEM2_GUID,
+    EFI_SONY_FILE_SYSTEM_GUID
+});
 
 // Firmware volume signature
 const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
@@ -188,7 +215,7 @@ const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
 #define EFI_FVB2_WEAK_ALIGNMENT     0x80000000
 
 // Extended firmware volume header
-typedef struct {
+typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER {
     EFI_GUID          FvName;
     UINT32            ExtHeaderSize;
 } EFI_FIRMWARE_VOLUME_EXT_HEADER;
@@ -197,31 +224,31 @@ typedef struct {
 // The extended header entries follow each other and are
 // terminated by ExtHeaderType EFI_FV_EXT_TYPE_END
 #define EFI_FV_EXT_TYPE_END        0x00
-typedef struct {
+typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY {
     UINT16  ExtEntrySize;
     UINT16  ExtEntryType;
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY;
 
 // GUID that maps OEM file types to GUIDs
 #define EFI_FV_EXT_TYPE_OEM_TYPE   0x01
-typedef struct {
+typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
     UINT32                           TypeMask;
     //EFI_GUID                         Types[1];
 } EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE;
 
 #define EFI_FV_EXT_TYPE_GUID_TYPE  0x02
-typedef struct {
+typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY Header;
     EFI_GUID FormatType;
     //UINT8 Data[];
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE;
 
-// NVRAM volume signature
-const QByteArray EFI_FIRMWARE_VOLUME_NVRAM_SIGNATURE("$VSS", 4);
+//!TODO: add proper NVRAM parsing
+//const QByteArray EFI_FIRMWARE_VOLUME_NVRAM_SIGNATURE("$VSS", 4);
 
 // Volume header 16bit checksum calculation routine
-extern UINT16 calculateChecksum16(UINT16* buffer, UINT32 bufferSize);
+extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
 //*****************************************************************************
 // EFI FFS File
@@ -236,7 +263,7 @@ typedef union {
     UINT16 Checksum16;      // Revision 2
 } EFI_FFS_INTEGRITY_CHECK;
 // File header
-typedef struct {
+typedef struct _EFI_FFS_FILE_HEADER {
     EFI_GUID                Name;
     EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
     UINT8                   Type;
@@ -246,15 +273,15 @@ typedef struct {
 } EFI_FFS_FILE_HEADER;
 
 // Large file header
-//typedef struct {
-//	EFI_GUID                Name;
-//  EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
-//	UINT8                   Type;
-//	UINT8                   Attributes;
-//	UINT8                   Size[3];
-//	UINT8                   State;
-//  UINT32                  ExtendedSize;
-//} EFI_FFS_FILE_HEADER2;
+typedef struct _EFI_FFS_FILE_HEADER2 {
+EFI_GUID                Name;
+EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
+UINT8                   Type;
+UINT8                   Attributes;
+UINT8                   Size[3];
+UINT8                   State;
+UINT32                  ExtendedSize;
+} EFI_FFS_FILE_HEADER2;
 
 // Standard data checksum, used if FFS_ATTRIB_CHECKSUM is clear
 #define FFS_FIXED_CHECKSUM   0x5A
@@ -319,25 +346,25 @@ const QByteArray EFI_FFS_PAD_FILE_GUID
 
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
-extern UINT32 uint24ToUint32(UINT8* ffsSize);
+extern UINT32 uint24ToUint32(const UINT8* ffsSize);
 // FFS file 8bit checksum calculation routine
-extern UINT8 calculateChecksum8(UINT8* buffer, UINT32 bufferSize);
+extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 
 //*****************************************************************************
 // EFI FFS File Section
 //*****************************************************************************
 // Common section header
-typedef struct {
+typedef struct _EFI_COMMON_SECTION_HEADER {
     UINT8    Size[3];
     UINT8    Type;
 } EFI_COMMON_SECTION_HEADER;
 
 // Large file common section header
-//typedef struct {
-//    UINT8    Size[3];    //Must be 0xFFFFFF for this header to be used
-//    UINT8    Type;
-//    UINT32 ExtendedSize;
-//} EFI_COMMON_SECTION_HEADER2;
+typedef struct _EFI_COMMON_SECTION_HEADER2 {
+    UINT8    Size[3];    //Must be 0xFFFFFF for this header to be used
+    UINT8    Type;
+    UINT32   ExtendedSize;
+} EFI_COMMON_SECTION_HEADER2;
 
 // File section types
 #define EFI_SECTION_ALL 0x00 // Impossible attribute for file in the FS
@@ -364,7 +391,7 @@ typedef struct {
 #define HP_SECTION_POSTCODE                 0x20 // Specific to HP images
 
 // Compression section
-typedef struct {
+typedef struct _EFI_COMPRESSION_SECTION {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   UncompressedLength;
@@ -377,7 +404,7 @@ typedef struct {
 #define EFI_CUSTOMIZED_COMPRESSION  0x02
 
 //GUID defined section
-typedef struct {
+typedef struct _EFI_GUID_DEFINED_SECTION {
     UINT8    Size[3];
     UINT8    Type;
     EFI_GUID SectionDefinitionGuid;
@@ -403,21 +430,21 @@ const QByteArray EFI_GUIDED_SECTION_INTEL_SIGNED //0F9D89E8-9259-4F76-A5AF-0C89E
 ("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
 
 // Version section
-typedef struct {
+typedef struct _EFI_VERSION_SECTION {
     UINT8    Size[3];
     UINT8    Type;
     UINT16   BuildNumber;
 } EFI_VERSION_SECTION;
 
 // Freeform subtype GUID section
-typedef struct {
+typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION {
     UINT8    Size[3];
     UINT8    Type;
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
 
 // Phoenix SCT and HP postcode section
-typedef struct {
+typedef struct _POSTCODE_SECTION {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   Postcode;
@@ -437,7 +464,7 @@ typedef EFI_COMMON_SECTION_HEADER EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
 typedef EFI_COMMON_SECTION_HEADER EFI_USER_INTERFACE_SECTION;
 
 //Section routines
-extern UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header);
+extern UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header);
 
 //*****************************************************************************
 // EFI Dependency Expression
@@ -475,7 +502,4 @@ extern UINT32 sizeOfSectionHeader(EFI_COMMON_SECTION_HEADER* header);
 // Restore previous packing rules
 #pragma pack(pop)
 
-#ifdef __cplusplus
-}
-#endif
 #endif
