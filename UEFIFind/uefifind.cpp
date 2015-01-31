@@ -86,8 +86,8 @@ UINT8 UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPatt
         UINT8  u8_7  = *(UINT8*)(data.constData()  + 14);
         UINT8  u8_8  = *(UINT8*)(data.constData()  + 15);
 
-        QString guid = QString("%1-%2-%3-%4%5-%6%7%8%9%10%11\n").hexarg(u32, 8).hexarg(u16_1, 4).hexarg(u16_2, 4).hexarg(u8_1, 2).hexarg(u8_2, 2)
-            .hexarg(u8_3, 2).hexarg(u8_4, 2).hexarg(u8_5, 2).hexarg(u8_6, 2).hexarg(u8_7, 2).hexarg(u8_8, 2);
+        QString guid = QString("%1-%2-%3-%4%5-%6%7%8%9%10%11\n").hexarg2(u32, 8).hexarg2(u16_1, 4).hexarg2(u16_2, 4).hexarg2(u8_1, 2).hexarg2(u8_2, 2)
+            .hexarg2(u8_3, 2).hexarg2(u8_4, 2).hexarg2(u8_5, 2).hexarg2(u8_6, 2).hexarg2(u8_7, 2).hexarg2(u8_8, 2);
 
         result.append(guid);
     }
@@ -122,7 +122,7 @@ UINT8 UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPa
         else if (mode == SEARCH_MODE_BODY)
             data.append(model->body(index));
         else
-            data.append(model->header(index)).append(model->body(index)).append(model->tail(index));
+            data.append(model->header(index)).append(model->body(index));
     }
 
     QString hexBody = QString(data.toHex());
