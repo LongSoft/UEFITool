@@ -224,3 +224,13 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+#############
+## qmake / make
+#############
+*.o
+Makefile
+UEFIExtract/UEFIExtract
+UEFIFind/UEFIFind
+UEFIPatch/UEFIPatch
+UEFITool
