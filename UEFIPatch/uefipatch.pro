@@ -13,6 +13,7 @@ SOURCES  += uefipatch_main.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
  ../ffsengine.cpp \
+ ../peimage.cpp \
  ../treeitem.cpp \
  ../treemodel.cpp \
  ../LZMA/LzmaCompress.c \
