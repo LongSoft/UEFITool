@@ -16,8 +16,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __PE_IMAGE_H__
 #define __PE_IMAGE_H__
 
+#include <QString>
+
+#include "basetypes.h"
+
 // Make sure we use right packing rules
 #pragma pack(push,1)
+
+extern QString machineTypeToQString(UINT16 machineType);
 
 //
 // PE32+ Subsystem type for EFI images
@@ -30,11 +36,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 //
 // PE32+ Machine type for EFI images
 //
-#define IMAGE_FILE_MACHINE_I386            0x014c
-#define IMAGE_FILE_MACHINE_IA64            0x0200
-#define IMAGE_FILE_MACHINE_EBC             0x0EBC
-#define IMAGE_FILE_MACHINE_X64             0x8664
-#define IMAGE_FILE_MACHINE_ARMTHUMB_MIXED  0x01c2
+#define IMAGE_FILE_MACHINE_AMD64          0x8664
+#define IMAGE_FILE_MACHINE_ARM            0x01c0
+#define IMAGE_FILE_MACHINE_ARMV7          0x01c4
+#define IMAGE_FILE_MACHINE_EBC            0x0ebc
+#define IMAGE_FILE_MACHINE_I386           0x014c
+#define IMAGE_FILE_MACHINE_IA64           0x0200
+#define IMAGE_FILE_MACHINE_THUMB          0x01c2
 
 //
 // EXE file formats

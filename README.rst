@@ -38,7 +38,7 @@ Usage
 
 Known issues
 ------------
+* Some images has non-standard calculation of base address of TE images, so the program can rebase them incorrectly after modifications. Will be solved ASAP.
 * Some images may not work after modification because of no FIT table support implemented yet. It's on my high priority features list, so I hope it will be corrected soon.
 * The program is meant to work with BIOS images, not some vendor-specific BIOS update files, that is why some of that update file either can\t be opened at all or return errors on reconstruction. If someone wants to write an unpacker for such crappy files - I will be glad to use it.
-* Search is searching only inside leaf elements of the tree, that is why some information can be found with hex editor but not with UEFITool. It's an intended behaviour and the tool tries to warn if there are some data in unusual places that must be empty by specifications (like the data inside padding files or after the last file of the UEFI volume).
 * AMI-specific features like NCBs, ROM_AREA structure and other things like that can't be implemented by me because of the NDA I have.

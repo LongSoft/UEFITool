@@ -24,9 +24,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class TreeItem
 {
 public:
-    TreeItem(const UINT8 type, const UINT32 attributes = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
+    TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
         TreeItem *parent = 0);
     ~TreeItem();
 
@@ -51,8 +51,8 @@ public:
     UINT8 type() const;
     void setType(const UINT8 type);
 
-    UINT32 attributes() const;
-    void setAttributes(const UINT32 attributes);
+    UINT8 subtype() const;
+    void setSubtype(const UINT8 subtype);
 
     QString text() const;
     void setText(const QString &text);
@@ -62,7 +62,11 @@ public:
 
     QByteArray body() const;
     bool hasEmptyBody() const;
-    
+
+    QByteArray parsingData() const;
+    bool hasEmptyParsingData() const;
+    void setParsingData(const QByteArray & data);
+
     QString info() const;
     void addInfo(const QString &info);
     void setInfo(const QString &info);
@@ -76,13 +80,14 @@ private:
     QList<TreeItem*> childItems;
     UINT8      itemAction;
     UINT8      itemType;
-    UINT32     itemAttributes;
+    UINT8      itemSubtype;
     UINT8      itemCompression;
     QString    itemName;
     QString    itemText;
     QString    itemInfo;
     QByteArray itemHeader;
     QByteArray itemBody;
+    QByteArray itemParsingData;
     TreeItem *parentItem;
 };
 

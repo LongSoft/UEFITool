@@ -10,6 +10,7 @@ SOURCES  += uefitool_main.cpp \
  types.cpp \
  descriptor.cpp \
  ffs.cpp \
+ peimage.cpp \
  ffsengine.cpp \
  treeitem.cpp \
  treemodel.cpp \

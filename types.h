@@ -16,8 +16,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "basetypes.h"
 
-#pragma pack(push, 1)
-
 // Actions
 namespace Actions
 {
@@ -42,61 +40,70 @@ namespace Types {
         Padding,
         Volume,
         File,
-        Section
+        Section,
+        FreeSpace
     };
 }
 
-// Capsule attributes
-typedef struct _CAPSULE_ATTRIBUTES {
-    UINT32 Type     : 7;
-    UINT32 Signed   : 1;
-    UINT32 Reserved : 24;
-} CAPSULE_ATTRIBUTES;
-#define ATTR_CAPSULE_TYPE_UEFI20 0
-#define ATTR_CAPSULE_TYPE_APTIO  1
+namespace Subtypes {
+    enum ImageSubtypes{
+        IntelImage = 70,
+        UefiImage
+    };
 
-typedef struct _IMAGE_ATTRIBUTES {
-    UINT32 IntelDescriptor : 1;
-    UINT32 Reserved        : 31;
-} IMAGE_ATTRIBUTES;
-#define ATTR_IMAGE_TYPE_UEFI       0
-#define ATTR_IMAGE_TYPE_DESCRIPTOR 1
+    enum CapsuleSubtypes {
+        AptioSignedCapsule = 80,
+        AptioUnsignedCapsule,
+        UefiCapsule
+    };
 
-typedef struct _REGION_ATTRIBUTES {
-    UINT32 Type     : 7;
-    UINT32 Empty    : 1;
-    UINT32 Reserved : 24;
-} REGION_ATTRIBUTES;
+    enum VolumeSubtypes {
+        UnknownVolume = 90,
+        Ffs2Volume,
+        Ffs3Volume
+    };
 
-#define ATTR_REGION_TYPE_DESCRIPTOR 0
-#define ATTR_REGION_TYPE_GBE        1
-#define ATTR_REGION_TYPE_ME         2
-#define ATTR_REGION_TYPE_BIOS       3
-#define ATTR_REGION_TYPE_PDR        4
+    enum RegionSubtypes {
+        DescriptorRegion = 100,
+        GbeRegion,
+        MeRegion,
+        BiosRegion,
+        PdrRegion
+    };
 
-typedef struct _VOLUME_ATTRIBUTES {
-    UINT32 Unknown       : 1;
-    UINT32 VtfPresent    : 1;
-    UINT32 ZeroVectorCrc : 1;
-    UINT32 FsVersion     : 5;
-    UINT32 Reserved      : 24;
-} VOLUME_ATTRIBUTES;
-
-typedef struct _PADDING_ATTRIBUTES {
-    UINT32 Empty         : 1;
-    UINT32 ErasePolarity : 1;
-    UINT32 Reserved      : 30;
-} PADDING_ATTRIBUTES;
-#define ATTR_PADDING_DATA       0
-#define ATTR_PADDING_ZERO_EMPTY 1
-#define ATTR_PADDING_ONE_EMPTY  3
-
-#pragma pack(pop)
+    enum PaddingSubtypes {
+        ZeroPadding = 110,
+        OnePadding,
+        DataPadding
+    };
+};
 
 // *ToQString conversion routines
 extern QString actionTypeToQString(const UINT8 action);
 extern QString itemTypeToQString(const UINT8 type);
-extern QString itemAttributesToQString(const UINT8 type, const UINT8 attributes);
+extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
 extern QString compressionTypeToQString(const UINT8 algorithm);
 extern QString regionTypeToQString(const UINT8 type);
+
+enum ParsingDataTypes {
+    UnknownParsingData,
+    VolumeParsingData,
+    FileParsingData
+};
+
+typedef union _PARSING_DATA_UNION {
+    struct _PARSING_DATA_UNION_VOLUME {
+        bool HasZeroVectorCRC;
+    } Volume;
+
+    struct _PARSING_DATA_UNION_FILE {
+        UINT32 Offset;
+    } File;
+} PARSING_DATA_UNION;
+
+typedef struct _PARSING_DATA {
+    UINT8 Type;
+    PARSING_DATA_UNION Data;
+} PARSING_DATA;
+
 #endif

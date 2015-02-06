@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.20.0"))
+version(tr("0.20.1"))
 {
     clipboard = QApplication::clipboard();
 
@@ -123,7 +123,7 @@ void UEFITool::populateUi(const QModelIndex &current)
 
     TreeModel* model = ffsEngine->treeModel();
     UINT8 type = model->type(current);
-    UINT32 attributes = model->attributes(current);
+    UINT8 subtype = model->subtype(current);
 
     // Set info text
     ui->infoEdit->setPlainText(model->info(current));
@@ -142,12 +142,12 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionExtractBody->setDisabled(model->hasEmptyBody(current));
     ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
-    ui->actionInsertInto->setEnabled((type == Types::Volume && ((VOLUME_ATTRIBUTES*)&attributes)->Unknown == 0) ||
-        (type == Types::File && attributes != EFI_FV_FILETYPE_ALL && attributes != EFI_FV_FILETYPE_RAW && attributes != EFI_FV_FILETYPE_PAD) ||
-        (type == Types::Section && (attributes == EFI_SECTION_COMPRESSION || attributes == EFI_SECTION_GUID_DEFINED || attributes == EFI_SECTION_DISPOSABLE)));
+    ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
+        (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
+        (type == Types::Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
     ui->actionInsertBefore->setEnabled(type == Types::File || type == Types::Section);
     ui->actionInsertAfter->setEnabled(type == Types::File || type == Types::Section);
-    ui->actionReplace->setEnabled((type == Types::Region && ((REGION_ATTRIBUTES*)&attributes)->Type != ATTR_REGION_TYPE_DESCRIPTOR) || type == Types::Volume || type == Types::File || type == Types::Section);
+    ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion) || type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionMessagesCopy->setEnabled(false);
 }
@@ -336,9 +336,10 @@ void UEFITool::replace(const UINT8 mode)
             path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace selected object"), currentDir, "FFS files (*.ffs *.bin);;All files (*)");
         }
         else if (mode == REPLACE_MODE_BODY) {
-            if (model->attributes(index) == EFI_FV_FILETYPE_ALL || model->attributes(index) == EFI_FV_FILETYPE_RAW)
+            if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
                 path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
-            else if (model->attributes(index) == EFI_FV_FILETYPE_PAD) // Pad file body can't be replaced
+            else if (model->subtype(index) == EFI_FV_FILETYPE_PAD) // Pad file body can't be replaced
+                //!TODO: handle non-empty pad files
                 return;
             else
                 path = QFileDialog::getOpenFileName(this, tr("Select FFS file body to replace body"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
@@ -351,11 +352,11 @@ void UEFITool::replace(const UINT8 mode)
             path = QFileDialog::getOpenFileName(this, tr("Select section file to replace selected object"), currentDir, "Section files (*.sec *.bin);;All files (*)");
         }
         else if (mode == REPLACE_MODE_BODY) {
-            if (model->attributes(index) == EFI_SECTION_COMPRESSION || model->attributes(index) == EFI_SECTION_GUID_DEFINED || model->attributes(index) == EFI_SECTION_DISPOSABLE)
+            if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
                 path = QFileDialog::getOpenFileName(this, tr("Select FFS file body file to replace body"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
-            else if (model->attributes(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
+            else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
                 path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace body"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
-            else if (model->attributes(index) == EFI_SECTION_RAW)
+            else if (model->subtype(index) == EFI_SECTION_RAW)
                 path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
                 path = QFileDialog::getOpenFileName(this, tr("Select file to replace body"), currentDir, "Binary files (*.bin);;All files (*)");
@@ -450,18 +451,18 @@ void UEFITool::extract(const UINT8 mode)
             path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"), currentDir, "Volume body files (*.vbd *.bin);;All files (*)");
             break;
         case Types::File: {
-            if (model->attributes(index) == EFI_FV_FILETYPE_ALL || model->attributes(index) == EFI_FV_FILETYPE_RAW)
+            if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
                 path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
         }
             break;
         case Types::Section: {
-            if (model->attributes(index) == EFI_SECTION_COMPRESSION || model->attributes(index) == EFI_SECTION_GUID_DEFINED || model->attributes(index) == EFI_SECTION_DISPOSABLE)
+            if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
                 path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
-            else if (model->attributes(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
+            else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
-            else if (model->attributes(index) == EFI_SECTION_RAW)
+            else if (model->subtype(index) == EFI_SECTION_RAW)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to file"), currentDir, "Binary files (*.bin);;All files (*)");

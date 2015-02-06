@@ -15,19 +15,20 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "types.h"
 
-TreeItem::TreeItem(const UINT8 type, const UINT32 attributes, const UINT8 compression,
+TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
     const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body,
+    const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
     itemType(type),
-    itemAttributes(attributes),
+    itemSubtype(subtype),
     itemCompression(compression),
     itemName(name),
     itemText(text),
     itemInfo(info),
     itemHeader(header),
     itemBody(body),
+    itemParsingData(parsingData),
     parentItem(parent)
 {
 }
@@ -36,12 +37,6 @@ TreeItem::~TreeItem()
 {
     qDeleteAll(childItems);
 }
-
-/*void TreeItem::setDefaultNames()
-{
-    itemTypeName = itemTypeToQString(itemType);
-    itemSubtypeName = itemSubtypeToQString(itemType, itemSubtype);
-}*/
 
 void TreeItem::appendChild(TreeItem *item)
 {
@@ -96,8 +91,8 @@ QVariant TreeItem::data(int column) const
         return actionTypeToQString(itemAction);
     case 2: // Type
         return itemTypeToQString(itemType);
-    case 3: // Attributes
-        return itemAttributesToQString(itemType, itemAttributes);
+    case 3: // Subtype
+        return itemSubtypeToQString(itemType, itemSubtype);
     case 4: // Text
         return itemText;
     default:
@@ -163,14 +158,14 @@ void TreeItem::setType(const UINT8 type)
     itemType = type;
 }
 
-UINT32 TreeItem::attributes() const
+UINT8 TreeItem::subtype() const
 {
-    return itemAttributes;
+    return itemSubtype;
 }
 
-void TreeItem::setAttributes(const UINT32 attributes)
+void TreeItem::setSubtype(const UINT8 subtype)
 {
-    itemAttributes = attributes;
+    itemSubtype = subtype;
 }
 
 
@@ -189,6 +184,11 @@ QByteArray TreeItem::body() const
     return itemBody;
 }
 
+QByteArray TreeItem::parsingData() const
+{
+    return itemParsingData;
+}
+
 bool TreeItem::hasEmptyHeader() const
 {
     return itemHeader.isEmpty();
@@ -197,6 +197,16 @@ bool TreeItem::hasEmptyHeader() const
 bool TreeItem::hasEmptyBody() const
 {
     return itemBody.isEmpty();
+}
+
+bool TreeItem::hasEmptyParsingData() const
+{
+    return itemParsingData.isEmpty();
+}
+
+void TreeItem::setParsingData(const QByteArray & data)
+{
+    itemParsingData = data;
 }
 
 UINT8 TreeItem::action() const

@@ -128,7 +128,7 @@ QString sectionTypeToQString(const UINT8 type)
     case EFI_SECTION_COMPRESSION:               return QObject::tr("Compressed");
     case EFI_SECTION_GUID_DEFINED:              return QObject::tr("GUID defined");
     case EFI_SECTION_DISPOSABLE:                return QObject::tr("Disposable");
-    case EFI_SECTION_PE32:                      return QObject::tr("PE32(+) image");
+    case EFI_SECTION_PE32:                      return QObject::tr("PE32 image");
     case EFI_SECTION_PIC:                       return QObject::tr("PIC image");
     case EFI_SECTION_TE:                        return QObject::tr("TE image");
     case EFI_SECTION_DXE_DEPEX:                 return QObject::tr("DXE dependency");
