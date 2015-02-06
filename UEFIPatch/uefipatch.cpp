@@ -126,7 +126,7 @@ UINT8 UEFIPatch::patchFile(const QModelIndex & index, const QByteArray & fileGui
   
     if (!model || !index.isValid())
         return ERR_INVALID_PARAMETER;
-    if (model->type(index) == Types::Section && model->attributes(index) == sectionType) {
+    if (model->type(index) == Types::Section && model->subtype(index) == sectionType) {
         QModelIndex fileIndex = model->findParentOfType(index, Types::File);
         if (model->type(fileIndex) == Types::File &&
             model->header(fileIndex).left(sizeof(EFI_GUID)) == fileGuid)
