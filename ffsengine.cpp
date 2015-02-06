@@ -846,7 +846,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Construct parsing data structure
     QByteArray parsingData(sizeof(PARSING_DATA), 0);
     PARSING_DATA* pdata = (PARSING_DATA*)parsingData.data();
-    pdata->Type = ParsingDataTypes::VolumeParsingData;
+    pdata->Type = VolumeParsingData;
     pdata->Data.Volume.HasZeroVectorCRC = volumeHasZVCRC;
 
     // Add text
@@ -952,7 +952,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         // Construct parsing data structure
         QByteArray parsingData(sizeof(PARSING_DATA), 0);
         PARSING_DATA* pdata = (PARSING_DATA*)parsingData.data();
-        pdata->Type = ParsingDataTypes::FileParsingData;
+        pdata->Type = FileParsingData;
         pdata->Data.File.Offset = fileOffset;
         model->setParsingData(fileIndex, parsingData);
 
@@ -3073,7 +3073,7 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
 
         // Recalculate CRC32 in ZeroVector, if needed
         const PARSING_DATA* pdata = (const PARSING_DATA*)model->parsingData(index).constData();
-        if (pdata->Type == ParsingDataTypes::VolumeParsingData && pdata->Data.Volume.HasZeroVectorCRC) {
+        if (pdata->Type == VolumeParsingData && pdata->Data.Volume.HasZeroVectorCRC) {
             // Get current CRC32 value from volume header
             const UINT32 current = *(const UINT32*)(reconstructed.constData() + 8);
             // Calculate new value
