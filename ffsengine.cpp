@@ -900,8 +900,6 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
             // Check free space to be actually free
             QByteArray freeSpace = volume.mid(fileOffset);
             if (freeSpace.count(empty) != freeSpace.count()) {
-                msg(tr("parseVolume: non-UEFI data found in volume's free space"), index);
-
                 // Search for the first non-empty byte
                 UINT32 i;
                 UINT32 size = freeSpace.size();
@@ -923,7 +921,8 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
                 }
                 // ... and all bytes after as a padding
                 QByteArray padding = freeSpace.mid(i);
-                model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size()), QByteArray(), padding, QByteArray(), index, mode);
+                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size()), QByteArray(), padding, QByteArray(), index, mode);
+                msg(tr("parseVolume: non-UEFI data found in volume's free space"), dataIndex);
             }
             else {
                 // Add free space element
@@ -4206,3 +4205,4 @@ UINT8 FfsEngine::patchViaPattern(QByteArray & data, const QByteArray & hexFindPa
     data = body;
     return ERR_SUCCESS;
 }
+
