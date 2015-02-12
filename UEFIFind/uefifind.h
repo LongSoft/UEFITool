@@ -19,12 +19,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QString>
 #include <QDir>
 #include <QFileInfo>
+#include <QPair>
 #include <QSet>
 #include <QString>
 #include <QUuid>
 
 #include "../basetypes.h"
 #include "../ffsengine.h"
+#include "../ffs.h"
 
 class UEFIFind : public QObject
 {
@@ -38,7 +40,8 @@ public:
     UINT8 find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result);
 
 private:
-    UINT8 findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QModelIndex> & files);
+    UINT8 findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QPair<QModelIndex, QModelIndex> > & files);
+    QString UEFIFind::guidToQString(const UINT8* guid);
 
     FfsEngine* ffsEngine;
     TreeModel* model;

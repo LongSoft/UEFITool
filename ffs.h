@@ -108,17 +108,22 @@ const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID
 ("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
 const QByteArray EFI_INTEL_FILE_SYSTEM_GUID
 ("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
-//AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0 //Intel 1
+// AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0 // Intel 1
 const QByteArray EFI_INTEL_FILE_SYSTEM2_GUID
 ("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
-//D6A1CD70-4B33-4994-A6EA-375F2CCC5437 //Intel 2
+// D6A1CD70-4B33-4994-A6EA-375F2CCC5437 // Intel 2
 const QByteArray EFI_SONY_FILE_SYSTEM_GUID
 ("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
-//4F494156-AED6-4D64-A537-B8A5557BCEEC //Sony 1
+// 4F494156-AED6-4D64-A537-B8A5557BCEEC // Sony 1
 
-
-//Vector of volume GUIDs with FFSv2-compatible files
+// Vector of volume GUIDs with FFSv2-compatible files
 extern const QVector<QByteArray> FFSv2Volumes;
+
+const QByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4dca-BD6F-1E9689E7349A
+("\x7A\xC0\x73\x54\xCB\x3D\xCA\x4D\xBD\x6F\x1E\x96\x89\xE7\x34\x9A", 16);
+
+// Vector of volume GUIDs with FFSv3-compatible files
+extern const QVector<QByteArray> FFSv3Volumes;
 
 // Firmware volume signature
 const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
@@ -214,21 +219,21 @@ typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER {
 // Extended header entry
 // The extended header entries follow each other and are
 // terminated by ExtHeaderType EFI_FV_EXT_TYPE_END
-#define EFI_FV_EXT_TYPE_END        0x00
+#define EFI_FV_EXT_TYPE_END        0x0000
 typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY {
     UINT16  ExtEntrySize;
     UINT16  ExtEntryType;
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY;
 
 // GUID that maps OEM file types to GUIDs
-#define EFI_FV_EXT_TYPE_OEM_TYPE   0x01
+#define EFI_FV_EXT_TYPE_OEM_TYPE   0x0001
 typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
     UINT32                           TypeMask;
     //EFI_GUID                         Types[1];
 } EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE;
 
-#define EFI_FV_EXT_TYPE_GUID_TYPE  0x02
+#define EFI_FV_EXT_TYPE_GUID_TYPE  0x0002
 typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY Header;
     EFI_GUID FormatType;
@@ -269,7 +274,7 @@ EFI_GUID                Name;
 EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
 UINT8                   Type;
 UINT8                   Attributes;
-UINT8                   Size[3];
+UINT8                   Size[3]; // Set to 0xFFFFFF
 UINT8                   State;
 UINT32                  ExtendedSize;
 } EFI_FFS_FILE_HEADER2;
@@ -302,8 +307,9 @@ UINT32                  ExtendedSize;
 #define EFI_FV_FILETYPE_FFS_MAX                 0xFF
 
 // File attributes
-#define FFS_ATTRIB_TAIL_PRESENT       0x01
-#define FFS_ATTRIB_RECOVERY           0x02
+#define FFS_ATTRIB_TAIL_PRESENT       0x01 // Valid only for revision 1 volumes
+#define FFS_ATTRIB_RECOVERY           0x02 // Valid only for revision 1 volumes
+#define FFS_ATTRIB_LARGE_FILE         0x01 // Valid only for FFSv3 volumes
 #define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
@@ -357,6 +363,9 @@ typedef struct _EFI_COMMON_SECTION_HEADER2 {
     UINT32   ExtendedSize;
 } EFI_COMMON_SECTION_HEADER2;
 
+// Section2 usage indicator
+#define EFI_SECTION2_IS_USED 0xFFFFFF
+
 // File section types
 #define EFI_SECTION_ALL 0x00 // Impossible attribute for file in the FS
 
@@ -379,7 +388,7 @@ typedef struct _EFI_COMMON_SECTION_HEADER2 {
 #define EFI_SECTION_PEI_DEPEX               0x1B
 #define EFI_SECTION_SMM_DEPEX               0x1C
 #define SCT_SECTION_POSTCODE                0xF0 // Specific to Phoenix SCT images
-#define HP_SECTION_POSTCODE                 0x20 // Specific to HP images
+#define INSYDE_SECTION_POSTCODE             0x20 // Specific to Insyde images
 
 // Compression section
 typedef struct _EFI_COMPRESSION_SECTION {
@@ -388,6 +397,14 @@ typedef struct _EFI_COMPRESSION_SECTION {
     UINT32   UncompressedLength;
     UINT8    CompressionType;
 } EFI_COMPRESSION_SECTION;
+
+typedef struct _EFI_COMPRESSION_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    UINT32   UncompressedLength;
+    UINT8    CompressionType;
+} EFI_COMPRESSION_SECTION2;
 
 // Compression types
 #define EFI_NOT_COMPRESSED          0x00
@@ -403,6 +420,15 @@ typedef struct _EFI_GUID_DEFINED_SECTION {
     UINT16   Attributes;
 } EFI_GUID_DEFINED_SECTION;
 
+typedef struct _EFI_GUID_DEFINED_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    EFI_GUID SectionDefinitionGuid;
+    UINT16   DataOffset;
+    UINT16   Attributes;
+} EFI_GUID_DEFINED_SECTION2;
+
 // Attributes for GUID defined section
 #define EFI_GUIDED_SECTION_PROCESSING_REQUIRED  0x01
 #define EFI_GUIDED_SECTION_AUTH_STATUS_VALID    0x02
@@ -417,7 +443,7 @@ const QByteArray EFI_GUIDED_SECTION_TIANO // A31280AD-481E-41B6-95E8-127F4C98477
 const QByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
 ("\x98\x58\x4E\xEE\x14\x39\x59\x42\x9D\x6E\xDC\x7B\xD7\x94\x03\xCF", 16);
 
-const QByteArray EFI_GUIDED_SECTION_INTEL_SIGNED //0F9D89E8-9259-4F76-A5AF-0C89E34023DF
+const QByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID //0F9D89E8-9259-4F76-A5AF-0C89E34023DF
 ("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
 
 // Version section
@@ -427,12 +453,26 @@ typedef struct _EFI_VERSION_SECTION {
     UINT16   BuildNumber;
 } EFI_VERSION_SECTION;
 
+typedef struct _EFI_VERSION_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    UINT16   BuildNumber;
+} EFI_VERSION_SECTION2;
+
 // Freeform subtype GUID section
 typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION {
     UINT8    Size[3];
     UINT8    Type;
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
+
+typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    EFI_GUID SubTypeGuid;
+} EFI_FREEFORM_SUBTYPE_GUID_SECTION2;
 
 // Phoenix SCT and HP postcode section
 typedef struct _POSTCODE_SECTION {
@@ -441,18 +481,36 @@ typedef struct _POSTCODE_SECTION {
     UINT32   Postcode;
 } POSTCODE_SECTION;
 
+typedef struct _POSTCODE_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    UINT32   Postcode;
+} POSTCODE_SECTION2;
+
 // Other sections
-typedef EFI_COMMON_SECTION_HEADER EFI_DISPOSABLE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_RAW_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_DXE_DEPEX_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_PEI_DEPEX_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_SMM_DEPEX_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_PE32_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_PIC_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_TE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_COMPATIBILITY16_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER EFI_USER_INTERFACE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER  EFI_DISPOSABLE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_DISPOSABLE_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_RAW_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_RAW_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_DXE_DEPEX_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_DXE_DEPEX_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_PEI_DEPEX_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_PEI_DEPEX_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_SMM_DEPEX_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_SMM_DEPEX_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_PE32_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_PE32_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_PIC_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_PIC_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_TE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_TE_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_COMPATIBILITY16_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_COMPATIBILITY16_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_FIRMWARE_VOLUME_IMAGE_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_USER_INTERFACE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
 
 //Section routines
 extern UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header);
@@ -489,6 +547,39 @@ extern UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header);
 /// EFI_DEP_SOR is only used by DXE driver.
 ///
 #define EFI_DEP_SOR           0x09
+
+//*****************************************************************************
+// UEFI Crypto-signed Stuff
+//*****************************************************************************
+
+#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
+#define WIN_CERT_TYPE_EFI_GUID         0x0EF1
+
+typedef struct _WIN_CERTIFICATE {
+    UINT32  Length;
+    UINT16  Revision;
+    UINT16  CertificateType;
+    //UINT8 CertData[];
+} WIN_CERTIFICATE;
+
+typedef struct _WIN_CERTIFICATE_UEFI_GUID {
+    WIN_CERTIFICATE   Header;     // Standard WIN_CERTIFICATE
+    EFI_GUID          CertType;   // Determines format of CertData
+    // UINT8          CertData[]; // Certificate data follows
+} WIN_CERTIFICATE_UEFI_GUID;
+
+// WIN_CERTIFICATE_UEFI_GUID.CertType
+const QByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
+("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
+const QByteArray EFI_CERT_TYPE_PKCS7_GUID
+("\x9D\xD2\xAF\x4A\xDF\x68\xEE\x49\x8A\xA9\x34\x7D\x37\x56\x65\xA7");
+
+// WIN_CERTIFICATE_UEFI_GUID.CertData
+typedef struct _EFI_CERT_BLOCK_RSA_2048_SHA256 {
+    UINT32  HashType;
+    UINT8   PublicKey[256];
+    UINT8   Signature[256];
+} EFI_CERT_BLOCK_RSA_2048_SHA256;
 
 // Restore previous packing rules
 #pragma pack(pop)

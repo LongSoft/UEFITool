@@ -23,6 +23,10 @@ const QVector<QByteArray> FFSv2Volumes =
     << EFI_INTEL_FILE_SYSTEM2_GUID
     << EFI_SONY_FILE_SYSTEM_GUID;
 
+const QVector<QByteArray> FFSv3Volumes =
+    QVector<QByteArray>()
+    << EFI_FIRMWARE_FILE_SYSTEM3_GUID;
+
 const UINT8 ffsAlignmentTable[] =
 { 0, 4, 7, 9, 10, 12, 15, 16 };
 
@@ -140,7 +144,7 @@ QString sectionTypeToQString(const UINT8 type)
     case EFI_SECTION_RAW:                       return QObject::tr("Raw");
     case EFI_SECTION_PEI_DEPEX:                 return QObject::tr("PEI dependency");
     case EFI_SECTION_SMM_DEPEX:                 return QObject::tr("SMM dependency");
-    case HP_SECTION_POSTCODE:                   return QObject::tr("HP postcode");
+    case INSYDE_SECTION_POSTCODE:               return QObject::tr("Insyde postcode");
     case SCT_SECTION_POSTCODE:                  return QObject::tr("SCT postcode");
     default:                                    return QObject::tr("Unknown");
     }
@@ -151,27 +155,47 @@ UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header)
     if (!header)
         return 0;
 
+    bool extended = false;
+    /*if (uint24ToUint32(header->Size) == EFI_SECTION2_IS_USED) {
+        extended = true;
+    }*/
+
     switch (header->Type)
     {
     case EFI_SECTION_GUID_DEFINED: {
-        const EFI_GUID_DEFINED_SECTION* gdsHeader = (const EFI_GUID_DEFINED_SECTION*)header;
-        return gdsHeader->DataOffset; }
-    case EFI_SECTION_COMPRESSION:           return sizeof(EFI_COMPRESSION_SECTION);
-    case EFI_SECTION_DISPOSABLE:            return sizeof(EFI_DISPOSABLE_SECTION);
-    case EFI_SECTION_PE32:                  return sizeof(EFI_PE32_SECTION);
-    case EFI_SECTION_PIC:                   return sizeof(EFI_PIC_SECTION);
-    case EFI_SECTION_TE:                    return sizeof(EFI_TE_SECTION);
-    case EFI_SECTION_DXE_DEPEX:             return sizeof(EFI_DXE_DEPEX_SECTION);
-    case EFI_SECTION_VERSION:               return sizeof(EFI_VERSION_SECTION);
-    case EFI_SECTION_USER_INTERFACE:        return sizeof(EFI_USER_INTERFACE_SECTION);
-    case EFI_SECTION_COMPATIBILITY16:       return sizeof(EFI_COMPATIBILITY16_SECTION);
-    case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: return sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION);
-    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
-    case EFI_SECTION_RAW:                   return sizeof(EFI_RAW_SECTION);
-    case EFI_SECTION_PEI_DEPEX:             return sizeof(EFI_PEI_DEPEX_SECTION);
-    case EFI_SECTION_SMM_DEPEX:             return sizeof(EFI_SMM_DEPEX_SECTION);
-    case HP_SECTION_POSTCODE:               return sizeof(POSTCODE_SECTION);
-    case SCT_SECTION_POSTCODE:              return sizeof(POSTCODE_SECTION);
-    default:                                return sizeof(EFI_COMMON_SECTION_HEADER);
+        if (!extended) {
+            const EFI_GUID_DEFINED_SECTION* gdsHeader = (const EFI_GUID_DEFINED_SECTION*)header;
+            if (QByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
+                const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)(gdsHeader + 1);
+                return gdsHeader->DataOffset + certificateHeader->Length;
+            }
+            return gdsHeader->DataOffset;
+        }
+        else {
+            const EFI_GUID_DEFINED_SECTION2* gdsHeader = (const EFI_GUID_DEFINED_SECTION2*)header;
+            if (QByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
+                const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)(gdsHeader + 1);
+                return gdsHeader->DataOffset + certificateHeader->Length;
+            }
+            return gdsHeader->DataOffset;
+        }
+    }
+    case EFI_SECTION_COMPRESSION:           return extended ? sizeof(EFI_COMPRESSION_SECTION2) : sizeof(EFI_COMPRESSION_SECTION);
+    case EFI_SECTION_DISPOSABLE:            return extended ? sizeof(EFI_DISPOSABLE_SECTION2) : sizeof(EFI_DISPOSABLE_SECTION);
+    case EFI_SECTION_PE32:                  return extended ? sizeof(EFI_PE32_SECTION2) : sizeof(EFI_PE32_SECTION);
+    case EFI_SECTION_PIC:                   return extended ? sizeof(EFI_PIC_SECTION2) : sizeof(EFI_PIC_SECTION);
+    case EFI_SECTION_TE:                    return extended ? sizeof(EFI_TE_SECTION2) : sizeof(EFI_TE_SECTION);
+    case EFI_SECTION_DXE_DEPEX:             return extended ? sizeof(EFI_DXE_DEPEX_SECTION2) : sizeof(EFI_DXE_DEPEX_SECTION);
+    case EFI_SECTION_VERSION:               return extended ? sizeof(EFI_VERSION_SECTION2) : sizeof(EFI_VERSION_SECTION);
+    case EFI_SECTION_USER_INTERFACE:        return extended ? sizeof(EFI_USER_INTERFACE_SECTION2) : sizeof(EFI_USER_INTERFACE_SECTION);
+    case EFI_SECTION_COMPATIBILITY16:       return extended ? sizeof(EFI_COMPATIBILITY16_SECTION2) : sizeof(EFI_COMPATIBILITY16_SECTION);
+    case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: return extended ? sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION2) : sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION);
+    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return extended ? sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION2) : sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
+    case EFI_SECTION_RAW:                   return extended ? sizeof(EFI_RAW_SECTION2) : sizeof(EFI_RAW_SECTION);
+    case EFI_SECTION_PEI_DEPEX:             return extended ? sizeof(EFI_PEI_DEPEX_SECTION2) : sizeof(EFI_PEI_DEPEX_SECTION);
+    case EFI_SECTION_SMM_DEPEX:             return extended ? sizeof(EFI_SMM_DEPEX_SECTION2) : sizeof(EFI_SMM_DEPEX_SECTION);
+    case INSYDE_SECTION_POSTCODE:           return extended ? sizeof(POSTCODE_SECTION2) : sizeof(POSTCODE_SECTION);
+    case SCT_SECTION_POSTCODE:              return extended ? sizeof(POSTCODE_SECTION2) : sizeof(POSTCODE_SECTION);
+    default:                                return extended ? sizeof(EFI_COMMON_SECTION_HEADER2) : sizeof(EFI_COMMON_SECTION_HEADER);
     }
 }

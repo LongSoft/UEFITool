@@ -784,8 +784,12 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
         volumeFfsVersion = 2;
     }
 
-    //!TODO:Check for FFS v3 volume
-    
+    // Check for FFS v3 volume
+    /*if (FFSv3Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))) {
+        volumeIsUnknown = false;
+        volumeFfsVersion = 3;
+    }*/
+
     // Check attributes
     // Determine value of empty byte
     char empty = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
@@ -896,7 +900,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
             // Check free space to be actually free
             QByteArray freeSpace = volume.mid(fileOffset);
             if (freeSpace.count(empty) != freeSpace.count()) {
-                msg(tr("parseVolume: non-standard data found in volume's free space"), index);
+                msg(tr("parseVolume: non-UEFI data found in volume's free space"), index);
 
                 // Search for the first non-empty byte
                 UINT32 i;
@@ -1085,7 +1089,6 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
     // Check for non-empty pad file
     else if (fileHeader->Type == EFI_FV_FILETYPE_PAD) {
         parseAsNonEmptyPadFile = true;
-        msg(tr("parseFile: non-empty pad-file contents will be destroyed after volume modifications"), index);
     }
 
     // Get info
@@ -1139,7 +1142,11 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
         }
         // ... and all bytes after as a padding
         QByteArray padding = body.mid(i);
-        model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size()), QByteArray(), padding, QByteArray(), index, mode);
+        QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size()), QByteArray(), padding, QByteArray(), index, mode);
+        
+        // Show message
+        msg(tr("parseFile: non-empty pad-file contents will be destroyed after volume modifications"), dataIndex);
+        
         return ERR_SUCCESS;
     }
 
@@ -1360,6 +1367,9 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         bool msgUnknownGuid = false;
         bool msgInvalidCrc = false;
         bool msgUnknownAuth = false;
+        bool msgSigned = false;
+        bool msgUnknownSignature = false;
+        bool msgUnknownUefiGuidSignature = false;
 
         const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader;
         header = section.left(sizeof(EFI_GUID_DEFINED_SECTION));
@@ -1368,7 +1378,6 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(header.constData());
         body = section.mid(guidDefinedSectionHeader->DataOffset, sectionSize - guidDefinedSectionHeader->DataOffset);
         QByteArray processed = body;
-        QByteArray signature;
 
         // Get info
         name = guidToQString(guidDefinedSectionHeader->SectionDefinitionGuid);
@@ -1418,11 +1427,39 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
                 else
                     info += tr("\nCompression type: unknown");
             }
-            // Intel signed section
-            else if (QByteArray((const char*)&guidDefinedSectionHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_INTEL_SIGNED) {
-                UINT32 signatureSize = *(const UINT32*)body.constData();
-                signature = body.left(signatureSize);
-                processed = body.mid(signatureSize);
+            // Signed section
+            else if (QByteArray((const char*)&guidDefinedSectionHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
+                msgSigned = true;
+                const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)body.constData();
+                if (certificateHeader->CertificateType == WIN_CERT_TYPE_EFI_GUID) {
+                    info += tr("\nSignature type: UEFI");
+                    const WIN_CERTIFICATE_UEFI_GUID* guidCertificateHeader = (const WIN_CERTIFICATE_UEFI_GUID*)certificateHeader;
+                    if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
+                        info += tr("\nSignature subtype: RSA2048/SHA256");
+                        // TODO: show signature info in Information panel
+                    }
+                    else if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_PKCS7_GUID) {
+                        info += tr("\nSignature subtype: PCKS7");
+                        // TODO: show signature info in Information panel
+                    }
+                    else {
+                        info += tr("\nSignature subtype: unknown");
+                        msgUnknownUefiGuidSignature = true;
+                    }
+                }
+                else if (certificateHeader->CertificateType == WIN_CERT_TYPE_PKCS_SIGNED_DATA) {
+                    info += tr("\nSignature type: PCKS7");
+                    // TODO: show signature info in Information panel
+                }
+                else {
+                    info += tr("\nSignature type: unknown");
+                    msgUnknownSignature = true;
+                }
+
+                // Add additional to the header
+                header.append(body.left(certificateHeader->Length));
+                // Get new body
+                processed = body = body.mid(certificateHeader->Length);
             }
             // Unknown GUIDed section
             else {
@@ -1461,18 +1498,17 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             msg(tr("parseSection: GUID defined section with unknown authentication method"), index);
         if (msgInvalidCrc)
             msg(tr("parseSection: GUID defined section with invalid CRC32"), index);
+        if (msgSigned)
+            msg(tr("parseSection: signature may become invalid after any modification"), index);
+        if (msgUnknownUefiGuidSignature)
+            msg(tr("parseSection: GUID defined section with unknown signature subtype"), index);
+        if (msgUnknownSignature)
+            msg(tr("parseSection: GUID defined section with unknown signature type"), index);
 
         if (!parseCurrentSection) {
             msg(tr("parseSection: GUID defined section can not be processed"), index);
         }
         else { // Parse processed data
-            if (!signature.isEmpty()) {
-                // Add Intel signature padding to the tree
-                QModelIndex signatureIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Intel signature"), "", tr("Full size: %1h (%2)").hexarg(signature.size()).arg(signature.size()), QByteArray(), signature, QByteArray(), index, mode);
-                // Show message
-                msg(tr("parseSection: Intel signature may become invalid after any modification of the following sections"), signatureIndex);
-            }
-            
             result = parseSections(processed, index);
             if (result)
                 return result;
@@ -1824,7 +1860,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case SCT_SECTION_POSTCODE:
-    case HP_SECTION_POSTCODE: {
+    case INSYDE_SECTION_POSTCODE: {
         header = section.left(sizeof(POSTCODE_SECTION));
         body = section.mid(sizeof(POSTCODE_SECTION), sectionSize - sizeof(POSTCODE_SECTION));
 
@@ -3358,7 +3394,7 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                 }
                 // Check for Intel signed section
                 if (guidDefinedHeader->Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED
-                    && QByteArray((const char*)&guidDefinedHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_INTEL_SIGNED) {
+                    && QByteArray((const char*)&guidDefinedHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
                     msg(tr("reconstructSection: GUID defined section signature can become invalid")
                         .arg(guidToQString(guidDefinedHeader->SectionDefinitionGuid)), index);
                 }

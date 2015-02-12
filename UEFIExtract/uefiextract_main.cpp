@@ -1,6 +1,6 @@
 /* uefiextract_main.cpp
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     
   }
   else {
-    std::cout << "UEFIExtract 0.4.1" << std::endl << std::endl <<
+    std::cout << "UEFIExtract 0.4.2" << std::endl << std::endl <<
     "Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl <<
     "Returned value is a bit mask where 0 on position N meant File with GUID_N was found and unpacked, 1 otherwise" << std::endl;
     return 1;

@@ -53,10 +53,28 @@ UINT8 UEFIFind::init(const QString & path)
     return ERR_SUCCESS;
 }
 
+QString UEFIFind::guidToQString(const UINT8* guid)
+{
+    const UINT32 u32 = *(const UINT32*)guid;
+    const UINT16 u16_1 = *(const UINT16*)(guid + 4);
+    const UINT16 u16_2 = *(const UINT16*)(guid + 6);
+    const UINT8  u8_1 = *(const UINT8*)(guid + 8);
+    const UINT8  u8_2 = *(const UINT8*)(guid + 9);
+    const UINT8  u8_3 = *(const UINT8*)(guid + 10);
+    const UINT8  u8_4 = *(const UINT8*)(guid + 11);
+    const UINT8  u8_5 = *(const UINT8*)(guid + 12);
+    const UINT8  u8_6 = *(const UINT8*)(guid + 13);
+    const UINT8  u8_7 = *(const UINT8*)(guid + 14);
+    const UINT8  u8_8 = *(const UINT8*)(guid + 15);
+
+    return QString("%1-%2-%3-%4%5-%6%7%8%9%10%11").hexarg2(u32, 8).hexarg2(u16_1, 4).hexarg2(u16_2, 4).hexarg2(u8_1, 2).hexarg2(u8_2, 2)
+        .hexarg2(u8_3, 2).hexarg2(u8_4, 2).hexarg2(u8_5, 2).hexarg2(u8_6, 2).hexarg2(u8_7, 2).hexarg2(u8_8, 2);
+}
+
 UINT8 UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result)
 {
     QModelIndex root = model->index(0, 0);
-    QSet<QModelIndex> files;
+    QSet<QPair<QModelIndex, QModelIndex> > files;
 
     result.clear();
 
@@ -70,31 +88,24 @@ UINT8 UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPatt
         return ERR_SUCCESS;
     }
 
-    QModelIndex index;
-    Q_FOREACH(index, files) {
-        QByteArray data = model->header(index).left(16);
+    QPair<QModelIndex, QModelIndex> indexes;
+    Q_FOREACH(indexes, files) {
+        QByteArray data = model->header(indexes.first).left(16);
+        result.append(guidToQString((const UINT8*)data.constData()));
 
-        UINT32 u32   = *(UINT32*)data.constData();
-        UINT16 u16_1 = *(UINT16*)(data.constData() + 4);
-        UINT16 u16_2 = *(UINT16*)(data.constData() + 6);
-        UINT8  u8_1  = *(UINT8*)(data.constData()  + 8);
-        UINT8  u8_2  = *(UINT8*)(data.constData()  + 9);
-        UINT8  u8_3  = *(UINT8*)(data.constData()  + 10);
-        UINT8  u8_4  = *(UINT8*)(data.constData()  + 11);
-        UINT8  u8_5  = *(UINT8*)(data.constData()  + 12);
-        UINT8  u8_6  = *(UINT8*)(data.constData()  + 13);
-        UINT8  u8_7  = *(UINT8*)(data.constData()  + 14);
-        UINT8  u8_8  = *(UINT8*)(data.constData()  + 15);
+        // Special case of freeform subtype GUID files
+        if (indexes.second.isValid() && model->subtype(indexes.second) == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
+            data = model->header(indexes.second).left(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
+            result.append(" ").append(guidToQString((const UINT8*)data.constData() + sizeof(EFI_COMMON_SECTION_HEADER)));
+        }
+        
+        result.append("\n");
 
-        QString guid = QString("%1-%2-%3-%4%5-%6%7%8%9%10%11\n").hexarg2(u32, 8).hexarg2(u16_1, 4).hexarg2(u16_2, 4).hexarg2(u8_1, 2).hexarg2(u8_2, 2)
-            .hexarg2(u8_3, 2).hexarg2(u8_4, 2).hexarg2(u8_5, 2).hexarg2(u8_6, 2).hexarg2(u8_7, 2).hexarg2(u8_8, 2);
-
-        result.append(guid);
     }
     return ERR_SUCCESS;
 }
 
-UINT8 UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QModelIndex> & files)
+UINT8 UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QPair<QModelIndex, QModelIndex> > & files)
 {
     if (!index.isValid())
         return ERR_SUCCESS;
@@ -132,10 +143,13 @@ UINT8 UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPa
         if (offset % 2 == 0) {
             if (model->type(index) != Types::File) {
                 QModelIndex ffs = model->findParentOfType(index, Types::File);
-                files.insert(ffs);
+                if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID)
+                    files.insert(QPair<QModelIndex, QModelIndex>(ffs, index));
+                else
+                    files.insert(QPair<QModelIndex, QModelIndex>(ffs, QModelIndex()));
             }
             else
-                files.insert(index);
+                files.insert(QPair<QModelIndex, QModelIndex>(index, QModelIndex()));
 
             break;
         }
