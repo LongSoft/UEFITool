@@ -41,7 +41,7 @@ public:
 
 private:
     UINT8 findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QPair<QModelIndex, QModelIndex> > & files);
-    QString UEFIFind::guidToQString(const UINT8* guid);
+    QString guidToQString(const UINT8* guid);
 
     FfsEngine* ffsEngine;
     TreeModel* model;
