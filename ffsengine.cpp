@@ -776,12 +776,12 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
     // Check for volume structure to be known
     bool volumeIsUnknown = true;
-    UINT8 volumeFfsVersion = 0;
+    /*UINT8 volumeFfsVersion = 0;*/
     
     // Check for FFS v2 volume
     if (FFSv2Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))) {
         volumeIsUnknown = false;
-        volumeFfsVersion = 2;
+        /*volumeFfsVersion = 2;*/
     }
 
     // Check for FFS v3 volume
