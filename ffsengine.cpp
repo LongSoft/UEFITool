@@ -1256,6 +1256,7 @@ UINT8 FfsEngine::parseDepexSection(const QByteArray & body, QString & parsed)
         current += EFI_DEP_OPCODE_SIZE;
         break;
     default:
+		return ERR_DEPEX_PARSE_FAILED;
         break;
     }
 
@@ -1305,6 +1306,9 @@ UINT8 FfsEngine::parseDepexSection(const QByteArray & body, QString & parsed)
                 return ERR_DEPEX_PARSE_FAILED;
             }
             break;
+		default:
+			return ERR_DEPEX_PARSE_FAILED;
+			break;
         }
     }
 
