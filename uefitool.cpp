@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.20.2"))
+version(tr("0.20.3"))
 {
     clipboard = QApplication::clipboard();
 
@@ -321,7 +321,7 @@ void UEFITool::replace(const UINT8 mode)
         else
             return;
     }
-    if (model->type(index) == Types::Volume) {
+    else if (model->type(index) == Types::Volume) {
         if (mode == REPLACE_MODE_AS_IS) {
             path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace selected object"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
         }
