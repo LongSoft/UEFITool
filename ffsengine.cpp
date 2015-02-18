@@ -146,7 +146,7 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
 
     // Check buffer size to be more then or equal to size of EFI_CAPSULE_HEADER
     if ((UINT32)buffer.size() <= sizeof(EFI_CAPSULE_HEADER)) {
-        msg(tr("parseImageFile: image file is smaller then minimum size of %1 bytes").arg(sizeof(EFI_CAPSULE_HEADER)));
+		msg(tr("parseImageFile: image file is smaller then minimum size of %1h (%2) bytes").hexarg(sizeof(EFI_CAPSULE_HEADER)).arg(sizeof(EFI_CAPSULE_HEADER)));
         return ERR_INVALID_PARAMETER;
     }
 
@@ -1255,9 +1255,6 @@ UINT8 FfsEngine::parseDepexSection(const QByteArray & body, QString & parsed)
         parsed += tr("\nSOR");
         current += EFI_DEP_OPCODE_SIZE;
         break;
-    default:
-		return ERR_DEPEX_PARSE_FAILED;
-        break;
     }
 
     // Parse the rest of depex 
@@ -1318,7 +1315,6 @@ UINT8 FfsEngine::parseDepexSection(const QByteArray & body, QString & parsed)
 UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    UINT32 sectionSize = uint24ToUint32(sectionHeader->Size);
     QString name = sectionTypeToQString(sectionHeader->Type) + tr(" section");
     QString info;
     QByteArray header;
@@ -1335,7 +1331,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         UINT8 algorithm;
         const EFI_COMPRESSION_SECTION* compressedSectionHeader = (const EFI_COMPRESSION_SECTION*)sectionHeader;
         header = section.left(sizeof(EFI_COMPRESSION_SECTION));
-        body = section.mid(sizeof(EFI_COMPRESSION_SECTION), sectionSize - sizeof(EFI_COMPRESSION_SECTION));
+        body = section.mid(sizeof(EFI_COMPRESSION_SECTION));
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
         // Decompress section
         result = decompress(body, compressedSectionHeader->CompressionType, decompressed, &algorithm);
@@ -1379,7 +1375,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(header.constData());
         header = section.left(guidDefinedSectionHeader->DataOffset);
         guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(header.constData());
-        body = section.mid(guidDefinedSectionHeader->DataOffset, sectionSize - guidDefinedSectionHeader->DataOffset);
+        body = section.mid(guidDefinedSectionHeader->DataOffset);
         QByteArray processed = body;
 
         // Get info
@@ -1521,7 +1517,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_DISPOSABLE:
     {
         header = section.left(sizeof(EFI_DISPOSABLE_SECTION));
-        body = section.mid(sizeof(EFI_DISPOSABLE_SECTION), sectionSize - sizeof(EFI_DISPOSABLE_SECTION));
+        body = section.mid(sizeof(EFI_DISPOSABLE_SECTION));
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1546,7 +1542,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         bool msgDepexParseFailed = false;
         headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
-        body = section.mid(headerSize, sectionSize - headerSize);
+        body = section.mid(headerSize);
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1574,7 +1570,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_TE: {
         headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
-        body = section.mid(headerSize, sectionSize - headerSize);
+        body = section.mid(headerSize);
 
         // Get standard info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1625,7 +1621,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_PIC: {
         headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
-        body = section.mid(headerSize, sectionSize - headerSize);
+        body = section.mid(headerSize);
 
         // Get standard info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1713,7 +1709,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_COMPATIBILITY16: {
         headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
-        body = section.mid(headerSize, sectionSize - headerSize);
+        body = section.mid(headerSize);
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1728,7 +1724,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID: {
         header = section.left(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
-        body = section.mid(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION), sectionSize - sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
+        body = section.mid(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
 
         const EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)sectionHeader;
         // Get info
@@ -1748,7 +1744,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_VERSION: {
         header = section.left(sizeof(EFI_VERSION_SECTION));
-        body = section.mid(sizeof(EFI_VERSION_SECTION), sectionSize - sizeof(EFI_VERSION_SECTION));
+        body = section.mid(sizeof(EFI_VERSION_SECTION));
 
         const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)sectionHeader;
 
@@ -1767,7 +1763,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_USER_INTERFACE: {
         header = section.left(sizeof(EFI_USER_INTERFACE_SECTION));
-        body = section.mid(sizeof(EFI_USER_INTERFACE_SECTION), sectionSize - sizeof(EFI_USER_INTERFACE_SECTION));
+        body = section.mid(sizeof(EFI_USER_INTERFACE_SECTION));
         QString text = QString::fromUtf16((const ushort*)body.constData());
 
         // Get info
@@ -1787,7 +1783,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: {
         header = section.left(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
-        body = section.mid(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION), sectionSize - sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
+        body = section.mid(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1810,7 +1806,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_RAW: {
         bool parsed = false;
         header = section.left(sizeof(EFI_RAW_SECTION));
-        body = section.mid(sizeof(EFI_RAW_SECTION), sectionSize - sizeof(EFI_RAW_SECTION));
+        body = section.mid(sizeof(EFI_RAW_SECTION));
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1865,7 +1861,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case SCT_SECTION_POSTCODE:
     case INSYDE_SECTION_POSTCODE: {
         header = section.left(sizeof(POSTCODE_SECTION));
-        body = section.mid(sizeof(POSTCODE_SECTION), sectionSize - sizeof(POSTCODE_SECTION));
+        body = section.mid(sizeof(POSTCODE_SECTION));
 
         const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)sectionHeader;
 
@@ -1883,7 +1879,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     default:
         header = section.left(sizeof(EFI_COMMON_SECTION_HEADER));
-        body = section.mid(sizeof(EFI_COMMON_SECTION_HEADER), sectionSize - sizeof(EFI_COMMON_SECTION_HEADER));
+        body = section.mid(sizeof(EFI_COMMON_SECTION_HEADER));
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
             .hexarg2(sectionHeader->Type, 2)
