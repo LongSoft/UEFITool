@@ -815,7 +815,7 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
     // Check header checksum by recalculating it
     bool msgInvalidChecksum = false;
-    if (!volumeIsUnknown && calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength))
+    if (calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength))
         msgInvalidChecksum = true;
 
     // Get info
