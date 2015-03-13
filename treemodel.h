@@ -47,8 +47,10 @@ public:
     void setSubtype(const QModelIndex &index, const UINT8 subtype);
     void setName(const QModelIndex &index, const QString &name);
     void setText(const QModelIndex &index, const QString &text);
+    void setInfo(const QModelIndex &index, const QString &info);
+    void addInfo(const QModelIndex &index, const QString &info);
     void setParsingData(const QModelIndex &index, const QByteArray &data);
-
+    
     QString name(const QModelIndex &index) const;
     QString text(const QModelIndex &index) const;
     QString info(const QModelIndex &index) const;
@@ -61,9 +63,8 @@ public:
     QByteArray parsingData(const QModelIndex &index) const;
     bool hasEmptyParsingData(const QModelIndex &index) const;
     UINT8 action(const QModelIndex &index) const;
-    UINT8 compression(const QModelIndex &index) const;
 
-    QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
+    QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),
         const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
         const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);

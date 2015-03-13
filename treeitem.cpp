@@ -15,14 +15,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "types.h"
 
-TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
+TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, 
     const QString & name, const QString & text, const QString & info,
     const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
     itemType(type),
     itemSubtype(subtype),
-    itemCompression(compression),
     itemName(name),
     itemText(text),
     itemInfo(info),
@@ -166,12 +165,6 @@ UINT8 TreeItem::subtype() const
 void TreeItem::setSubtype(const UINT8 subtype)
 {
     itemSubtype = subtype;
-}
-
-
-UINT8 TreeItem::compression() const
-{
-    return itemCompression;
 }
 
 QByteArray TreeItem::header() const

@@ -240,9 +240,6 @@ typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE {
     //UINT8 Data[];
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE;
 
-//!TODO: add proper NVRAM parsing
-//const QByteArray EFI_FIRMWARE_VOLUME_NVRAM_SIGNATURE("$VSS", 4);
-
 // Volume header 16bit checksum calculation routine
 extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
@@ -511,9 +508,6 @@ typedef EFI_COMMON_SECTION_HEADER  EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
 typedef EFI_COMMON_SECTION_HEADER2 EFI_FIRMWARE_VOLUME_IMAGE_SECTION2;
 typedef EFI_COMMON_SECTION_HEADER  EFI_USER_INTERFACE_SECTION;
 typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
-
-//Section routines
-extern UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header);
 
 //*****************************************************************************
 // EFI Dependency Expression

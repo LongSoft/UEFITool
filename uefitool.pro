@@ -11,7 +11,8 @@ SOURCES  += uefitool_main.cpp \
  descriptor.cpp \
  ffs.cpp \
  peimage.cpp \
- ffsengine.cpp \
+ utility.cpp \
+ ffsparser.cpp \
  treeitem.cpp \
  treemodel.cpp \
  messagelistitem.cpp \
@@ -34,7 +35,8 @@ HEADERS  += uefitool.h \
  ffs.h \
  peimage.h \
  types.h \
- ffsengine.h \
+ utility.h \
+ ffsparser.h \
  treeitem.h \
  treemodel.h \
  messagelistitem.h \

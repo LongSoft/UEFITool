@@ -42,6 +42,7 @@ typedef unsigned int UINTN;
 #define FALSE ((BOOLEAN)(0==1))
 #endif
 
+typedef UINT8 STATUS;
 #define ERR_SUCCESS                         0
 #define ERR_INVALID_PARAMETER               1
 #define ERR_BUFFER_TOO_SMALL                2
@@ -68,7 +69,7 @@ typedef unsigned int UINTN;
 #define ERR_CUSTOMIZED_COMPRESSION_FAILED   23
 #define ERR_STANDARD_DECOMPRESSION_FAILED   24
 #define ERR_CUSTOMIZED_DECOMPRESSION_FAILED 25
-#define ERR_UNKNOWN_COMPRESSION_ALGORITHM   26
+#define ERR_UNKNOWN_COMPRESSION_TYPE        26
 #define ERR_UNKNOWN_EXTRACT_MODE            27
 #define ERR_UNKNOWN_INSERT_MODE             28
 #define ERR_UNKNOWN_IMAGE_TYPE              29

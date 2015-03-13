@@ -34,8 +34,9 @@
 #include <QUrl>
 
 #include "basetypes.h"
+#include "utility.h"
 #include "ffs.h"
-#include "ffsengine.h"
+#include "ffsparser.h"
 #include "searchdialog.h"
 
 namespace Ui {
@@ -91,7 +92,7 @@ public:
 
 private:
     Ui::UEFITool* ui;
-    FfsEngine* ffsEngine;
+    FfsParser* ffsParser;
     SearchDialog* searchDialog;
     QClipboard* clipboard;
     QString currentDir;

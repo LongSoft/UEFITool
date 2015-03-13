@@ -226,14 +226,6 @@ UINT8 TreeModel::action(const QModelIndex &index) const
     return item->action();
 }
 
-UINT8 TreeModel::compression(const QModelIndex &index) const
-{
-    if (!index.isValid())
-        return COMPRESSION_ALGORITHM_UNKNOWN;
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    return item->compression();
-}
-
 void TreeModel::setSubtype(const QModelIndex & index, const UINT8 subtype)
 {
     if (!index.isValid())
@@ -274,6 +266,26 @@ void TreeModel::setText(const QModelIndex &index, const QString &data)
     emit dataChanged(index, index);
 }
 
+void TreeModel::setInfo(const QModelIndex &index, const QString &data)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setInfo(data);
+    emit dataChanged(index, index);
+}
+
+void TreeModel::addInfo(const QModelIndex &index, const QString &data)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->addInfo(data);
+    emit dataChanged(index, index);
+}
+
 void TreeModel::setAction(const QModelIndex &index, const UINT8 action)
 {
     if (!index.isValid())
@@ -294,7 +306,7 @@ void TreeModel::setParsingData(const QModelIndex &index, const QByteArray &data)
     emit dataChanged(this->index(0, 0), index);
 }
 
-QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
+QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype,
     const QString & name, const QString & text, const QString & info,
     const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
     const QModelIndex & parent, const UINT8 mode)
@@ -318,7 +330,7 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
         }
     }
 
-    TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, parsingData, parentItem);
+    TreeItem *newItem = new TreeItem(type, subtype, name, text, info, header, body, parsingData, parentItem);
     if (mode == CREATE_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);

@@ -40,7 +40,7 @@ UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
     while (bufferSize--)
         counter += buffer[bufferSize];
 
-    return (UINT8)0x100 - counter;
+    return (UINT8)(0x100 - counter);
 }
 
 UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
@@ -57,7 +57,7 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
         counter = (UINT16)(counter + buffer[index]);
     }
 
-    return (UINT16)0x10000 - counter;
+    return (UINT16)(0x10000 - counter);
 }
 
 VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
@@ -69,38 +69,23 @@ VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 
 UINT32 uint24ToUint32(const UINT8* ffsSize)
 {
-    return (ffsSize[2] << 16) +
-        (ffsSize[1] << 8) +
-        ffsSize[0];
+    return *(UINT32*)ffsSize & 0x00FFFFFF;
 }
 
-QString guidToQString(const EFI_GUID& guid)
+QString guidToQString(const EFI_GUID & guid)
 {
-    QByteArray baGuid = QByteArray::fromRawData((const char*)guid.Data, sizeof(EFI_GUID));
-    const UINT32 i32 = *(const UINT32*)baGuid.left(4).constData();
-    const UINT16 i16_0 = *(const UINT16*)baGuid.mid(4, 2).constData();
-    const UINT16 i16_1 = *(const UINT16*)baGuid.mid(6, 2).constData();
-    const UINT8 i8_0 = *(const UINT8*)baGuid.mid(8, 1).constData();
-    const UINT8 i8_1 = *(const UINT8*)baGuid.mid(9, 1).constData();
-    const UINT8 i8_2 = *(const UINT8*)baGuid.mid(10, 1).constData();
-    const UINT8 i8_3 = *(const UINT8*)baGuid.mid(11, 1).constData();
-    const UINT8 i8_4 = *(const UINT8*)baGuid.mid(12, 1).constData();
-    const UINT8 i8_5 = *(const UINT8*)baGuid.mid(13, 1).constData();
-    const UINT8 i8_6 = *(const UINT8*)baGuid.mid(14, 1).constData();
-    const UINT8 i8_7 = *(const UINT8*)baGuid.mid(15, 1).constData();
-
     return QString("%1-%2-%3-%4%5-%6%7%8%9%10%11")
-        .arg(i32, 8, 16, QChar('0'))
-        .arg(i16_0, 4, 16, QChar('0'))
-        .arg(i16_1, 4, 16, QChar('0'))
-        .arg(i8_0, 2, 16, QChar('0'))
-        .arg(i8_1, 2, 16, QChar('0'))
-        .arg(i8_2, 2, 16, QChar('0'))
-        .arg(i8_3, 2, 16, QChar('0'))
-        .arg(i8_4, 2, 16, QChar('0'))
-        .arg(i8_5, 2, 16, QChar('0'))
-        .arg(i8_6, 2, 16, QChar('0'))
-        .arg(i8_7, 2, 16, QChar('0')).toUpper();
+        .arg(*(const UINT32*)&guid.Data[0], 8, 16, QChar('0'))
+        .arg(*(const UINT16*)&guid.Data[4], 4, 16, QChar('0'))
+        .arg(*(const UINT16*)&guid.Data[6], 4, 16, QChar('0'))
+        .arg(guid.Data[8],  2, 16, QChar('0'))
+        .arg(guid.Data[9],  2, 16, QChar('0'))
+        .arg(guid.Data[10], 2, 16, QChar('0'))
+        .arg(guid.Data[11], 2, 16, QChar('0'))
+        .arg(guid.Data[12], 2, 16, QChar('0'))
+        .arg(guid.Data[13], 2, 16, QChar('0'))
+        .arg(guid.Data[14], 2, 16, QChar('0'))
+        .arg(guid.Data[15], 2, 16, QChar('0')).toUpper();
 }
 
 QString fileTypeToQString(const UINT8 type)
@@ -137,7 +122,7 @@ QString sectionTypeToQString(const UINT8 type)
     case EFI_SECTION_TE:                        return QObject::tr("TE image");
     case EFI_SECTION_DXE_DEPEX:                 return QObject::tr("DXE dependency");
     case EFI_SECTION_VERSION:                   return QObject::tr("Version");
-    case EFI_SECTION_USER_INTERFACE:            return QObject::tr("User interface");
+    case EFI_SECTION_USER_INTERFACE:            return QObject::tr("UI");
     case EFI_SECTION_COMPATIBILITY16:           return QObject::tr("16-bit image");
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:     return QObject::tr("Volume image");
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID:     return QObject::tr("Freeform subtype GUID");
@@ -150,52 +135,3 @@ QString sectionTypeToQString(const UINT8 type)
     }
 }
 
-UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header)
-{
-    if (!header)
-        return 0;
-
-    bool extended = false;
-    /*if (uint24ToUint32(header->Size) == EFI_SECTION2_IS_USED) {
-        extended = true;
-    }*/
-
-    switch (header->Type)
-    {
-    case EFI_SECTION_GUID_DEFINED: {
-        if (!extended) {
-            const EFI_GUID_DEFINED_SECTION* gdsHeader = (const EFI_GUID_DEFINED_SECTION*)header;
-            if (QByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
-                const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)(gdsHeader + 1);
-                return gdsHeader->DataOffset + certificateHeader->Length;
-            }
-            return gdsHeader->DataOffset;
-        }
-        else {
-            const EFI_GUID_DEFINED_SECTION2* gdsHeader = (const EFI_GUID_DEFINED_SECTION2*)header;
-            if (QByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
-                const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)(gdsHeader + 1);
-                return gdsHeader->DataOffset + certificateHeader->Length;
-            }
-            return gdsHeader->DataOffset;
-        }
-    }
-    case EFI_SECTION_COMPRESSION:           return extended ? sizeof(EFI_COMPRESSION_SECTION2) : sizeof(EFI_COMPRESSION_SECTION);
-    case EFI_SECTION_DISPOSABLE:            return extended ? sizeof(EFI_DISPOSABLE_SECTION2) : sizeof(EFI_DISPOSABLE_SECTION);
-    case EFI_SECTION_PE32:                  return extended ? sizeof(EFI_PE32_SECTION2) : sizeof(EFI_PE32_SECTION);
-    case EFI_SECTION_PIC:                   return extended ? sizeof(EFI_PIC_SECTION2) : sizeof(EFI_PIC_SECTION);
-    case EFI_SECTION_TE:                    return extended ? sizeof(EFI_TE_SECTION2) : sizeof(EFI_TE_SECTION);
-    case EFI_SECTION_DXE_DEPEX:             return extended ? sizeof(EFI_DXE_DEPEX_SECTION2) : sizeof(EFI_DXE_DEPEX_SECTION);
-    case EFI_SECTION_VERSION:               return extended ? sizeof(EFI_VERSION_SECTION2) : sizeof(EFI_VERSION_SECTION);
-    case EFI_SECTION_USER_INTERFACE:        return extended ? sizeof(EFI_USER_INTERFACE_SECTION2) : sizeof(EFI_USER_INTERFACE_SECTION);
-    case EFI_SECTION_COMPATIBILITY16:       return extended ? sizeof(EFI_COMPATIBILITY16_SECTION2) : sizeof(EFI_COMPATIBILITY16_SECTION);
-    case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: return extended ? sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION2) : sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION);
-    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return extended ? sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION2) : sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
-    case EFI_SECTION_RAW:                   return extended ? sizeof(EFI_RAW_SECTION2) : sizeof(EFI_RAW_SECTION);
-    case EFI_SECTION_PEI_DEPEX:             return extended ? sizeof(EFI_PEI_DEPEX_SECTION2) : sizeof(EFI_PEI_DEPEX_SECTION);
-    case EFI_SECTION_SMM_DEPEX:             return extended ? sizeof(EFI_SMM_DEPEX_SECTION2) : sizeof(EFI_SMM_DEPEX_SECTION);
-    case INSYDE_SECTION_POSTCODE:           return extended ? sizeof(POSTCODE_SECTION2) : sizeof(POSTCODE_SECTION);
-    case SCT_SECTION_POSTCODE:              return extended ? sizeof(POSTCODE_SECTION2) : sizeof(POSTCODE_SECTION);
-    default:                                return extended ? sizeof(EFI_COMMON_SECTION_HEADER2) : sizeof(EFI_COMMON_SECTION_HEADER);
-    }
-}

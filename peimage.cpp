@@ -25,6 +25,6 @@ QString machineTypeToQString(UINT16 machineType)
     case IMAGE_FILE_MACHINE_I386:   return QObject::tr("x86");
     case IMAGE_FILE_MACHINE_IA64:   return QObject::tr("IA64");
     case IMAGE_FILE_MACHINE_THUMB:  return QObject::tr("Thumb");
-    default:                        return QObject::tr("Unknown %1").hexarg2(machineType, 4);
+    default:                        return QObject::tr("Unknown %1h").hexarg2(machineType, 4);
     }
 }

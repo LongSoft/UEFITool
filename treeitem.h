@@ -24,8 +24,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class TreeItem
 {
 public:
-    TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
-        const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
+    TreeItem(const UINT8 type, const UINT8 subtype = 0, const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
         const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
         TreeItem *parent = 0);
     ~TreeItem();
@@ -74,14 +73,11 @@ public:
     UINT8 action() const;
     void setAction(const UINT8 action);
 
-    UINT8 compression() const;
-
 private:
     QList<TreeItem*> childItems;
     UINT8      itemAction;
     UINT8      itemType;
     UINT8      itemSubtype;
-    UINT8      itemCompression;
     QString    itemName;
     QString    itemText;
     QString    itemInfo;
