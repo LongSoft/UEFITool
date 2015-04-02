@@ -21,8 +21,8 @@ Providing both EFI and Tiano decompress algorithms.
 
 --*/
 
-#ifndef _EFITIANODECOMPRESS_H_
-#define _EFITIANODECOMPRESS_H_
+#ifndef __EFITIANODECOMPRESS_H__
+#define __EFITIANODECOMPRESS_H__
 #include <string.h>
 #include <stdlib.h>
 

@@ -11,12 +11,38 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 #include <QObject>
+#include "treemodel.h"
 #include "utility.h"
 #include "ffs.h"
 #include "Tiano/EfiTianoCompress.h"
 #include "Tiano/EfiTianoDecompress.h"
 #include "LZMA/LzmaCompress.h"
 #include "LZMA/LzmaDecompress.h"
+
+// Returns either new parsing data instance or obtains it from index
+PARSING_DATA getParsingData(const QModelIndex & index)
+{
+    if (index.isValid()) {
+        TreeModel* model = (TreeModel*)index.model();
+        return *(PARSING_DATA*)model->parsingData(index).data();
+    }
+
+    PARSING_DATA data;
+    data.fixed = FALSE;     // Item is not fixed by default
+    data.isOnFlash = TRUE;  // Data is on flash by default
+    data.offset = 0;
+    data.address = 0;
+    data.ffsVersion = 0;    // Unknown by default
+
+    // Type-specific parts remain unitialized
+    return data;
+}
+
+// Converts parsing data to byte array
+QByteArray convertParsingData(const PARSING_DATA & pdata)
+{
+    return QByteArray((const char*)&pdata, sizeof(PARSING_DATA));
+}
 
 // Returns text representation of error code
 QString errorCodeToQString(UINT8 errorCode)
@@ -40,7 +66,7 @@ QString errorCodeToQString(UINT8 errorCode)
     case ERR_VOLUMES_NOT_FOUND:               return QObject::tr("UEFI volumes not found");
     case ERR_INVALID_VOLUME:                  return QObject::tr("Invalid UEFI volume");
     case ERR_VOLUME_REVISION_NOT_SUPPORTED:   return QObject::tr("Volume revision not supported");
-    case ERR_VOLUME_GROW_FAILED:              return QObject::tr("Volume grow failed");
+    //case ERR_VOLUME_GROW_FAILED:              return QObject::tr("Volume grow failed");
     case ERR_UNKNOWN_FFS:                     return QObject::tr("Unknown file system");
     case ERR_INVALID_FILE:                    return QObject::tr("Invalid file");
     case ERR_INVALID_SECTION:                 return QObject::tr("Invalid section");
@@ -51,20 +77,20 @@ QString errorCodeToQString(UINT8 errorCode)
     case ERR_CUSTOMIZED_DECOMPRESSION_FAILED: return QObject::tr("Customized compression failed");
     case ERR_UNKNOWN_COMPRESSION_TYPE:        return QObject::tr("Unknown compression type");
     case ERR_UNKNOWN_EXTRACT_MODE:            return QObject::tr("Unknown extract mode");
-    case ERR_UNKNOWN_INSERT_MODE:             return QObject::tr("Unknown insert mode");
+    //case ERR_UNKNOWN_INSERT_MODE:             return QObject::tr("Unknown insert mode");
     case ERR_UNKNOWN_IMAGE_TYPE:              return QObject::tr("Unknown executable image type");
     case ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE: return QObject::tr("Unknown PE optional header type");
     case ERR_UNKNOWN_RELOCATION_TYPE:         return QObject::tr("Unknown relocation type");
-    case ERR_GENERIC_CALL_NOT_SUPPORTED:      return QObject::tr("Generic call not supported");
-    case ERR_VOLUME_BASE_NOT_FOUND:           return QObject::tr("Volume base address not found");
-    case ERR_PEI_CORE_ENTRY_POINT_NOT_FOUND:  return QObject::tr("PEI core entry point not found");
+    //case ERR_GENERIC_CALL_NOT_SUPPORTED:      return QObject::tr("Generic call not supported");
+    //case ERR_VOLUME_BASE_NOT_FOUND:           return QObject::tr("Volume base address not found");
+    //case ERR_PEI_CORE_ENTRY_POINT_NOT_FOUND:  return QObject::tr("PEI core entry point not found");
     case ERR_COMPLEX_BLOCK_MAP:               return QObject::tr("Block map structure too complex for correct analysis");
     case ERR_DIR_ALREADY_EXIST:               return QObject::tr("Directory already exists");
     case ERR_DIR_CREATE:                      return QObject::tr("Directory can't be created");
-    case ERR_UNKNOWN_PATCH_TYPE:              return QObject::tr("Unknown patch type");
-    case ERR_PATCH_OFFSET_OUT_OF_BOUNDS:      return QObject::tr("Patch offset out of bounds");
-    case ERR_INVALID_SYMBOL:                  return QObject::tr("Invalid symbol");
-    case ERR_NOTHING_TO_PATCH:                return QObject::tr("Nothing to patch");
+    //case ERR_UNKNOWN_PATCH_TYPE:              return QObject::tr("Unknown patch type");
+    //case ERR_PATCH_OFFSET_OUT_OF_BOUNDS:      return QObject::tr("Patch offset out of bounds");
+    //case ERR_INVALID_SYMBOL:                  return QObject::tr("Invalid symbol");
+    //case ERR_NOTHING_TO_PATCH:                return QObject::tr("Nothing to patch");
     case ERR_DEPEX_PARSE_FAILED:              return QObject::tr("Dependency expression parsing failed");
     default:                                  return QObject::tr("Unknown error %1").arg(errorCode);
     }
@@ -198,7 +224,6 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
 
         // Decompress section data
         if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
-            //TODO: implement it again, if needed
             // Intel modified LZMA workaround
             // Decompress section data once again
             data += sizeof(UINT32);

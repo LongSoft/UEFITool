@@ -24,7 +24,7 @@ QString regionTypeToQString(const UINT8 type)
     case Subtypes::GbeRegion:
         return QObject::tr("GbE");
     case Subtypes::MeRegion:
-        return QObject::tr("ME/TXE");
+        return QObject::tr("ME");
     case Subtypes::BiosRegion:
         return QObject::tr("BIOS");
     case Subtypes::PdrRegion:

@@ -60,7 +60,7 @@ typedef UINT8 STATUS;
 #define ERR_VOLUMES_NOT_FOUND               14
 #define ERR_INVALID_VOLUME                  15
 #define ERR_VOLUME_REVISION_NOT_SUPPORTED   16
-#define ERR_VOLUME_GROW_FAILED              17
+#define ERR_COMPLEX_BLOCK_MAP               17
 #define ERR_UNKNOWN_FFS                     18
 #define ERR_INVALID_FILE                    19
 #define ERR_INVALID_SECTION                 20
@@ -70,22 +70,13 @@ typedef UINT8 STATUS;
 #define ERR_STANDARD_DECOMPRESSION_FAILED   24
 #define ERR_CUSTOMIZED_DECOMPRESSION_FAILED 25
 #define ERR_UNKNOWN_COMPRESSION_TYPE        26
-#define ERR_UNKNOWN_EXTRACT_MODE            27
-#define ERR_UNKNOWN_INSERT_MODE             28
+#define ERR_DEPEX_PARSE_FAILED              27
+#define ERR_UNKNOWN_EXTRACT_MODE            28
 #define ERR_UNKNOWN_IMAGE_TYPE              29
 #define ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 30
 #define ERR_UNKNOWN_RELOCATION_TYPE         31
-#define ERR_GENERIC_CALL_NOT_SUPPORTED      32
-#define ERR_VOLUME_BASE_NOT_FOUND           33
-#define ERR_PEI_CORE_ENTRY_POINT_NOT_FOUND  34
-#define ERR_COMPLEX_BLOCK_MAP               35
-#define ERR_DIR_ALREADY_EXIST               36
-#define ERR_DIR_CREATE                      37
-#define ERR_UNKNOWN_PATCH_TYPE              38
-#define ERR_PATCH_OFFSET_OUT_OF_BOUNDS      39
-#define ERR_INVALID_SYMBOL                  40
-#define ERR_NOTHING_TO_PATCH                41
-#define ERR_DEPEX_PARSE_FAILED              42
+#define ERR_DIR_ALREADY_EXIST               32
+#define ERR_DIR_CREATE                      33
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions

@@ -10,8 +10,20 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
+
+#ifndef __UTILITY_H__
+#define __UTILITY_H__
+
 #include <QString>
+#include <QModelIndex>
 #include "basetypes.h"
+#include "parsingdata.h"
+
+// Returns either new parsing data instance or obtains it from index
+PARSING_DATA getParsingData(const QModelIndex & index);
+
+// Converts parsing data to byte array
+QByteArray convertParsingData(const PARSING_DATA & pdata);
 
 // Converts error code to QString
 extern QString errorCodeToQString(UINT8 errorCode);
@@ -24,3 +36,5 @@ extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByte
 
 // CRC32
 extern UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
+
+#endif
