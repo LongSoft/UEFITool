@@ -230,7 +230,3 @@ pip-log.txt
 #############
 *.o
 Makefile
-UEFIExtract/UEFIExtract
-UEFIFind/UEFIFind
-UEFIPatch/UEFIPatch
-UEFITool
