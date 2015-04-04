@@ -21,8 +21,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QModelIndex>
 #include <QFileInfo>
 
-#include "..\common\basetypes.h"
-#include "..\common\treemodel.h"
+#include "../common/basetypes.h"
+#include "../common/treemodel.h"
 
 class FfsDumper : public QObject
 {

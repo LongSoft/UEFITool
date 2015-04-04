@@ -18,7 +18,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <iostream>
 
-#include "..\common\ffsparser.h"
+#include "../common/ffsparser.h"
 #include "ffsdumper.h"
 
 int main(int argc, char *argv[])

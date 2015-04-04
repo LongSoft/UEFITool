@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffsdumper.h"
 
 FfsDumper::FfsDumper(TreeModel* treeModel, QObject *parent)
-    : model(treeModel), QObject(parent), dumped(false)
+    : QObject(parent), model(treeModel), dumped(false)
 {
 }
 

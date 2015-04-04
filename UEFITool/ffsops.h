@@ -19,10 +19,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QString>
 #include <QModelIndex>
 
-#include "..\common\basetypes.h"
-#include "..\common\treemodel.h"
-#include "..\common\ffs.h"
-#include "..\common\utility.h"
+#include "../common/basetypes.h"
+#include "../common/treemodel.h"
+#include "../common/ffs.h"
+#include "../common/utility.h"
 
 class FfsOperations : public QObject
 {

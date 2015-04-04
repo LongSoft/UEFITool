@@ -33,10 +33,10 @@
 #include <QTreeView>
 #include <QUrl>
 
-#include "..\common\basetypes.h"
-#include "..\common\utility.h"
-#include "..\common\ffs.h"
-#include "..\common\ffsparser.h"
+#include "../common/basetypes.h"
+#include "../common/utility.h"
+#include "../common/ffs.h"
+#include "../common/ffsparser.h"
 #include "searchdialog.h"
 #include "messagelistitem.h"
 #include "ffsfinder.h"

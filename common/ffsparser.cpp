@@ -21,7 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "me.h"
 
 FfsParser::FfsParser(TreeModel* treeModel, QObject *parent)
-    : model(treeModel), QObject(parent)
+    : QObject(parent), model(treeModel)
 {
 }
 
@@ -1785,7 +1785,7 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
     }
     
     // Check reported uncompressed size
-    if (pdata.section.compressed.uncompressedSize != decompressed.size()) {
+    if (pdata.section.compressed.uncompressedSize != (UINT32)decompressed.size()) {
         msg(tr("parseCompressedSectionBody: decompressed size stored in header %1h (%2) differs from actual %3h (%4)")
             .hexarg(pdata.section.compressed.uncompressedSize)
             .arg(pdata.section.compressed.uncompressedSize)

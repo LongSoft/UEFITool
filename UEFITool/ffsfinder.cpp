@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffsfinder.h"
 
 FfsFinder::FfsFinder(const TreeModel* treeModel, QObject *parent)
-    : model(treeModel), QObject(parent)
+    : QObject(parent), model(treeModel)
 {
 }
 
