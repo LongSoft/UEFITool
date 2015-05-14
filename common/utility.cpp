@@ -20,7 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "LZMA/LzmaDecompress.h"
 
 // Returns either new parsing data instance or obtains it from index
-PARSING_DATA getParsingData(const QModelIndex & index)
+PARSING_DATA parsingDataFromQByteArray(const QModelIndex & index)
 {
     if (index.isValid()) {
         TreeModel* model = (TreeModel*)index.model();
@@ -39,7 +39,7 @@ PARSING_DATA getParsingData(const QModelIndex & index)
 }
 
 // Converts parsing data to byte array
-QByteArray convertParsingData(const PARSING_DATA & pdata)
+QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata)
 {
     return QByteArray((const char*)&pdata, sizeof(PARSING_DATA));
 }

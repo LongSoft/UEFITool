@@ -21,6 +21,7 @@ namespace Actions
 {
     enum ActionTypes {
         NoAction = 50,
+        Erase,
         Create,
         Insert,
         Replace,

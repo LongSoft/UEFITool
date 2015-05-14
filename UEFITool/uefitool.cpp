@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha2"))
+version(tr("0.30.0_alpha3"))
 {
     clipboard = QApplication::clipboard();
 
@@ -593,7 +593,7 @@ void UEFITool::openImageFile(QString path)
     inputFile.close();
 
     init();
-    this->setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
+    setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
 
     UINT8 result = ffsParser->parseImageFile(buffer, model->index(0,0));
     showParserMessages();

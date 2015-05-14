@@ -17,14 +17,17 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 QString machineTypeToQString(UINT16 machineType)
 {
-    switch (machineType){
-    case IMAGE_FILE_MACHINE_AMD64:  return QObject::tr("x86-64");
-    case IMAGE_FILE_MACHINE_ARM:    return QObject::tr("ARM");
-    case IMAGE_FILE_MACHINE_ARMV7:  return QObject::tr("ARMv7");
-    case IMAGE_FILE_MACHINE_EBC:    return QObject::tr("EBC");
-    case IMAGE_FILE_MACHINE_I386:   return QObject::tr("x86");
-    case IMAGE_FILE_MACHINE_IA64:   return QObject::tr("IA64");
-    case IMAGE_FILE_MACHINE_THUMB:  return QObject::tr("Thumb");
-    default:                        return QObject::tr("Unknown %1h").hexarg2(machineType, 4);
+    switch (machineType) {
+    case EFI_IMAGE_FILE_MACHINE_AMD64:     return QObject::tr("x86-64");
+    case EFI_IMAGE_FILE_MACHINE_ARM:       return QObject::tr("ARM");
+    case EFI_IMAGE_FILE_MACHINE_ARMNT:     return QObject::tr("ARMv7");
+    case EFI_IMAGE_FILE_MACHINE_ARM64:     return QObject::tr("ARM64");
+    case EFI_IMAGE_FILE_MACHINE_EBC:       return QObject::tr("EBC");
+    case EFI_IMAGE_FILE_MACHINE_I386:      return QObject::tr("x86");
+    case EFI_IMAGE_FILE_MACHINE_IA64:      return QObject::tr("IA64");
+    case EFI_IMAGE_FILE_MACHINE_POWERPC:   return QObject::tr("PowerPC");
+    case EFI_IMAGE_FILE_MACHINE_POWERPCFP: return QObject::tr("PowerPC FP");
+    case EFI_IMAGE_FILE_MACHINE_THUMB:     return QObject::tr("Thumb");
+    default:                               return QObject::tr("Unknown %1h").hexarg2(machineType, 4);
     }
 }

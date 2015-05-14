@@ -36,13 +36,16 @@ extern QString machineTypeToQString(UINT16 machineType);
 //
 // PE32+ Machine type for EFI images
 //
-#define IMAGE_FILE_MACHINE_AMD64          0x8664
-#define IMAGE_FILE_MACHINE_ARM            0x01c0
-#define IMAGE_FILE_MACHINE_ARMV7          0x01c4
-#define IMAGE_FILE_MACHINE_EBC            0x0ebc
-#define IMAGE_FILE_MACHINE_I386           0x014c
-#define IMAGE_FILE_MACHINE_IA64           0x0200
-#define IMAGE_FILE_MACHINE_THUMB          0x01c2
+#define EFI_IMAGE_FILE_MACHINE_I386           0x014c // x86
+#define EFI_IMAGE_FILE_MACHINE_ARM            0x01c0 // ARM little endian
+#define EFI_IMAGE_FILE_MACHINE_THUMB          0x01c2 // ARM or Thumb (interworking)
+#define EFI_IMAGE_FILE_MACHINE_ARMNT          0x01c4 // ARMv7 (or higher) Thumb mode only
+#define EFI_IMAGE_FILE_MACHINE_POWERPC        0x01f0 // Power PC little endian
+#define EFI_IMAGE_FILE_MACHINE_POWERPCFP      0x01f1 // Power PC with floating point support
+#define EFI_IMAGE_FILE_MACHINE_IA64           0x0200 // Itanium
+#define EFI_IMAGE_FILE_MACHINE_EBC            0x0ebc // EFI Byte Code
+#define EFI_IMAGE_FILE_MACHINE_AMD64          0x8664 // x86-64
+#define EFI_IMAGE_FILE_MACHINE_ARM64          0xaa64 // ARMv8 in 64-bit mode 
 
 //
 // EXE file formats
@@ -438,25 +441,25 @@ typedef struct {
 #define EFI_IMAGE_REL_I386_REL32    0x0014  // PC-relative 32-bit reference to the symbols virtual address
 
 //
-// x64 processor relocation types.
+// x64 processor relocation types
 //
-#define IMAGE_REL_AMD64_ABSOLUTE  0x0000
-#define IMAGE_REL_AMD64_ADDR64    0x0001
-#define IMAGE_REL_AMD64_ADDR32    0x0002
-#define IMAGE_REL_AMD64_ADDR32NB  0x0003
-#define IMAGE_REL_AMD64_REL32     0x0004
-#define IMAGE_REL_AMD64_REL32_1   0x0005
-#define IMAGE_REL_AMD64_REL32_2   0x0006
-#define IMAGE_REL_AMD64_REL32_3   0x0007
-#define IMAGE_REL_AMD64_REL32_4   0x0008
-#define IMAGE_REL_AMD64_REL32_5   0x0009
-#define IMAGE_REL_AMD64_SECTION   0x000A
-#define IMAGE_REL_AMD64_SECREL    0x000B
-#define IMAGE_REL_AMD64_SECREL7   0x000C
-#define IMAGE_REL_AMD64_TOKEN     0x000D
-#define IMAGE_REL_AMD64_SREL32    0x000E
-#define IMAGE_REL_AMD64_PAIR      0x000F
-#define IMAGE_REL_AMD64_SSPAN32   0x0010
+#define EFI_IMAGE_REL_AMD64_ABSOLUTE  0x0000
+#define EFI_IMAGE_REL_AMD64_ADDR64    0x0001
+#define EFI_IMAGE_REL_AMD64_ADDR32    0x0002
+#define EFI_IMAGE_REL_AMD64_ADDR32NB  0x0003
+#define EFI_IMAGE_REL_AMD64_REL32     0x0004
+#define EFI_IMAGE_REL_AMD64_REL32_1   0x0005
+#define EFI_IMAGE_REL_AMD64_REL32_2   0x0006
+#define EFI_IMAGE_REL_AMD64_REL32_3   0x0007
+#define EFI_IMAGE_REL_AMD64_REL32_4   0x0008
+#define EFI_IMAGE_REL_AMD64_REL32_5   0x0009
+#define EFI_IMAGE_REL_AMD64_SECTION   0x000A
+#define EFI_IMAGE_REL_AMD64_SECREL    0x000B
+#define EFI_IMAGE_REL_AMD64_SECREL7   0x000C
+#define EFI_IMAGE_REL_AMD64_TOKEN     0x000D
+#define EFI_IMAGE_REL_AMD64_SREL32    0x000E
+#define EFI_IMAGE_REL_AMD64_PAIR      0x000F
+#define EFI_IMAGE_REL_AMD64_SSPAN32   0x0010
 
 //
 // Based relocation format

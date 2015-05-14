@@ -20,10 +20,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "parsingdata.h"
 
 // Returns either new parsing data instance or obtains it from index
-PARSING_DATA getParsingData(const QModelIndex & index);
+PARSING_DATA parsingDataFromQByteArray(const QModelIndex & index);
 
 // Converts parsing data to byte array
-QByteArray convertParsingData(const PARSING_DATA & pdata);
+QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata);
 
 // Converts error code to QString
 extern QString errorCodeToQString(UINT8 errorCode);

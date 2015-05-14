@@ -84,11 +84,11 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
             .hexarg2(capsuleHeader->Flags, 8);
 
         // Construct parsing data
-        PARSING_DATA pdata = getParsingData(QModelIndex());
+        PARSING_DATA pdata = parsingDataFromQByteArray(QModelIndex());
         pdata.fixed = TRUE;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, convertParsingData(pdata), root);
+        index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
     }
     // Check buffer for being extended Aptio signed capsule header
     else if (buffer.startsWith(APTIO_SIGNED_CAPSULE_GUID) || buffer.startsWith(APTIO_UNSIGNED_CAPSULE_GUID)) {
@@ -107,11 +107,11 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
             .hexarg2(capsuleHeader->CapsuleHeader.Flags, 8);
 
         // Construct parsing data
-        PARSING_DATA pdata = getParsingData(QModelIndex());
+        PARSING_DATA pdata = parsingDataFromQByteArray(QModelIndex());
         pdata.fixed = TRUE;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, convertParsingData(pdata), root);
+        index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
 
         // Show message about possible Aptio signature break
         if (signedCapsule) {
@@ -145,12 +145,12 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         .hexarg(capsuleHeaderSize).hexarg(flashImage.size()).arg(flashImage.size());
 
     // Construct parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
     pdata.fixed = TRUE;
     pdata.offset = capsuleHeaderSize;
 
     // Add tree item
-    QModelIndex biosIndex = model->addItem(Types::Image, Subtypes::UefiImage, name, QString(), info, QByteArray(), flashImage, convertParsingData(pdata), index);
+    QModelIndex biosIndex = model->addItem(Types::Image, Subtypes::UefiImage, name, QString(), info, QByteArray(), flashImage, parsingDataToQByteArray(pdata), index);
 
     // Parse the image
     return parseRawArea(flashImage, biosIndex);
@@ -163,7 +163,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
         return EFI_INVALID_PARAMETER;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Store the beginning of descriptor as descriptor base address
     const UINT8* descriptor = (const UINT8*)intelImage.constData();
@@ -297,7 +297,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add Intel image tree item
-    index = model->addItem(Types::Image, Subtypes::IntelImage, name, QString(), info, QByteArray(), intelImage, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Image, Subtypes::IntelImage, name, QString(), info, QByteArray(), intelImage, parsingDataToQByteArray(pdata), parent);
 
     // Descriptor
     // Get descriptor info
@@ -365,7 +365,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
     }
 
     // Add descriptor tree item
-    model->addItem(Types::Region, Subtypes::DescriptorRegion, name, QString(), info, QByteArray(), body, convertParsingData(pdata), index);
+    model->addItem(Types::Region, Subtypes::DescriptorRegion, name, QString(), info, QByteArray(), body, parsingDataToQByteArray(pdata), index);
 
     // Sort regions in ascending order
     qSort(offsets);
@@ -407,7 +407,7 @@ STATUS FfsParser::parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffs
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Get info
     QString name = tr("GbE region");
@@ -430,7 +430,7 @@ STATUS FfsParser::parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffs
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::GbeRegion, name, QString(), info, QByteArray(), gbe, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::GbeRegion, name, QString(), info, QByteArray(), gbe, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -442,7 +442,7 @@ STATUS FfsParser::parseMeRegion(const QByteArray & me, const UINT32 parentOffset
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Get info
     QString name = tr("ME region");
@@ -487,7 +487,7 @@ STATUS FfsParser::parseMeRegion(const QByteArray & me, const UINT32 parentOffset
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::MeRegion, name, QString(), info, QByteArray(), me, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::MeRegion, name, QString(), info, QByteArray(), me, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (emptyRegion) {
@@ -507,7 +507,7 @@ STATUS FfsParser::parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffs
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Get info
     QString name = tr("PDR region");
@@ -520,7 +520,7 @@ STATUS FfsParser::parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffs
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::PdrRegion, name, QString(), info, QByteArray(), pdr, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::PdrRegion, name, QString(), info, QByteArray(), pdr, parsingDataToQByteArray(pdata), parent);
 
     // Parse PDR region as BIOS space
     UINT8 result = parseRawArea(pdr, index);
@@ -537,7 +537,7 @@ STATUS FfsParser::parseBiosRegion(const QByteArray & bios, const UINT32 parentOf
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Get info
     QString name = tr("BIOS region");
@@ -550,7 +550,7 @@ STATUS FfsParser::parseBiosRegion(const QByteArray & bios, const UINT32 parentOf
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::BiosRegion, name, QString(), info, QByteArray(), bios, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::BiosRegion, name, QString(), info, QByteArray(), bios, parsingDataToQByteArray(pdata), parent);
 
     return parseRawArea(bios, index);
 }
@@ -571,7 +571,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         return ERR_INVALID_PARAMETER;
 
     // Get parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
     UINT32 offset = pdata.offset;
     UINT32 headerSize = model->header(index).size();
 
@@ -598,7 +598,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, convertParsingData(pdata), index);
+        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
     }
 
     // Search for and parse all volumes
@@ -624,7 +624,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
             if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add tree item
-            model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, convertParsingData(pdata), index);
+            model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
         }
 
         // Get volume size
@@ -651,7 +651,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
             if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add tree item
-            QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, convertParsingData(pdata), index);
+            QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
             msg(tr("parseRawArea: one of volumes inside overlaps the end of data"), paddingIndex);
 
             // Update variables
@@ -696,7 +696,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, convertParsingData(pdata), index);
+        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
     }
 
     //Parse bodies
@@ -724,7 +724,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         return ERR_INVALID_PARAMETER;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Populate volume header
     const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(volume.constData());
@@ -882,7 +882,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         else if (ffsVersion == 3)
             subtype = Subtypes::Ffs3Volume;
     }
-    index = model->addItem(Types::Volume, subtype, name, text, info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Volume, subtype, name, text, info, header, body, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (isUnknown)
@@ -945,7 +945,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
     UINT32 volumeHeaderSize = model->header(index).size();
 
     // Get parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
     UINT32 offset = pdata.offset;
 
     if (pdata.ffsVersion != 2 && pdata.ffsVersion != 3) // Don't parse unknown volumes
@@ -992,7 +992,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                         if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
                         // Add free space item
-                        model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), free, convertParsingData(pdata), index);
+                        model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), free, parsingDataToQByteArray(pdata), index);
                     }
                     // ... and all bytes after as a padding
                     pdata.fixed = TRUE; // Non-UEFI data is fixed
@@ -1004,7 +1004,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
                     // Add padding tree item
-                    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, convertParsingData(pdata), index);
+                    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
                     msg(tr("parseVolumeBody: non-UEFI data found in volume's free space"), dataIndex);
                 }
                 else {
@@ -1017,7 +1017,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
                     // Add free space item
-                    model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), freeSpace, convertParsingData(pdata), index);
+                    model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), freeSpace, parsingDataToQByteArray(pdata), index);
                 }
                 break; // Exit from parsing loop
             }
@@ -1032,7 +1032,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                 if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
                 // Add padding tree item
-                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, convertParsingData(pdata), index);
+                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
 
                 // Show message
                 msg(tr("parseVolumeBody: non-UEFI data found inside volume's file space"), dataIndex);
@@ -1124,7 +1124,7 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
         return ERR_INVALID_PARAMETER;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Get file header
     QByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
@@ -1224,7 +1224,7 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::File, fileHeader->Type, name, "", info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::File, fileHeader->Type, name, "", info, header, body, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (msgUnalignedFile)
@@ -1290,7 +1290,7 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
 
     // Check if all bytes of the file are empty
     QByteArray body = model->body(index);
@@ -1322,7 +1322,7 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
         if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::FreeSpace, 0, tr("Free space"), QString(), info, QByteArray(), free, convertParsingData(pdata), index);
+        model->addItem(Types::FreeSpace, 0, tr("Free space"), QString(), info, QByteArray(), free, parsingDataToQByteArray(pdata), index);
     }
     else 
         i = 0;
@@ -1339,7 +1339,7 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, convertParsingData(pdata), index);
+    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
 
     // Show message
     msg(tr("parsePadFileBody: non-UEFI data found in pad-file"), dataIndex);
@@ -1357,7 +1357,7 @@ STATUS FfsParser::parseSections(QByteArray sections, const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
 
     // Search for and parse all sections
     UINT32 bodySize = sections.size();
@@ -1381,7 +1381,7 @@ STATUS FfsParser::parseSections(QByteArray sections, const QModelIndex & index)
             if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add tree item
-            QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, convertParsingData(pdata), index);
+            QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
 
             // Show message
             msg(tr("parseSections: non-UEFI data found in sections area"), dataIndex);
@@ -1453,7 +1453,7 @@ STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 pa
 STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1477,7 +1477,7 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -1485,7 +1485,7 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
 STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1520,7 +1520,7 @@ STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -1528,7 +1528,7 @@ STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const
 STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1564,7 +1564,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -1572,7 +1572,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
 STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1640,7 +1640,7 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (msgSigned)
@@ -1659,7 +1659,7 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
 STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1689,7 +1689,7 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
     
     return ERR_SUCCESS;
 }
@@ -1697,7 +1697,7 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
 STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = getParsingData(parent);
+    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1727,7 +1727,7 @@ STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const U
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, convertParsingData(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -1773,7 +1773,7 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
     UINT8 algorithm = pdata.section.compressed.compressionType;
 
     // Decompress section
@@ -1800,7 +1800,7 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
     // Update parsing data
     pdata.isOnFlash = (algorithm == COMPRESSION_ALGORITHM_NONE); // Data is not on flash unless not compressed
     pdata.section.compressed.algorithm = algorithm;
-    model->setParsingData(index, convertParsingData(pdata));
+    model->setParsingData(index, parsingDataToQByteArray(pdata));
 
     // Parse decompressed data
     return parseSections(decompressed, index);
@@ -1813,7 +1813,7 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = getParsingData(index);
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
     UINT32 attributes = pdata.section.guidDefined.attributes;
     EFI_GUID guid = pdata.section.guidDefined.guid;
 
@@ -1895,7 +1895,7 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
 
     // Update parsing data
     pdata.isOnFlash = (algorithm == COMPRESSION_ALGORITHM_NONE); // Data is not on flash unless not compressed
-    model->setParsingData(index, convertParsingData(pdata));
+    model->setParsingData(index, parsingDataToQByteArray(pdata));
 
     if (!parseCurrentSection) {
         msg(tr("parseGuidedSectionBody: GUID defined section can not be processed"), index);
