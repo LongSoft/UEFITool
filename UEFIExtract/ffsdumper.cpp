@@ -22,10 +22,10 @@ FfsDumper::~FfsDumper()
 {
 }
 
-STATUS FfsDumper::dump(const QModelIndex & root, const QString & path)
+STATUS FfsDumper::dump(const QModelIndex & root, const QString & path, const QString & guid)
 {
     dumped = false;
-    UINT8 result = recursiveDump(root, path);
+    UINT8 result = recursiveDump(root, path, guid);
     if (result)
         return result;
     else if (!dumped)
@@ -33,56 +33,60 @@ STATUS FfsDumper::dump(const QModelIndex & root, const QString & path)
     return ERR_SUCCESS;
 }
 
-STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path)
+STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path, const QString & guid)
 {
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
 
     QDir dir;
+    if (guid.isEmpty() ||
+        guidToQString(*(const EFI_GUID*)model->header(index).constData()) == guid ||
+        guidToQString(*(const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData()) == guid) {
 
-    if (dir.cd(path))
-        return ERR_DIR_ALREADY_EXIST;
+        if (dir.cd(path))
+            return ERR_DIR_ALREADY_EXIST;
 
-    if (!dir.mkpath(path))
-        return ERR_DIR_CREATE;
+        if (!dir.mkpath(path))
+            return ERR_DIR_CREATE;
 
-    QFile file;
-    if (!model->header(index).isEmpty()) {
-        file.setFileName(tr("%1/header.bin").arg(path));
-        if (!file.open(QFile::WriteOnly))
+        QFile file;
+        if (!model->header(index).isEmpty()) {
+            file.setFileName(tr("%1/header.bin").arg(path));
+            if (!file.open(QFile::WriteOnly))
+                return ERR_FILE_OPEN;
+
+            file.write(model->header(index));
+            file.close();
+        }
+
+        if (!model->body(index).isEmpty()) {
+            file.setFileName(tr("%1/body.bin").arg(path));
+            if (!file.open(QFile::WriteOnly))
+                return ERR_FILE_OPEN;
+
+            file.write(model->body(index));
+            file.close();
+        }
+
+        QString info = tr("Type: %1\nSubtype: %2\n%3%4")
+            .arg(itemTypeToQString(model->type(index)))
+            .arg(itemSubtypeToQString(model->type(index), model->subtype(index)))
+            .arg(model->text(index).isEmpty() ? "" : tr("Text: %1\n").arg(model->text(index)))
+            .arg(model->info(index));
+        file.setFileName(tr("%1/info.txt").arg(path));
+        if (!file.open(QFile::Text | QFile::WriteOnly))
             return ERR_FILE_OPEN;
 
-        file.write(model->header(index));
+        file.write(info.toLatin1());
         file.close();
+        dumped = true;
     }
-
-    if (!model->body(index).isEmpty()) {
-        file.setFileName(tr("%1/body.bin").arg(path));
-        if (!file.open(QFile::WriteOnly))
-            return ERR_FILE_OPEN;
-
-        file.write(model->body(index));
-        file.close();
-    }
-
-    QString info = tr("Type: %1\nSubtype: %2\n%3%4")
-        .arg(itemTypeToQString(model->type(index)))
-        .arg(itemSubtypeToQString(model->type(index), model->subtype(index)))
-        .arg(model->text(index).isEmpty() ? "" : tr("Text: %1\n").arg(model->text(index)))
-        .arg(model->info(index));
-    file.setFileName(tr("%1/info.txt").arg(path));
-    if (!file.open(QFile::Text | QFile::WriteOnly))
-        return ERR_FILE_OPEN;
-
-    file.write(info.toLatin1());
-    file.close();
-    dumped = true;
 
     UINT8 result;
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex childIndex = index.child(i, 0);
         QString childPath = QString("%1/%2 %3").arg(path).arg(i).arg(model->text(childIndex).isEmpty() ? model->name(childIndex) : model->text(childIndex));
-        result = recursiveDump(childIndex, childPath);
+        result = recursiveDump(childIndex, childPath, guid);
         if (result)
             return result;
     }

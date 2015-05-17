@@ -28,6 +28,11 @@ int main(int argc, char *argv[])
     a.setOrganizationDomain("coderush.me");
     a.setApplicationName("UEFIExtract");
 
+    if (a.arguments().length() > 32) {
+        std::cout << "Too many arguments" << std::endl;
+        return 1;
+    }
+
     if (a.arguments().length() > 1) {
         QString path = a.arguments().at(1);
         QFileInfo fileInfo(path);
@@ -55,11 +60,24 @@ int main(int argc, char *argv[])
         }
 
         FfsDumper ffsDumper(&model);
-        return ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"));
+
+        if (a.arguments().length() == 2) {
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != ERR_SUCCESS);
+        }
+        else {
+            UINT32 returned = 0;
+            for (int i = 2; i < a.arguments().length(); i++) {
+                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), a.arguments().at(i));
+                if (result)
+                    returned |= (1 << (i - 1));
+            }
+            return returned;
+        }
     }
     else {
-        std::cout << "UEFIExtract 0.10.0" << std::endl << std::endl
-                  << "Usage: uefiextract imagefile" << std::endl;
+        std::cout << "UEFIExtract 0.10.1" << std::endl << std::endl
+                  << "Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl
+                  << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;
     }
 }

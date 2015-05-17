@@ -1715,12 +1715,12 @@ STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const U
 
     // Get info
     QString name = sectionTypeToQString(sectionHeader->Type) + tr(" section");
-    QString info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nPostcode: %8\n")
+    QString info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nPostcode: %8h\n")
         .hexarg2(postcodeHeader->Type, 2)
         .hexarg(section.size()).arg(section.size())
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())
-        .arg(postCode);
+        .hexarg(postCode);
 
     // Construct parsing data
     pdata.offset += parentOffset;

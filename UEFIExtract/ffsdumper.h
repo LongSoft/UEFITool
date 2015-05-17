@@ -23,6 +23,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
+#include "../common/ffs.h"
 
 class FfsDumper : public QObject
 {
@@ -31,11 +32,11 @@ class FfsDumper : public QObject
 public:
     explicit FfsDumper(TreeModel * treeModel, QObject *parent = 0);
     ~FfsDumper();
-	
-    STATUS dump(const QModelIndex & root, const QString & path);
-	
+
+    STATUS dump(const QModelIndex & root, const QString & path, const QString & guid = QString());
+
 private:
-    STATUS recursiveDump(const QModelIndex & root, const QString & path);
+    STATUS recursiveDump(const QModelIndex & root, const QString & path, const QString & guid);
     TreeModel* model;
     bool dumped;
 };
