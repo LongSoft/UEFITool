@@ -81,7 +81,7 @@ public:
     UINT8 reconstructImageFile(QByteArray &reconstructed);
     UINT8 reconstruct(const QModelIndex &index, QByteArray & reconstructed);
     UINT8 reconstructIntelImage(const QModelIndex& index, QByteArray & reconstructed);
-    UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed);
+    UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed, bool includeHeader = true);
     UINT8 reconstructBios(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructVolume(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructFile(const QModelIndex& index, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base, QByteArray& reconstructed);

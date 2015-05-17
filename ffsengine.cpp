@@ -2740,7 +2740,7 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
     return ERR_NOT_IMPLEMENTED;
 }
 
-UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconstructed)
+UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconstructed, bool includeHeader)
 {
     if (!index.isValid())
         return ERR_SUCCESS;
@@ -2790,7 +2790,8 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
         }
 
         // Reconstruction successful
-        reconstructed = model->header(index).append(reconstructed);
+        if (includeHeader)
+            reconstructed = model->header(index).append(reconstructed);
         return ERR_SUCCESS;
     }
 
@@ -3207,9 +3208,9 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
         if (model->rowCount(index)) {
             reconstructed.clear();
             // Construct new file body
-            // File contains raw data, must be parsed as region
+            // File contains raw data, must be parsed as region without header
             if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW) {
-                result = reconstructRegion(index, reconstructed);
+                result = reconstructRegion(index, reconstructed, false);
                 if (result)
                     return result;
             }
