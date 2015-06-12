@@ -22,7 +22,7 @@ The missing parst are in development and the version with a new engine will be m
 
 ## Derived projects
 
-There are some other projects that are using UEFITool's engine:
+There are some other projects that use UEFITool's engine:
 * UEFIExtract, which uses ffsParser to parse supplied firmware image into a tree structure and dumps the parsed structure recursively on the FS. Jethro Berkman's [tree](https://github.com/jethrogb/uefireverse) utility can be used to work with the exctracted tree.
 * [OZMTool](https://github.com/tuxuser/UEFITool/tree/OZM/OZMTool), which uses UEFITool's engine to perform various Hackintosh-related firmware modifications.
 
@@ -45,4 +45,4 @@ Install both of them, get the sources, generate makefiles using qmake (`qmake UE
 ## Known issues
 
 * Some vendor-specific firmware update files can be opened incorrectly or can't be opened at all. This includes encrypted HP update files, Dell HDR and EXE files, some InsydeFlash FD files and so on. Enabling support for such files will require massive amount of reverse-engeneering which is almost pointless because the updated image can be obtained from BIOS chip where it's already decrypted and unpacked.
-* Intel Firmware Interface Table (FIT) editing is not supported right now, but it will be added soon. FIT contains pointers to various image components that must be loaded before executing the first CPU instruction from the BIOS chip. Those components include CPU microcode updates, binaries and settings used by BIOS Guard and Boot Guard technologies and some other stuff. Moe information on FIT can be obtained [here](http://downloadmirror.intel.com/18931/eng/Intel%20TXT%20LAB%20Handout.pdf).
+* Intel Firmware Interface Table (FIT) editing is not supported right now, but it will be added soon. FIT contains pointers to various image components that must be loaded before executing the first CPU instruction from the BIOS chip. Those components include CPU microcode updates, binaries and settings used by BIOS Guard and Boot Guard technologies and some other stuff. More information on FIT can be obtained [here](http://downloadmirror.intel.com/18931/eng/Intel%20TXT%20LAB%20Handout.pdf).
