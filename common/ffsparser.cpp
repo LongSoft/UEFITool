@@ -153,7 +153,19 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
     QModelIndex biosIndex = model->addItem(Types::Image, Subtypes::UefiImage, name, QString(), info, QByteArray(), flashImage, parsingDataToQByteArray(pdata), index);
 
     // Parse the image
-    return parseRawArea(flashImage, biosIndex);
+    result = parseRawArea(flashImage, biosIndex);
+    if (result)
+        return result;
+
+    // Check if the last VTF is found
+    if (!lastVtf.isValid()) {
+        msg(tr("parseImageFile: not a single Volume Top File is found, physical memory addresses can't be calculated"), biosIndex);
+    }
+    else {
+        return addMemoryAddressesInfo(biosIndex);
+    }
+
+    return ERR_SUCCESS;
 }
 
 STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelIndex & parent, QModelIndex & index)
@@ -397,6 +409,14 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
             return result;
     }
 
+    // Check if the last VTF is found
+    if (!lastVtf.isValid()) {
+        msg(tr("parseIntelImage: not a single Volume Top File is found, physical memory addresses can't be calculated"), index);
+    }
+    else {
+        return addMemoryAddressesInfo(index);
+    }
+
     return ERR_SUCCESS;
 }
 
@@ -595,6 +615,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
 
         // Construct parsing data
         pdata.fixed = TRUE;
+        pdata.offset = offset + headerSize;
         if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
@@ -731,7 +752,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
 
     // Calculate volume header size
     UINT32 headerSize;
-    EFI_GUID extendedHeaderGuid = { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } };
+    EFI_GUID extendedHeaderGuid = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
     bool hasExtendedHeader = false;
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         hasExtendedHeader = true;
@@ -1216,6 +1237,17 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
         .hexarg(body.size()).arg(body.size())
         .hexarg2(fileHeader->State, 2);
 
+    // Check if the file is a Volume Top File
+    QString text;
+    bool isVtf = false;
+    if (EFI_FFS_VOLUME_TOP_FILE_GUID == header.left(sizeof(EFI_GUID))) {
+        // Mark it as the last VTF
+        // This information will later be used to determine memory addresses of uncompressed image elements
+        // Because the last byte of the last VFT is mapped to 0xFFFFFFFF physical memory address 
+        isVtf = true;
+        text = tr("Volume Top File");
+    }
+
     // Construct parsing data
     pdata.fixed = fileHeader->Attributes & FFS_ATTRIB_FIXED;
     pdata.offset += parentOffset;
@@ -1224,7 +1256,12 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::File, fileHeader->Type, name, "", info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::File, fileHeader->Type, name, text, info, header, body, parsingDataToQByteArray(pdata), parent);
+
+    // Overwrite lastVtf, if needed
+    if (isVtf) {
+        lastVtf = index;
+    }
 
     // Show messages
     if (msgUnalignedFile)
@@ -1435,9 +1472,9 @@ STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 pa
     case EFI_SECTION_DXE_DEPEX:
     case EFI_SECTION_PEI_DEPEX:
     case EFI_SECTION_SMM_DEPEX:
-    case EFI_SECTION_TE:
     case EFI_SECTION_PE32:
     case EFI_SECTION_PIC:
+    case EFI_SECTION_TE:
     case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_USER_INTERFACE:
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
@@ -1732,6 +1769,7 @@ STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const U
     return ERR_SUCCESS;
 }
 
+
 STATUS FfsParser::parseSectionBody(const QModelIndex & index)
 {
     // Sanity check
@@ -1751,9 +1789,9 @@ STATUS FfsParser::parseSectionBody(const QModelIndex & index)
     case EFI_SECTION_DXE_DEPEX:
     case EFI_SECTION_PEI_DEPEX:
     case EFI_SECTION_SMM_DEPEX:             return parseDepexSectionBody(index);
-    case EFI_SECTION_TE:                    return ERR_SUCCESS;//return parseTeSectionBody(index);
+    case EFI_SECTION_TE:                    return parseTeImageSectionBody(index);
     case EFI_SECTION_PE32:
-    case EFI_SECTION_PIC:                   return ERR_SUCCESS;//return parsePeSectionBody(index);
+    case EFI_SECTION_PIC:                   return parsePeImageSectionBody(index);
     case EFI_SECTION_USER_INTERFACE:        return parseUiSectionBody(index);
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: return parseRawArea(model->body(index), index);
     case EFI_SECTION_RAW:                   return parseRawSectionBody(index);
@@ -2109,37 +2147,29 @@ STATUS FfsParser::parseRawSectionBody(const QModelIndex & index)
     return parseRawArea(model->body(index), index);
 }
 
-/*
-STATUS FfsEngine::parsePeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
-{
-    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
-    QByteArray header = section.left(headerSize);
-    QByteArray body = section.mid(headerSize);
 
-    // Get standard info
-    QString name = sectionTypeToQString(sectionHeader->Type) + tr(" section");
-    QString info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
-        .hexarg2(sectionHeader->Type, 2)
-        .hexarg(section.size()).arg(section.size())
-        .hexarg(header.size()).arg(header.size())
-        .hexarg(body.size()).arg(body.size());
+STATUS FfsParser::parsePeImageSectionBody(const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Get section body
+    QByteArray body = model->body(index);
 
     // Get PE info
-    bool msgInvalidDosSignature = false;
-    bool msgInvalidPeSignature = false;
-    bool msgUnknownOptionalHeaderSignature = false;
+    QByteArray info;
 
     const EFI_IMAGE_DOS_HEADER* dosHeader = (const EFI_IMAGE_DOS_HEADER*)body.constData();
     if (dosHeader->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
         info += tr("\nDOS signature: %1h, invalid").hexarg2(dosHeader->e_magic, 4);
-        msgInvalidDosSignature = true;
+        msg(tr("parsePeImageSectionBody: PE32 image with invalid DOS signature"), index);
     }
     else {
         const EFI_IMAGE_PE_HEADER* peHeader = (EFI_IMAGE_PE_HEADER*)(body.constData() + dosHeader->e_lfanew);
         if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE) {
             info += tr("\nPE signature: %1h, invalid").hexarg2(peHeader->Signature, 8);
-            msgInvalidPeSignature = true;
+            msg(tr("parsePeImageSectionBody: PE32 image with invalid PE signature"), index);
         }
         else {
             const EFI_IMAGE_FILE_HEADER* imageFileHeader = (const EFI_IMAGE_FILE_HEADER*)(peHeader + 1);
@@ -2153,82 +2183,53 @@ STATUS FfsEngine::parsePeSectionHeader(const QByteArray & section, const UINT32 
             EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION optionalHeader;
             optionalHeader.H32 = (const EFI_IMAGE_OPTIONAL_HEADER32*)(imageFileHeader + 1);
             if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
-                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nRelativeEntryPoint: %3h\nBaseOfCode: %4h\nImageBase: %5h\nEntryPoint: %6h")
+                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nAddress of entryPoint: %3h\nBase of code: %4h\nImage base: %5h")
                     .hexarg2(optionalHeader.H32->Magic, 4)
                     .hexarg2(optionalHeader.H32->Subsystem, 4)
                     .hexarg(optionalHeader.H32->AddressOfEntryPoint)
                     .hexarg(optionalHeader.H32->BaseOfCode)
-                    .hexarg(optionalHeader.H32->ImageBase)
-                    .hexarg(optionalHeader.H32->ImageBase + optionalHeader.H32->AddressOfEntryPoint);
+                    .hexarg(optionalHeader.H32->ImageBase);
             }
             else if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
-                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nRelativeEntryPoint: %3h\nBaseOfCode: %4h\nImageBase: %5h\nEntryPoint: %6h")
+                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nAddress of entryPoint: %3h\nBase of code: %4h\nImage base: %5h")
                     .hexarg2(optionalHeader.H64->Magic, 4)
                     .hexarg2(optionalHeader.H64->Subsystem, 4)
                     .hexarg(optionalHeader.H64->AddressOfEntryPoint)
                     .hexarg(optionalHeader.H64->BaseOfCode)
-                    .hexarg(optionalHeader.H64->ImageBase)
-                    .hexarg(optionalHeader.H64->ImageBase + optionalHeader.H64->AddressOfEntryPoint);
+                    .hexarg(optionalHeader.H64->ImageBase);
             }
             else {
                 info += tr("\nOptional header signature: %1h, unknown").hexarg2(optionalHeader.H64->Magic, 4);
-                msgUnknownOptionalHeaderSignature = true;
+                msg(tr("parsePeImageSectionBody: PE32 image with invalid optional PE header signature"), index);
             }
         }
     }
 
-    // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
+    // Add PE info
+    model->addInfo(index, info);
 
-    // Show messages
-    if (msgInvalidDosSignature) {
-        msg("parseSection: PE32 image with invalid DOS signature", index);
-    }
-    if (msgInvalidPeSignature) {
-        msg("parseSection: PE32 image with invalid PE signature", index);
-    }
-    if (msgUnknownOptionalHeaderSignature) {
-        msg("parseSection: PE32 image with unknown optional header signature", index);
-    }
-
-    // Special case of PEI Core
-    QModelIndex core = model->findParentOfType(index, Types::File);
-    if (core.isValid() && model->subtype(core) == EFI_FV_FILETYPE_PEI_CORE
-        && oldPeiCoreEntryPoint == 0) {
-        result = getEntryPoint(model->body(index), oldPeiCoreEntryPoint);
-        if (result)
-            msg(tr("parseSection: can't get original PEI core entry point"), index);
-    }
     return ERR_SUCCESS;
 }
-*/
 
-/*
-STATUS FfsEngine::parseTeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+
+STATUS FfsParser::parseTeImageSectionBody(const QModelIndex & index)
 {
-    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
-    QByteArray header = section.left(headerSize);
-    QByteArray body = section.mid(headerSize);
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
 
-    // Get standard info
-    QString name = sectionTypeToQString(sectionHeader->Type) + tr(" section");
-    QString info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
-        .hexarg2(sectionHeader->Type, 2)
-        .hexarg(section.size()).arg(section.size())
-        .hexarg(header.size()).arg(header.size())
-        .hexarg(body.size()).arg(body.size());
+    // Get section body
+    QByteArray body = model->body(index);
 
     // Get TE info
-    bool msgInvalidSignature = false;
+    QByteArray info;
     const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)body.constData();
-    UINT32 teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
     if (teHeader->Signature != EFI_IMAGE_TE_SIGNATURE) {
         info += tr("\nSignature: %1h, invalid").hexarg2(teHeader->Signature, 4);
-        msgInvalidSignature = true;
+        msg(tr("parseTeImageSectionBody: TE image with invalid TE signature"), index);
     }
     else {
-        info += tr("\nSignature: %1h\nMachine type: %2\nNumber of sections: %3\nSubsystem: %4h\nStrippedSize: %5h (%6)\nBaseOfCode: %7h\nRelativeEntryPoint: %8h\nImageBase: %9h\nEntryPoint: %10h")
+        info += tr("\nSignature: %1h\nMachine type: %2\nNumber of sections: %3\nSubsystem: %4h\nStripped size: %5h (%6)\nBase of code: %7h\nAddress of entry point: %8h\nImage base: %9h\nAdjusted image base: %10h")
             .hexarg2(teHeader->Signature, 4)
             .arg(machineTypeToQString(teHeader->Machine))
             .arg(teHeader->NumberOfSections)
@@ -2237,51 +2238,95 @@ STATUS FfsEngine::parseTeSectionHeader(const QByteArray & section, const UINT32 
             .hexarg(teHeader->BaseOfCode)
             .hexarg(teHeader->AddressOfEntryPoint)
             .hexarg(teHeader->ImageBase)
-            .hexarg(teHeader->ImageBase + teHeader->AddressOfEntryPoint - teFixup);
-    }
-    // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
-
-    // Show messages
-    if (msgInvalidSignature) {
-        msg("parseSection: TE image with invalid TE signature", index);
+            .hexarg(teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER));
     }
 
-    // Special case of PEI Core
-    QModelIndex core = model->findParentOfType(index, Types::File);
-    if (core.isValid() && model->subtype(core) == EFI_FV_FILETYPE_PEI_CORE
-        && oldPeiCoreEntryPoint == 0) {
-        result = getEntryPoint(model->body(index), oldPeiCoreEntryPoint);
-        if (result)
-            msg(tr("parseSection: can't get original PEI core entry point"), index);
-    }
+    // Get data from parsing data
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    pdata.section.teImage.imageBase = teHeader->ImageBase;
+    pdata.section.teImage.adjustedImageBase = teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+    
+    // Update parsing data
+    model->setParsingData(index, parsingDataToQByteArray(pdata));
+
+    // Add TE info
+    model->addInfo(index, info);
+
     return ERR_SUCCESS;
 }
 
-STATUS FfsEngine::parseFirmwareVolumeImageSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+
+STATUS FfsParser::addMemoryAddressesInfo(const QModelIndex & index)
 {
-    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    QByteArray header = section.left(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
-    QByteArray body = section.mid(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
+    // Sanity check
+    if (!index.isValid() || !lastVtf.isValid())
+        return ERR_INVALID_PARAMETER;
 
-    // Get info
-    QString name = sectionTypeToQString(sectionHeader->Type) + tr(" section");
-    QString info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
-        .hexarg2(sectionHeader->Type, 2)
-        .hexarg(section.size()).arg(section.size())
-        .hexarg(header.size()).arg(header.size())
-        .hexarg(body.size()).arg(body.size());
-
-    // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, COMPRESSION_ALGORITHM_NONE, name, "", info, header, body, QByteArray(), parent, mode);
-
-    // Parse section body as BIOS space
-    result = parseBios(body, index);
-    if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME) {
-        msg(tr("parseSection: parsing firmware volume image section as BIOS failed with error \"%1\"").arg(errorMessage(result)), index);
-        return result;
+    // Get parsing data for the last VTF
+    PARSING_DATA pdata = parsingDataFromQByteArray(lastVtf);
+    if (!pdata.isOnFlash) {
+        msg(tr("addPhysicalAddressInfo: the last VTF appears inside compressed item, the image may be damaged"), lastVtf);
+        return ERR_SUCCESS;
     }
+
+    // Calculate address difference
+    const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + (pdata.file.hasTail ? sizeof(UINT16) : 0);
+    const UINT32 diff = 0xFFFFFFFF - pdata.offset - vtfSize + 1;
+
+    // Apply address information to index and all it's child items
+    return addMemoryAddressesRecursive(index, diff);
+}
+
+STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_SUCCESS;
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+
+    // Set address value for non-compressed data
+    if (pdata.isOnFlash) {
+        // Check address sanity
+        if ((const UINT64)diff + pdata.offset <= 0xFFFFFFFF)  {
+            // Update info
+            pdata.address = diff + pdata.offset;
+            UINT32 headerSize = model->header(index).size();
+            if (headerSize) {
+                model->addInfo(index, tr("\nHeader memory address: %1h").hexarg2(pdata.address, 8));
+                model->addInfo(index, tr("\nData memory address: %1h").hexarg2(pdata.address + headerSize, 8));
+            }
+            else {
+                model->addInfo(index, tr("\nMemory address: %1h").hexarg2(pdata.address, 8));
+            }
+
+            // Special case of uncompressed TE image sections
+            if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_TE && pdata.isOnFlash) {
+                // Check data memory address to be equal to either ImageBase or AdjustedImageBase
+                if (pdata.section.teImage.imageBase == pdata.address + headerSize) {
+                    pdata.section.teImage.revision = 1;
+                    model->addInfo(index, tr("\nTE image format revision: %1").arg(pdata.section.teImage.revision));
+                }
+                else if (pdata.section.teImage.adjustedImageBase == pdata.address + headerSize) {
+                    pdata.section.teImage.revision = 2;
+                    model->addInfo(index, tr("\nTE image format revision: %1").arg(pdata.section.teImage.revision));
+                }
+                else {
+                    msg(tr("addMemoryAddressesRecursive: image base is nether original nor adjusted, the image is either damaged or a part of backup PEI volume"), index);
+                    pdata.section.teImage.revision = 0;
+                }
+            }
+
+            // Set modified parsing data
+            model->setParsingData(index, parsingDataToQByteArray(pdata));
+        }
+    }
+
+    // Process child items
+    for (int i = 0; i < model->rowCount(index); i++) {
+        addMemoryAddressesRecursive(index.child(i, 0), diff);
+    }
+
     return ERR_SUCCESS;
 }
-*/
-

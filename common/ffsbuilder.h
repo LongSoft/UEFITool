@@ -21,6 +21,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
+#include "../common/descriptor.h"
 #include "../common/ffs.h"
 #include "../common/utility.h"
 
@@ -44,17 +45,19 @@ private:
 
     // UEFI standard structures
     STATUS buildCapsule(const QModelIndex & index, QByteArray & capsule);
-    STATUS buildImage(const QModelIndex & index, QByteArray & intelImage);
+    STATUS buildIntelImage(const QModelIndex & index, QByteArray & intelImage);
     STATUS buildRegion(const QModelIndex & index, QByteArray & region);
-    STATUS buildRawArea(const QModelIndex & index, QByteArray & rawArea);
-    STATUS buildVolume(const QModelIndex & index, QByteArray & volume);
+    STATUS buildRawArea(const QModelIndex & index, QByteArray & rawArea, bool addHeader = true);
     STATUS buildPadding(const QModelIndex & index, QByteArray & padding);
+    STATUS buildVolume(const QModelIndex & index, QByteArray & volume);
     STATUS buildNonUefiData(const QModelIndex & index, QByteArray & data);
     STATUS buildFreeSpace(const QModelIndex & index, QByteArray & freeSpace);
     STATUS buildPadFile(const QModelIndex & index, QByteArray & padFile);
     STATUS buildFile(const QModelIndex & index, QByteArray & file);
     STATUS buildSection(const QModelIndex & index, QByteArray & section);
     
+    // Utility functions
+    STATUS erase(const QModelIndex & index, QByteArray & erased);
 };
 
 #endif

@@ -61,11 +61,18 @@ typedef struct _FREEFORM_GUIDED_SECTION_PARSING_DATA {
     EFI_GUID guid;
 } FREEFORM_GUIDED_SECTION_PARSING_DATA;
 
+typedef struct _TE_IMAGE_SECTION_PARSING_DATA {
+    UINT32  imageBase;
+    UINT32  adjustedImageBase;
+    UINT8   revision;
+} TE_IMAGE_SECTION_PARSING_DATA;
+
 typedef struct _SECTION_PARSING_DATA {
     union {
         COMPRESSED_SECTION_PARSING_DATA      compressed;
         GUIDED_SECTION_PARSING_DATA          guidDefined;
         FREEFORM_GUIDED_SECTION_PARSING_DATA freeformSubtypeGuid;
+        TE_IMAGE_SECTION_PARSING_DATA        teImage;
     };
 } SECTION_PARSING_DATA;
 
@@ -75,7 +82,7 @@ typedef struct _PARSING_DATA {
     UINT8   emptyByte;
     UINT8   ffsVersion;
     UINT32  offset;
-    UINT64  address;
+    UINT32  address;
     union {
         //CAPSULE_PARSING_DATA capsule;
         //IMAGE_PARSING_DATA image;

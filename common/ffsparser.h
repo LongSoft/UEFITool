@@ -53,13 +53,10 @@ public:
     STATUS parseSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseSectionBody(const QModelIndex & index);
 
-    /*// Search routines TODO: move to another class
-    // Extract routine TODO: move to another class
-    STATUS extract(const QModelIndex & index, QString & name, QByteArray & extracted, const UINT8 mode);*/
-
 private:
     TreeModel *model;
     QVector<QPair<QString, QModelIndex> > messagesVector;
+    QModelIndex lastVtf;
 
     STATUS parseIntelImage(const QByteArray & intelImage, const QModelIndex & parent, QModelIndex & root);
     STATUS parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
@@ -83,6 +80,8 @@ private:
     STATUS parseDepexSectionBody(const QModelIndex & index);
     STATUS parseUiSectionBody(const QModelIndex & index);
     STATUS parseRawSectionBody(const QModelIndex & index);
+    STATUS parsePeImageSectionBody(const QModelIndex & index);
+    STATUS parseTeImageSectionBody(const QModelIndex & index);
 
     UINT8  getPaddingType(const QByteArray & padding);
     STATUS parseAprioriRawSection(const QByteArray & body, QString & parsed);
@@ -90,6 +89,9 @@ private:
     STATUS getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT32 getFileSize(const QByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
+
+    STATUS addMemoryAddressesInfo(const QModelIndex & index);
+    STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
 
     // Internal operations
     BOOLEAN hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
