@@ -40,6 +40,7 @@ HEADERS += uefitool.h \
  ../common/gbe.h \
  ../common/me.h \
  ../common/ffs.h \
+ ../common/fit.h \
  ../common/peimage.h \
  ../common/types.h \
  ../common/utility.h \

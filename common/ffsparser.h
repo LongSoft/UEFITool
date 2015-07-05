@@ -90,8 +90,9 @@ private:
     UINT32 getFileSize(const QByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
-    STATUS addMemoryAddressesInfo(const QModelIndex & index);
+    STATUS performSecondPass(const QModelIndex & index);
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
+    STATUS parseFit();
 
     // Internal operations
     BOOLEAN hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);

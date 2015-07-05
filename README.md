@@ -11,27 +11,28 @@ More information on UEFI is available on [UEFI Forum official site](http://www.u
   
 ## Very Brief Introduction to UEFITool
 
-UEFITool is a crossplatform opensource application written in C++/Qt, that parses UEFI-compatible firmware image into a tree structure, verifies image's integrity and provides a GUI to manipulate image's elements.  
-Project development started in the middle of 2013 because of the lack of crossplatform opensource utilities for tinkering with UEFI images.  
+UEFITool is a cross-platform open source application written in C++/Qt, that parses UEFI-compatible firmware image into a tree structure, verifies image's integrity and provides a GUI to manipulate image's elements.  
+Project development started in the middle of 2013 because of the lack of cross-platform open source utilities for tinkering with UEFI images.  
 
-In the beginning of 2015 the major refactoring round was started to make the program compatible with newer UEFI features including FFSv3 volumes and fixed image elements. It's in development right now with the following features still missing:
+In the beginning of 2015 the major refactoring round was started to make the program compatible with newer UEFI features including FFSv3 volumes and fixed image elements. 
+It's in development right now with the following features still missing:
 * Editor part, i.e image reconstruction routines
-* Information on PE images (old code was too slow)
 * Console UI
-The missing parst are in development and the version with a new engine will be made as soon as image reconstruction works again.
+
+The missing parts are in development and the version with a new engine will be made as soon as image reconstruction works again.
 
 ## Derived projects
 
 There are some other projects that use UEFITool's engine:
 * UEFIExtract, which uses ffsParser to parse supplied firmware image into a tree structure and dumps the parsed structure recursively on the FS. Jethro Berkman's [tree](https://github.com/jethrogb/uefireverse) utility can be used to work with the exctracted tree.
-* [OZMTool](https://github.com/tuxuser/UEFITool/tree/OZM/OZMTool), which uses UEFITool's engine to perform various Hackintosh-related firmware modifications.
+* [OZMTool](https://github.com/tuxuser/UEFITool/tree/OZM/OZMTool), which uses UEFITool's engine to perform various "hackintosh"-related firmware modifications.
 
 ## Alternatives
 
 Right now there are some alternatives to UEFITool that you could find useful too:
 * **[PhoenixTool](http://forums.mydigitallife.info/threads/13194-Tool-to-Insert-Replace-SLIC-in-Phoenix-Insyde-Dell-EFI-BIOSes)** by [AndyP](http://forums.mydigitallife.info/members/39295-andyp). Windows-only freeware GUI application written in C#. Used mostly for SLIC-related modifications, but it not limited to this task. Requres Microsoft .NET 3.5 to work properly. Supports unpacking firmware images from various vendor-spicific formwats like encrypted HP update files and Dell installers.  
-* **[uefi-firmware-parser](https://github.com/theopolis/uefi-firmware-parser)** by [Teddy Reed](https://github.com/theopolis). Crossplatform open source console application written in Python. Very tinker-friendly due to use of Python. Can be used in scripts to automate firmware patching.
-* **[Chipsec](https://github.com/chipsec/chipsec)** by Intel. Crossplatform partially open source console application written in Python and C. Can be used to test Intel-based platforms for various security-related misconfigurations, but also has NVRAM parser and other components aimed to firmware modification.
+* **[uefi-firmware-parser](https://github.com/theopolis/uefi-firmware-parser)** by [Teddy Reed](https://github.com/theopolis). Cross-platform open source console application written in Python. Very tinker-friendly due to use of Python. Can be used in scripts to automate firmware patching.
+* **[Chipsec](https://github.com/chipsec/chipsec)** by Intel. Cross-platform partially open source console application written in Python and C. Can be used to test Intel-based platforms for various security-related misconfigurations, but also has NVRAM parser and other components aimed to firmware modification.
 * **MMTool** by AMI. Windows-only proprietary application available to AMI clients. Works only with Aptio4- and AptioV-based firmware images, but has some interesting features including OptionROM replacement and microcode update. Must be licensed from AMI.
 * **H2OEZE** by Insyde. Windows-only proprietary application available to Insyde clients. Works only with InsydeH2O-based firmware images. Must be licensed from Insyde.
 * **SCT BIOS Editor** by Phoenix. Windows-only proprietary application available to Phoenix clients. Works only with InsydeH2O-based firmware images. Must be licensed from Phoenix.

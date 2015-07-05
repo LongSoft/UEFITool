@@ -19,6 +19,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffs.h"
 #include "gbe.h"
 #include "me.h"
+#include "fit.h"
 
 FfsParser::FfsParser(TreeModel* treeModel, QObject *parent)
     : QObject(parent), model(treeModel)
@@ -162,7 +163,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         msg(tr("parseImageFile: not a single Volume Top File is found, physical memory addresses can't be calculated"), biosIndex);
     }
     else {
-        return addMemoryAddressesInfo(biosIndex);
+        return performSecondPass(biosIndex);
     }
 
     return ERR_SUCCESS;
@@ -414,7 +415,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
         msg(tr("parseIntelImage: not a single Volume Top File is found, physical memory addresses can't be calculated"), index);
     }
     else {
-        return addMemoryAddressesInfo(index);
+        return performSecondPass(index);
     }
 
     return ERR_SUCCESS;
@@ -2183,7 +2184,7 @@ STATUS FfsParser::parsePeImageSectionBody(const QModelIndex & index)
             EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION optionalHeader;
             optionalHeader.H32 = (const EFI_IMAGE_OPTIONAL_HEADER32*)(imageFileHeader + 1);
             if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
-                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nAddress of entryPoint: %3h\nBase of code: %4h\nImage base: %5h")
+                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nAddress of entry point: %3h\nBase of code: %4h\nImage base: %5h")
                     .hexarg2(optionalHeader.H32->Magic, 4)
                     .hexarg2(optionalHeader.H32->Subsystem, 4)
                     .hexarg(optionalHeader.H32->AddressOfEntryPoint)
@@ -2191,7 +2192,7 @@ STATUS FfsParser::parsePeImageSectionBody(const QModelIndex & index)
                     .hexarg(optionalHeader.H32->ImageBase);
             }
             else if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
-                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nAddress of entryPoint: %3h\nBase of code: %4h\nImage base: %5h")
+                info += tr("\nOptional header signature: %1h\nSubsystem: %2h\nAddress of entry point: %3h\nBase of code: %4h\nImage base: %5h")
                     .hexarg2(optionalHeader.H64->Magic, 4)
                     .hexarg2(optionalHeader.H64->Subsystem, 4)
                     .hexarg(optionalHeader.H64->AddressOfEntryPoint)
@@ -2256,7 +2257,7 @@ STATUS FfsParser::parseTeImageSectionBody(const QModelIndex & index)
 }
 
 
-STATUS FfsParser::addMemoryAddressesInfo(const QModelIndex & index)
+STATUS FfsParser::performSecondPass(const QModelIndex & index)
 {
     // Sanity check
     if (!index.isValid() || !lastVtf.isValid())
@@ -2274,7 +2275,12 @@ STATUS FfsParser::addMemoryAddressesInfo(const QModelIndex & index)
     const UINT32 diff = 0xFFFFFFFF - pdata.offset - vtfSize + 1;
 
     // Apply address information to index and all it's child items
-    return addMemoryAddressesRecursive(index, diff);
+    addMemoryAddressesRecursive(index, diff);
+
+    // Find and parse FIT
+    parseFit();
+
+    return ERR_SUCCESS;
 }
 
 STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff)
@@ -2306,14 +2312,12 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
                 // Check data memory address to be equal to either ImageBase or AdjustedImageBase
                 if (pdata.section.teImage.imageBase == pdata.address + headerSize) {
                     pdata.section.teImage.revision = 1;
-                    model->addInfo(index, tr("\nTE image format revision: %1").arg(pdata.section.teImage.revision));
                 }
                 else if (pdata.section.teImage.adjustedImageBase == pdata.address + headerSize) {
                     pdata.section.teImage.revision = 2;
-                    model->addInfo(index, tr("\nTE image format revision: %1").arg(pdata.section.teImage.revision));
                 }
                 else {
-                    msg(tr("addMemoryAddressesRecursive: image base is nether original nor adjusted, the image is either damaged or a part of backup PEI volume"), index);
+                    msg(tr("addMemoryAddressesRecursive: image base is nether original nor adjusted, it's likely a part of backup PEI volume or DXE volume, but can also be damaged"), index);
                     pdata.section.teImage.revision = 0;
                 }
             }
@@ -2327,6 +2331,17 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
     for (int i = 0; i < model->rowCount(index); i++) {
         addMemoryAddressesRecursive(index.child(i, 0), diff);
     }
+
+    return ERR_SUCCESS;
+}
+
+STATUS FfsParser::parseFit()
+{
+    // Check sanity
+    if (!lastVtf.isValid)
+        return EFI_INVALID_PARAMETER;
+
+
 
     return ERR_SUCCESS;
 }
