@@ -17,7 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
     const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
+    const QByteArray & header, const QByteArray & body,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
     itemType(type),
@@ -28,7 +28,6 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compressio
     itemInfo(info),
     itemHeader(header),
     itemBody(body),
-    itemParsingData(parsingData),
     parentItem(parent)
 {
 }
@@ -184,11 +183,6 @@ QByteArray TreeItem::body() const
     return itemBody;
 }
 
-QByteArray TreeItem::parsingData() const
-{
-    return itemParsingData;
-}
-
 bool TreeItem::hasEmptyHeader() const
 {
     return itemHeader.isEmpty();
@@ -197,16 +191,6 @@ bool TreeItem::hasEmptyHeader() const
 bool TreeItem::hasEmptyBody() const
 {
     return itemBody.isEmpty();
-}
-
-bool TreeItem::hasEmptyParsingData() const
-{
-    return itemParsingData.isEmpty();
-}
-
-void TreeItem::setParsingData(const QByteArray & data)
-{
-    itemParsingData = data;
 }
 
 UINT8 TreeItem::action() const

@@ -65,7 +65,7 @@ public:
 
     QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(),
         const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     QModelIndex findParentOfType(const QModelIndex & index, UINT8 type) const;

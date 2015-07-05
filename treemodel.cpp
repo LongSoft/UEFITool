@@ -178,22 +178,6 @@ bool TreeModel::hasEmptyBody(const QModelIndex &index) const
     return item->hasEmptyBody();
 }
 
-QByteArray TreeModel::parsingData(const QModelIndex &index) const
-{
-    if (!index.isValid())
-        return QByteArray();
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    return item->parsingData();
-}
-
-bool TreeModel::hasEmptyParsingData(const QModelIndex &index) const
-{
-    if (!index.isValid())
-        return true;
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    return item->hasEmptyParsingData();
-}
-
 QString TreeModel::name(const QModelIndex &index) const
 {
     if (!index.isValid())
@@ -284,20 +268,9 @@ void TreeModel::setAction(const QModelIndex &index, const UINT8 action)
     emit dataChanged(this->index(0, 0), index);
 }
 
-void TreeModel::setParsingData(const QModelIndex &index, const QByteArray &data)
-{
-    if (!index.isValid())
-        return;
-
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    item->setParsingData(data);
-    emit dataChanged(this->index(0, 0), index);
-}
-
 QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
     const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
-    const QModelIndex & parent, const UINT8 mode)
+    const QByteArray & header, const QByteArray & body, const QModelIndex & parent, const UINT8 mode)
 {
     TreeItem *item = 0;
     TreeItem *parentItem = 0;
@@ -318,7 +291,7 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype, const UINT
         }
     }
 
-    TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, parsingData, parentItem);
+    TreeItem *newItem = new TreeItem(type, subtype, compression, name, text, info, header, body, parentItem);
     if (mode == CREATE_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);

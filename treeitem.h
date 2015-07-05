@@ -26,7 +26,7 @@ class TreeItem
 public:
     TreeItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(),
         TreeItem *parent = 0);
     ~TreeItem();
 
@@ -63,10 +63,6 @@ public:
     QByteArray body() const;
     bool hasEmptyBody() const;
 
-    QByteArray parsingData() const;
-    bool hasEmptyParsingData() const;
-    void setParsingData(const QByteArray & data);
-
     QString info() const;
     void addInfo(const QString &info);
     void setInfo(const QString &info);
@@ -87,7 +83,6 @@ private:
     QString    itemInfo;
     QByteArray itemHeader;
     QByteArray itemBody;
-    QByteArray itemParsingData;
     TreeItem *parentItem;
 };
 

@@ -85,25 +85,4 @@ extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
 extern QString compressionTypeToQString(const UINT8 algorithm);
 extern QString regionTypeToQString(const UINT8 type);
 
-enum ParsingDataTypes {
-    UnknownParsingData,
-    VolumeParsingData,
-    FileParsingData
-};
-
-typedef union _PARSING_DATA_UNION {
-    struct _PARSING_DATA_UNION_VOLUME {
-        bool HasZeroVectorCRC;
-    } Volume;
-
-    struct _PARSING_DATA_UNION_FILE {
-        UINT32 Offset;
-    } File;
-} PARSING_DATA_UNION;
-
-typedef struct _PARSING_DATA {
-    UINT8 Type;
-    PARSING_DATA_UNION Data;
-} PARSING_DATA;
-
 #endif
