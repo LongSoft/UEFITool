@@ -37,6 +37,7 @@
 #include "../common/utility.h"
 #include "../common/ffs.h"
 #include "../common/ffsparser.h"
+#include "../common/fitparser.h"
 #include "searchdialog.h"
 #include "messagelistitem.h"
 #include "ffsfinder.h"
@@ -97,6 +98,7 @@ private:
     Ui::UEFITool* ui;
     TreeModel* model;
     FfsParser* ffsParser;
+    FitParser* fitParser;
     FfsFinder* ffsFinder;
     FfsOperations* ffsOps;
     SearchDialog* searchDialog;
@@ -110,6 +112,7 @@ private:
     void readSettings();
     void showParserMessages();
     void showFinderMessages();
+    void showFitTable();
 };
 
 #endif

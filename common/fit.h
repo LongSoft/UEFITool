@@ -20,10 +20,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push,1)
 
 // Memory address of a pointer to FIT, 40h back from the end of flash chip
-#define FIT_POINTER_ADDRESS 0xFFFFFFC0
-
-// FIT can reside in the last 1 MB of the flash chip
-#define FIT_TABLE_LOWEST_ADDRESS 0xFF000000
+#define FIT_POINTER_OFFSET 0x40
 
 // Entry types 
 #define FIT_TYPE_HEADER            0x00
@@ -35,7 +32,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define FIT_TYPE_TXT_CONF_POLICY   0x0A
 #define FIT_TYPE_AC_KEY_MANIFEST   0x0B
 #define FIT_TYPE_AC_BOOT_POLICY    0x0C
-#define FIT_TYPE_EMPTY             0xFF
+#define FIT_TYPE_EMPTY             0x7F
 
 #define FIT_HEADER_VERSION         0x0100
 #define FIT_MICROCODE_VERSION      0x0100
@@ -45,10 +42,9 @@ const QByteArray FIT_SIGNATURE
 
 typedef struct _FIT_ENTRY {
     UINT64 Address;
-    UINT64 ReservedSize;
+    UINT32 Size;
     UINT16 Version;
-    UINT8  ChecksumValid : 1;
-    UINT8  Type : 7;
+    UINT8  Type;
     UINT8  Checksum;
 } FIT_ENTRY;
 

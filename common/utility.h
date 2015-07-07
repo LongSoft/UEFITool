@@ -20,7 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "parsingdata.h"
 
 // Returns either new parsing data instance or obtains it from index
-PARSING_DATA parsingDataFromQByteArray(const QModelIndex & index);
+PARSING_DATA parsingDataFromQModelIndex(const QModelIndex & index);
 
 // Converts parsing data to byte array
 QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata);
@@ -34,7 +34,13 @@ extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByte
 // Compression routine
 //STATUS compress(const QByteArray & decompressed, QByteArray & compressed, const UINT8 & algorithm);
 
-// CRC32
+// CRC32 calculation routine
 extern UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
+
+// 8bit checksum calculation routine
+extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
+
+// 16bit checksum calculation routine
+extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
 #endif

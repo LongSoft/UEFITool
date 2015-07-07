@@ -53,6 +53,9 @@ public:
     STATUS parseSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseSectionBody(const QModelIndex & index);
 
+    // Retuns index of the last VTF after parsing is done
+    const QModelIndex getLastVtf() {return lastVtf;};
+
 private:
     TreeModel *model;
     QVector<QPair<QString, QModelIndex> > messagesVector;
@@ -92,7 +95,8 @@ private:
 
     STATUS performSecondPass(const QModelIndex & index);
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
-    STATUS parseFit();
+    /*STATUS parseFit(const QModelIndex & index);
+    STATUS findFitRecursive(const QModelIndex & index, QModelIndex & found);*/
 
     // Internal operations
     BOOLEAN hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);

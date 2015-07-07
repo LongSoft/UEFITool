@@ -18,6 +18,7 @@ SOURCES += uefitool_main.cpp \
  ../common/utility.cpp \
  ../common/ffsbuilder.cpp \
  ../common/ffsparser.cpp \
+ ../common/fitparser.cpp \
  ../common/treeitem.cpp \
  ../common/treemodel.cpp \
  ../common/LZMA/LzmaCompress.c \
@@ -47,6 +48,7 @@ HEADERS += uefitool.h \
  ../common/parsingdata.h \
  ../common/ffsbuilder.h \
  ../common/ffsparser.h \
+ ../common/fitparser.h \
  ../common/treeitem.h \
  ../common/treemodel.h \
  ../common/LZMA/LzmaCompress.h \

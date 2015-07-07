@@ -85,7 +85,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
             .hexarg2(capsuleHeader->Flags, 8);
 
         // Construct parsing data
-        PARSING_DATA pdata = parsingDataFromQByteArray(QModelIndex());
+        PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
         pdata.fixed = TRUE;
 
         // Add tree item
@@ -108,7 +108,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
             .hexarg2(capsuleHeader->CapsuleHeader.Flags, 8);
 
         // Construct parsing data
-        PARSING_DATA pdata = parsingDataFromQByteArray(QModelIndex());
+        PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
         pdata.fixed = TRUE;
 
         // Add tree item
@@ -146,7 +146,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         .hexarg(capsuleHeaderSize).hexarg(flashImage.size()).arg(flashImage.size());
 
     // Construct parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     pdata.fixed = TRUE;
     pdata.offset = capsuleHeaderSize;
 
@@ -160,7 +160,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
 
     // Check if the last VTF is found
     if (!lastVtf.isValid()) {
-        msg(tr("parseImageFile: not a single Volume Top File is found, physical memory addresses can't be calculated"), biosIndex);
+        msg(tr("parseImageFile: not a single Volume Top File is found, the image may be corrupted"), biosIndex);
     }
     else {
         return performSecondPass(biosIndex);
@@ -176,7 +176,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
         return EFI_INVALID_PARAMETER;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Store the beginning of descriptor as descriptor base address
     const UINT8* descriptor = (const UINT8*)intelImage.constData();
@@ -412,7 +412,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
 
     // Check if the last VTF is found
     if (!lastVtf.isValid()) {
-        msg(tr("parseIntelImage: not a single Volume Top File is found, physical memory addresses can't be calculated"), index);
+        msg(tr("parseIntelImage: not a single Volume Top File is found, the image may be corrupted"), index);
     }
     else {
         return performSecondPass(index);
@@ -428,7 +428,7 @@ STATUS FfsParser::parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffs
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Get info
     QString name = tr("GbE region");
@@ -463,7 +463,7 @@ STATUS FfsParser::parseMeRegion(const QByteArray & me, const UINT32 parentOffset
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Get info
     QString name = tr("ME region");
@@ -528,7 +528,7 @@ STATUS FfsParser::parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffs
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Get info
     QString name = tr("PDR region");
@@ -558,7 +558,7 @@ STATUS FfsParser::parseBiosRegion(const QByteArray & bios, const UINT32 parentOf
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Get info
     QString name = tr("BIOS region");
@@ -592,7 +592,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         return ERR_INVALID_PARAMETER;
 
     // Get parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     UINT32 offset = pdata.offset;
     UINT32 headerSize = model->header(index).size();
 
@@ -746,7 +746,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         return ERR_INVALID_PARAMETER;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Populate volume header
     const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(volume.constData());
@@ -831,14 +831,14 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     UINT8 emptyByte = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
     // Check for Apple CRC32 in ZeroVector
-    bool hasZeroVectorCRC32 = false;
+    bool hasAppleCrc32 = false;
     UINT32 volumeSize = volume.size();
-    UINT32 crc32FromZeroVector = *(UINT32*)(volume.constData() + 8);
-    if (crc32FromZeroVector != 0) {
+    UINT32 appleCrc32 = *(UINT32*)(volume.constData() + 8);
+    if (appleCrc32 != 0) {
         // Calculate CRC32 of the volume body
         UINT32 crc = crc32(0, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
-        if (crc == crc32FromZeroVector) {
-            hasZeroVectorCRC32 = true;
+        if (crc == appleCrc32) {
+            hasAppleCrc32 = true;
         }
     }
 
@@ -865,11 +865,6 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         .hexarg2(volumeHeader->Attributes, 8)
         .arg(emptyByte ? "1" : "0");
 
-    // Apple CRC32 volume
-    if (hasZeroVectorCRC32) {
-        info += tr("\nCRC32 in ZeroVector: valid");
-    }
-
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         const EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (const EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
@@ -887,14 +882,14 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     pdata.volume.extendedHeaderGuid = extendedHeaderGuid;
     pdata.volume.alignment = alignment;
     pdata.volume.revision = volumeHeader->Revision;
-    pdata.volume.hasZeroVectorCRC32 = hasZeroVectorCRC32;
+    pdata.volume.hasAppleCrc32 = hasAppleCrc32;
     pdata.volume.isWeakAligned = (volumeHeader->Revision > 1 && (volumeHeader->Attributes & EFI_FVB2_WEAK_ALIGNMENT));
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add text
     QString text;
-    if (hasZeroVectorCRC32)
-        text += tr("ZeroVectorCRC32 ");
+    if (hasAppleCrc32)
+        text += tr("AppleCRC32 ");
 
     // Add tree item
     UINT8 subtype = Subtypes::UnknownVolume;
@@ -967,7 +962,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
     UINT32 volumeHeaderSize = model->header(index).size();
 
     // Get parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     UINT32 offset = pdata.offset;
 
     if (pdata.ffsVersion != 2 && pdata.ffsVersion != 3) // Don't parse unknown volumes
@@ -1146,7 +1141,7 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
         return ERR_INVALID_PARAMETER;
 
     // Get parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Get file header
     QByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
@@ -1328,7 +1323,7 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     // Check if all bytes of the file are empty
     QByteArray body = model->body(index);
@@ -1395,7 +1390,7 @@ STATUS FfsParser::parseSections(QByteArray sections, const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     // Search for and parse all sections
     UINT32 bodySize = sections.size();
@@ -1491,7 +1486,7 @@ STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 pa
 STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1523,7 +1518,7 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
 STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1566,7 +1561,7 @@ STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const
 STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1610,7 +1605,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
 STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1697,7 +1692,7 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
 STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1735,7 +1730,7 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
 STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Get data from parent's parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(parent);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
@@ -1812,7 +1807,7 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     UINT8 algorithm = pdata.section.compressed.compressionType;
 
     // Decompress section
@@ -1852,7 +1847,7 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     UINT32 attributes = pdata.section.guidDefined.attributes;
     EFI_GUID guid = pdata.section.guidDefined.guid;
 
@@ -2243,7 +2238,7 @@ STATUS FfsParser::parseTeImageSectionBody(const QModelIndex & index)
     }
 
     // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     pdata.section.teImage.imageBase = teHeader->ImageBase;
     pdata.section.teImage.adjustedImageBase = teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
     
@@ -2264,21 +2259,18 @@ STATUS FfsParser::performSecondPass(const QModelIndex & index)
         return ERR_INVALID_PARAMETER;
 
     // Get parsing data for the last VTF
-    PARSING_DATA pdata = parsingDataFromQByteArray(lastVtf);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(lastVtf);
     if (!pdata.isOnFlash) {
-        msg(tr("addPhysicalAddressInfo: the last VTF appears inside compressed item, the image may be damaged"), lastVtf);
+        msg(tr("performSecondPass: the last VTF appears inside compressed item, the image may be damaged"), lastVtf);
         return ERR_SUCCESS;
     }
 
     // Calculate address difference
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + (pdata.file.hasTail ? sizeof(UINT16) : 0);
-    const UINT32 diff = 0xFFFFFFFF - pdata.offset - vtfSize + 1;
+    const UINT32 diff = 0xFFFFFFFFUL - pdata.offset - vtfSize + 1;
 
     // Apply address information to index and all it's child items
     addMemoryAddressesRecursive(index, diff);
-
-    // Find and parse FIT
-    parseFit();
 
     return ERR_SUCCESS;
 }
@@ -2290,12 +2282,12 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
         return ERR_SUCCESS;
 
     // Get parsing data for the current item
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     // Set address value for non-compressed data
     if (pdata.isOnFlash) {
         // Check address sanity
-        if ((const UINT64)diff + pdata.offset <= 0xFFFFFFFF)  {
+        if ((const UINT64)diff + pdata.offset <= 0xFFFFFFFFUL)  {
             // Update info
             pdata.address = diff + pdata.offset;
             UINT32 headerSize = model->header(index).size();
@@ -2335,13 +2327,69 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseFit()
+/*STATUS FfsParser::parseFit(const QModelIndex & index)
 {
     // Check sanity
-    if (!lastVtf.isValid)
+    if (!lastVtf.isValid())
         return EFI_INVALID_PARAMETER;
 
+    // Search for FIT
+    QModelIndex fitIndex;
+    STATUS result = findFitRecursive(index, fitIndex);
+    if (result)
+        return result;
 
+    // FIT not found
+    if (!fitIndex.isValid())
+        return ERR_SUCCESS;
+    
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQModelIndex(fitIndex);
+
+    // Explicitly set the item as fixed
+    pdata.fixed = TRUE;
+
+    // Set modified parsing data
+    model->setParsingData(fitIndex, parsingDataToQByteArray(pdata));
 
     return ERR_SUCCESS;
 }
+
+STATUS FfsParser::findFitRecursive(const QModelIndex & index, QModelIndex & found)
+{
+    // Sanity check
+    if (!index.isValid())
+        return EFI_SUCCESS;
+
+    // Process child items
+    for (int i = 0; i < model->rowCount(index); i++) {
+        findFitRecursive(index.child(i, 0), found);
+        if (found.isValid())
+            return EFI_SUCCESS;
+    }
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+    // Check item's address to be in required range
+    INT32 offset = model->body(index).indexOf(FIT_SIGNATURE);
+    // Check for FIT signature in item's body
+    if (offset >= 0) {
+        // FIT candidate found, calculate it's offset and physical address
+        UINT32 fitOffset = pdata.offset + model->header(index).size() + (UINT32)offset;
+        UINT32 fitAddress = pdata.address + model->header(index).size() + (UINT32)offset;
+            
+        // Check FIT address to be in the last VTF
+        QByteArray lastVtfBody = model->body(lastVtf);
+        if (*(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET) == fitAddress) {
+            msg(tr("findFitRecursive: FIT table found at offset %1h, physical address %2h")
+                .hexarg2(fitOffset, 8)
+                .hexarg2(fitAddress, 8),
+                index);
+            found = index;
+            return ERR_SUCCESS;
+        }
+    }
+
+    return ERR_SUCCESS;
+}*/

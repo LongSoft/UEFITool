@@ -240,9 +240,6 @@ typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE {
     //UINT8 Data[];
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE;
 
-// Volume header 16bit checksum calculation routine
-extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
-
 //*****************************************************************************
 // EFI FFS File
 //*****************************************************************************
@@ -341,8 +338,6 @@ const QByteArray EFI_FFS_PAD_FILE_GUID
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(const UINT8* ffsSize);
-// FFS file 8bit checksum calculation routine
-extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 
 //*****************************************************************************
 // EFI FFS File Section

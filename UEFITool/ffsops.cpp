@@ -44,7 +44,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         return ERR_INVALID_PARAMETER;
 
     // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     // Construct a name for extracted data
     QString itemName = model->name(index);

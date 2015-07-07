@@ -202,6 +202,31 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="fitTab">
+        <attribute name="title">
+         <string>FIT</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QTableWidget" name="fitTableWidget"/>
+         </item>
+        </layout>
+       </widget>
       </widget>
      </widget>
     </item>

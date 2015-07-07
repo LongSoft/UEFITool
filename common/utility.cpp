@@ -20,7 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "LZMA/LzmaDecompress.h"
 
 // Returns either new parsing data instance or obtains it from index
-PARSING_DATA parsingDataFromQByteArray(const QModelIndex & index)
+PARSING_DATA parsingDataFromQModelIndex(const QModelIndex & index)
 {
     if (index.isValid()) {
         TreeModel* model = (TreeModel*)index.model();
@@ -257,3 +257,34 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
     }
 }
 
+// 8bit checksum calculation routine
+UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
+{
+    if (!buffer)
+        return 0;
+
+    UINT8 counter = 0;
+
+    while (bufferSize--)
+        counter += buffer[bufferSize];
+
+    return (UINT8)(0x100 - counter);
+}
+
+// 16bit checksum calculation routine
+UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
+{
+    if (!buffer)
+        return 0;
+
+    UINT16 counter = 0;
+    UINT32 index = 0;
+
+    bufferSize /= sizeof(UINT16);
+
+    for (; index < bufferSize; index++) {
+        counter = (UINT16)(counter + buffer[index]);
+    }
+
+    return (UINT16)(0x10000 - counter);
+}

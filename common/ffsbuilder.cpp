@@ -43,7 +43,7 @@ STATUS FfsBuilder::erase(const QModelIndex & index, QByteArray & erased)
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
 
-    PARSING_DATA pdata = parsingDataFromQByteArray(index);
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     erased.fill(pdata.emptyByte);
     return ERR_SUCCESS;
 }

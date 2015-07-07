@@ -34,7 +34,8 @@ typedef struct _VOLUME_PARSING_DATA {
     UINT32   alignment;
     UINT8    revision;
     BOOLEAN  hasExtendedHeader;
-    BOOLEAN  hasZeroVectorCRC32;
+    BOOLEAN  hasAppleCrc32;
+    BOOLEAN  hasAppleFSO;
     BOOLEAN  isWeakAligned;
 } VOLUME_PARSING_DATA;
 

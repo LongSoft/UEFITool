@@ -30,36 +30,6 @@ const QVector<QByteArray> FFSv3Volumes =
 const UINT8 ffsAlignmentTable[] =
 { 0, 4, 7, 9, 10, 12, 15, 16 };
 
-UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
-{
-    if (!buffer)
-        return 0;
-
-    UINT8 counter = 0;
-
-    while (bufferSize--)
-        counter += buffer[bufferSize];
-
-    return (UINT8)(0x100 - counter);
-}
-
-UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
-{
-    if (!buffer)
-        return 0;
-
-    UINT16 counter = 0;
-    UINT32 index = 0;
-
-    bufferSize /= sizeof(UINT16);
-
-    for (; index < bufferSize; index++) {
-        counter = (UINT16)(counter + buffer[index]);
-    }
-
-    return (UINT16)(0x10000 - counter);
-}
-
 VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 {
     ffsSize[2] = (UINT8)((size) >> 16);
