@@ -135,7 +135,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
     if (descriptorHeader->Signature == FLASH_DESCRIPTOR_SIGNATURE) {
         // Parse as Intel image
         QModelIndex imageIndex;
-        result = parseIntelImage(flashImage, index, imageIndex);
+        result = parseIntelImage(flashImage, capsuleHeaderSize, index, imageIndex);
         if (result != ERR_INVALID_FLASH_DESCRIPTOR)
             return result;
     }
@@ -169,7 +169,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Sanity check
     if (intelImage.isEmpty())
@@ -307,6 +307,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
 
     // Construct parsing data
     pdata.fixed = TRUE;
+    pdata.offset = parentOffset;
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add Intel image tree item
@@ -323,19 +324,19 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const QModelInd
     QVector<UINT32> offsets;
     if (regionSection->GbeLimit) {
         offsets.append(gbeBegin);
-        info += tr("\nGbE region offset:  %1h").hexarg(gbeBegin);
+        info += tr("\nGbE region offset:  %1h").hexarg(gbeBegin + parentOffset);
     }
     if (regionSection->MeLimit) {
         offsets.append(meBegin);
-        info += tr("\nME region offset:   %1h").hexarg(meBegin);
+        info += tr("\nME region offset:   %1h").hexarg(meBegin + parentOffset);
     }
     if (regionSection->BiosLimit) {
         offsets.append(biosBegin);
-        info += tr("\nBIOS region offset: %1h").hexarg(biosBegin);
+        info += tr("\nBIOS region offset: %1h").hexarg(biosBegin + parentOffset);
     }
     if (regionSection->PdrLimit) {
         offsets.append(pdrBegin);
-        info += tr("\nPDR region offset:  %1h").hexarg(pdrBegin);
+        info += tr("\nPDR region offset:  %1h").hexarg(pdrBegin + parentOffset);
     }
 
     // Region access settings
@@ -2327,69 +2328,3 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
     return ERR_SUCCESS;
 }
 
-/*STATUS FfsParser::parseFit(const QModelIndex & index)
-{
-    // Check sanity
-    if (!lastVtf.isValid())
-        return EFI_INVALID_PARAMETER;
-
-    // Search for FIT
-    QModelIndex fitIndex;
-    STATUS result = findFitRecursive(index, fitIndex);
-    if (result)
-        return result;
-
-    // FIT not found
-    if (!fitIndex.isValid())
-        return ERR_SUCCESS;
-    
-    // Get parsing data for the current item
-    PARSING_DATA pdata = parsingDataFromQModelIndex(fitIndex);
-
-    // Explicitly set the item as fixed
-    pdata.fixed = TRUE;
-
-    // Set modified parsing data
-    model->setParsingData(fitIndex, parsingDataToQByteArray(pdata));
-
-    return ERR_SUCCESS;
-}
-
-STATUS FfsParser::findFitRecursive(const QModelIndex & index, QModelIndex & found)
-{
-    // Sanity check
-    if (!index.isValid())
-        return EFI_SUCCESS;
-
-    // Process child items
-    for (int i = 0; i < model->rowCount(index); i++) {
-        findFitRecursive(index.child(i, 0), found);
-        if (found.isValid())
-            return EFI_SUCCESS;
-    }
-
-    // Get parsing data for the current item
-    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
-
-    // Check item's address to be in required range
-    INT32 offset = model->body(index).indexOf(FIT_SIGNATURE);
-    // Check for FIT signature in item's body
-    if (offset >= 0) {
-        // FIT candidate found, calculate it's offset and physical address
-        UINT32 fitOffset = pdata.offset + model->header(index).size() + (UINT32)offset;
-        UINT32 fitAddress = pdata.address + model->header(index).size() + (UINT32)offset;
-            
-        // Check FIT address to be in the last VTF
-        QByteArray lastVtfBody = model->body(lastVtf);
-        if (*(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET) == fitAddress) {
-            msg(tr("findFitRecursive: FIT table found at offset %1h, physical address %2h")
-                .hexarg2(fitOffset, 8)
-                .hexarg2(fitAddress, 8),
-                index);
-            found = index;
-            return ERR_SUCCESS;
-        }
-    }
-
-    return ERR_SUCCESS;
-}*/

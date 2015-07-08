@@ -52,26 +52,21 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
     // Set modified parsing data
     model->setParsingData(fitIndex, parsingDataToQByteArray(pdata));
 
-    // Add all FIT entries into QVector
-    const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(model->body(fitIndex).constData() + fitOffset);
-
     // Special case of FIT header
     QString remark;
+    const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(model->body(fitIndex).constData() + fitOffset);
 
     // Check FIT checksum, if present
+    UINT32 fitSize = (fitHeader->Size & 0xFFFFFF) << 4;
     if (fitHeader->Type & 0x80) {
         // Calculate FIT entry checksum
-        UINT32 fitSize = (fitHeader->Size & 0xFFFFFF) << 4;
         UINT8 calculated = calculateChecksum8((const UINT8*)fitHeader, fitSize);
         if (calculated) {
             remark.append(tr("Invalid FIT table checksum, ").hexarg2(calculated, 2));
         }
     }
 
-    // Check fit header version and type
-    if (fitHeader->Version != FIT_HEADER_VERSION) {
-        remark.append(tr("Invalid FIT header version, "));
-    }
+    // Check fit header type
     if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER) {
         remark.append(tr("Invalid FIT header type, "));
     }
@@ -80,11 +75,19 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
     if (!remark.isEmpty())
         remark = remark.left(remark.length() - 2);
 
-    // Add FIT header to fitEntries vector
-    fitEntries.append(QPair<FIT_ENTRY, QString>(*fitHeader, remark));
+    // Add FIT header to fitTable
+    QVector<QString> currentStrings;
+    currentStrings += tr("_FIT_   ");
+    currentStrings += tr("%1").hexarg2(fitSize, 8);
+    currentStrings += tr("%1").hexarg2(fitHeader->Version, 4);
+    currentStrings += fitEntryTypeToQString(fitHeader->Type);
+    currentStrings += tr("%1").hexarg2(fitHeader->Checksum, 2);
+    currentStrings += remark;
+    fitTable.append(currentStrings);
 
     // Process all other entries
     for (UINT32 i = 1; i < fitHeader->Size; i++) {
+        currentStrings.clear();
         remark.clear();
         const FIT_ENTRY* currentEntry = fitHeader + i;
 
@@ -110,10 +113,34 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
             break;
         }
 
-        fitEntries.append(QPair<FIT_ENTRY, QString>(*currentEntry, remark));
+        // Add entry to fitTable
+        currentStrings += tr("%1").hexarg2(currentEntry->Address, 16);
+        currentStrings += tr("%1").hexarg2(currentEntry->Size, 8);
+        currentStrings += tr("%1").hexarg2(currentEntry->Version, 4);
+        currentStrings += fitEntryTypeToQString(currentEntry->Type);
+        currentStrings += tr("%1").hexarg2(currentEntry->Checksum, 2);
+        currentStrings += remark;
+        fitTable.append(currentStrings);
     }
 
     return ERR_SUCCESS;
+}
+
+QString FitParser::fitEntryTypeToQString(UINT8 type)
+{
+    switch (type & 0x7F) {
+    case FIT_TYPE_HEADER:           return tr("Header");
+    case FIT_TYPE_MICROCODE:        return tr("Microcode");
+    case FIT_TYPE_BIOS_AC_MODULE:   return tr("BIOS ACM");
+    case FIT_TYPE_BIOS_INIT_MODULE: return tr("BIOS Init");
+    case FIT_TYPE_TPM_POLICY:       return tr("TPM Policy");
+    case FIT_TYPE_BIOS_POLICY_DATA: return tr("BIOS Policy Data");
+    case FIT_TYPE_TXT_CONF_POLICY:  return tr("TXT Configuration Policy");
+    case FIT_TYPE_AC_KEY_MANIFEST:  return tr("BootGuard Key Manifest");
+    case FIT_TYPE_AC_BOOT_POLICY:   return tr("BootGuard Boot Policy");
+    case FIT_TYPE_EMPTY:            return tr("Empty");
+    default:                        return tr("Unknown");
+    }
 }
 
 STATUS FitParser::findFitRecursive(const QModelIndex & index, QModelIndex & found, UINT32 & fitOffset)

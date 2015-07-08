@@ -37,14 +37,15 @@ public:
     ~FitParser();
 
     STATUS parse(const QModelIndex & index, const QModelIndex & lastVtf);
-    QVector<QPair<FIT_ENTRY, QString> > getFitEntries() const { return fitEntries; }
+    QVector<QVector<QString> > getFitTable() const { return fitTable; }
 
 private:
     TreeModel *model;
     QModelIndex lastVtf;
-    QVector<QPair<FIT_ENTRY, QString> > fitEntries;
+    QVector<QVector<QString> > fitTable;
     
     STATUS findFitRecursive(const QModelIndex & index, QModelIndex & found, UINT32 & fitOffset);
+    QString fitEntryTypeToQString(UINT8 type);
 };
 
 #endif

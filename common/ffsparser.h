@@ -61,7 +61,7 @@ private:
     QVector<QPair<QString, QModelIndex> > messagesVector;
     QModelIndex lastVtf;
 
-    STATUS parseIntelImage(const QByteArray & intelImage, const QModelIndex & parent, QModelIndex & root);
+    STATUS parseIntelImage(const QByteArray & intelImage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & root);
     STATUS parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseMeRegion(const QByteArray & me, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseBiosRegion(const QByteArray & bios, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);

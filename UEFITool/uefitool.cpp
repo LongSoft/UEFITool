@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha5"))
+version(tr("0.30.0_alpha6"))
 {
     clipboard = QApplication::clipboard();
 
@@ -806,13 +806,13 @@ void UEFITool::writeSettings()
 
 void UEFITool::showFitTable()
 {
-    QVector<QPair<FIT_ENTRY, QString> > fitEntries = fitParser->getFitEntries();
-    if (fitEntries.isEmpty())
+    QVector<QVector<QString> > fitTable = fitParser->getFitTable();
+    if (fitTable.isEmpty())
         return;
 
     // Set up the FIT table
     ui->fitTableWidget->clear();
-    ui->fitTableWidget->setRowCount(fitEntries.length());
+    ui->fitTableWidget->setRowCount(fitTable.length());
     ui->fitTableWidget->setColumnCount(6);
     //ui->fitTableWidget->verticalHeader()->setVisible(false);
     ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Type") << tr("Checksum") << tr("Remark"));
@@ -822,59 +822,13 @@ void UEFITool::showFitTable()
     ui->fitTableWidget->horizontalHeader()->setStretchLastSection(true);
 
     // Add all data to the table widget
-    for (INT32 i = 0; i < fitEntries.length(); i++) {
-        FIT_ENTRY* entry = &(fitEntries[i].first);
-        if (i)
-            ui->fitTableWidget->setItem(i, 0, new QTableWidgetItem(tr("%1h").hexarg2(entry->Address, 16)));
-        else
-            ui->fitTableWidget->setItem(i, 0, new QTableWidgetItem(tr("_FIT_   ")));
-
-        ui->fitTableWidget->setItem(i, 1, new QTableWidgetItem(tr("%1h (%2)").hexarg2(entry->Size * 16, 8).arg(entry->Size * 16)));
-        ui->fitTableWidget->setItem(i, 2, new QTableWidgetItem(tr("%1h").hexarg2(entry->Version, 4)));
-
-        QString typeString;
-        switch (entry->Type & 0x7F) {
-        case FIT_TYPE_HEADER:
-            typeString.append(tr("Header"));
-            break;
-        case FIT_TYPE_MICROCODE:
-            typeString.append(tr("Microcode"));
-            break;
-        case FIT_TYPE_BIOS_AC_MODULE:
-            typeString.append(tr("BIOS ACM"));
-            break;
-        case FIT_TYPE_BIOS_INIT_MODULE:
-            typeString.append(tr("BIOS Init"));
-            break;
-        case FIT_TYPE_TPM_POLICY:
-            typeString.append(tr("TPM Policy"));
-            break;
-        case FIT_TYPE_BIOS_POLICY_DATA:
-            typeString.append(tr("BIOS Policy Data"));
-            break;
-        case FIT_TYPE_TXT_CONF_POLICY:
-            typeString.append(tr("TXT Configuration Policy"));
-            break;
-        case FIT_TYPE_AC_KEY_MANIFEST:
-            typeString.append(tr("BootGuard Key Manifest"));
-            break;
-        case FIT_TYPE_AC_BOOT_POLICY:
-            typeString.append(tr("BootGuard Boot Policy"));
-            break;
-        case FIT_TYPE_EMPTY:
-            typeString.append(tr("Empty"));
-            break;
-        default:
-            typeString.append(tr("Unknown"));
+    for (INT32 i = 0; i < fitTable.length(); i++) {
+        for (UINT8 j = 0; j < 6; j++) {
+            ui->fitTableWidget->setItem(i, j, new QTableWidgetItem(fitTable[i][j]));
         }
-
-        ui->fitTableWidget->setItem(i, 3, new QTableWidgetItem(typeString));
-        ui->fitTableWidget->setItem(i, 4, new QTableWidgetItem(tr("%1h").hexarg2(entry->Checksum, 2)));
-        ui->fitTableWidget->setItem(i, 5, new QTableWidgetItem(fitEntries[i].second));
     }
 
     ui->fitTableWidget->resizeColumnsToContents();
     ui->fitTableWidget->resizeRowsToContents();
     ui->messagesTabWidget->setCurrentIndex(2);
-
 }
