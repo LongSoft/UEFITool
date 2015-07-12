@@ -55,6 +55,8 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("Section");
     case Types::FreeSpace:
         return QObject::tr("Free space");
+    case Types::Signature:
+        return QObject::tr("Signature");
     default:
         return QObject::tr("Unknown");
     }
@@ -106,6 +108,13 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         return sectionTypeToQString(subtype);
     case Types::FreeSpace:
         return QString();
+    case Types::Signature:
+        if (subtype == Subtypes::UefiSignature)
+            return QObject::tr("UEFI");
+        else if (subtype == Subtypes::Pkcs7Signature)
+            return QObject::tr("PKCS#7");
+        else
+            return QObject::tr("Unknown subtype");
     default:
         return QObject::tr("Unknown subtype");
     }

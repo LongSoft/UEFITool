@@ -42,6 +42,7 @@ namespace Types {
         Volume,
         File,
         Section,
+        Signature,
         FreeSpace
     };
 }
@@ -76,6 +77,11 @@ namespace Subtypes {
         ZeroPadding = 110,
         OnePadding,
         DataPadding
+    };
+
+    enum SignatureSubtypes {
+        UefiSignature = 120,
+        Pkcs7Signature
     };
 };
 

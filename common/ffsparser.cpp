@@ -1444,6 +1444,9 @@ STATUS FfsParser::parseSections(QByteArray sections, const QModelIndex & index)
         case Types::Padding:
             // No parsing required
             break;
+        case Types::Signature:
+            // No parsing required
+            break;
         default:
             return ERR_UNKNOWN_ITEM_TYPE;
         }
@@ -1622,42 +1625,6 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
     QByteArray header = section.left(headerSize);
     QByteArray body = section.mid(headerSize);
 
-    // Check for signed section
-    bool msgSigned = false;
-    bool msgUnknownSignature = false;
-    bool msgUnknownUefiGuidSignature = false;
-    QString signInfo;
-    if (QByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
-        msgSigned = true;
-        const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)model->body(index).constData();
-        if (certificateHeader->CertificateType == WIN_CERT_TYPE_EFI_GUID) {
-            signInfo += tr("\nSignature type: UEFI");
-            const WIN_CERTIFICATE_UEFI_GUID* guidCertificateHeader = (const WIN_CERTIFICATE_UEFI_GUID*)certificateHeader;
-            if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
-                signInfo += tr("\nSignature subtype: RSA2048/SHA256");
-            }
-            else if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_PKCS7_GUID) {
-                signInfo += tr("\nSignature subtype: PCKS7");
-            }
-            else {
-                signInfo += tr("\nSignature subtype: unknown");
-                msgUnknownUefiGuidSignature = true;
-            }
-        }
-        else if (certificateHeader->CertificateType == WIN_CERT_TYPE_PKCS_SIGNED_DATA) {
-            signInfo += tr("\nSignature type: PCKS7");
-        }
-        else {
-            signInfo += tr("\nSignature type: unknown");
-            msgUnknownSignature = true;
-        }
-
-        // Add additional to the header
-        header.append(body.left(certificateHeader->Length));
-        // Get new body
-        body = body.mid(certificateHeader->Length);
-    }
-
     // Get info
     QString name = sectionTypeToQString(sectionHeader->Type) + tr(" section");
     QString info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nSubtype GUID: %8")
@@ -1666,7 +1633,6 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())
         .arg(guidToQString(guid));
-    if (!signInfo.isEmpty()) info.append(signInfo);
 
     // Construct parsing data
     pdata.offset += parentOffset;
@@ -1675,14 +1641,6 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
 
     // Add tree item
     index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
-
-    // Show messages
-    if (msgSigned)
-        msg(tr("parseSection: signature may become invalid after any modification"), index);
-    if (msgUnknownUefiGuidSignature)
-        msg(tr("parseSection: GUID defined section with unknown signature subtype"), index);
-    if (msgUnknownSignature)
-        msg(tr("parseSection: GUID defined section with unknown signature type"), index);
 
     // Rename section
     model->setName(index, guidToQString(guid));
@@ -1895,6 +1853,56 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
             }
             else
                 info += tr("\nCompression algorithm: unknown");
+        }
+        // Signed section
+        else if (QByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
+            UINT8 subtype = 0;
+            bool msgUnknownSubtype = false;
+            const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)model->body(index).constData();
+            QString signInfo = tr("Full Size: %1h (%2)").hexarg2(certificateHeader->Length, 8).arg(certificateHeader->Length);
+            signInfo += tr("\nType: Signature");
+            if (certificateHeader->CertificateType == WIN_CERT_TYPE_EFI_GUID) {
+                const WIN_CERTIFICATE_UEFI_GUID* guidCertificateHeader = (const WIN_CERTIFICATE_UEFI_GUID*)certificateHeader;
+                if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
+                    signInfo += tr("\nSubtype: RSA2048/SHA256");
+                    subtype = Subtypes::UefiSignature;
+                }
+                else if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_PKCS7_GUID) {
+                    signInfo += tr("\nSubtype: PKCS7");
+                    subtype = Subtypes::Pkcs7Signature;
+                }
+                else {
+                    signInfo += tr("\nSubtype: unknown");
+                    msgUnknownSubtype = true;
+                }
+            }
+            else if (certificateHeader->CertificateType == WIN_CERT_TYPE_PKCS_SIGNED_DATA) {
+                signInfo += tr("\nSubtype: PKCS7");
+                subtype = Subtypes::Pkcs7Signature;
+            }
+            else {
+                signInfo += tr("\nSubtype: unknown");
+                msgUnknownSubtype = true;
+            }
+
+            //Get parsing data
+            PARSING_DATA signPdata = parsingDataFromQModelIndex(index);
+            signPdata.offset += model->header(index).size();
+            if (signPdata.isOnFlash) signInfo.prepend(tr("Offset: %1h\n").hexarg(signPdata.offset));
+
+            // Add signature data to the tree
+            QModelIndex signatureIndex = model->addItem(Types::Signature, subtype, tr("Signature"), "", signInfo, QByteArray(), processed.left(certificateHeader->Length), parsingDataToQByteArray(signPdata), index);
+
+            // Show messages
+            msg(tr("parseGuidedSectionBody: signature may become invalid after any modification"), signatureIndex);
+            if (msgUnknownSubtype)
+                msg(tr("parseGuidedSectionBody: signature with unknown subtype"), signatureIndex);
+
+            // Change offset
+            pdata.offset += certificateHeader->Length;
+
+            // Get new body
+            processed = processed.mid(certificateHeader->Length);
         }
         // Unknown GUIDed section
         else {
