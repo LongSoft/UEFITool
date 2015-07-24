@@ -309,7 +309,7 @@ UINT8 convertKext(QString input, QString guid, QString basename, QByteArray & ou
 UINT8 fileCreate(QByteArray fileBody, QString fileGuid, UINT8 fileType, UINT8 fileAttributes, UINT8 revision, UINT8 erasePolarity, QByteArray & fileOut)
 {
     QUuid uuid = QUuid(fileGuid);
-    EFI_FFS_FILE_HEADER *ffsHeader = {0};
+    EFI_FFS_FILE_HEADER *ffsHeader = new EFI_FFS_FILE_HEADER(); // = {0};
 
     if(uuid.isNull()) {
         printf("ERROR: Invalid GUID supplied!\n");
@@ -369,8 +369,8 @@ UINT8 sectionCreate(QByteArray body, UINT8 sectionType, QByteArray & sectionOut)
 {
     UINT8 alignment;
     QByteArray fileBody, header;
-    EFI_COMPRESSION_SECTION *compressedSection = {0};
-    EFI_COMMON_SECTION_HEADER *sectionHeader = {0};
+    EFI_COMPRESSION_SECTION *compressedSection = new EFI_COMPRESSION_SECTION();
+    EFI_COMMON_SECTION_HEADER *sectionHeader   = new EFI_COMMON_SECTION_HEADER();
 
 
     FfsEngine *fe = new FfsEngine();
@@ -382,9 +382,9 @@ UINT8 sectionCreate(QByteArray body, UINT8 sectionType, QByteArray & sectionOut)
         compressedSection->CompressionType = COMPRESSION_ALGORITHM_TIANO;
         compressedSection->Type = EFI_SECTION_COMPRESSION;
         compressedSection->UncompressedLength = fileBody.size();
-        uint32ToUint24(sizeof(EFI_COMPRESSION_SECTION)+body.size(), compressedSection->Size);
+        uint32ToUint24(sizeof(EFI_COMPRESSION_SECTION) + body.size(), compressedSection->Size);
 
-        header.append((const char*)compressedSection, sizeof(EFI_COMPRESSION_SECTION));
+        header.append((const char *) compressedSection, sizeof(EFI_COMPRESSION_SECTION));
         break;
     case EFI_SECTION_PE32:
     case EFI_SECTION_PIC:
@@ -394,10 +394,11 @@ UINT8 sectionCreate(QByteArray body, UINT8 sectionType, QByteArray & sectionOut)
     case EFI_SECTION_SMM_DEPEX:
     case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_USER_INTERFACE:
+    case EFI_SECTION_RAW:
         sectionHeader->Type = sectionType;
-        uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER)+body.size(), sectionHeader->Size);
+        uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER) + body.size(), sectionHeader->Size);
 
-        header.append((const char*)sectionHeader, sizeof(EFI_COMMON_SECTION_HEADER));
+        header.append((const char *) sectionHeader, sizeof(EFI_COMMON_SECTION_HEADER));
         fileBody.append(body);
         break;
     default:
@@ -422,13 +423,13 @@ UINT8 freeformCreate(QByteArray binary, QString guid, QString sectionName, QByte
     UINT8 ret;
     QByteArray rawSection, userSection, ffs, body;
 
-    ret = sectionCreate(binary, EFI_SECTION_RAW, rawSection);
-    if(ret) {
+    ret = sectionCreate(binary, EFI_SECTION_PE32, rawSection);
+    if (ret) {
         printf("ERROR: Failed to create PE32 Section!\n");
         return ERR_ERROR;
     }
     ret = sectionCreate(QByteArray((const char*)sectionName.utf16()), EFI_SECTION_USER_INTERFACE, userSection);
-    if(ret) {
+    if (ret) {
         printf("ERROR: Failed to create User Interface Section!\n");
         return ERR_ERROR;
     }
@@ -437,7 +438,7 @@ UINT8 freeformCreate(QByteArray binary, QString guid, QString sectionName, QByte
     body.append(userSection);
 
     ret = fileCreate(body, guid, EFI_FV_FILETYPE_FREEFORM, 0, 0, ERASE_POLARITY_FALSE, ffs);
-    if(ret) {
+    if (ret) {
         printf("ERROR: Failed to create FFS Header!\n");
         return ERR_ERROR;
     }
@@ -461,14 +462,14 @@ UINT8 extractDSDTfromAmiboardInfo(QByteArray amiboardbuf, QByteArray & out)
     }
 
     offset = amiboardbuf.indexOf(DSDT_HEADER);
-    if(offset < 0) {
+    if (offset < 0) {
         printf("ERROR: DSDT wasn't found in AmiBoardInfo");
         return ERR_FILE_NOT_FOUND;
     }
 
     size = getUInt32(amiboardbuf, offset+DSDT_HEADER_SZ, TRUE);
 
-    if(size > (UINT32)(amiboardbuf.size()-offset)) {
+    if (size > (UINT32)(amiboardbuf.size() - offset)) {
         printf("ERROR: Read invalid size from DSDT. Aborting!\n");
         return ERR_INVALID_PARAMETER;
     }
@@ -498,13 +499,13 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     EFI_IMAGE_BASE_RELOCATION *BASE_RELOCATION;
     RELOC_ENTRY *RELOCATION_ENTRIES;
 
-    const static char *DATA_SECTION = ".data";
+    const static char *DATA_SECTION  = ".data";
     const static char *EMPTY_SECTION = ".empty";
     const static char *RELOC_SECTION = ".reloc";
 
-    static unsigned char *amiboardbuf = (unsigned char*)ami.constData();
+    static unsigned char *amiboardbuf = (unsigned char *) ami.constData();
 
-    HeaderDOS = (EFI_IMAGE_DOS_HEADER *)amiboardbuf;
+    HeaderDOS = (EFI_IMAGE_DOS_HEADER *) amiboardbuf;
 
     if (HeaderDOS->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
         printf("Error: Invalid file, not AmiBoardInfo. Aborting!\n");
@@ -512,18 +513,18 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     }
 
     offset = ami.indexOf(DSDT_HEADER);
-    if(offset < 0) {
+    if (offset < 0) {
         printf("ERROR: DSDT wasn't found in AmiBoardInfo");
         return ERR_FILE_NOT_FOUND;
     }
 
-    if(ami.indexOf(UNPATCHABLE_SECTION) > 0) {
+    if (ami.indexOf(UNPATCHABLE_SECTION) > 0) {
         hasDotROM = TRUE;
     }
 
     oldDSDTsize = getUInt32(ami, offset+DSDT_HEADER_SZ, TRUE);
 
-    if(oldDSDTsize > (UINT32)(sizeof(amiboardbuf)-offset)) {
+    if(oldDSDTsize > (UINT32) (sizeof(amiboardbuf) - offset)) {
         printf("ERROR: Read invalid size from DSDT. Aborting!\n");
         return ERR_INVALID_PARAMETER;
     }
@@ -537,16 +538,16 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
         out.append(ami.left(offset)); // Start of PE32
         out.append(dsdtbuf); // new DSDT
         out.append(QByteArray(padbytes, '\x00')); // padding to match old DSDT location
-        out.append(ami.mid(offset+oldDSDTsize)); // rest of PE32
+        out.append(ami.mid(offset + oldDSDTsize)); // rest of PE32
         return ERR_SUCCESS;
     }
 
-    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *)&amiboardbuf[HeaderDOS->e_lfanew];
-    sectionsStart = HeaderDOS->e_lfanew+sizeof(EFI_IMAGE_NT_HEADERS64);
-    Section = (EFI_IMAGE_SECTION_HEADER *)&amiboardbuf[sectionsStart];
+    HeaderNT = (EFI_IMAGE_NT_HEADERS64 *) & amiboardbuf[HeaderDOS->e_lfanew];
+    sectionsStart = HeaderDOS->e_lfanew + sizeof(EFI_IMAGE_NT_HEADERS64);
+    Section = (EFI_IMAGE_SECTION_HEADER *) & amiboardbuf[sectionsStart];
 
     relocStart = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
-    relocSize = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+    relocSize  = HeaderNT->OptionalHeader.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
 
     if((HeaderNT->OptionalHeader.DllCharacteristics & DYNAMIC_BASE) && hasDotROM) {
         needsCodePatching = FALSE;
@@ -581,12 +582,12 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     printf(" * Patching sections...\n");
     for (i = 0 ; i < HeaderNT->FileHeader.NumberOfSections; i++) {
 
-        if (!strcmp((char *)&Section[i].Name, "")) // Give it a clear name
-            strcpy((char *)&Section[i].Name, EMPTY_SECTION);
+        if (!strcmp((char *) & Section[i].Name, "")) // Give it a clear name
+             strcpy((char *) & Section[i].Name, EMPTY_SECTION);
 
         printf(" - Section: %s\n", Section[i].Name);
 
-        if(!strcmp((char *)&Section[i].Name, DATA_SECTION)) {
+        if(!strcmp((char *) & Section[i].Name, DATA_SECTION)) {
             /* DSDT blob starts in .data section */
             printf("\tPhysicalAddress: %X --> %X\n",
                    Section[i].Misc.PhysicalAddress,
@@ -595,7 +596,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
                    Section[i].SizeOfRawData,
                    Section[i].SizeOfRawData += alignDiffDSDT);
         }
-        else if(!strcmp((char *)&Section[i].Name, EMPTY_SECTION)) {
+        else if(!strcmp((char *) & Section[i].Name, EMPTY_SECTION)) {
             /* .empty section is after .data -> needs patching */
             printf("\tVirtualAddress: %X --> %X\n",
                    Section[i].VirtualAddress,
@@ -604,7 +605,7 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
                    Section[i].PointerToRawData,
                    Section[i].PointerToRawData += alignDiffDSDT);
         }
-        else if(!strcmp((char *)&Section[i].Name, RELOC_SECTION)) {
+        else if(!strcmp((char *) & Section[i].Name, RELOC_SECTION)) {
             /* .reloc section is after .data -> needs patching */
             printf("\tVirtualAddress: %X --> %X\n",
                    Section[i].VirtualAddress,
@@ -623,10 +624,10 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
         dataLeft = relocSize;
         baseRelocAddr = relocStart;
         while(dataLeft > 0) {
-            BASE_RELOCATION = (EFI_IMAGE_BASE_RELOCATION*) &amiboardbuf[baseRelocAddr];
+            BASE_RELOCATION = (EFI_IMAGE_BASE_RELOCATION *) & amiboardbuf[baseRelocAddr];
             physEntries = (BASE_RELOCATION->SizeOfBlock - EFI_IMAGE_SIZEOF_BASE_RELOCATION) / EFI_IMAGE_SIZEOF_RELOC_ENTRY;
             logicalEntries = physEntries - 1; // physEntries needed to calc next Base Relocation Table offset
-            RELOCATION_ENTRIES = (RELOC_ENTRY*) &amiboardbuf[baseRelocAddr+EFI_IMAGE_SIZEOF_BASE_RELOCATION];
+            RELOCATION_ENTRIES = (RELOC_ENTRY*) & amiboardbuf[baseRelocAddr+EFI_IMAGE_SIZEOF_BASE_RELOCATION];
 
             baseRelocAddr += EFI_IMAGE_SIZEOF_BASE_RELOCATION + (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY);
             dataLeft -= (physEntries * EFI_IMAGE_SIZEOF_RELOC_ENTRY) + EFI_IMAGE_SIZEOF_BASE_RELOCATION;
@@ -722,13 +723,13 @@ UINT8 injectDSDTintoAmiboardInfo(QByteArray ami, QByteArray dsdtbuf, QByteArray 
     }
 
     /* Copy data till DSDT */
-    out.append((const char*)amiboardbuf, offset);
+    out.append((const char*) amiboardbuf, offset);
     // Copy new DSDT
     out.append(dsdtbuf, newDSDTsize);
     // Pad the file
-    out.append(QByteArray((alignDiffDSDT-diffDSDT), '\x00'));
+    out.append(QByteArray((alignDiffDSDT - diffDSDT), '\x00'));
     // Copy the rest
-    out.append(ami.mid(offset+oldDSDTsize));
+    out.append(ami.mid(offset + oldDSDTsize));
 
     return ERR_SUCCESS;
 }
