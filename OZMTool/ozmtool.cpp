@@ -670,7 +670,7 @@ UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
         return ret;
     }
 
-    QDirIterator diKext(inputdir);
+    QDirIterator diKext(inputdir, (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks | QDir::Readable), QDirIterator::NoIteratorFlags);
     QFileInfo currKext;
     UINT8 srcType;
     QString sectionName, guid;
@@ -693,9 +693,11 @@ UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
                 sectionName = OzmFfs[i].name;
                 break;
             }
-            else if(currKext.fileName().endsWith(".kext")) {
+        }
+        if (i >= OZMFFS_SIZE) {
+            if(currKext.fileName().endsWith(".kext")) {
                 srcType = SRC_KEXT;
-                guid = kextGUID.arg(16, 1, kextId);
+                guid = kextGUID.arg(MAX_KEXT_ID + 1, 1, kextId);
                 sectionName = currKext.baseName();
                 kextId++;
                 break;
