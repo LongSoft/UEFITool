@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     a.setApplicationName("UEFITool");
 
     UEFITool w;
+    w.setProgramPath(a.arguments().at(0));
     if (a.arguments().length() > 1)
         w.openImageFile(a.arguments().at(1));
     w.show();

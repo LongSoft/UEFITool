@@ -27,6 +27,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPlainTextEdit>
+#include <QProcess>
 #include <QSettings>
 #include <QSplitter>
 #include <QString>
@@ -51,6 +52,7 @@ public:
     ~UEFITool();
 
     void openImageFile(QString path);
+    void setProgramPath(QString path);
 
     private slots:
     void init();
@@ -58,6 +60,7 @@ public:
     void scrollTreeView(QListWidgetItem* item);
 
     void openImageFile();
+    void openImageFileInNewWindow();
     void saveImageFile();
     void search();
 
@@ -95,6 +98,7 @@ private:
     SearchDialog* searchDialog;
     QClipboard* clipboard;
     QString currentDir;
+    QString currentProgramPath;
     QQueue<MessageListItem> messageItems;
     const QString version;
 

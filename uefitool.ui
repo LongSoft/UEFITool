@@ -188,6 +188,7 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionOpenImageFile"/>
+    <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
     <addaction name="actionSearch"/>
@@ -520,6 +521,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionOpenImageFileInNewWindow">
+   <property name="text">
+    <string>&amp;Open image file in new window...</string>
+   </property>
+   <property name="toolTip">
+    <string>Open image file in new window</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
    </property>
   </action>
  </widget>
