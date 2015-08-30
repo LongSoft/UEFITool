@@ -32,7 +32,7 @@ extern QString sectionTypeToQString(const UINT8 type);
 //*****************************************************************************
 // EFI Capsule
 //*****************************************************************************
-// Capsule header
+// Standard EFI Capsule header
 typedef struct _EFI_CAPSULE_HEADER {
     EFI_GUID  CapsuleGuid;
     UINT32    HeaderSize;
@@ -49,16 +49,36 @@ typedef struct _EFI_CAPSULE_HEADER {
 const QByteArray EFI_CAPSULE_GUID
 ("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
 
+// Intel capsule GUID
+const QByteArray INTEL_CAPSULE_GUID
+("\xB9\x82\x91\x53\xB5\xAB\x91\x43\xB6\x9A\xE3\xA9\x43\xF7\x2F\xCC", 16);
+
+// Lenovo capsule GUID
+const QByteArray LENOVO_CAPSULE_GUID
+("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
+
+// Toshiba EFI Capsule header
+typedef struct _TOSHIBA_CAPSULE_HEADER {
+    EFI_GUID  CapsuleGuid;
+    UINT32    HeaderSize;
+    UINT32    FullSize;
+    UINT32    Flags;
+} TOSHIBA_CAPSULE_HEADER;
+
+// Toshiba capsule GUID
+const QByteArray TOSHIBA_CAPSULE_GUID
+("\x62\x70\xE0\x3B\x51\x1D\xD2\x45\x83\x2B\xF0\x93\x25\x7E\xD4\x61", 16);
+
 // AMI Aptio extended capsule header
 typedef struct _APTIO_CAPSULE_HEADER {
     EFI_CAPSULE_HEADER    CapsuleHeader;
-    UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
+    UINT16                RomImageOffset;   // offset in bytes from the beginning of the capsule header to the start of
     // the capsule volume
     //!TODO: Enable certificate and ROM layout reading
-    //UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
+    //UINT16                RomLayoutOffset;    // offset to the table of the module descriptors in the capsule's volume
     // that are included in the signature calculation
     //FW_CERTIFICATE      FWCert;
-    //ROM_AREA			  RomAreaMap[1];
+    //ROM_AREA            RomAreaMap[1];
 } APTIO_CAPSULE_HEADER;
 
 // AMI Aptio signed extended capsule GUID
@@ -252,8 +272,8 @@ extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 // Integrity check
 typedef union {
     struct {
-        UINT8	Header;
-        UINT8	File;
+        UINT8   Header;
+        UINT8   File;
     } Checksum;
     UINT16 TailReference;   // Revision 1
     UINT16 Checksum16;      // Revision 2

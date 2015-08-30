@@ -16,8 +16,8 @@
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
-ui(new Ui::UEFITool), 
-version(tr("0.20.7"))
+ui(new Ui::UEFITool),
+version(tr("0.20.8"))
 {
     clipboard = QApplication::clipboard();
 
@@ -85,8 +85,8 @@ UEFITool::~UEFITool()
 }
 
 void UEFITool::setProgramPath(QString path)
-{ 
-    currentProgramPath = path; 
+{
+    currentProgramPath = path;
 };
 
 void UEFITool::init()
@@ -455,7 +455,7 @@ void UEFITool::extract(const UINT8 mode)
         case Types::Capsule:
             path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), currentDir, "Image files (*.rom *.bin);;All files (*)");
             break;
-        case Types::Volume: 
+        case Types::Volume:
             path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"), currentDir, "Volume body files (*.vbd *.bin);;All files (*)");
             break;
         case Types::File: {
@@ -567,6 +567,8 @@ void UEFITool::openImageFile()
 void UEFITool::openImageFileInNewWindow()
 {
     QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec);;All files (*)");
+    if (path.trimmed().isEmpty())
+        return;
     QProcess::startDetached(currentProgramPath, QStringList(path));
 }
 

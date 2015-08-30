@@ -24,7 +24,7 @@ QString regionTypeToQString(const UINT8 type)
     case Subtypes::GbeRegion:
         return QObject::tr("GbE");
     case Subtypes::MeRegion:
-        return QObject::tr("ME/TXE");
+        return QObject::tr("ME");
     case Subtypes::BiosRegion:
         return QObject::tr("BIOS");
     case Subtypes::PdrRegion:
@@ -80,7 +80,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Non-empty");
         else
             return QObject::tr("Unknown subtype");
-    case Types::Volume: 
+    case Types::Volume:
         if (subtype == Subtypes::UnknownVolume)
             return QObject::tr("Unknown");
         else if (subtype == Subtypes::Ffs2Volume)
@@ -89,14 +89,16 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("FFSv3");
         else
             return QObject::tr("Unknown subtype");
-    case Types::Capsule: 
+    case Types::Capsule:
         if (subtype == Subtypes::AptioSignedCapsule)
             return QObject::tr("Aptio signed");
         else if (subtype == Subtypes::AptioUnsignedCapsule)
             return QObject::tr("Aptio unsigned");
         else if (subtype == Subtypes::UefiCapsule)
-            return QObject::tr("UEFI 2.0 ");
-        else 
+            return QObject::tr("UEFI 2.0");
+        else if (subtype == Subtypes::ToshibaCapsule)
+            return QObject::tr("Toshiba");
+        else
             return QObject::tr("Unknown subtype");
     case Types::Region:
         return regionTypeToQString(subtype);
