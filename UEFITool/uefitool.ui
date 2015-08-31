@@ -247,6 +247,7 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionOpenImageFile"/>
+    <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
     <addaction name="actionSearch"/>
@@ -329,6 +330,7 @@
      </property>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
+     <addaction name="actionExtractBodyUncompressed"/>
      <addaction name="separator"/>
      <addaction name="actionRebuild"/>
      <addaction name="separator"/>
@@ -579,6 +581,28 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionOpenImageFileInNewWindow">
+   <property name="text">
+    <string>O&amp;pen image file in new window...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
+  </action>
+  <action name="actionExtractBodyUncompressed">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Extract &amp;body uncompressed...</string>
+   </property>
+   <property name="toolTip">
+    <string>Uncompress and extract body of selected object to file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+E</string>
    </property>
   </action>
  </widget>

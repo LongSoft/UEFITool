@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha6"))
+version(tr("0.30.0_alpha7"))
 {
     clipboard = QApplication::clipboard();
 
@@ -35,10 +35,12 @@ version(tr("0.30.0_alpha6"))
 
     // Connect signals to slots
     connect(ui->actionOpenImageFile, SIGNAL(triggered()), this, SLOT(openImageFile()));
+    connect(ui->actionOpenImageFileInNewWindow, SIGNAL(triggered()), this, SLOT(openImageFileInNewWindow()));
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
     connect(ui->actionSearch, SIGNAL(triggered()), this, SLOT(search()));
     connect(ui->actionExtract, SIGNAL(triggered()), this, SLOT(extractAsIs()));
     connect(ui->actionExtractBody, SIGNAL(triggered()), this, SLOT(extractBody()));
+    connect(ui->actionExtractBodyUncompressed, SIGNAL(triggered()), this, SLOT(extractBodyUncompressed()));
     connect(ui->actionInsertInto, SIGNAL(triggered()), this, SLOT(insertInto()));
     connect(ui->actionInsertBefore, SIGNAL(triggered()), this, SLOT(insertBefore()));
     connect(ui->actionInsertAfter, SIGNAL(triggered()), this, SLOT(insertAfter()));
@@ -92,6 +94,11 @@ UEFITool::~UEFITool()
     delete searchDialog;
     delete ui;
 }
+
+void UEFITool::setProgramPath(QString path)
+{
+    currentProgramPath = path;
+};
 
 void UEFITool::init()
 {
@@ -162,6 +169,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
     //ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionExtractBody->setDisabled(model->hasEmptyBody(current));
+    ui->actionExtractBodyUncompressed->setEnabled(enableExtractBodyUncompressed(current));
     //ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     //ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
     //    (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
@@ -171,6 +179,30 @@ void UEFITool::populateUi(const QModelIndex &current)
     //ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion) || type == Types::Volume || type == Types::File || type == Types::Section);
     //ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionMessagesCopy->setEnabled(false);
+}
+
+bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
+{
+    if (current.isValid() && model->type(current) == Types::Section &&
+       (model->subtype(current) == EFI_SECTION_COMPRESSION || model->subtype(current) == EFI_SECTION_GUID_DEFINED)) {
+        // Get parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(current);
+
+        if (model->subtype(current) == EFI_SECTION_COMPRESSION && 
+            pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_NONE &&
+            pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_UNKNOWN) { //Compressed section
+            return true;
+        }
+        else if (model->subtype(current) == EFI_SECTION_GUID_DEFINED && 
+                (pdata.section.guidDefined.attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED)) {
+            QByteArray guid = QByteArray((const char*)&pdata.section.guidDefined.guid, sizeof(EFI_GUID));
+            if (guid == EFI_GUIDED_SECTION_TIANO || guid == EFI_GUIDED_SECTION_LZMA) {
+                return true;
+            }
+        }
+    }
+        
+    return false;
 }
 
 void UEFITool::search()
@@ -378,6 +410,8 @@ void UEFITool::replace(const UINT8 mode)
                 path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace body"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_SECTION_RAW)
                 path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace body"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
+            else if (model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE || model->subtype(index) == EFI_SECTION_PIC)
+                path = QFileDialog::getOpenFileName(this, tr("Select EFI executable file to replace body"), currentDir, "EFI executable files (*.efi *.dxe *.pei *.bin);;All files (*)");
             else
                 path = QFileDialog::getOpenFileName(this, tr("Select file to replace body"), currentDir, "Binary files (*.bin);;All files (*)");
         }
@@ -425,6 +459,11 @@ void UEFITool::extractBody()
     extract(EXTRACT_MODE_BODY);
 }
 
+void UEFITool::extractBodyUncompressed()
+{
+    extract(EXTRACT_MODE_BODY_UNCOMPRESSED);
+}
+
 void UEFITool::extract(const UINT8 mode)
 {
     QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
@@ -439,7 +478,7 @@ void UEFITool::extract(const UINT8 mode)
         return;
     }
     
-    name = currentDir + QDir::separator() + name;
+    name = QDir::toNativeSeparators(currentDir + QDir::separator() + name);
 
     UINT8 type = model->type(index);
     QString path;
@@ -470,7 +509,7 @@ void UEFITool::extract(const UINT8 mode)
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
         }
     }
-    else if (mode == EXTRACT_MODE_BODY) {
+    else if (mode == EXTRACT_MODE_BODY || mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
         switch (type) {
         case Types::Capsule:
             path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", "Image files (*.rom *.bin);;All files (*)");
@@ -492,6 +531,8 @@ void UEFITool::extract(const UINT8 mode)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"), name + ".vol", "Volume files (*.vol *.bin);;All files (*)");
             else if (model->subtype(index) == EFI_SECTION_RAW)
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"), name + ".raw", "Raw files (*.raw *.bin);;All files (*)");
+            else if (model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE || model->subtype(index) == EFI_SECTION_PIC)
+                path = QFileDialog::getSaveFileName(this, tr("Save section body to EFI executable file"), name + ".efi", "EFI executable files (*.efi *.dxe *.pei *.bin);;All files (*)");
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
         }
@@ -573,8 +614,16 @@ void UEFITool::saveImageFile()
 
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.efi *.dec);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec);;All files (*)");
     openImageFile(path);
+}
+
+void UEFITool::openImageFileInNewWindow()
+{
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec);;All files (*)");
+    if (path.trimmed().isEmpty())
+        return;
+    QProcess::startDetached(currentProgramPath, QStringList(path));
 }
 
 void UEFITool::openImageFile(QString path)
@@ -636,7 +685,7 @@ void UEFITool::copyMessage()
     if (ui->messagesTabWidget->currentIndex() == 0) // Parser tab
       clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
     else if (ui->messagesTabWidget->currentIndex() == 1) // Search tab
-        clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
+      clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
 }
 
 void UEFITool::copyAllMessages()

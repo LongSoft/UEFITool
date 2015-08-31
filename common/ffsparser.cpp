@@ -70,7 +70,9 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
     // Check buffer for being normal EFI capsule header
     UINT32 capsuleHeaderSize = 0;
     QModelIndex index;
-    if (buffer.startsWith(EFI_CAPSULE_GUID)) {
+    if (buffer.startsWith(EFI_CAPSULE_GUID)
+        || buffer.startsWith(INTEL_CAPSULE_GUID)
+        || buffer.startsWith(LENOVO_CAPSULE_GUID)) {
         // Get info
         const EFI_CAPSULE_HEADER* capsuleHeader = (const EFI_CAPSULE_HEADER*)buffer.constData();
         capsuleHeaderSize = capsuleHeader->HeaderSize;
@@ -90,6 +92,28 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
 
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
+    }
+    // Check buffer for being Toshiba capsule header
+    else if (buffer.startsWith(TOSHIBA_CAPSULE_GUID)) {
+        // Get info
+        const TOSHIBA_CAPSULE_HEADER* capsuleHeader = (const TOSHIBA_CAPSULE_HEADER*)buffer.constData();
+        capsuleHeaderSize = capsuleHeader->HeaderSize;
+        QByteArray header = buffer.left(capsuleHeaderSize);
+        QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
+        QString name = tr("UEFI capsule");
+        QString info = tr("Offset: 0h\nCapsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
+            .arg(guidToQString(capsuleHeader->CapsuleGuid))
+            .hexarg(buffer.size()).arg(buffer.size())
+            .hexarg(capsuleHeader->HeaderSize).arg(capsuleHeader->HeaderSize)
+            .hexarg(capsuleHeader->FullSize - capsuleHeader->HeaderSize).arg(capsuleHeader->FullSize - capsuleHeader->HeaderSize)
+            .hexarg2(capsuleHeader->Flags, 8);
+
+        // Construct parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
+        pdata.fixed = TRUE;
+
+        // Add tree item
+        index = model->addItem(Types::Capsule, Subtypes::ToshibaCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
     }
     // Check buffer for being extended Aptio signed capsule header
     else if (buffer.startsWith(APTIO_SIGNED_CAPSULE_GUID) || buffer.startsWith(APTIO_UNSIGNED_CAPSULE_GUID)) {
@@ -409,6 +433,44 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         }
         if (result)
             return result;
+    }
+
+    // Add the data after the last region as padding
+    UINT32 IntelDataEnd = 0;
+    UINT32 LastRegionOffset = offsets.last();
+    if (LastRegionOffset == gbeBegin)
+        IntelDataEnd = gbeEnd;
+    else if (LastRegionOffset == meBegin)
+        IntelDataEnd = meEnd;
+    else if (LastRegionOffset == biosBegin)
+        IntelDataEnd = biosEnd;
+    else if (LastRegionOffset == pdrBegin)
+        IntelDataEnd = pdrEnd;
+
+    if (IntelDataEnd > (UINT32)intelImage.size()) { // Image file is truncated
+        msg(tr("parseIntelImage: image size %1 (%2) is smaller than the end of last region %3 (%4), may be damaged")
+            .hexarg(intelImage.size()).arg(intelImage.size())
+            .hexarg(IntelDataEnd).arg(IntelDataEnd), index);
+        return ERR_TRUNCATED_IMAGE;
+    }
+    else if (IntelDataEnd < (UINT32)intelImage.size()) { // Insert padding
+        QByteArray padding = bios.right(intelImage.size() - IntelDataEnd);
+
+        // Get parent's parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+        // Get info
+        name = tr("Padding");
+        info = tr("Full size: %1h (%2)")
+            .hexarg(padding.size()).arg(padding.size());
+
+        // Construct parsing data
+        pdata.fixed = TRUE;
+        pdata.offset = IntelDataEnd;
+        if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
+
+        // Add tree item
+        QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
     }
 
     // Check if the last VTF is found
@@ -831,15 +893,22 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     // Determine value of empty byte
     UINT8 emptyByte = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
 
-    // Check for Apple CRC32 in ZeroVector
+    // Check for AppleCRC32 and AppleFreeSpaceOffset in ZeroVector
     bool hasAppleCrc32 = false;
+    bool hasAppleFSO = false;
     UINT32 volumeSize = volume.size();
     UINT32 appleCrc32 = *(UINT32*)(volume.constData() + 8);
+    UINT32 appleFSO = *(UINT32*)(volume.constData() + 12);
     if (appleCrc32 != 0) {
         // Calculate CRC32 of the volume body
         UINT32 crc = crc32(0, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
         if (crc == appleCrc32) {
             hasAppleCrc32 = true;
+        }
+
+        // Check if FreeSpaceOffset is non-zero
+        if (appleFSO != 0) {
+            hasAppleFSO = true;
         }
     }
 
@@ -884,6 +953,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     pdata.volume.alignment = alignment;
     pdata.volume.revision = volumeHeader->Revision;
     pdata.volume.hasAppleCrc32 = hasAppleCrc32;
+    pdata.volume.hasAppleFSO = hasAppleFSO;
     pdata.volume.isWeakAligned = (volumeHeader->Revision > 1 && (volumeHeader->Attributes & EFI_FVB2_WEAK_ALIGNMENT));
     if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
@@ -891,6 +961,8 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     QString text;
     if (hasAppleCrc32)
         text += tr("AppleCRC32 ");
+    if (hasAppleFSO)
+        text += tr("AppleFSO ");
 
     // Add tree item
     UINT8 subtype = Subtypes::UnknownVolume;

@@ -27,6 +27,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPlainTextEdit>
+#include <QProcess>
 #include <QSettings>
 #include <QSplitter>
 #include <QString>
@@ -56,6 +57,7 @@ public:
     ~UEFITool();
 
     void openImageFile(QString path);
+    void setProgramPath(QString path);
 
 private slots:
     void init();
@@ -63,12 +65,14 @@ private slots:
     void scrollTreeView(QListWidgetItem* item);
 
     void openImageFile();
+    void openImageFileInNewWindow();
     void saveImageFile();
     void search();
 
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
+    void extractBodyUncompressed();
 
     void insert(const UINT8 mode);
     void insertInto();
@@ -104,7 +108,10 @@ private:
     SearchDialog* searchDialog;
     QClipboard* clipboard;
     QString currentDir;
+    QString currentProgramPath;
     const QString version;
+
+    bool enableExtractBodyUncompressed(const QModelIndex &current);
 
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);

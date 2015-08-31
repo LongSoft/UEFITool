@@ -94,6 +94,17 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         extracted.clear();
         extracted.append(model->body(index));
     }
+    else if (mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
+        name += tr("_body_unc");
+        // Extract without header and tail, uncompressed
+        extracted.clear();
+        // There is no need to redo decompression, we can use child items
+        for (int i = 0; i < model->rowCount(index); i++) {
+             QModelIndex childIndex = index.child(i, 0);
+             extracted.append(model->header(childIndex));
+             extracted.append(model->body(childIndex));
+        }
+    }
     else
         return ERR_UNKNOWN_EXTRACT_MODE;
 

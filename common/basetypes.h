@@ -77,6 +77,7 @@ typedef UINT8 STATUS;
 #define ERR_UNKNOWN_RELOCATION_TYPE         31
 #define ERR_DIR_ALREADY_EXIST               32
 #define ERR_DIR_CREATE                      33
+#define ERR_TRUNCATED_IMAGE                 34
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions
@@ -105,8 +106,9 @@ typedef UINT8 STATUS;
 #define CREATE_MODE_AFTER     3
 
 // Item extract modes
-#define EXTRACT_MODE_AS_IS    0
-#define EXTRACT_MODE_BODY     1
+#define EXTRACT_MODE_AS_IS                 0
+#define EXTRACT_MODE_BODY                  1
+#define EXTRACT_MODE_BODY_UNCOMPRESSED     2
 
 // Item replace modes
 #define REPLACE_MODE_AS_IS    0

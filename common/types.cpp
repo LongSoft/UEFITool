@@ -97,7 +97,9 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         else if (subtype == Subtypes::AptioUnsignedCapsule)
             return QObject::tr("Aptio unsigned");
         else if (subtype == Subtypes::UefiCapsule)
-            return QObject::tr("UEFI 2.0 ");
+            return QObject::tr("UEFI 2.0");
+        else if (subtype == Subtypes::ToshibaCapsule)
+            return QObject::tr("Toshiba");
         else 
             return QObject::tr("Unknown subtype");
     case Types::Region:

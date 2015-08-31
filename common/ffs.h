@@ -49,6 +49,26 @@ typedef struct _EFI_CAPSULE_HEADER {
 const QByteArray EFI_CAPSULE_GUID
 ("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
 
+// Intel capsule GUID
+const QByteArray INTEL_CAPSULE_GUID
+("\xB9\x82\x91\x53\xB5\xAB\x91\x43\xB6\x9A\xE3\xA9\x43\xF7\x2F\xCC", 16);
+
+// Lenovo capsule GUID
+const QByteArray LENOVO_CAPSULE_GUID
+("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
+
+// Toshiba EFI Capsule header
+typedef struct _TOSHIBA_CAPSULE_HEADER {
+    EFI_GUID  CapsuleGuid;
+    UINT32    HeaderSize;
+    UINT32    FullSize;
+    UINT32    Flags;
+} TOSHIBA_CAPSULE_HEADER;
+
+// Toshiba capsule GUID
+const QByteArray TOSHIBA_CAPSULE_GUID
+("\x62\x70\xE0\x3B\x51\x1D\xD2\x45\x83\x2B\xF0\x93\x25\x7E\xD4\x61", 16);
+
 // AMI Aptio extended capsule header
 typedef struct _APTIO_CAPSULE_HEADER {
     EFI_CAPSULE_HEADER    CapsuleHeader;
