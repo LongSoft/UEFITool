@@ -17,7 +17,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "basetypes.h"
 
 // Make sure we use right packing rules
-#pragma pack(push,1)
+#pragma pack(push, 1)
 
 // Flash descriptor header
 typedef struct _FLASH_DESCRIPTOR_HEADER {
@@ -34,37 +34,38 @@ typedef struct _FLASH_DESCRIPTOR_HEADER {
 // Descriptor map
 // Base fields are storing bits [11:4] of actual base addresses, all other bits are 0
 typedef struct _FLASH_DESCRIPTOR_MAP {
-    UINT8  ComponentBase;           // 0x03 on most machines
-    UINT8  NumberOfFlashChips;      // Zero-based number of flash chips installed on board
-    UINT8  RegionBase;              // 0x04 on most machines
-    UINT8  NumberOfRegions;         // Zero-based number of flash regions (descriptor is always included)
-    UINT8  MasterBase;              // 0x06 on most machines
-    UINT8  NumberOfMasters;         // Zero-based number of flash masters
-    UINT8  PchStrapsBase;           // 0x10 on most machines
-    UINT8  NumberOfPchStraps;       // One-based number of UINT32s to read as PCH Straps, min=0, max=255 (1 Kb)
-    UINT8  ProcStrapsBase;          // 0x20 on most machines
-    UINT8  NumberOfProcStraps;      // Number of PROC straps to be read, can be 0 or 1
-    UINT8  IccTableBase;            // 0x21 on most machines
-    UINT8  NumberOfIccTableEntries; // 0x00 on most machines
-    UINT8  DmiTableBase;            // 0x25 on most machines
-    UINT8  NumberOfDmiTableEntries; // 0x00 on most machines
-    UINT16 ReservedZero;            // Still unknown, zeros in all descriptors I have seen
+    // FLMAP0
+    UINT32 ComponentBase : 8;           
+    UINT32 NumberOfFlashChips : 2;  // Zero-based number of flash chips installed on board
+    UINT32 : 6;
+    UINT32 RegionBase : 8;              
+    UINT32 : 8;
+    // FLMAP 1
+    UINT32 MasterBase : 8;              
+    UINT32 NumberOfMasters : 2;
+    UINT32 : 6;
+    UINT32 PchStrapsBase : 8;           
+    UINT32 NumberOfPchStraps : 8;   // One-based number of UINT32s to read as PCH straps, min=0, max=255 (1 Kb)
+    // FLMAP 2
+    UINT32 ProcStrapsBase : 8;          
+    UINT32 NumberOfProcStraps : 8;  // One-based number of UINT32s to read as processor straps, min=0, max=255 (1 Kb)
+    UINT32: 16;
 } FLASH_DESCRIPTOR_MAP;
 
 // Component section
 // Flash parameters DWORD structure
 typedef struct _FLASH_PARAMETERS {
-    UINT8 FirstChipDensity : 3;
-    UINT8 SecondChipDensity : 3;
-    UINT8 ReservedZero0 : 2;  // Still unknown, zeros in all descriptors I have seen
-    UINT8 ReservedZero1 : 8;  // Still unknown, zeros in all descriptors I have seen
-    UINT8 ReservedZero2 : 4;  // Still unknown, zeros in all descriptors I have seen
+    UINT8 FirstChipDensity : 4;
+    UINT8 SecondChipDensity : 4;
+    UINT8 : 8;
+    UINT8 : 1;
+    UINT8 ReadClockFreqency : 3; // Hardcoded value of 20 Mhz (000b) in v1 descriptors and 17 Mhz (110b) in v2 ones
     UINT8 FastReadEnabled : 1;
     UINT8 FastReadFreqency : 3;
     UINT8 FlashReadStatusFrequency : 3;
     UINT8 FlashWriteFrequency : 3;
     UINT8 DualOutputFastReadSupported : 1;
-    UINT8 ReservedZero3 : 1;  // Still unknown, zero in all descriptors I have seen
+    UINT8 : 1;
 } FLASH_PARAMETERS;
 
 // Flash densities
@@ -74,11 +75,16 @@ typedef struct _FLASH_PARAMETERS {
 #define FLASH_DENSITY_4MB     0x03
 #define FLASH_DENSITY_8MB     0x04
 #define FLASH_DENSITY_16MB    0x05
+#define FLASH_DENSITY_32MB    0x06
+#define FLASH_DENSITY_64MB    0x07
+#define FLASH_DENSITY_UNUSED  0x0F
 
 // Flash frequencies
-#define FLASH_FREQUENCY_20MHZ  0x00
-#define FLASH_FREQUENCY_33MHZ  0x01
-#define FLASH_FREQUENCY_50MHZ  0x04
+#define FLASH_FREQUENCY_20MHZ       0x00
+#define FLASH_FREQUENCY_33MHZ       0x01
+#define FLASH_FREQUENCY_48MHZ       0x02
+#define FLASH_FREQUENCY_50MHZ_30MHZ 0x04
+#define FLASH_FREQUENCY_17MHZ       0x06
 
 // Component section structure
 typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION {
@@ -87,24 +93,45 @@ typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION {
     UINT8            InvalidInstruction1;  //
     UINT8            InvalidInstruction2;  //
     UINT8            InvalidInstruction3;  //
-    UINT16           PartitionBoundary;    // Upper 16 bit of partition boundary address. Default is 0x0000, which makes the boundary to be 0x00001000
-    UINT16           ReservedZero;         // Still unknown, zero in all descriptors I have seen
 } FLASH_DESCRIPTOR_COMPONENT_SECTION;
+
+// Component section structure
+typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION_V2 {
+    FLASH_PARAMETERS FlashParameters;
+    UINT8            InvalidInstruction0;  // Instructions for SPI chip, that must not be executed, like FLASH ERASE
+    UINT8            InvalidInstruction1;  //
+    UINT8            InvalidInstruction2;  //
+    UINT8            InvalidInstruction3;  //
+    UINT8            InvalidInstruction4;  //
+    UINT8            InvalidInstruction5;  //
+    UINT8            InvalidInstruction6;  //
+    UINT8            InvalidInstruction7;  //
+} FLASH_DESCRIPTOR_COMPONENT_SECTION_V2;
 
 // Region section
 // All base and limit register are storing upper part of actual UINT32 base and limit
 // If limit is zero - region is not present
 typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
-    UINT16 ReservedZero;                  // Still unknown, zero in all descriptors I have seen
+    UINT16 :16;                           
     UINT16 FlashBlockEraseSize;           // Size of block erased by single BLOCK ERASE command
-    UINT16 BiosBase;
-    UINT16 BiosLimit;
-    UINT16 MeBase;
-    UINT16 MeLimit;
-    UINT16 GbeBase;
-    UINT16 GbeLimit;
-    UINT16 PdrBase;
-    UINT16 PdrLimit;
+    UINT16 Region0Base;                   // BIOS
+    UINT16 Region0Limit;                  //
+    UINT16 Region1Base;                   // ME
+    UINT16 Region1Limit;                  //
+    UINT16 Region2Base;                   // GbE
+    UINT16 Region2Limit;                  //
+    UINT16 Region3Base;                   // PDR
+    UINT16 Region3Limit;                  //
+    UINT16 Region4Base;                   // Reserved region
+    UINT16 Region4Limit;                  //
+    UINT16 Region5Base;                   // Reserved region
+    UINT16 Region5Limit;                  //
+    UINT16 Region6Base;                   // Reserved region
+    UINT16 Region6Limit;                  //
+    UINT16 Region7Base;                   // Reserved region
+    UINT16 Region7Limit;                  //
+    UINT16 Region8Base;                   // EC
+    UINT16 Region8Limit;                  //
 } FLASH_DESCRIPTOR_REGION_SECTION;
 
 // Flash block erase sizes
@@ -115,15 +142,32 @@ typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
 // Master section
 typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION {
     UINT16 BiosId;
-    UINT8 BiosRead;
-    UINT8 BiosWrite;
+    UINT8  BiosRead;
+    UINT8  BiosWrite;
     UINT16 MeId;
-    UINT8 MeRead;
-    UINT8 MeWrite;
+    UINT8  MeRead;
+    UINT8  MeWrite;
     UINT16 GbeId;
-    UINT8 GbeRead;
-    UINT8 GbeWrite;
+    UINT8  GbeRead;
+    UINT8  GbeWrite;
 } FLASH_DESCRIPTOR_MASTER_SECTION;
+
+// Master section v2 (Skylake+)
+typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION_V2 {
+    UINT32 : 8;
+    UINT32 BiosRead : 12;
+    UINT32 BiosWrite : 12;
+    UINT32 : 8;
+    UINT32 MeRead : 12;
+    UINT32 MeWrite : 12;
+    UINT32 : 8;
+    UINT32 GbeRead : 12;
+    UINT32 GbeWrite : 12;
+    UINT32 :32;
+    UINT32 : 8;
+    UINT32 EcRead : 12;
+    UINT32 EcWrite : 12;
+} FLASH_DESCRIPTOR_MASTER_SECTION_V2;
 
 // Region access bits in master section
 #define FLASH_DESCRIPTOR_REGION_ACCESS_DESC 0x01
@@ -131,8 +175,7 @@ typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION {
 #define FLASH_DESCRIPTOR_REGION_ACCESS_ME   0x04
 #define FLASH_DESCRIPTOR_REGION_ACCESS_GBE  0x08
 #define FLASH_DESCRIPTOR_REGION_ACCESS_PDR  0x10
-
-//!TODO: Describe PCH and PROC straps sections, as well as ICC and DMI tables
+#define FLASH_DESCRIPTOR_REGION_ACCESS_EC   0x20
 
 // Base address of descriptor upper map
 #define FLASH_DESCRIPTOR_UPPER_MAP_BASE 0x0EFC

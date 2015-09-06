@@ -69,7 +69,8 @@ namespace Subtypes {
         GbeRegion,
         MeRegion,
         BiosRegion,
-        PdrRegion
+        PdrRegion,
+        EcRegion
     };
 
     enum PaddingSubtypes {

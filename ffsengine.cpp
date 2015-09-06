@@ -155,8 +155,7 @@ UINT8 FfsEngine::parseImageFile(const QByteArray & buffer)
     UINT32 capsuleHeaderSize = 0;
     QModelIndex index;
     if (buffer.startsWith(EFI_CAPSULE_GUID)
-        || buffer.startsWith(INTEL_CAPSULE_GUID)
-        || buffer.startsWith(LENOVO_CAPSULE_GUID)) {
+        || buffer.startsWith(INTEL_CAPSULE_GUID)) {
         // Get info
         const EFI_CAPSULE_HEADER* capsuleHeader = (const EFI_CAPSULE_HEADER*)buffer.constData();
         capsuleHeaderSize = capsuleHeader->HeaderSize;
@@ -266,45 +265,36 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)(descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
     const FLASH_DESCRIPTOR_UPPER_MAP*  upperMap = (const FLASH_DESCRIPTOR_UPPER_MAP*)(descriptor + FLASH_DESCRIPTOR_UPPER_MAP_BASE);
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8(descriptor, descriptorMap->RegionBase);
-    const FLASH_DESCRIPTOR_MASTER_SECTION* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION*)calculateAddress8(descriptor, descriptorMap->MasterBase);
+    const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8(descriptor, descriptorMap->ComponentBase);
 
-    // GbE region
-    QByteArray gbe;
-    UINT32 gbeBegin = 0;
-    UINT32 gbeEnd = 0;
-    if (regionSection->GbeLimit) {
-        gbeBegin = calculateRegionOffset(regionSection->GbeBase);
-        gbeEnd = calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
-        gbe = intelImage.mid(gbeBegin, gbeEnd);
-        gbeEnd += gbeBegin;
+    // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
+    UINT8 descriptorVersion = 0;
+    if (componentSection->FlashParameters.ReadClockFreqency == FLASH_FREQUENCY_20MHZ)      // Old descriptor
+        descriptorVersion = 1;
+    else if (componentSection->FlashParameters.ReadClockFreqency == FLASH_FREQUENCY_17MHZ) // Skylake+ descriptor
+        descriptorVersion = 2;
+    else {
+        msg(tr("parseIntelImage: unknown descriptor version with ReadClockFreqency %1h").hexarg(componentSection->FlashParameters.ReadClockFreqency));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
     }
+
     // ME region
     QByteArray me;
     UINT32 meBegin = 0;
     UINT32 meEnd = 0;
-    if (regionSection->MeLimit) {
-        meBegin = calculateRegionOffset(regionSection->MeBase);
-        meEnd = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+    if (regionSection->Region1Limit) {
+        meBegin = calculateRegionOffset(regionSection->Region1Base);
+        meEnd = calculateRegionSize(regionSection->Region1Base, regionSection->Region1Limit);
         me = intelImage.mid(meBegin, meEnd);
         meEnd += meBegin;
-    }
-    // PDR region
-    QByteArray pdr;
-    UINT32 pdrBegin = 0;
-    UINT32 pdrEnd = 0;
-    if (regionSection->PdrLimit) {
-        pdrBegin = calculateRegionOffset(regionSection->PdrBase);
-        pdrEnd = calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
-        pdr = intelImage.mid(pdrBegin, pdrEnd);
-        pdrEnd += pdrBegin;
     }
     // BIOS region
     QByteArray bios;
     UINT32 biosBegin = 0;
     UINT32 biosEnd = 0;
-    if (regionSection->BiosLimit) {
-        biosBegin = calculateRegionOffset(regionSection->BiosBase);
-        biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+    if (regionSection->Region0Limit) {
+        biosBegin = calculateRegionOffset(regionSection->Region0Base);
+        biosEnd = calculateRegionSize(regionSection->Region0Base, regionSection->Region0Limit);
 
         // Check for Gigabyte specific descriptor map
         if (biosEnd - biosBegin == (UINT32)intelImage.size()) {
@@ -322,8 +312,41 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
+    // GbE region
+    QByteArray gbe;
+    UINT32 gbeBegin = 0;
+    UINT32 gbeEnd = 0;
+    if (regionSection->Region2Limit) {
+        gbeBegin = calculateRegionOffset(regionSection->Region2Base);
+        gbeEnd = calculateRegionSize(regionSection->Region2Base, regionSection->Region2Limit);
+        gbe = intelImage.mid(gbeBegin, gbeEnd);
+        gbeEnd += gbeBegin;
+    }
+    // PDR region
+    QByteArray pdr;
+    UINT32 pdrBegin = 0;
+    UINT32 pdrEnd = 0;
+    if (regionSection->Region3Limit) {
+        pdrBegin = calculateRegionOffset(regionSection->Region3Base);
+        pdrEnd = calculateRegionSize(regionSection->Region3Base, regionSection->Region3Limit);
+        pdr = intelImage.mid(pdrBegin, pdrEnd);
+        pdrEnd += pdrBegin;
+    }
+    // EC region
+    QByteArray ec;
+    UINT32 ecBegin = 0;
+    UINT32 ecEnd = 0;
+    if (descriptorVersion == 2) {
+        if (regionSection->Region8Limit) {
+            pdrBegin = calculateRegionOffset(regionSection->Region8Base);
+            pdrEnd = calculateRegionSize(regionSection->Region8Base, regionSection->Region8Limit);
+            pdr = intelImage.mid(ecBegin, ecEnd);
+            ecEnd += ecBegin;
+        }
+    }
 
     // Check for intersections between regions
+    // Descriptor
     if (hasIntersection(descriptorBegin, descriptorEnd, gbeBegin, gbeEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with GbE region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
@@ -340,6 +363,11 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
+    if (descriptorVersion == 2 && hasIntersection(descriptorBegin, descriptorEnd, ecBegin, ecEnd)) {
+        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with EC region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    // GbE
     if (hasIntersection(gbeBegin, gbeEnd, meBegin, meEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with ME region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
@@ -352,6 +380,11 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
+    if (descriptorVersion == 2 && hasIntersection(gbeBegin, gbeEnd, ecBegin, ecEnd)) {
+        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with EC region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    // ME
     if (hasIntersection(meBegin, meEnd, biosBegin, biosEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with BIOS region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
@@ -360,8 +393,22 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
+    if (descriptorVersion == 2 && hasIntersection(meBegin, meEnd, ecBegin, ecEnd)) {
+        msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with EC region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    // BIOS
     if (hasIntersection(biosBegin, biosEnd, pdrBegin, pdrEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with PDR region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (descriptorVersion == 2 && hasIntersection(biosBegin, biosEnd, ecBegin, ecEnd)) {
+        msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with EC region"));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    // PDR
+    if (descriptorVersion == 2 && hasIntersection(pdrBegin, pdrEnd, ecBegin, ecEnd)) {
+        msg(tr("parseIntelImage: descriptor parsing failed, PDR region has intersection with EC region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
 
@@ -369,14 +416,12 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Intel image
     QString name = tr("Intel image");
-    QString info = tr("Full size: %1h (%2)\nFlash chips: %3\nRegions: %4\nMasters: %5\nPCH straps: %6\nPROC straps: %7\nICC table entries: %8")
+    QString info = tr("Full size: %1h (%2)\nFlash chips: %3\nMasters: %4\nPCH straps: %5\nCPU straps: %6\n")
         .hexarg(intelImage.size()).arg(intelImage.size())
-        .arg(descriptorMap->NumberOfFlashChips + 1) //
-        .arg(descriptorMap->NumberOfRegions + 1)    // Zero-based numbers in storage
-        .arg(descriptorMap->NumberOfMasters + 1)    //
+        .arg(descriptorMap->NumberOfFlashChips + 1)
+        .arg(descriptorMap->NumberOfMasters + 1)
         .arg(descriptorMap->NumberOfPchStraps)
-        .arg(descriptorMap->NumberOfProcStraps)
-        .arg(descriptorMap->NumberOfIccTableEntries);
+        .arg(descriptorMap->NumberOfProcStraps);
 
     // Add Intel image tree item
     index = model->addItem(Types::Image, Subtypes::IntelImage, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), intelImage, parent);
@@ -389,49 +434,89 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Check regions presence once again
     QVector<UINT32> offsets;
-    if (regionSection->GbeLimit) {
+    if (regionSection->Region2Limit) {
         offsets.append(gbeBegin);
         info += tr("\nGbE region offset:  %1h").hexarg(gbeBegin);
     }
-    if (regionSection->MeLimit) {
+    if (regionSection->Region1Limit) {
         offsets.append(meBegin);
         info += tr("\nME region offset:   %1h").hexarg(meBegin);
     }
-    if (regionSection->BiosLimit) {
+    if (regionSection->Region0Limit) {
         offsets.append(biosBegin);
         info += tr("\nBIOS region offset: %1h").hexarg(biosBegin);
     }
-    if (regionSection->PdrLimit) {
+    if (regionSection->Region3Limit) {
         offsets.append(pdrBegin);
         info += tr("\nPDR region offset:  %1h").hexarg(pdrBegin);
     }
+    if (descriptorVersion == 2 && regionSection->Region8Limit) {
+        offsets.append(ecBegin);
+        info += tr("\nEC region offset:  %1h").hexarg(ecBegin);
+    }
 
     // Region access settings
-    info += tr("\nRegion access settings:");
-    info += tr("\nBIOS:%1%2h ME:%3%4h GbE:%5%6h")
-        .hexarg2(masterSection->BiosRead, 2)
-        .hexarg2(masterSection->BiosWrite, 2)
-        .hexarg2(masterSection->MeRead, 2)
-        .hexarg2(masterSection->MeWrite, 2)
-        .hexarg2(masterSection->GbeRead, 2)
-        .hexarg2(masterSection->GbeWrite, 2);
+    if (descriptorVersion == 1) {
+        const FLASH_DESCRIPTOR_MASTER_SECTION* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION*)calculateAddress8(descriptor, descriptorMap->MasterBase);
+        info += tr("\nRegion access settings:");
+        info += tr("\nBIOS:%1%2h ME:%3%4h GbE:%5%6h")
+            .hexarg2(masterSection->BiosRead, 2)
+            .hexarg2(masterSection->BiosWrite, 2)
+            .hexarg2(masterSection->MeRead, 2)
+            .hexarg2(masterSection->MeWrite, 2)
+            .hexarg2(masterSection->GbeRead, 2)
+            .hexarg2(masterSection->GbeWrite, 2);
 
-    // BIOS access table
-    info += tr("\nBIOS access table:");
-    info += tr("\n      Read  Write");
-    info += tr("\nDesc  %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
-    info += tr("\nBIOS  Yes   Yes");
-    info += tr("\nME    %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
-    info += tr("\nGbE   %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
-    info += tr("\nPDR   %1  %2")
-        .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ")
-        .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
+        // BIOS access table
+        info += tr("\nBIOS access table:");
+        info += tr("\n      Read  Write");
+        info += tr("\nDesc  %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
+        info += tr("\nBIOS  Yes   Yes");
+        info += tr("\nME    %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
+        info += tr("\nGbE   %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
+        info += tr("\nPDR   %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
+    }
+    else if (descriptorVersion == 2) {
+        const FLASH_DESCRIPTOR_MASTER_SECTION_V2* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION_V2*)calculateAddress8(descriptor, descriptorMap->MasterBase);
+        info += tr("\nRegion access settings:");
+        info += tr("\nBIOS: %1h %2h ME: %3h %4h\nGbE:  %5h %6h EC: %7h %8h")
+            .hexarg2(masterSection->BiosRead, 3)
+            .hexarg2(masterSection->BiosWrite, 3)
+            .hexarg2(masterSection->MeRead, 3)
+            .hexarg2(masterSection->MeWrite, 3)
+            .hexarg2(masterSection->GbeRead, 3)
+            .hexarg2(masterSection->GbeWrite, 3)
+            .hexarg2(masterSection->EcRead, 3)
+            .hexarg2(masterSection->EcWrite, 3);
+
+        // BIOS access table
+        info += tr("\nBIOS access table:");
+        info += tr("\n      Read  Write");
+        info += tr("\nDesc  %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
+        info += tr("\nBIOS  Yes   Yes");
+        info += tr("\nME    %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
+        info += tr("\nGbE   %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
+        info += tr("\nPDR   %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
+        info += tr("\nEC    %1  %2")
+            .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ")
+            .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ");
+    }
 
     // VSCC table
     const VSCC_TABLE_ENTRY* vsccTableEntry = (const VSCC_TABLE_ENTRY*)(descriptor + ((UINT16)upperMap->VsccTableBase << 4));
@@ -474,6 +559,11 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
             QModelIndex pdrIndex;
             result = parsePdrRegion(pdr, pdrIndex, index);
         }
+        // Parse EC region
+        else if (descriptorVersion == 2 && offsets.at(i) == ecBegin) {
+            QModelIndex ecIndex;
+            result = parseEcRegion(ec, ecIndex, index);
+        }
         if (result)
             return result;
     }
@@ -489,6 +579,8 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         IntelDataEnd = biosEnd;
     else if (LastRegionOffset == pdrBegin)
         IntelDataEnd = pdrEnd;
+    else if (descriptorVersion == 2 && LastRegionOffset == ecBegin)
+        IntelDataEnd = ecEnd;
 
     if (IntelDataEnd > (UINT32)intelImage.size()) { // Image file is truncated
         msg(tr("parseIntelImage: image size %1 (%2) is smaller than the end of last region %3 (%4), may be damaged")
@@ -611,6 +703,23 @@ UINT8 FfsEngine::parsePdrRegion(const QByteArray & pdr, QModelIndex & index, con
     UINT8 result = parseBios(pdr, index);
     if (result && result != ERR_VOLUMES_NOT_FOUND && result != ERR_INVALID_VOLUME)
         return result;
+
+    return ERR_SUCCESS;
+}
+
+UINT8 FfsEngine::parseEcRegion(const QByteArray & ec, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
+{
+    // Check sanity
+    if (ec.isEmpty())
+        return ERR_EMPTY_REGION;
+
+    // Get info
+    QString name = tr("EC region");
+    QString info = tr("Full size: %1h (%2)").
+        hexarg(ec.size()).arg(ec.size());
+
+    // Add tree item
+    index = model->addItem(Types::Region, Subtypes::EcRegion, COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), ec, parent, mode);
 
     return ERR_SUCCESS;
 }
@@ -928,10 +1037,10 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
             // All the rest is either free space or non-UEFI data
             QByteArray rest = volume.right(volumeSize - fileOffset);
             if (rest.count(empty) == rest.size()) { // It's a free space
-                model->addItem(Types::FreeSpace, 0, COMPRESSION_ALGORITHM_NONE, tr("Volume free space"), "", tr("Full size: %1h (%2)").hexarg(rest.size()).arg(rest.size()), QByteArray(), rest, index, mode);
+                model->addItem(Types::FreeSpace, 0, COMPRESSION_ALGORITHM_NONE, tr("Volume free space"), "", tr("Full size: %1h (%2)").hexarg(rest.size()).arg(rest.size()), QByteArray(), rest, index);
             }
             else { //It's non-UEFI data
-                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(rest.size()).arg(rest.size()), QByteArray(), rest, index, mode);
+                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(rest.size()).arg(rest.size()), QByteArray(), rest, index);
                 msg(tr("parseVolume: non-UEFI data found in volume's free space"), dataIndex);
             }
             // Exit from loop
@@ -973,16 +1082,16 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
                 // Add all bytes before as free space...
                 if (i > 0) {
                     QByteArray free = freeSpace.left(i);
-                    model->addItem(Types::FreeSpace, 0, COMPRESSION_ALGORITHM_NONE, tr("Volume free space"), "", tr("Full size: %1h (%2)").hexarg(free.size()).arg(free.size()), QByteArray(), free, index, mode);
+                    model->addItem(Types::FreeSpace, 0, COMPRESSION_ALGORITHM_NONE, tr("Volume free space"), "", tr("Full size: %1h (%2)").hexarg(free.size()).arg(free.size()), QByteArray(), free, index);
                 }
                 // ... and all bytes after as a padding
                 QByteArray padding = freeSpace.mid(i);
-                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size()), QByteArray(), padding, index, mode);
+                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, COMPRESSION_ALGORITHM_NONE, tr("Non-UEFI data"), "", tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size()), QByteArray(), padding, index);
                 msg(tr("parseVolume: non-UEFI data found in volume's free space"), dataIndex);
             }
             else {
                 // Add free space element
-                model->addItem(Types::FreeSpace, 0, COMPRESSION_ALGORITHM_NONE, tr("Volume free space"), "", tr("Full size: %1h (%2)").hexarg(freeSpace.size()).arg(freeSpace.size()), QByteArray(), freeSpace, index, mode);
+                model->addItem(Types::FreeSpace, 0, COMPRESSION_ALGORITHM_NONE, tr("Volume free space"), "", tr("Full size: %1h (%2)").hexarg(freeSpace.size()).arg(freeSpace.size()), QByteArray(), freeSpace, index);
             }
             break; // Exit from loop
         }
@@ -1989,7 +2098,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         if (header.isEmpty()) // Whole volume
             volume.append(body);
         else { // Body only
-            volume.append(model->header(index)).append(body);
+            volume.append(header).append(body);
             INT32 sizeDiff = model->body(index).size() - body.size();
             if (sizeDiff > 0) {
                 const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)model->header(index).constData();
@@ -2704,17 +2813,37 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)(descriptor.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
         const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->RegionBase);
         QByteArray gbe;
-        UINT32 gbeBegin = calculateRegionOffset(regionSection->GbeBase);
-        UINT32 gbeEnd = gbeBegin + calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
+        UINT32 gbeBegin = calculateRegionOffset(regionSection->Region2Base);
+        UINT32 gbeEnd = gbeBegin + calculateRegionSize(regionSection->Region2Base, regionSection->Region2Limit);
         QByteArray me;
-        UINT32 meBegin = calculateRegionOffset(regionSection->MeBase);
-        UINT32 meEnd = meBegin + calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+        UINT32 meBegin = calculateRegionOffset(regionSection->Region1Base);
+        UINT32 meEnd = meBegin + calculateRegionSize(regionSection->Region1Base, regionSection->Region1Limit);
         QByteArray bios;
-        UINT32 biosBegin = calculateRegionOffset(regionSection->BiosBase);
-        UINT32 biosEnd = biosBegin + calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+        UINT32 biosBegin = calculateRegionOffset(regionSection->Region0Base);
+        UINT32 biosEnd = biosBegin + calculateRegionSize(regionSection->Region0Base, regionSection->Region0Limit);
         QByteArray pdr;
-        UINT32 pdrBegin = calculateRegionOffset(regionSection->PdrBase);
-        UINT32 pdrEnd = pdrBegin + calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
+        UINT32 pdrBegin = calculateRegionOffset(regionSection->Region3Base);
+        UINT32 pdrEnd = pdrBegin + calculateRegionSize(regionSection->Region3Base, regionSection->Region3Limit);
+        QByteArray ec;
+        UINT32 ecBegin = 0;
+        UINT32 ecEnd = 0;
+
+        const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->ComponentBase);
+        // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
+        UINT8 descriptorVersion = 0;
+        if (componentSection->FlashParameters.ReadClockFreqency == FLASH_FREQUENCY_20MHZ) {      // Old descriptor
+            descriptorVersion = 1;
+        }
+        else if (componentSection->FlashParameters.ReadClockFreqency == FLASH_FREQUENCY_17MHZ) { // Skylake+ descriptor
+            descriptorVersion = 2;
+            ecBegin = calculateRegionOffset(regionSection->Region8Base);
+            ecEnd = ecBegin + calculateRegionSize(regionSection->Region8Base, regionSection->Region8Limit);
+        }
+        else {
+            msg(tr("reconstructIntelImage: unknown descriptor version with ReadClockFreqency %1h").hexarg(componentSection->FlashParameters.ReadClockFreqency));
+            return ERR_INVALID_FLASH_DESCRIPTOR;
+        }
+        
 
         UINT32 offset = descriptor.size();
         // Reconstruct other regions
@@ -2763,6 +2892,17 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
                     reconstructed.append(QByteArray(pdrBegin - offset, empty));
                 reconstructed.append(pdr);
                 offset = pdrEnd;
+                break;
+            case Subtypes::EcRegion:
+                if (descriptorVersion == 1) {
+                    msg(tr("reconstructIntelImage: incompatible region type found"), index);
+                    return ERR_INVALID_REGION;
+                }
+                ec = region;
+                if (ecBegin > offset)
+                    reconstructed.append(QByteArray(ecBegin - offset, empty));
+                reconstructed.append(ec);
+                offset = ecEnd;
                 break;
             default:
                 msg(tr("reconstructIntelImage: unknown region type found"), index);

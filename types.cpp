@@ -29,6 +29,8 @@ QString regionTypeToQString(const UINT8 type)
         return QObject::tr("BIOS");
     case Subtypes::PdrRegion:
         return QObject::tr("PDR");
+    case Subtypes::EcRegion:
+        return QObject::tr("EC");
     default:
         return QObject::tr("Unknown");
     };
