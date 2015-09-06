@@ -71,8 +71,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
     UINT32 capsuleHeaderSize = 0;
     QModelIndex index;
     if (buffer.startsWith(EFI_CAPSULE_GUID)
-        || buffer.startsWith(INTEL_CAPSULE_GUID)
-        || buffer.startsWith(LENOVO_CAPSULE_GUID)) {
+        || buffer.startsWith(INTEL_CAPSULE_GUID)) {
         // Get info
         const EFI_CAPSULE_HEADER* capsuleHeader = (const EFI_CAPSULE_HEADER*)buffer.constData();
         capsuleHeaderSize = capsuleHeader->HeaderSize;

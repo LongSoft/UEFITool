@@ -62,7 +62,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         // Calculate FIT entry checksum
         UINT8 calculated = calculateChecksum8((const UINT8*)fitHeader, fitSize);
         if (calculated) {
-            remark.append(tr("Invalid FIT table checksum, ").hexarg2(calculated, 2));
+            remark.append(tr("Invalid FIT table checksum, "));
         }
     }
 
@@ -159,9 +159,8 @@ STATUS FitParser::findFitRecursive(const QModelIndex & index, QModelIndex & foun
     // Get parsing data for the current item
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
-    // Check item's address to be in required range
-    INT32 offset = model->body(index).indexOf(FIT_SIGNATURE);
     // Check for FIT signature in item's body
+    INT32 offset = model->body(index).indexOf(FIT_SIGNATURE);
     if (offset >= 0) {
         // FIT candidate found, calculate it's physical address
         UINT32 fitAddress = pdata.address + model->header(index).size() + (UINT32)offset;

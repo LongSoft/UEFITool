@@ -53,10 +53,6 @@ const QByteArray EFI_CAPSULE_GUID
 const QByteArray INTEL_CAPSULE_GUID
 ("\xB9\x82\x91\x53\xB5\xAB\x91\x43\xB6\x9A\xE3\xA9\x43\xF7\x2F\xCC", 16);
 
-// Lenovo capsule GUID
-const QByteArray LENOVO_CAPSULE_GUID
-("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
-
 // Toshiba EFI Capsule header
 typedef struct _TOSHIBA_CAPSULE_HEADER {
     EFI_GUID  CapsuleGuid;
