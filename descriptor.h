@@ -36,19 +36,20 @@ typedef struct _FLASH_DESCRIPTOR_HEADER {
 typedef struct _FLASH_DESCRIPTOR_MAP {
     // FLMAP0
     UINT32 ComponentBase : 8;           
-    UINT32 NumberOfFlashChips : 2;  // Zero-based number of flash chips installed on board
+    UINT32 NumberOfFlashChips : 2;      // Zero-based number of flash chips installed on board
     UINT32 : 6;
-    UINT32 RegionBase : 8;              
-    UINT32 : 8;
+    UINT32 RegionBase : 8;
+    UINT32 NumberOfRegions : 3;         // Reserved in v2 descriptor
+    UINT32 : 5;
     // FLMAP 1
     UINT32 MasterBase : 8;              
     UINT32 NumberOfMasters : 2;
     UINT32 : 6;
     UINT32 PchStrapsBase : 8;           
-    UINT32 NumberOfPchStraps : 8;   // One-based number of UINT32s to read as PCH straps, min=0, max=255 (1 Kb)
+    UINT32 NumberOfPchStraps : 8;       // One-based number of UINT32s to read as PCH straps, min=0, max=255 (1 Kb)
     // FLMAP 2
     UINT32 ProcStrapsBase : 8;          
-    UINT32 NumberOfProcStraps : 8;  // One-based number of UINT32s to read as processor straps, min=0, max=255 (1 Kb)
+    UINT32 NumberOfProcStraps : 8;      // One-based number of UINT32s to read as processor straps, min=0, max=255 (1 Kb)
     UINT32: 16;
 } FLASH_DESCRIPTOR_MAP;
 
@@ -59,11 +60,11 @@ typedef struct _FLASH_PARAMETERS {
     UINT8 SecondChipDensity : 4;
     UINT8 : 8;
     UINT8 : 1;
-    UINT8 ReadClockFreqency : 3; // Hardcoded value of 20 Mhz (000b) in v1 descriptors and 17 Mhz (110b) in v2 ones
+    UINT8 ReadClockFrequency : 3; // Hardcoded value of 20 Mhz (000b) in v1 descriptors and 17 Mhz (110b) in v2 ones
     UINT8 FastReadEnabled : 1;
-    UINT8 FastReadFreqency : 3;
-    UINT8 FlashReadStatusFrequency : 3;
+    UINT8 FastReadFrequency : 3;
     UINT8 FlashWriteFrequency : 3;
+    UINT8 FlashReadStatusFrequency : 3;
     UINT8 DualOutputFastReadSupported : 1;
     UINT8 : 1;
 } FLASH_PARAMETERS;
@@ -112,8 +113,7 @@ typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION_V2 {
 // All base and limit register are storing upper part of actual UINT32 base and limit
 // If limit is zero - region is not present
 typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
-    UINT16 :16;                           
-    UINT16 FlashBlockEraseSize;           // Size of block erased by single BLOCK ERASE command
+    UINT32 :32;                           
     UINT16 Region0Base;                   // BIOS
     UINT16 Region0Limit;                  //
     UINT16 Region1Base;                   // ME
@@ -198,7 +198,7 @@ typedef struct _VSCC_TABLE_ENTRY {
 
 // Base address and size of OEM section
 #define FLASH_DESCRIPTOR_OEM_SECTION_BASE 0x0F00
-#define FLASH_DESCRIPTOR_OEM_SECTION_SIZE 0xFF
+#define FLASH_DESCRIPTOR_OEM_SECTION_SIZE 0x100
 
 // Restore previous packing rules
 #pragma pack(pop)
