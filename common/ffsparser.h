@@ -66,6 +66,7 @@ private:
     STATUS parseMeRegion(const QByteArray & me, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseBiosRegion(const QByteArray & bios, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseEcRegion(const QByteArray & ec, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
 
     STATUS parsePadFileBody(const QModelIndex & index);
     STATUS parseSections(QByteArray sections, const QModelIndex & index);
