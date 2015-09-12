@@ -129,8 +129,6 @@ typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
     UINT16 Region6Limit;               //
     UINT16 Region7Base;                // Reserved region
     UINT16 Region7Limit;               //
-    UINT16 Region8Base;                // Reserved region
-    UINT16 Region8Limit;               //
     UINT16 EcBase;                     // EC
     UINT16 EcLimit;                    //
 } FLASH_DESCRIPTOR_REGION_SECTION;
