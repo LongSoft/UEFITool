@@ -282,9 +282,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     QByteArray me;
     UINT32 meBegin = 0;
     UINT32 meEnd = 0;
-    if (regionSection->Region1Limit) {
-        meBegin = calculateRegionOffset(regionSection->Region1Base);
-        meEnd = calculateRegionSize(regionSection->Region1Base, regionSection->Region1Limit);
+    if (regionSection->MeLimit) {
+        meBegin = calculateRegionOffset(regionSection->MeBase);
+        meEnd = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
         me = intelImage.mid(meBegin, meEnd);
         meEnd += meBegin;
     }
@@ -292,9 +292,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     QByteArray bios;
     UINT32 biosBegin = 0;
     UINT32 biosEnd = 0;
-    if (regionSection->Region0Limit) {
-        biosBegin = calculateRegionOffset(regionSection->Region0Base);
-        biosEnd = calculateRegionSize(regionSection->Region0Base, regionSection->Region0Limit);
+    if (regionSection->BiosLimit) {
+        biosBegin = calculateRegionOffset(regionSection->BiosBase);
+        biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
 
         // Check for Gigabyte specific descriptor map
         if (biosEnd - biosBegin == (UINT32)intelImage.size()) {
@@ -316,9 +316,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     QByteArray gbe;
     UINT32 gbeBegin = 0;
     UINT32 gbeEnd = 0;
-    if (regionSection->Region2Limit) {
-        gbeBegin = calculateRegionOffset(regionSection->Region2Base);
-        gbeEnd = calculateRegionSize(regionSection->Region2Base, regionSection->Region2Limit);
+    if (regionSection->GbeLimit) {
+        gbeBegin = calculateRegionOffset(regionSection->GbeBase);
+        gbeEnd = calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
         gbe = intelImage.mid(gbeBegin, gbeEnd);
         gbeEnd += gbeBegin;
     }
@@ -326,9 +326,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     QByteArray pdr;
     UINT32 pdrBegin = 0;
     UINT32 pdrEnd = 0;
-    if (regionSection->Region3Limit) {
-        pdrBegin = calculateRegionOffset(regionSection->Region3Base);
-        pdrEnd = calculateRegionSize(regionSection->Region3Base, regionSection->Region3Limit);
+    if (regionSection->PdrLimit) {
+        pdrBegin = calculateRegionOffset(regionSection->PdrBase);
+        pdrEnd = calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
         pdr = intelImage.mid(pdrBegin, pdrEnd);
         pdrEnd += pdrBegin;
     }
@@ -337,9 +337,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     UINT32 ecBegin = 0;
     UINT32 ecEnd = 0;
     if (descriptorVersion == 2) {
-        if (regionSection->Region8Limit) {
-            pdrBegin = calculateRegionOffset(regionSection->Region8Base);
-            pdrEnd = calculateRegionSize(regionSection->Region8Base, regionSection->Region8Limit);
+        if (regionSection->EcLimit) {
+            pdrBegin = calculateRegionOffset(regionSection->EcBase);
+            pdrEnd = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
             pdr = intelImage.mid(ecBegin, ecEnd);
             ecEnd += ecBegin;
         }
@@ -434,23 +434,23 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Check regions presence once again
     QVector<UINT32> offsets;
-    if (regionSection->Region2Limit) {
+    if (regionSection->GbeLimit) {
         offsets.append(gbeBegin);
         info += tr("\nGbE region offset:  %1h").hexarg(gbeBegin);
     }
-    if (regionSection->Region1Limit) {
+    if (regionSection->MeLimit) {
         offsets.append(meBegin);
         info += tr("\nME region offset:   %1h").hexarg(meBegin);
     }
-    if (regionSection->Region0Limit) {
+    if (regionSection->BiosLimit) {
         offsets.append(biosBegin);
         info += tr("\nBIOS region offset: %1h").hexarg(biosBegin);
     }
-    if (regionSection->Region3Limit) {
+    if (regionSection->PdrLimit) {
         offsets.append(pdrBegin);
         info += tr("\nPDR region offset:  %1h").hexarg(pdrBegin);
     }
-    if (descriptorVersion == 2 && regionSection->Region8Limit) {
+    if (descriptorVersion == 2 && regionSection->EcLimit) {
         offsets.append(ecBegin);
         info += tr("\nEC region offset:  %1h").hexarg(ecBegin);
     }
@@ -2813,17 +2813,17 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)(descriptor.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
         const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->RegionBase);
         QByteArray gbe;
-        UINT32 gbeBegin = calculateRegionOffset(regionSection->Region2Base);
-        UINT32 gbeEnd = gbeBegin + calculateRegionSize(regionSection->Region2Base, regionSection->Region2Limit);
+        UINT32 gbeBegin = calculateRegionOffset(regionSection->GbeBase);
+        UINT32 gbeEnd = gbeBegin + calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
         QByteArray me;
-        UINT32 meBegin = calculateRegionOffset(regionSection->Region1Base);
-        UINT32 meEnd = meBegin + calculateRegionSize(regionSection->Region1Base, regionSection->Region1Limit);
+        UINT32 meBegin = calculateRegionOffset(regionSection->MeBase);
+        UINT32 meEnd = meBegin + calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
         QByteArray bios;
-        UINT32 biosBegin = calculateRegionOffset(regionSection->Region0Base);
-        UINT32 biosEnd = biosBegin + calculateRegionSize(regionSection->Region0Base, regionSection->Region0Limit);
+        UINT32 biosBegin = calculateRegionOffset(regionSection->BiosBase);
+        UINT32 biosEnd = biosBegin + calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
         QByteArray pdr;
-        UINT32 pdrBegin = calculateRegionOffset(regionSection->Region3Base);
-        UINT32 pdrEnd = pdrBegin + calculateRegionSize(regionSection->Region3Base, regionSection->Region3Limit);
+        UINT32 pdrBegin = calculateRegionOffset(regionSection->PdrBase);
+        UINT32 pdrEnd = pdrBegin + calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
         QByteArray ec;
         UINT32 ecBegin = 0;
         UINT32 ecEnd = 0;
@@ -2836,8 +2836,8 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         }
         else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_17MHZ) { // Skylake+ descriptor
             descriptorVersion = 2;
-            ecBegin = calculateRegionOffset(regionSection->Region8Base);
-            ecEnd = ecBegin + calculateRegionSize(regionSection->Region8Base, regionSection->Region8Limit);
+            ecBegin = calculateRegionOffset(regionSection->EcBase);
+            ecEnd = ecBegin + calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
         }
         else {
             msg(tr("reconstructIntelImage: unknown descriptor version with ReadClockFrequency %1h").hexarg(componentSection->FlashParameters.ReadClockFrequency));

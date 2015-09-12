@@ -43,7 +43,7 @@ typedef struct _FLASH_DESCRIPTOR_MAP {
     UINT32 : 5;
     // FLMAP 1
     UINT32 MasterBase : 8;              
-    UINT32 NumberOfMasters : 2;
+    UINT32 NumberOfMasters : 2;         // Zero-based number of flash masters
     UINT32 : 6;
     UINT32 PchStrapsBase : 8;           
     UINT32 NumberOfPchStraps : 8;       // One-based number of UINT32s to read as PCH straps, min=0, max=255 (1 Kb)
@@ -113,31 +113,27 @@ typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION_V2 {
 // All base and limit register are storing upper part of actual UINT32 base and limit
 // If limit is zero - region is not present
 typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
-    UINT32 :32;                           
-    UINT16 Region0Base;                   // BIOS
-    UINT16 Region0Limit;                  //
-    UINT16 Region1Base;                   // ME
-    UINT16 Region1Limit;                  //
-    UINT16 Region2Base;                   // GbE
-    UINT16 Region2Limit;                  //
-    UINT16 Region3Base;                   // PDR
-    UINT16 Region3Limit;                  //
-    UINT16 Region4Base;                   // Reserved region
-    UINT16 Region4Limit;                  //
-    UINT16 Region5Base;                   // Reserved region
-    UINT16 Region5Limit;                  //
-    UINT16 Region6Base;                   // Reserved region
-    UINT16 Region6Limit;                  //
-    UINT16 Region7Base;                   // Reserved region
-    UINT16 Region7Limit;                  //
-    UINT16 Region8Base;                   // EC
-    UINT16 Region8Limit;                  //
+    UINT16 DescriptorBase;             // Descriptor
+    UINT16 DescriptorLimit;            //                           
+    UINT16 BiosBase;                   // BIOS
+    UINT16 BiosLimit;                  //
+    UINT16 MeBase;                     // ME
+    UINT16 MeLimit;                    //
+    UINT16 GbeBase;                    // GbE
+    UINT16 GbeLimit;                   //
+    UINT16 PdrBase;                    // PDR
+    UINT16 PdrLimit;                   //
+    UINT16 Region5Base;                // Reserved region
+    UINT16 Region5Limit;               //
+    UINT16 Region6Base;                // Reserved region
+    UINT16 Region6Limit;               //
+    UINT16 Region7Base;                // Reserved region
+    UINT16 Region7Limit;               //
+    UINT16 Region8Base;                // Reserved region
+    UINT16 Region8Limit;               //
+    UINT16 EcBase;                     // EC
+    UINT16 EcLimit;                    //
 } FLASH_DESCRIPTOR_REGION_SECTION;
-
-// Flash block erase sizes
-#define FLASH_BLOCK_ERASE_SIZE_4KB  0x0000
-#define FLASH_BLOCK_ERASE_SIZE_8KB  0x0001
-#define FLASH_BLOCK_ERASE_SIZE_64KB 0x000F
 
 // Master section
 typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION {
