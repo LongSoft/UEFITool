@@ -2093,6 +2093,18 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         // Set action
         model->setAction(fileIndex, action);
     }
+    else if (type == Types::Padding) {
+        // Get info
+        QString name = tr("Padding");
+        QString info = tr("Full size: %1h (%2)")
+            .hexarg(body.size()).arg(body.size());
+
+        // Add tree item
+        QModelIndex fileIndex = model->addItem(Types::Padding, getPaddingType(body), COMPRESSION_ALGORITHM_NONE, name, "", info, QByteArray(), body, index, mode);
+
+        // Set action
+        model->setAction(fileIndex, action);
+    }
     else if (type == Types::Volume) {
         QByteArray volume;
         if (header.isEmpty()) // Whole volume
@@ -2348,6 +2360,12 @@ UINT8 FfsEngine::replace(const QModelIndex & index, const QByteArray & object, c
     if (model->type(index) == Types::Region) {
         if (mode == REPLACE_MODE_AS_IS)
             result = create(index, Types::Region, QByteArray(), object, CREATE_MODE_AFTER, Actions::Replace);
+        else
+            return ERR_NOT_IMPLEMENTED;
+    }
+    else if (model->type(index) == Types::Padding) {
+        if (mode == REPLACE_MODE_AS_IS)
+            result = create(index, Types::Padding, QByteArray(), object, CREATE_MODE_AFTER, Actions::Replace);
         else
             return ERR_NOT_IMPLEMENTED;
     }
@@ -2973,14 +2991,14 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
         if (reconstructed.size() > model->body(index).size()) {
             msg(tr("reconstructRegion: reconstructed region size %1h (%2) is bigger then original %3h (%4)")
                 .hexarg(reconstructed.size()).arg(reconstructed.size())
-                .hexarg(model->body(index).size()).arg(reconstructed.size()),
+                .hexarg(model->body(index).size()).arg(model->body(index).size()),
                 index);
             return ERR_INVALID_PARAMETER;
         }
         else if (reconstructed.size() < model->body(index).size()) {
             msg(tr("reconstructRegion: reconstructed region size %1h (%2) is smaller then original %3h (%4)")
                 .hexarg(reconstructed.size()).arg(reconstructed.size())
-                .hexarg(model->body(index).size()).arg(reconstructed.size()),
+                .hexarg(model->body(index).size()).arg(model->body(index).size()),
                 index);
             return ERR_INVALID_PARAMETER;
         }
@@ -2988,6 +3006,49 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
         // Reconstruction successful
         if (includeHeader)
             reconstructed = model->header(index).append(reconstructed);
+        return ERR_SUCCESS;
+    }
+
+    // All other actions are not supported
+    return ERR_NOT_IMPLEMENTED;
+}
+
+UINT8 FfsEngine::reconstructPadding(const QModelIndex& index, QByteArray& reconstructed)
+{
+    if (!index.isValid())
+        return ERR_SUCCESS;
+
+    // No action
+    if (model->action(index) == Actions::NoAction) {
+        reconstructed = model->body(index);
+        return ERR_SUCCESS;
+    }
+    else if (model->action(index) == Actions::Remove) {
+        reconstructed.clear();
+        return ERR_SUCCESS;
+    }
+    else if (model->action(index) == Actions::Rebuild ||
+        model->action(index) == Actions::Replace) {
+        // Use stored item body
+        reconstructed = model->body(index);
+
+        // Check size of reconstructed region, it must be same
+        if (reconstructed.size() > model->body(index).size()) {
+            msg(tr("reconstructPadding: reconstructed padding size %1h (%2) is bigger then original %3h (%4)")
+                .hexarg(reconstructed.size()).arg(reconstructed.size())
+                .hexarg(model->body(index).size()).arg(model->body(index).size()),
+                index);
+            return ERR_INVALID_PARAMETER;
+        }
+        else if (reconstructed.size() < model->body(index).size()) {
+            msg(tr("reconstructPadding: reconstructed padding size %1h (%2) is smaller then original %3h (%4)")
+                .hexarg(reconstructed.size()).arg(reconstructed.size())
+                .hexarg(model->body(index).size()).arg(model->body(index).size()),
+                index);
+            return ERR_INVALID_PARAMETER;
+        }
+
+        // Reconstruction successful
         return ERR_SUCCESS;
     }
 
@@ -3710,9 +3771,9 @@ UINT8 FfsEngine::reconstruct(const QModelIndex &index, QByteArray& reconstructed
         break;
 
     case Types::Padding:
-        // No reconstruction needed
-        reconstructed = model->header(index).append(model->body(index));
-        return ERR_SUCCESS;
+        result = reconstructPadding(index, reconstructed);
+        if (result)
+            return result;
         break;
 
     case Types::Volume:

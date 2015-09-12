@@ -232,6 +232,8 @@
       <string>&amp;Padding</string>
      </property>
      <addaction name="actionExtract"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
     </widget>
     <widget class="QMenu" name="menuVolumeActions">
      <property name="title">
