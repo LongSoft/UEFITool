@@ -142,7 +142,7 @@
       </widget>
       <widget class="QTabWidget" name="messagesTabWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="parserTab">
         <attribute name="title">
@@ -223,7 +223,17 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QTableWidget" name="fitTableWidget"/>
+          <widget class="QSplitter" name="splitter">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <widget class="QTableWidget" name="fitTableWidget"/>
+           <widget class="QListWidget" name="fitMessagesListWidget">
+            <property name="mouseTracking">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </widget>
          </item>
         </layout>
        </widget>

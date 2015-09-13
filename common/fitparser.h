@@ -36,16 +36,25 @@ public:
     FitParser(TreeModel* treeModel, QObject *parent = 0);
     ~FitParser();
 
+    // Returns messages
+    QVector<QPair<QString, QModelIndex> > getMessages() const;
+    // Clears messages
+    void clearMessages();
+
     STATUS parse(const QModelIndex & index, const QModelIndex & lastVtf);
     QVector<QVector<QString> > getFitTable() const { return fitTable; }
 
 private:
     TreeModel *model;
+    QVector<QPair<QString, QModelIndex> > messagesVector;
     QModelIndex lastVtf;
     QVector<QVector<QString> > fitTable;
     
     STATUS findFitRecursive(const QModelIndex & index, QModelIndex & found, UINT32 & fitOffset);
     QString fitEntryTypeToQString(UINT8 type);
+
+    // Message helper
+    void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };
 
 #endif

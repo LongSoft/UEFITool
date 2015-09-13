@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha9"))
+version(tr("0.30.0_alpha10"))
 {
     clipboard = QApplication::clipboard();
 
@@ -72,6 +72,7 @@ version(tr("0.30.0_alpha9"))
     ui->infoEdit->setFont(font);
     ui->parserMessagesListWidget->setFont(font);
     ui->finderMessagesListWidget->setFont(font);
+    ui->fitMessagesListWidget->setFont(font);
     ui->fitTableWidget->setFont(font);
     ui->structureTreeView->setFont(font);
     searchDialog->ui->guidEdit->setFont(font);
@@ -143,6 +144,8 @@ void UEFITool::init()
     connect(ui->parserMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->finderMessagesListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->finderMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
+    connect(ui->fitMessagesListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
+    connect(ui->fitMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
 }
 
 void UEFITool::populateUi(const QModelIndex &current)
@@ -662,8 +665,11 @@ void UEFITool::openImageFile(QString path)
     // Parse FIT
     //!TODO: expand and chek errors
     result = fitParser->parse(model->index(0, 0), ffsParser->getLastVtf());
-    if (!result)
+    showFitMessages();
+    if (!result) {
         showFitTable();
+    }
+
 
     // Enable search ...
     if (ffsFinder)
@@ -686,6 +692,8 @@ void UEFITool::copyMessage()
       clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
     else if (ui->messagesTabWidget->currentIndex() == 1) // Search tab
       clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
+    else if (ui->messagesTabWidget->currentIndex() == 2) // Search tab
+        clipboard->setText(ui->fitMessagesListWidget->currentItem()->text());
 }
 
 void UEFITool::copyAllMessages()
@@ -700,6 +708,11 @@ void UEFITool::copyAllMessages()
     else if (ui->messagesTabWidget->currentIndex() == 1) {  // Search tab
         for (INT32 i = 0; i < ui->finderMessagesListWidget->count(); i++)
             text.append(ui->finderMessagesListWidget->item(i)->text()).append("\n");
+        clipboard->setText(text);
+    }
+    else if (ui->messagesTabWidget->currentIndex() == 2) {  // FIT tab
+        for (INT32 i = 0; i < ui->fitMessagesListWidget->count(); i++)
+            text.append(ui->fitMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
 }
@@ -766,6 +779,22 @@ void UEFITool::showFinderMessages()
 
     ui->messagesTabWidget->setCurrentIndex(1);
     ui->finderMessagesListWidget->scrollToBottom();
+}
+
+void UEFITool::showFitMessages()
+{
+    ui->fitMessagesListWidget->clear();
+    if (!fitParser)
+        return;
+
+    QVector<QPair<QString, QModelIndex> > messages = fitParser->getMessages();
+    QPair<QString, QModelIndex> msg;
+    foreach(msg, messages) {
+        ui->fitMessagesListWidget->addItem(new MessageListItem(msg.first, NULL, 0, msg.second));
+    }
+
+    ui->messagesTabWidget->setCurrentIndex(2);
+    ui->fitMessagesListWidget->scrollToBottom();
 }
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)
@@ -862,9 +891,9 @@ void UEFITool::showFitTable()
     // Set up the FIT table
     ui->fitTableWidget->clear();
     ui->fitTableWidget->setRowCount(fitTable.length());
-    ui->fitTableWidget->setColumnCount(6);
+    ui->fitTableWidget->setColumnCount(5);
     //ui->fitTableWidget->verticalHeader()->setVisible(false);
-    ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Type") << tr("Checksum") << tr("Remark"));
+    ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Type") << tr("Checksum"));
     ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->fitTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->fitTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -872,7 +901,7 @@ void UEFITool::showFitTable()
 
     // Add all data to the table widget
     for (INT32 i = 0; i < fitTable.length(); i++) {
-        for (UINT8 j = 0; j < 6; j++) {
+        for (UINT8 j = 0; j < 5; j++) {
             ui->fitTableWidget->setItem(i, j, new QTableWidgetItem(fitTable[i][j]));
         }
     }

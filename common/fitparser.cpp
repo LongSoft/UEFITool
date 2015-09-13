@@ -23,6 +23,21 @@ FitParser::~FitParser()
 {
 }
 
+void FitParser::msg(const QString & message, const QModelIndex & index)
+{
+    messagesVector.push_back(QPair<QString, QModelIndex>(message, index));
+}
+
+QVector<QPair<QString, QModelIndex> > FitParser::getMessages() const
+{
+    return messagesVector;
+}
+
+void FitParser::clearMessages()
+{
+    messagesVector.clear();
+}
+
 STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIndex)
 {
     // Check sanity
@@ -53,7 +68,6 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
     model->setParsingData(fitIndex, parsingDataToQByteArray(pdata));
 
     // Special case of FIT header
-    QString remark;
     const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(model->body(fitIndex).constData() + fitOffset);
 
     // Check FIT checksum, if present
@@ -62,18 +76,14 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         // Calculate FIT entry checksum
         UINT8 calculated = calculateChecksum8((const UINT8*)fitHeader, fitSize);
         if (calculated) {
-            remark.append(tr("Invalid FIT table checksum, "));
+            msg(tr("Invalid FIT table checksum"), fitIndex);
         }
     }
 
     // Check fit header type
     if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER) {
-        remark.append(tr("Invalid FIT header type, "));
+        msg(tr("Invalid FIT header type"), fitIndex);
     }
-
-    // Remove the last ", " from remark string, if needed
-    if (!remark.isEmpty())
-        remark = remark.left(remark.length() - 2);
 
     // Add FIT header to fitTable
     QVector<QString> currentStrings;
@@ -82,19 +92,18 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
     currentStrings += tr("%1").hexarg2(fitHeader->Version, 4);
     currentStrings += fitEntryTypeToQString(fitHeader->Type);
     currentStrings += tr("%1").hexarg2(fitHeader->Checksum, 2);
-    currentStrings += remark;
     fitTable.append(currentStrings);
 
     // Process all other entries
+    bool modifiedImageMayNotWork = false;
     for (UINT32 i = 1; i < fitHeader->Size; i++) {
         currentStrings.clear();
-        remark.clear();
         const FIT_ENTRY* currentEntry = fitHeader + i;
 
         // Check entry type
         switch (currentEntry->Type & 0x7F) {
         case FIT_TYPE_HEADER:
-            remark.append(tr("Second FIT header found, the table is damaged"));
+            msg(tr("Second FIT header found, the table is damaged"), fitIndex);
             break;
 
         case FIT_TYPE_EMPTY:
@@ -109,7 +118,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         case FIT_TYPE_AC_KEY_MANIFEST:
         case FIT_TYPE_AC_BOOT_POLICY:
         default:
-            remark.append(tr("Modified image may not work"));
+            modifiedImageMayNotWork = true;
             break;
         }
 
@@ -119,9 +128,11 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         currentStrings += tr("%1").hexarg2(currentEntry->Version, 4);
         currentStrings += fitEntryTypeToQString(currentEntry->Type);
         currentStrings += tr("%1").hexarg2(currentEntry->Checksum, 2);
-        currentStrings += remark;
         fitTable.append(currentStrings);
     }
+
+    if (modifiedImageMayNotWork)
+        msg(tr("Opened image may not work after any modification"));
 
     return ERR_SUCCESS;
 }
@@ -170,8 +181,11 @@ STATUS FitParser::findFitRecursive(const QModelIndex & index, QModelIndex & foun
         if (*(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET) == fitAddress) {
             found = index;
             fitOffset = offset;
+            msg(tr("Real FIT table found at physical address %1h").hexarg(fitAddress), found);
             return ERR_SUCCESS;
         }
+        else
+            msg(tr("FIT table candidate found, but not referenced from LastVtf"), found);
     }
 
     return ERR_SUCCESS;

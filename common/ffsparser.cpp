@@ -99,7 +99,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         capsuleHeaderSize = capsuleHeader->HeaderSize;
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
-        QString name = tr("UEFI capsule");
+        QString name = tr("Toshiba capsule");
         QString info = tr("Offset: 0h\nCapsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
             .arg(guidToQString(capsuleHeader->CapsuleGuid))
             .hexarg(buffer.size()).arg(buffer.size())
@@ -417,7 +417,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
     if (descriptorVersion == 1) {
         const FLASH_DESCRIPTOR_MASTER_SECTION* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION*)calculateAddress8(descriptor, descriptorMap->MasterBase);
         info += tr("\nRegion access settings:");
-        info += tr("\nBIOS:%1h %2h ME:%3h %4h GbE:%5h %6h")
+        info += tr("\nBIOS: %1h %2h ME: %3h %4h\nGbE:  %5h %6h")
             .hexarg2(masterSection->BiosRead, 2)
             .hexarg2(masterSection->BiosWrite, 2)
             .hexarg2(masterSection->MeRead, 2)
@@ -563,7 +563,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
     }
 
     // Check if the last VTF is found
@@ -902,7 +902,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
     }
 
-    //Parse bodies
+    // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
@@ -1040,7 +1040,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     QByteArray body = volume.mid(headerSize);
     QString name = guidToQString(volumeHeader->FileSystemGuid);
     QString info = tr("ZeroVector:\n%1 %2 %3 %4 %5 %6 %7 %8\n%9 %10 %11 %12 %13 %14 %15 %16\nFileSystem GUID: %17\nFull size: %18h (%19)\n"
-        "Header size: %20h (%21)\nBody size: %22h (%23)\nRevision: %24\nAttributes: %25h\nErase polarity: %26")
+        "Header size: %20h (%21)\nBody size: %22h (%23)\nRevision: %24\nAttributes: %25h\nErase polarity: %26\nChecksum: %27h, %28")
         .hexarg2(volumeHeader->ZeroVector[0], 2).hexarg2(volumeHeader->ZeroVector[1], 2).hexarg2(volumeHeader->ZeroVector[2], 2).hexarg2(volumeHeader->ZeroVector[3], 2)
         .hexarg2(volumeHeader->ZeroVector[4], 2).hexarg2(volumeHeader->ZeroVector[5], 2).hexarg2(volumeHeader->ZeroVector[6], 2).hexarg2(volumeHeader->ZeroVector[7], 2)
         .hexarg2(volumeHeader->ZeroVector[8], 2).hexarg2(volumeHeader->ZeroVector[9], 2).hexarg2(volumeHeader->ZeroVector[10], 2).hexarg2(volumeHeader->ZeroVector[11], 2)
@@ -1051,7 +1051,9 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         .hexarg(volumeSize - headerSize).arg(volumeSize - headerSize)
         .arg(volumeHeader->Revision)
         .hexarg2(volumeHeader->Attributes, 8)
-        .arg(emptyByte ? "1" : "0");
+        .arg(emptyByte ? "1" : "0")
+        .hexarg2(volumeHeader->Checksum, 4)
+        .arg(msgInvalidChecksum ? tr("invalid") : tr("valid"));
 
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
@@ -1415,14 +1417,18 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
     else
         name = tr("Pad-file");
 
-    info = tr("File GUID: %1\nType: %2h\nAttributes: %3h\nFull size: %4h (%5)\nHeader size: %6h (%7)\nBody size: %8h (%9)\nState: %10h")
+    info = tr("File GUID: %1\nType: %2h\nAttributes: %3h\nFull size: %4h (%5)\nHeader size: %6h (%7)\nBody size: %8h (%9)\nState: %10h\nHeader checksum: %11h, %12\nData checksum: %13h, %14")
         .arg(guidToQString(fileHeader->Name))
         .hexarg2(fileHeader->Type, 2)
         .hexarg2(fileHeader->Attributes, 2)
         .hexarg(header.size() + body.size()).arg(header.size() + body.size())
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())
-        .hexarg2(fileHeader->State, 2);
+        .hexarg2(fileHeader->State, 2)
+        .hexarg2(fileHeader->IntegrityCheck.Checksum.Header, 2)
+        .arg(msgInvalidHeaderChecksum ? tr("invalid") : tr("valid"))
+        .hexarg2(fileHeader->IntegrityCheck.Checksum.File, 2)
+        .arg(msgInvalidDataChecksum ? tr("invalid") : tr("valid"));
 
     // Check if the file is a Volume Top File
     QString text;
@@ -2111,11 +2117,12 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
             QByteArray body = model->body(index);
             UINT32 crc = crc32(0, (const UINT8*)body.constData(), body.size());
             // Check stored CRC32
-            if (crc == *(const UINT32*)(model->header(index).constData() + sizeof(EFI_GUID_DEFINED_SECTION))) {
-                info += tr("\nChecksum: valid");
+            UINT32 stored = *(const UINT32*)(model->header(index).constData() + sizeof(EFI_GUID_DEFINED_SECTION));
+            if (crc == stored) {
+                info += tr("\nChecksum %1h: valid").hexarg2(stored, 8);
             }
             else {
-                info += tr("\nChecksum: invalid");
+                info += tr("\nChecksum %1h: invalid").hexarg2(stored, 8);
                 msg(tr("parseGuidedSectionBody: GUID defined section with invalid CRC32"), index);
             }
         }

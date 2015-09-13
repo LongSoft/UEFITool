@@ -119,6 +119,7 @@ private:
     void readSettings();
     void showParserMessages();
     void showFinderMessages();
+    void showFitMessages();
     void showFitTable();
 };
 
