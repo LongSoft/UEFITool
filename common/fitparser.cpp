@@ -184,8 +184,8 @@ STATUS FitParser::findFitRecursive(const QModelIndex & index, QModelIndex & foun
             msg(tr("Real FIT table found at physical address %1h").hexarg(fitAddress), found);
             return ERR_SUCCESS;
         }
-        else
-            msg(tr("FIT table candidate found, but not referenced from LastVtf"), found);
+        else if (model->rowCount(index) == 0) // Show messages only to leaf items
+            msg(tr("FIT table candidate found, but not referenced from the last VTF"), index);
     }
 
     return ERR_SUCCESS;

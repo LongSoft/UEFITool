@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha10"))
+version(tr("0.30.0_alpha11"))
 {
     clipboard = QApplication::clipboard();
 
@@ -107,6 +107,8 @@ void UEFITool::init()
     ui->parserMessagesListWidget->clear();
     ui->finderMessagesListWidget->clear();
     ui->fitTableWidget->clear();
+    ui->fitTableWidget->setRowCount(0);
+    ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
 
     // Set window title
@@ -261,11 +263,11 @@ void UEFITool::search()
 
 void UEFITool::rebuild()
 {
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
-    /*UINT8 result = ffsEngine->rebuild(index);
+    UINT8 result = ffsEngine->rebuild(index);
 
     if (result == ERR_SUCCESS)
         ui->actionSaveImageFile->setEnabled(true);*/
@@ -273,11 +275,11 @@ void UEFITool::rebuild()
 
 void UEFITool::remove()
 {
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
-    /*UINT8 result = ffsEngine->remove(index);
+    UINT8 result = ffsEngine->remove(index);
 
     if (result == ERR_SUCCESS)
         ui->actionSaveImageFile->setEnabled(true);*/
@@ -285,7 +287,7 @@ void UEFITool::remove()
 
 void UEFITool::insert(const UINT8 mode)
 {
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
@@ -329,7 +331,7 @@ void UEFITool::insert(const UINT8 mode)
     QByteArray buffer = inputFile.readAll();
     inputFile.close();
 
-    /*UINT8 result = ffsEngine->insert(index, buffer, mode);
+    UINT8 result = ffsEngine->insert(index, buffer, mode);
     if (result) {
         QMessageBox::critical(this, tr("Insertion failed"), errorMessage(result), QMessageBox::Ok);
         return;
@@ -364,7 +366,7 @@ void UEFITool::replaceBody()
 
 void UEFITool::replace(const UINT8 mode)
 {
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
@@ -444,7 +446,7 @@ void UEFITool::replace(const UINT8 mode)
     QByteArray buffer = inputFile.readAll();
     inputFile.close();
 
-    /*UINT8 result = ffsEngine->replace(index, buffer, mode);
+    UINT8 result = ffsEngine->replace(index, buffer, mode);
     if (result) {
         QMessageBox::critical(this, tr("Replacing failed"), errorMessage(result), QMessageBox::Ok);
         return;
@@ -657,13 +659,14 @@ void UEFITool::openImageFile(QString path)
 
     UINT8 result = ffsParser->parseImageFile(buffer, model->index(0,0));
     showParserMessages();
-    if (result)
+    if (result) {
         QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToQString(result), QMessageBox::Ok);
+        return;
+    }
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
 
     // Parse FIT
-    //!TODO: expand and chek errors
     result = fitParser->parse(model->index(0, 0), ffsParser->getLastVtf());
     showFitMessages();
     if (!result) {
@@ -733,6 +736,10 @@ void UEFITool::clearMessages()
         ffsFinder->clearMessages();
         ui->finderMessagesListWidget->clear();
     }
+    else if (ui->messagesTabWidget->currentIndex() == 2) {  // FIT tab
+        fitParser->clearMessages();
+        ui->fitMessagesListWidget->clear();
+    }
     ui->actionMessagesCopy->setEnabled(false);
     ui->actionMessagesCopyAll->setEnabled(false);
 }
@@ -793,7 +800,6 @@ void UEFITool::showFitMessages()
         ui->fitMessagesListWidget->addItem(new MessageListItem(msg.first, NULL, 0, msg.second));
     }
 
-    ui->messagesTabWidget->setCurrentIndex(2);
     ui->fitMessagesListWidget->scrollToBottom();
 }
 

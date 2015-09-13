@@ -22,7 +22,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "fit.h"
 
 FfsParser::FfsParser(TreeModel* treeModel, QObject *parent)
-    : QObject(parent), model(treeModel)
+    : QObject(parent), model(treeModel), capsuleOffsetFixup(0)
 {
 }
 
@@ -61,6 +61,9 @@ BOOLEAN FfsParser::hasIntersection(const UINT32 begin1, const UINT32 end1, const
 // Firmware image parsing functions
 STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & root)
 {
+    // Reset capsule offset fixeup value
+    capsuleOffsetFixup = 0;
+
     // Check buffer size to be more then or equal to size of EFI_CAPSULE_HEADER
     if ((UINT32)buffer.size() <= sizeof(EFI_CAPSULE_HEADER)) {
         msg(tr("parseImageFile: image file is smaller then minimum size of %1h (%2) bytes").hexarg(sizeof(EFI_CAPSULE_HEADER)).arg(sizeof(EFI_CAPSULE_HEADER)));
@@ -89,6 +92,9 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
         pdata.fixed = TRUE;
 
+        // Set capsule offset fixup for correct volume allignment warnings
+        capsuleOffsetFixup = capsuleHeader->HeaderSize;
+
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
     }
@@ -110,6 +116,9 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         // Construct parsing data
         PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
         pdata.fixed = TRUE;
+
+        // Set capsule offset fixup for correct volume allignment warnings
+        capsuleOffsetFixup = capsuleHeader->HeaderSize;
 
         // Add tree item
         index = model->addItem(Types::Capsule, Subtypes::ToshibaCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
@@ -133,6 +142,9 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         // Construct parsing data
         PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
         pdata.fixed = TRUE;
+
+        // Set capsule offset fixup for correct volume allignment warnings
+        capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
         index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
@@ -781,7 +793,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
     STATUS result;
     UINT32 prevVolumeOffset;
 
-    result = findNextVolume(data, 0, prevVolumeOffset);
+    result = findNextVolume(index, data, 0, prevVolumeOffset);
     if (result)
         return result;
 
@@ -880,7 +892,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         // Go to next volume
         prevVolumeOffset = volumeOffset;
         prevVolumeSize = volumeSize;
-        result = findNextVolume(data, volumeOffset + prevVolumeSize, volumeOffset);
+        result = findNextVolume(index, data, volumeOffset + prevVolumeSize, volumeOffset);
     }
 
     // Padding at the end of BIOS space
@@ -1001,7 +1013,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         // Acquire alignment
         alignment = (UINT32)pow(2.0, (int)(volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
         // Check alignment
-        if (!isUnknown && pdata.isOnFlash && ((pdata.offset + parentOffset) % alignment))
+        if (!isUnknown && pdata.isOnFlash && ((pdata.offset + parentOffset - capsuleOffsetFixup) % alignment))
             msgUnaligned = true;
     }
     else
@@ -1109,9 +1121,31 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::findNextVolume(const QByteArray & bios, UINT32 volumeOffset, UINT32 & nextVolumeOffset)
+STATUS FfsParser::findNextVolume(const QModelIndex index, const QByteArray & bios, UINT32 volumeOffset, UINT32 & nextVolumeOffset)
 {
     int nextIndex = bios.indexOf(EFI_FV_SIGNATURE, volumeOffset);
+    if (nextIndex < EFI_FV_SIGNATURE_OFFSET)
+        return ERR_VOLUMES_NOT_FOUND;
+
+    // Check volume header to be sane
+    for (; nextIndex > 0; nextIndex = bios.indexOf(EFI_FV_SIGNATURE, volumeOffset + nextIndex + 1)) {
+        const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + nextIndex - EFI_FV_SIGNATURE_OFFSET);
+        if (volumeHeader->FvLength >= 0xFFFFFFFFUL) {
+            msg(tr("findNextVolume: volume candidate skipped, has invalid FvLength %1h").hexarg2(volumeHeader->FvLength, 16), index);
+            continue;
+        }
+        if (volumeHeader->Reserved != 0xFF && volumeHeader->Reserved != 0x00) {
+            msg(tr("findNextVolume: volume candidate skipped, has invalid Reserved byte value %1").hexarg2(volumeHeader->Reserved, 2), index);
+            continue;
+        }
+        if (volumeHeader->Revision != 1 && volumeHeader->Revision != 2) {
+            msg(tr("findNextVolume: volume candidate skipped, has invalid Revision byte value %1").hexarg2(volumeHeader->Revision, 2), index);
+            continue;
+        }
+        // All checks passed, volume found
+        break;
+    }
+    // No additional volumes found
     if (nextIndex < EFI_FV_SIGNATURE_OFFSET)
         return ERR_VOLUMES_NOT_FOUND;
 
