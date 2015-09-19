@@ -85,7 +85,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
             .arg(guidToQString(capsuleHeader->CapsuleGuid))
             .hexarg(buffer.size()).arg(buffer.size())
             .hexarg(capsuleHeader->HeaderSize).arg(capsuleHeader->HeaderSize)
-            .hexarg(capsuleHeader->CapsuleImageSize).arg(capsuleHeader->CapsuleImageSize)
+            .hexarg(capsuleHeader->CapsuleImageSize - capsuleHeader->HeaderSize).arg(capsuleHeader->CapsuleImageSize - capsuleHeader->HeaderSize)
             .hexarg2(capsuleHeader->Flags, 8);
 
         // Construct parsing data
@@ -1178,6 +1178,66 @@ STATUS FfsParser::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UI
     return ERR_SUCCESS;
 }
 
+STATUS FfsParser::parseVolumeNonUefiData(const QByteArray & data, const UINT32 parentOffset, const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Get parsing data
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+    // Modify it
+    pdata.fixed = TRUE; // Non-UEFI data is fixed
+    pdata.offset += parentOffset;
+
+    // Search for VTF GUID backwards in received data
+    QByteArray padding = data;
+    QByteArray vtf;
+    INT32 vtfIndex = data.lastIndexOf(EFI_FFS_VOLUME_TOP_FILE_GUID);
+    if (vtfIndex > 0) { // VTF found inside non-UEFI data
+        padding = data.left(vtfIndex);
+        vtf = data.mid(vtfIndex);
+    }
+
+    // Add non-UEFI data first
+    // Get info
+    QString info = tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size());
+    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
+
+    // Add padding tree item
+    QModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+    msg(tr("parseVolumeNonUefiData: non-UEFI data found in volume's free space"), paddingIndex);
+
+    if (vtfIndex > 0) {
+        // Get VTF file header
+        QByteArray header = vtf.left(sizeof(EFI_FFS_FILE_HEADER));
+        const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)header.constData();
+        if (pdata.ffsVersion == 3 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
+            header = vtf.left(sizeof(EFI_FFS_FILE_HEADER2));
+        }
+
+        //Parse VTF file header
+        QModelIndex fileIndex;
+        STATUS result = parseFileHeader(vtf, parentOffset + vtfIndex, index, fileIndex);
+        if (result) {
+            msg(tr("parseVolumeNonUefiData: VTF file header parsing failed with error \"%1\"").arg(errorCodeToQString(result)), index);
+            
+            // Add the rest as non-UEFI data too
+            pdata.offset += vtfIndex;
+            // Get info
+            QString info = tr("Full size: %1h (%2)").hexarg(vtf.size()).arg(vtf.size());
+            if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
+
+            // Add padding tree item
+            QModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), vtf, parsingDataToQByteArray(pdata), index);
+            msg(tr("parseVolumeNonUefiData: non-UEFI data found in volume's free space"), paddingIndex);
+        }
+    }
+
+    return ERR_SUCCESS;
+}
+
 STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
 {
     // Sanity check
@@ -1227,7 +1287,7 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                     pdata.fixed = FALSE; // Free space is not fixed
                     pdata.offset = offset + volumeHeaderSize + fileOffset;
 
-                    // Add all bytes before as free space...
+                    // Add all bytes before as free space
                     if (i > 0) {
                         QByteArray free = freeSpace.left(i);
 
@@ -1238,18 +1298,9 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                         // Add free space item
                         model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), free, parsingDataToQByteArray(pdata), index);
                     }
-                    // ... and all bytes after as a padding
-                    pdata.fixed = TRUE; // Non-UEFI data is fixed
-                    pdata.offset += i;
-                    QByteArray padding = freeSpace.mid(i);
 
-                    // Get info
-                    QString info = tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size());
-                    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
-
-                    // Add padding tree item
-                    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
-                    msg(tr("parseVolumeBody: non-UEFI data found in volume's free space"), dataIndex);
+                    // Parse non-UEFI data 
+                    parseVolumeNonUefiData(freeSpace.mid(i), volumeHeaderSize + fileOffset + i, index);
                 }
                 else {
                     // Construct parsing data
@@ -1266,21 +1317,8 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                 break; // Exit from parsing loop
             }
             else { //File space
-                // Add padding to the end of the volume
-                pdata.fixed = TRUE; // Non-UEFI data is fixed
-                pdata.offset = offset + volumeHeaderSize + fileOffset;
-                QByteArray padding = volumeBody.mid(fileOffset);
-
-                // Get info
-                QString info = tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size());
-                if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
-
-                // Add padding tree item
-                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
-
-                // Show message
-                msg(tr("parseVolumeBody: non-UEFI data found inside volume's file space"), dataIndex);
-
+                // Parse non-UEFI data 
+                parseVolumeNonUefiData(volumeBody.mid(fileOffset), volumeHeaderSize + fileOffset, index);
                 break; // Exit from parsing loop
             }
         }
@@ -1614,7 +1652,7 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseSections(QByteArray sections, const QModelIndex & index)
+STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())

@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha11"))
+version(tr("0.30.0_alpha12"))
 {
     clipboard = QApplication::clipboard();
 
@@ -619,13 +619,13 @@ void UEFITool::saveImageFile()
 
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)");
     openImageFile(path);
 }
 
 void UEFITool::openImageFileInNewWindow()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, "BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)");
     if (path.trimmed().isEmpty())
         return;
     QProcess::startDetached(currentProgramPath, QStringList(path));
@@ -695,7 +695,7 @@ void UEFITool::copyMessage()
       clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
     else if (ui->messagesTabWidget->currentIndex() == 1) // Search tab
       clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == 2) // Search tab
+    else if (ui->messagesTabWidget->currentIndex() == 2) // FIT tab
         clipboard->setText(ui->fitMessagesListWidget->currentItem()->text());
 }
 
@@ -898,7 +898,6 @@ void UEFITool::showFitTable()
     ui->fitTableWidget->clear();
     ui->fitTableWidget->setRowCount(fitTable.length());
     ui->fitTableWidget->setColumnCount(5);
-    //ui->fitTableWidget->verticalHeader()->setVisible(false);
     ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Type") << tr("Checksum"));
     ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->fitTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);

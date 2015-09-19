@@ -70,7 +70,8 @@ private:
     STATUS parseEcRegion(const QByteArray & ec, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
 
     STATUS parsePadFileBody(const QModelIndex & index);
-    STATUS parseSections(QByteArray sections, const QModelIndex & index);
+    STATUS parseVolumeNonUefiData(const QByteArray & data, const UINT32 parentOffset, const QModelIndex & index);
+    STATUS parseSections(const QByteArray & sections, const QModelIndex & index);
 
     STATUS parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
