@@ -289,9 +289,9 @@ UINT8 convertKext(QString input, QString guid, QString basename, QByteArray & ou
     if (ret) {
         printf("Info: Unable to get version string...\n");
         sectionName = basename;
-    }
-    else
+    } else {
         sectionName.sprintf("%s.Rev-%s",qPrintable(basename), qPrintable(bundleVersion));
+    }
 
     toConvertBinary.append(plistbuf);
     toConvertBinary.append(nullterminator);
@@ -428,7 +428,13 @@ UINT8 freeformCreate(QByteArray binary, QString guid, QString sectionName, QByte
         printf("ERROR: Failed to create PE32 Section!\n");
         return ERR_ERROR;
     }
-    ret = sectionCreate(QByteArray((const char*)sectionName.utf16()), EFI_SECTION_USER_INTERFACE, userSection);
+
+    // somehow this doesn't create the correct UTF string
+    // ret = sectionCreate(QByteArray((const char*)sectionName.utf16()), EFI_SECTION_USER_INTERFACE, userSection);
+    // use workaround
+    QByteArray ba;
+    ba.append( (const char*) sectionName.utf16(), sectionName.size() * 2 );
+    ret = sectionCreate(ba, EFI_SECTION_USER_INTERFACE, userSection);
     if (ret) {
         printf("ERROR: Failed to create User Interface Section!\n");
         return ERR_ERROR;

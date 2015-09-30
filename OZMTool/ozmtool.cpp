@@ -731,14 +731,16 @@ UINT8 OZMTool::Kext2Ffs(QString inputdir, QString outputdir)
             return ERR_ERROR;
         }
 
-        filepath = pathConcatenate(outputdir, currKext.baseName() + "Kext" + ".ffs");
+        // use std filenaming for kexts
+        filepath = pathConcatenate(outputdir, currKext.baseName() /*+ "Kext"*/ + ".ffs");
         fileWrite(filepath, out);
         if(ret) {
             printf("ERROR: Saving '%s' failed!\n", qPrintable(filepath));
             return ERR_ERROR;
         }
 
-        filepath = pathConcatenate(outputdir, currKext.fileName() + ".ffs.compressed");
+        // use std filenaming for kexts
+        filepath = pathConcatenate(outputdir, currKext.baseName() /*.fileName()*/ + ".ffs.compressed");
         fileWrite(filepath, compressedOut);
         if(ret) {
             printf("ERROR: Saving '%s' failed!\n", qPrintable(filepath));
