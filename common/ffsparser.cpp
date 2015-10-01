@@ -559,7 +559,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         return ERR_TRUNCATED_IMAGE;
     }
     else if (IntelDataEnd < (UINT32)intelImage.size()) { // Insert padding
-        QByteArray padding = bios.right(intelImage.size() - IntelDataEnd);
+        QByteArray padding = intelImage.mid(IntelDataEnd);
 
         // Get parent's parsing data
         PARSING_DATA pdata = parsingDataFromQModelIndex(index);
