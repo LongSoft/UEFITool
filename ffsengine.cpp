@@ -589,7 +589,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         return ERR_TRUNCATED_IMAGE;
     }
     else if (IntelDataEnd < (UINT32)intelImage.size()) { // Insert padding
-        QByteArray padding = bios.right(intelImage.size() - IntelDataEnd);
+        QByteArray padding = intelImage.mid(IntelDataEnd);
         // Get info
         name = tr("Padding");
         info = tr("Full size: %1h (%2)")
