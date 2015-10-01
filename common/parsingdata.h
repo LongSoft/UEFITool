@@ -43,7 +43,10 @@ typedef struct _VOLUME_PARSING_DATA {
 //} FREE_SPACE_PARSING_DATA;
 
 typedef struct _FILE_PARSING_DATA {
-    UINT16  tail;
+    union {
+        UINT8   tailArray[2];
+        UINT16  tail;
+    };
     BOOLEAN hasTail;
 } FILE_PARSING_DATA;
 

@@ -85,7 +85,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         // Handle file tail
         if (model->type(index) == Types::File) {
             if (pdata.file.hasTail)
-                extracted.append(pdata.file.tail);
+                extracted.append(pdata.file.tailArray[0]).append(pdata.file.tailArray[1]);
         }
     }
     else if (mode == EXTRACT_MODE_BODY) {
