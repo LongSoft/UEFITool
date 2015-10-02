@@ -1259,7 +1259,7 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
         .arg(guidToQString(fileHeader->Name))
         .hexarg2(fileHeader->Type, 2)
         .hexarg2(fileHeader->Attributes, 2)
-        .hexarg(header.size() + body.size()).arg(header.size() + body.size())
+        .hexarg(header.size() + body.size() + tail.size()).arg(header.size() + body.size() + tail.size())
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())
         .hexarg2(fileHeader->State, 2);
@@ -2137,12 +2137,22 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             return ERR_INVALID_FILE;
 
         QByteArray newHeader = header;
+        QByteArray newBody = body;
         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)newHeader.data();
 
+        // Check if the file has a tail
+        UINT8 tailSize = fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT ? sizeof(UINT16) : 0;
+        if (tailSize) {
+            // Remove the tail, it will then be added back for revision 1 volumes
+            newBody = newBody.left(newBody.size() - tailSize);
+            // Remove the attribute for rev2+ volumes
+            if (revision != 1) {
+                fileHeader->Attributes &= ~(FFS_ATTRIB_TAIL_PRESENT);
+            }
+        }
 
         // Correct file size
-        UINT8 tailSize = fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT ? sizeof(UINT16) : 0;
-        uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER) + body.size() + tailSize, fileHeader->Size);
+        uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER) + newBody.size() + tailSize, fileHeader->Size);
 
         // Recalculate header checksum
         fileHeader->IntegrityCheck.Checksum.Header = 0;
@@ -2151,17 +2161,17 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
 
         // Recalculate data checksum, if needed
         if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM)
-            fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((const UINT8*)body.constData(), body.size());
+            fileHeader->IntegrityCheck.Checksum.File = calculateChecksum8((const UINT8*)newBody.constData(), newBody.size());
         else if (revision == 1)
             fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM;
         else
             fileHeader->IntegrityCheck.Checksum.File = FFS_FIXED_CHECKSUM2;
 
-        // Append body
-        created.append(body);
+        // Append new body
+        created.append(newBody);
 
         // Append tail, if needed
-        if (tailSize) {
+        if (revision ==1 && tailSize) {
             UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
             UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
             created.append(ht).append(ft);
