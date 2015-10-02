@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
         }
     }
     else {
-        std::cout << "UEFIExtract 0.10.3" << std::endl << std::endl
+        std::cout << "UEFIExtract 0.10.4" << std::endl << std::endl
                   << "Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl
                   << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;
