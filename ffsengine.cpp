@@ -303,10 +303,18 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
                 return ERR_INVALID_FLASH_DESCRIPTOR;
             }
             biosBegin = meEnd;
+            // biosEnd will point to the end of the image file
+            // it may be wrong, but it's pretty hard to detect a padding after BIOS region
+            // with malformed descriptor
+        }
+        // Normal descriptor map
+        else {
+            // Calculate biosEnd
+            biosEnd += biosBegin;
         }
 
         bios = intelImage.mid(biosBegin, biosEnd);
-        biosEnd += biosBegin;
+        
     }
     else {
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
@@ -2843,15 +2851,27 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         QByteArray gbe;
         UINT32 gbeBegin = calculateRegionOffset(regionSection->GbeBase);
         UINT32 gbeEnd = gbeBegin + calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
+        
         QByteArray me;
         UINT32 meBegin = calculateRegionOffset(regionSection->MeBase);
         UINT32 meEnd = meBegin + calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+        
         QByteArray bios;
         UINT32 biosBegin = calculateRegionOffset(regionSection->BiosBase);
-        UINT32 biosEnd = biosBegin + calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+        UINT32 biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+        // Gigabyte descriptor map
+        if (biosEnd - biosBegin == model->header(index).size() + model->body(index).size()) {
+            biosBegin = meEnd;
+            biosEnd = model->header(index).size() + model->body(index).size();
+        }
+        // Normal descriptor map
+        else
+            biosEnd += biosBegin;
+
         QByteArray pdr;
         UINT32 pdrBegin = calculateRegionOffset(regionSection->PdrBase);
         UINT32 pdrEnd = pdrBegin + calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
+        
         QByteArray ec;
         UINT32 ecBegin = 0;
         UINT32 ecEnd = 0;
