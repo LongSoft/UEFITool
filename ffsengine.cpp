@@ -314,7 +314,6 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         }
 
         bios = intelImage.mid(biosBegin, biosEnd);
-        
     }
     else {
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
@@ -2860,7 +2859,7 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         UINT32 biosBegin = calculateRegionOffset(regionSection->BiosBase);
         UINT32 biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
         // Gigabyte descriptor map
-        if (biosEnd - biosBegin == model->header(index).size() + model->body(index).size()) {
+        if (biosEnd - biosBegin == (UINT32)(model->header(index).size() + model->body(index).size())) {
             biosBegin = meEnd;
             biosEnd = model->header(index).size() + model->body(index).size();
         }
