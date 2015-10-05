@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha13"))
+version(tr("0.30.0_alpha15"))
 {
     clipboard = QApplication::clipboard();
 
@@ -110,6 +110,7 @@ void UEFITool::init()
     ui->fitTableWidget->setRowCount(0);
     ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
+    ui->messagesTabWidget->setTabEnabled(2, false);
 
     // Set window title
     this->setWindowTitle(tr("UEFITool %1").arg(version));
@@ -673,7 +674,6 @@ void UEFITool::openImageFile(QString path)
         showFitTable();
     }
 
-
     // Enable search ...
     if (ffsFinder)
         delete ffsFinder;
@@ -891,8 +891,11 @@ void UEFITool::writeSettings()
 void UEFITool::showFitTable()
 {
     QVector<QVector<QString> > fitTable = fitParser->getFitTable();
-    if (fitTable.isEmpty())
+    if (fitTable.isEmpty()) {
         return;
+    }
+    // Enable FIT tab
+    ui->messagesTabWidget->setTabEnabled(2, true);
 
     // Set up the FIT table
     ui->fitTableWidget->clear();

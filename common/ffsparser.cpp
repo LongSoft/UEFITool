@@ -267,10 +267,17 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
                 return ERR_INVALID_FLASH_DESCRIPTOR;
             }
             biosBegin = meEnd;
+            bios = intelImage.mid(biosBegin, biosEnd);
+            // biosEnd will point to the end of the image file
+            // it may be wrong, but it's pretty hard to detect a padding after BIOS region
+            // with malformed descriptor
         }
-
-        bios = intelImage.mid(biosBegin, biosEnd);
-        biosEnd += biosBegin;
+        // Normal descriptor map
+        else {
+            bios = intelImage.mid(biosBegin, biosEnd);
+            // Calculate biosEnd
+            biosEnd += biosBegin;
+        }
     }
     else {
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
