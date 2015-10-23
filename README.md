@@ -25,6 +25,7 @@ The missing parts are in development and the version with a new engine will be m
 
 There are some other projects that use UEFITool's engine:
 * UEFIExtract, which uses ffsParser to parse supplied firmware image into a tree structure and dumps the parsed structure recursively on the FS. Jethro Berkman's [tree](https://github.com/jethrogb/uefireverse) utility can be used to work with the exctracted tree.
+* UEFIFind, which uses ffsParser to find image elements containing a specified pattern. It was developed for [UBU](http://www.win-raid.com/t154f16-Tool-Guide-News-quot-UEFI-BIOS-Updater-quot-UBU.html) project.
 * [OZMTool](https://github.com/tuxuser/UEFITool/tree/OZM/OZMTool), which uses UEFITool's engine to perform various "hackintosh"-related firmware modifications.
 
 ## Alternatives
@@ -39,7 +40,7 @@ Right now there are some alternatives to UEFITool that you could find useful too
 
 ## Installation
 
-You can either use [pre-built binaries for Windows and OSX](https://github.com/LongSoft/UEFITool/releases/latest) or build a binary yourself. 
+You can either use [pre-built binaries for Windows and OSX](https://github.com/LongSoft/UEFITool/releases/latest) or build a binary yourself.  
 To build a binary you need a C++ compiler and an instance of Qt4/Qt5 library.  
 Install both of them, get the sources, generate makefiles using qmake (`qmake UEFITool.pro`) and use your system's make command on that generated files (i.e. `nmake release`, `make release` and so on).
 
