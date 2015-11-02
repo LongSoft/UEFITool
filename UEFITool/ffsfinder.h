@@ -18,6 +18,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QByteArray>
 #include <QString>
 #include <QModelIndex>
+#include <QPair>
+#include <QRegExp>
+#include <QVector>
 
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"

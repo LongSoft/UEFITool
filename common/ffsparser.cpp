@@ -1844,7 +1844,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
 
     // Obtain header fields
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)sectionHeader;
+    const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)sectionHeader;
     EFI_GUID guid = guidDefinedSectionHeader->SectionDefinitionGuid;
     UINT16 dataOffset = guidDefinedSectionHeader->DataOffset;
     UINT16 attributes = guidDefinedSectionHeader->Attributes;

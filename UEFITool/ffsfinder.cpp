@@ -138,7 +138,7 @@ STATUS FfsFinder::findGuidPattern(const QModelIndex & index, const QByteArray & 
     if (hexPattern.count('.') == hexPattern.length())
         return ERR_SUCCESS;
 
-    QRegExp regexp = QRegExp(QString(hexPattern), Qt::CaseInsensitive);
+    QRegExp regexp(QString(hexPattern), Qt::CaseInsensitive);
     INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {

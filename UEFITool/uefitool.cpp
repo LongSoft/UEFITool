@@ -899,7 +899,7 @@ void UEFITool::showFitTable()
 
     // Set up the FIT table
     ui->fitTableWidget->clear();
-    ui->fitTableWidget->setRowCount(fitTable.length());
+    ui->fitTableWidget->setRowCount(fitTable.size());
     ui->fitTableWidget->setColumnCount(5);
     ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Type") << tr("Checksum"));
     ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -908,7 +908,7 @@ void UEFITool::showFitTable()
     ui->fitTableWidget->horizontalHeader()->setStretchLastSection(true);
 
     // Add all data to the table widget
-    for (INT32 i = 0; i < fitTable.length(); i++) {
+    for (INT32 i = 0; i < fitTable.size(); i++) {
         for (UINT8 j = 0; j < 5; j++) {
             ui->fitTableWidget->setItem(i, j, new QTableWidgetItem(fitTable[i][j]));
         }
