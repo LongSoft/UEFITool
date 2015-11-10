@@ -1,4 +1,4 @@
-/* ffsparser.h
+/* parsingdata.h
 
 Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
@@ -8,7 +8,6 @@ http://opensource.org/licenses/bsd-license.php
 
 THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-
 
 Parsing data is an information needed for each level of image reconstruction
 routines without the need of backward traversal

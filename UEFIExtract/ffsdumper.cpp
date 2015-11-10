@@ -85,7 +85,11 @@ STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path,
     UINT8 result;
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex childIndex = index.child(i, 0);
-        QString childPath = QString("%1/%2 %3").arg(path).arg(i).arg(model->text(childIndex).isEmpty() ? model->name(childIndex) : model->text(childIndex));
+        bool useText = FALSE;
+        if (model->type(childIndex) != Types::Volume)
+            useText = !model->text(childIndex).isEmpty();
+
+        QString childPath = QString("%1/%2 %3").arg(path).arg(i).arg(useText ? model->text(childIndex) : model->name(childIndex));
         result = recursiveDump(childIndex, childPath, guid);
         if (result)
             return result;
