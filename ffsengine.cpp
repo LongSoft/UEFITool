@@ -76,6 +76,7 @@ QString errorMessage(UINT8 errorCode)
     case ERR_NOTHING_TO_PATCH:                return QObject::tr("Nothing to patch");
     case ERR_DEPEX_PARSE_FAILED:              return QObject::tr("Dependency expression parsing failed");
     case ERR_TRUNCATED_IMAGE:                 return QObject::tr("Image is truncated");
+    case ERR_BAD_RELOCATION_ENTRY:            return QObject::tr("Bad image relocation entry");
     default:                                  return QObject::tr("Unknown error %1").arg(errorCode);
     }
 }
@@ -257,13 +258,31 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
 
     // Check for buffer size to be greater or equal to descriptor region size
     if (intelImage.size() < FLASH_DESCRIPTOR_SIZE) {
-        msg(tr("parseIntelImage: input file is smaller then minimum descriptor size of %1h (%2) bytes").hexarg(FLASH_DESCRIPTOR_SIZE).arg(FLASH_DESCRIPTOR_SIZE));
+        msg(tr("parseIntelImage: input file is smaller than minimum descriptor size of 1000h (4096) bytes"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
 
     // Parse descriptor map
     const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)(descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
     const FLASH_DESCRIPTOR_UPPER_MAP*  upperMap = (const FLASH_DESCRIPTOR_UPPER_MAP*)(descriptor + FLASH_DESCRIPTOR_UPPER_MAP_BASE);
+
+    // Check sanity of base values
+    if (descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
+        || descriptorMap->MasterBase == descriptorMap->RegionBase
+        || descriptorMap->MasterBase == descriptorMap->ComponentBase) {
+        msg(tr("parseIntelImage: invalid descriptor master base %1h").hexarg2(descriptorMap->MasterBase, 2));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (descriptorMap->RegionBase > FLASH_DESCRIPTOR_MAX_BASE
+        || descriptorMap->RegionBase == descriptorMap->ComponentBase) {
+        msg(tr("parseIntelImage: invalid descriptor region base %1h").hexarg2(descriptorMap->RegionBase, 2));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (descriptorMap->ComponentBase > FLASH_DESCRIPTOR_MAX_BASE) {
+        msg(tr("parseIntelImage: invalid descriptor component base %1h").hexarg2(descriptorMap->ComponentBase, 2));
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8(descriptor, descriptorMap->RegionBase);
     const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8(descriptor, descriptorMap->ComponentBase);
 
@@ -807,18 +826,20 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
 
         // Get volume size
         result = getVolumeSize(bios, volumeOffset, volumeSize, bmVolumeSize);
-        if (result)
+        if (result) {
+            msg(tr("parseBios: getVolumeSize failed with error \"%1\"").arg(errorMessage(result)), parent);
             return result;
+        }
 
-        // Check reported size
-        if (volumeSize != bmVolumeSize)
-            msgSizeMismach = true;
-
-        //Check that volume is fully present in input
-        if (volumeOffset + volumeSize > (UINT32)bios.size()) {
+        // Check that volume is fully present in input
+        if (volumeSize > (UINT32)bios.size() || volumeOffset + volumeSize > (UINT32)bios.size()) {
             msg(tr("parseBios: one of volumes inside overlaps the end of data"), parent);
             return ERR_INVALID_VOLUME;
         }
+
+        // Check reported size against a size calculated using block map
+        if (volumeSize != bmVolumeSize)
+            msgSizeMismach = true;
 
         // Check volume revision and alignment
         const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + volumeOffset);
@@ -898,6 +919,10 @@ UINT8 FfsEngine::findNextVolume(const QByteArray & bios, UINT32 volumeOffset, UI
 
 UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize)
 {
+    // Check that there is space for the volume header and at least two block map entries.
+    if ((UINT32)bios.size() < volumeOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY))
+        return ERR_INVALID_VOLUME;
+
     // Populate volume header
     const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + volumeOffset);
 
@@ -918,13 +943,36 @@ UINT8 FfsEngine::getVolumeSize(const QByteArray & bios, UINT32 volumeOffset, UIN
 
     volumeSize = volumeHeader->FvLength;
     bmVolumeSize = calcVolumeSize;
+
+    if (volumeSize == 0)
+        return ERR_INVALID_VOLUME;
+
     return ERR_SUCCESS;
 }
 
 UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent, const UINT8 mode)
 {
+    // Check that there is space for the volume header
+    if ((UINT32)volume.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
+        msg(tr("parseVolume: input volume size %1h (%2) is smaller than volume header size 40h (64)").hexarg(volume.size()).arg(volume.size()));
+        return ERR_INVALID_VOLUME;
+    }
+
     // Populate volume header
     const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(volume.constData());
+
+    // Check sanity of HeaderLength value
+    if (ALIGN8(volumeHeader->HeaderLength) > volume.size()) {
+        msg(tr("parseVolume: volume header overlaps the end of data"));
+        return ERR_INVALID_VOLUME;
+    }
+
+    // Check sanity of ExtHeaderOffset value
+    if (volumeHeader->ExtHeaderOffset > 0
+        && (UINT32)volume.size() < ALIGN8(volumeHeader->ExtHeaderOffset + sizeof(EFI_FIRMWARE_VOLUME_EXT_HEADER))) {
+        msg(tr("parseVolume: extended volume header overlaps the end of data"));
+        return ERR_INVALID_VOLUME;
+    }
 
     // Calculate volume header size
     UINT32 headerSize;
@@ -940,12 +988,10 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
     // Check for volume structure to be known
     bool volumeIsUnknown = true;
-    /*UINT8 volumeFfsVersion = 0;*/
 
     // Check for FFS v2 volume
     if (FFSv2Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))) {
         volumeIsUnknown = false;
-        /*volumeFfsVersion = 2;*/
     }
 
     // Check attributes
@@ -1139,6 +1185,8 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
 
 UINT8 FfsEngine::getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize)
 {
+    if ((UINT32)volume.size() < fileOffset + sizeof(EFI_FFS_FILE_HEADER))
+        return ERR_INVALID_VOLUME;
     const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)(volume.constData() + fileOffset);
     fileSize = uint24ToUint32(fileHeader->Size);
     return ERR_SUCCESS;
@@ -1332,6 +1380,8 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
 
 UINT8 FfsEngine::getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize)
 {
+    if ((UINT32)file.size() < sectionOffset + sizeof(EFI_COMMON_SECTION_HEADER))
+        return ERR_INVALID_FILE;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(file.constData() + sectionOffset);
     sectionSize = uint24ToUint32(sectionHeader->Size);
     return ERR_SUCCESS;
@@ -1350,6 +1400,9 @@ UINT8 FfsEngine::parseSections(const QByteArray & body, const QModelIndex & pare
         result = getSectionSize(body, sectionOffset, sectionSize);
         if (result)
             return result;
+        // Exit from loop if no sections left
+        if (sectionSize == 0)
+            break;
 
         // Parse section
         QModelIndex sectionIndex;
@@ -1531,6 +1584,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         bool msgInvalidCrc = false;
         bool msgUnknownAuth = false;
         bool msgSigned = false;
+        bool msgInvalidSignatureLength = false;
         bool msgUnknownSignature = false;
         bool msgUnknownUefiGuidSignature = false;
 
@@ -1594,7 +1648,12 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             else if (QByteArray((const char*)&guidDefinedSectionHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
                 msgSigned = true;
                 const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)body.constData();
-                if (certificateHeader->CertificateType == WIN_CERT_TYPE_EFI_GUID) {
+                if ((UINT32)body.size() < sizeof(WIN_CERTIFICATE)) {
+                    info += tr("\nSignature type: invalid, wrong length");
+                    msgInvalidSignatureLength = true;
+                    parseCurrentSection = false;
+                }
+                else if (certificateHeader->CertificateType == WIN_CERT_TYPE_EFI_GUID) {
                     info += tr("\nSignature type: UEFI");
                     const WIN_CERTIFICATE_UEFI_GUID* guidCertificateHeader = (const WIN_CERTIFICATE_UEFI_GUID*)certificateHeader;
                     if (QByteArray((const char*)&guidCertificateHeader->CertType, sizeof(EFI_GUID)) == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
@@ -1619,10 +1678,17 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
                     msgUnknownSignature = true;
                 }
 
-                // Add additional to the header
-                header.append(body.left(certificateHeader->Length));
-                // Get new body
-                processed = body = body.mid(certificateHeader->Length);
+                if ((UINT32)body.size() < certificateHeader->Length) {
+                    info += tr("\nSignature type: invalid, wrong length");
+                    msgInvalidSignatureLength = true;
+                    parseCurrentSection = false;
+                }
+                else {
+                    // Add additional data to the header
+                    header.append(body.left(certificateHeader->Length));
+                    // Get new body
+                    processed = body = body.mid(certificateHeader->Length);
+                }
             }
             // Unknown GUIDed section
             else {
@@ -1665,6 +1731,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             msg(tr("parseSection: signature may become invalid after any modification"), index);
         if (msgUnknownUefiGuidSignature)
             msg(tr("parseSection: GUID defined section with unknown signature subtype"), index);
+        if (msgInvalidSignatureLength)
+            msg(tr("parseSection: GUID defined section with invalid signature length"), index);
         if (msgUnknownSignature)
             msg(tr("parseSection: GUID defined section with unknown signature type"), index);
 
@@ -1796,6 +1864,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Get PE info
         bool msgInvalidDosSignature = false;
+        bool msgInvalidDosHeader = false;
         bool msgInvalidPeSignature = false;
         bool msgUnknownOptionalHeaderSignature = false;
 
@@ -1806,7 +1875,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         }
         else {
             const EFI_IMAGE_PE_HEADER* peHeader = (EFI_IMAGE_PE_HEADER*)(body.constData() + dosHeader->e_lfanew);
-            if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE) {
+            if ((UINT32)body.size() < dosHeader->e_lfanew + sizeof(EFI_IMAGE_PE_HEADER)) {
+                info += tr("\nDOS lfanew: %1h, invalid").hexarg2(dosHeader->e_lfanew, 8);
+                msgInvalidDosHeader = true;
+            }
+            else if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE) {
                 info += tr("\nPE signature: %1h, invalid").hexarg2(peHeader->Signature, 8);
                 msgInvalidPeSignature = true;
             }
@@ -1852,6 +1925,9 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         // Show messages
         if (msgInvalidDosSignature) {
             msg("parseSection: PE32 image with invalid DOS signature", index);
+        }
+        if (msgInvalidDosHeader) {
+            msg("parseSection: PE32 image with invalid DOS header", index);
         }
         if (msgInvalidPeSignature) {
             msg("parseSection: PE32 image with invalid PE signature", index);
@@ -2845,16 +2921,40 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
             return result;
         reconstructed.append(descriptor);
 
+        // Check descriptor size
+        if ((UINT32)descriptor.size() < FLASH_DESCRIPTOR_SIZE) {
+            msg(tr("reconstructIntelImage: descriptor is smaller than minimum size of 1000h (4096) bytes"));
+            return ERR_INVALID_FLASH_DESCRIPTOR;
+        }
+
         const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)(descriptor.constData() + sizeof(FLASH_DESCRIPTOR_HEADER));
+        // Check sanity of base values
+        if (descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
+            || descriptorMap->MasterBase == descriptorMap->RegionBase
+            || descriptorMap->MasterBase == descriptorMap->ComponentBase) {
+            msg(tr("reconstructIntelImage: invalid descriptor master base %1h").hexarg2(descriptorMap->MasterBase, 2));
+            return ERR_INVALID_FLASH_DESCRIPTOR;
+        }
+        if (descriptorMap->RegionBase > FLASH_DESCRIPTOR_MAX_BASE
+            || descriptorMap->RegionBase == descriptorMap->ComponentBase) {
+            msg(tr("reconstructIntelImage: invalid descriptor region base %1h").hexarg2(descriptorMap->RegionBase, 2));
+            return ERR_INVALID_FLASH_DESCRIPTOR;
+        }
+        if (descriptorMap->ComponentBase > FLASH_DESCRIPTOR_MAX_BASE) {
+            msg(tr("reconstructIntelImage: invalid descriptor component base %1h").hexarg2(descriptorMap->ComponentBase, 2));
+            return ERR_INVALID_FLASH_DESCRIPTOR;
+        }
+
+
         const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->RegionBase);
         QByteArray gbe;
         UINT32 gbeBegin = calculateRegionOffset(regionSection->GbeBase);
         UINT32 gbeEnd = gbeBegin + calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
-        
+
         QByteArray me;
         UINT32 meBegin = calculateRegionOffset(regionSection->MeBase);
         UINT32 meEnd = meBegin + calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
-        
+
         QByteArray bios;
         UINT32 biosBegin = calculateRegionOffset(regionSection->BiosBase);
         UINT32 biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
@@ -2870,7 +2970,7 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         QByteArray pdr;
         UINT32 pdrBegin = calculateRegionOffset(regionSection->PdrBase);
         UINT32 pdrEnd = pdrBegin + calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
-        
+
         QByteArray ec;
         UINT32 ecBegin = 0;
         UINT32 ecEnd = 0;
@@ -2890,7 +2990,7 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
             msg(tr("reconstructIntelImage: unknown descriptor version with ReadClockFrequency %1h").hexarg(componentSection->FlashParameters.ReadClockFrequency));
             return ERR_INVALID_FLASH_DESCRIPTOR;
         }
-        
+
 
         UINT32 offset = descriptor.size();
         // Reconstruct other regions
@@ -3107,6 +3207,12 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
         QByteArray body = model->body(index);
         EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*)header.data();
 
+        // Check sanity of HeaderLength
+        if (volumeHeader->HeaderLength > header.size()) {
+            msg(tr("reconstructVolume: invalid volume header length, reconstruction is not possible"), index);
+            return ERR_INVALID_VOLUME;
+        }
+
         // Recalculate volume header checksum
         volumeHeader->Checksum = 0;
         volumeHeader->Checksum = calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength);
@@ -3170,8 +3276,8 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                                 // Calculate relative base address
                                 UINT32 relbase = fileOffset + sectionOffset + model->header(image).size();
                                 // Calculate offset of image relative to file base
-                                UINT32 imagebase;
-                                result = getBase(model->body(image), imagebase);
+                                UINT32 imagebase = 0;
+                                result = getBase(model->body(image), imagebase); // imagebase passed by reference
                                 if (!result) {
                                     // Calculate volume base
                                     volumeBase = imagebase - relbase;
@@ -3694,6 +3800,12 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                 if (guidDefinedHeader->Attributes & EFI_GUIDED_SECTION_AUTH_STATUS_VALID) {
                     // CRC32 section
                     if (QByteArray((const char*)&guidDefinedHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_CRC32) {
+                        // Check header size
+                        if ((UINT32)header.size() != sizeof(EFI_GUID_DEFINED_SECTION) + sizeof(UINT32)) {
+                            msg(tr("reconstructSection: invalid CRC32 section size %1h (%2)")
+                                .hexarg(header.size()).arg(header.size()), index);
+                            return ERR_INVALID_SECTION;
+                        }
                         // Calculate CRC32 of section data
                         UINT32 crc = crc32(0, (const UINT8*)compressed.constData(), compressed.size());
                         // Store new CRC32
@@ -3831,6 +3943,10 @@ UINT8 FfsEngine::reconstruct(const QModelIndex &index, QByteArray& reconstructed
 
 UINT8 FfsEngine::growVolume(QByteArray & header, const UINT32 size, UINT32 & newSize)
 {
+    // Check sanity
+    if ((UINT32)header.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER))
+        return ERR_INVALID_VOLUME;
+
     // Adjust new size to be representable by current FvBlockMap
     EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*)header.data();
     EFI_FV_BLOCK_MAP_ENTRY* blockMap = (EFI_FV_BLOCK_MAP_ENTRY*)(header.data() + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
@@ -4042,11 +4158,15 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
     QByteArray file = executable;
 
     // Populate DOS header
+    if ((UINT32)file.size() < sizeof(EFI_IMAGE_DOS_HEADER))
+        return ERR_INVALID_FILE;
     EFI_IMAGE_DOS_HEADER* dosHeader = (EFI_IMAGE_DOS_HEADER*)file.data();
 
     // Check signature
     if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
         UINT32 offset = dosHeader->e_lfanew;
+        if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_PE_HEADER))
+            return ERR_UNKNOWN_IMAGE_TYPE;
         EFI_IMAGE_PE_HEADER* peHeader = (EFI_IMAGE_PE_HEADER*)(file.data() + offset);
         if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
             return ERR_UNKNOWN_IMAGE_TYPE;
@@ -4054,8 +4174,12 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
         // Skip file header
         offset += sizeof(EFI_IMAGE_FILE_HEADER);
         // Check optional header magic
+        if ((UINT32)file.size() < offset + sizeof(UINT16))
+            return ERR_UNKNOWN_IMAGE_TYPE;
         UINT16 magic = *(UINT16*)(file.data() + offset);
         if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER32))
+                return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
             EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (EFI_IMAGE_OPTIONAL_HEADER32*)(file.data() + offset);
             delta = base - optHeader->ImageBase;
             if (!delta)
@@ -4067,6 +4191,8 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
             optHeader->ImageBase = base;
         }
         else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER64))
+                return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
             EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (EFI_IMAGE_OPTIONAL_HEADER64*)(file.data() + offset);
             delta = base - optHeader->ImageBase;
             if (!delta)
@@ -4082,6 +4208,8 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
     }
     else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
         // Populate TE header
+        if ((UINT32)file.size() < sizeof(EFI_IMAGE_TE_HEADER))
+            return ERR_INVALID_FILE;
         EFI_IMAGE_TE_HEADER* teHeader = (EFI_IMAGE_TE_HEADER*)file.data();
         delta = base - teHeader->ImageBase;
         if (!delta)
@@ -4121,7 +4249,10 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
 
         // Run this relocation record
         while (Reloc < RelocEnd) {
-            UINT8* data = (UINT8*)(file.data() + RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF));
+            UINT32 RelocLocation = RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF);
+            if ((UINT32)file.size() < RelocLocation)
+                return ERR_BAD_RELOCATION_ENTRY;
+            UINT8* data = (UINT8*)(file.data() + RelocLocation);
             switch ((*Reloc) >> 12) {
             case EFI_IMAGE_REL_BASED_ABSOLUTE:
                 // Do nothing
@@ -4197,11 +4328,15 @@ UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& entryPoint)
         return ERR_INVALID_FILE;
 
     // Populate DOS header
+    if ((UINT32)file.size() < sizeof(EFI_IMAGE_DOS_HEADER))
+        return ERR_INVALID_FILE;
     const EFI_IMAGE_DOS_HEADER* dosHeader = (const EFI_IMAGE_DOS_HEADER*)file.constData();
 
     // Check signature
     if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
         UINT32 offset = dosHeader->e_lfanew;
+        if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_PE_HEADER))
+            return ERR_UNKNOWN_IMAGE_TYPE;
         const EFI_IMAGE_PE_HEADER* peHeader = (const EFI_IMAGE_PE_HEADER*)(file.constData() + offset);
         if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
             return ERR_UNKNOWN_IMAGE_TYPE;
@@ -4213,10 +4348,14 @@ UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& entryPoint)
         // Check optional header magic
         const UINT16 magic = *(const UINT16*)(file.constData() + offset);
         if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER32))
+                return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
             const EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER32*)(file.constData() + offset);
             entryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
         }
         else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER64))
+                return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
             const EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER64*)(file.constData() + offset);
             entryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
         }
@@ -4225,6 +4364,8 @@ UINT8 FfsEngine::getEntryPoint(const QByteArray &file, UINT32& entryPoint)
     }
     else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
         // Populate TE header
+        if ((UINT32)file.size() < sizeof(EFI_IMAGE_TE_HEADER))
+            return ERR_INVALID_FILE;
         const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)file.constData();
         UINT32 teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
         entryPoint = teHeader->ImageBase + teHeader->AddressOfEntryPoint - teFixup;
@@ -4238,11 +4379,15 @@ UINT8 FfsEngine::getBase(const QByteArray& file, UINT32& base)
         return ERR_INVALID_FILE;
 
     // Populate DOS header
+    if ((UINT32)file.size() < sizeof(EFI_IMAGE_DOS_HEADER))
+        return ERR_INVALID_FILE;
     const EFI_IMAGE_DOS_HEADER* dosHeader = (const EFI_IMAGE_DOS_HEADER*)file.constData();
 
     // Check signature
     if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
         UINT32 offset = dosHeader->e_lfanew;
+        if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_PE_HEADER))
+            return ERR_UNKNOWN_IMAGE_TYPE;
         const EFI_IMAGE_PE_HEADER* peHeader = (const EFI_IMAGE_PE_HEADER*)(file.constData() + offset);
         if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
             return ERR_UNKNOWN_IMAGE_TYPE;
@@ -4254,10 +4399,14 @@ UINT8 FfsEngine::getBase(const QByteArray& file, UINT32& base)
         // Check optional header magic
         const UINT16 magic = *(const UINT16*)(file.constData() + offset);
         if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER32))
+                return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
             const EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER32*)(file.constData() + offset);
             base = optHeader->ImageBase;
         }
         else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER64))
+                return ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
             const EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER64*)(file.constData() + offset);
             base = optHeader->ImageBase;
         }
@@ -4266,6 +4415,8 @@ UINT8 FfsEngine::getBase(const QByteArray& file, UINT32& base)
     }
     else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
         // Populate TE header
+        if ((UINT32)file.size() < sizeof(EFI_IMAGE_TE_HEADER))
+            return ERR_INVALID_FILE;
         const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)file.constData();
         //!TODO: add handling
         base = teHeader->ImageBase;

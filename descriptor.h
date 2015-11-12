@@ -21,7 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 // Flash descriptor header
 typedef struct _FLASH_DESCRIPTOR_HEADER {
-    UINT8 FfVector[16];            // Must be 16 0xFFs
+    UINT8  FfVector[16];           // Must be 16 0xFFs
     UINT32 Signature;              // 0x0FF0A55A
 } FLASH_DESCRIPTOR_HEADER;
 
@@ -52,6 +52,8 @@ typedef struct _FLASH_DESCRIPTOR_MAP {
     UINT32 NumberOfProcStraps : 8;      // One-based number of UINT32s to read as processor straps, min=0, max=255 (1 Kb)
     UINT32: 16;
 } FLASH_DESCRIPTOR_MAP;
+
+#define FLASH_DESCRIPTOR_MAX_BASE 0xE0
 
 // Component section
 // Flash parameters DWORD structure
@@ -114,7 +116,7 @@ typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION_V2 {
 // If limit is zero - region is not present
 typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
     UINT16 DescriptorBase;             // Descriptor
-    UINT16 DescriptorLimit;            //                           
+    UINT16 DescriptorLimit;            //
     UINT16 BiosBase;                   // BIOS
     UINT16 BiosLimit;                  //
     UINT16 MeBase;                     // ME
