@@ -1309,10 +1309,10 @@ STATUS FfsParser::parseVolumeNonUefiData(const QByteArray & data, const UINT32 p
         padding = data.left(vtfIndex);
         vtf = data.mid(vtfIndex);
         const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)vtf.constData();
-        if (vtf.size() < sizeof(EFI_FFS_FILE_HEADER) // VTF candidate is too small to be a real VTF in FFSv1/v2 volume
+        if ((UINT32)vtf.size() < sizeof(EFI_FFS_FILE_HEADER) // VTF candidate is too small to be a real VTF in FFSv1/v2 volume
             || (pdata.ffsVersion == 3
                 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)
-                && vtf.size() < sizeof(EFI_FFS_FILE_HEADER2))) { // VTF candidate is too small to be a real VTF in FFSv3 volume
+                && (UINT32)vtf.size() < sizeof(EFI_FFS_FILE_HEADER2))) { // VTF candidate is too small to be a real VTF in FFSv3 volume
             vtfIndex = -1;
             padding = data;
             vtf.clear();
