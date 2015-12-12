@@ -31,6 +31,9 @@ typedef struct _FLASH_DESCRIPTOR_HEADER {
 // Descriptor region size
 #define FLASH_DESCRIPTOR_SIZE      0x1000
 
+// Maximum base value in descriptor map
+#define FLASH_DESCRIPTOR_MAX_BASE  0xE0
+
 // Descriptor map
 // Base fields are storing bits [11:4] of actual base addresses, all other bits are 0
 typedef struct _FLASH_DESCRIPTOR_MAP {

@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha15"))
+version(tr("0.30.0_alpha16"))
 {
     clipboard = QApplication::clipboard();
 
@@ -199,8 +199,7 @@ bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
             pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_UNKNOWN) { //Compressed section
             return true;
         }
-        else if (model->subtype(current) == EFI_SECTION_GUID_DEFINED && 
-                (pdata.section.guidDefined.attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED)) {
+        else if (model->subtype(current) == EFI_SECTION_GUID_DEFINED) {
             QByteArray guid = QByteArray((const char*)&pdata.section.guidDefined.guid, sizeof(EFI_GUID));
             if (guid == EFI_GUIDED_SECTION_TIANO || guid == EFI_GUIDED_SECTION_LZMA) {
                 return true;

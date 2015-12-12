@@ -78,6 +78,7 @@ typedef UINT8 STATUS;
 #define ERR_DIR_ALREADY_EXIST               32
 #define ERR_DIR_CREATE                      33
 #define ERR_TRUNCATED_IMAGE                 34
+#define ERR_INVALID_CAPSULE                 35
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions

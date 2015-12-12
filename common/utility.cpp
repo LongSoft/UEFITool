@@ -93,6 +93,7 @@ QString errorCodeToQString(UINT8 errorCode)
     //case ERR_NOTHING_TO_PATCH:                return QObject::tr("Nothing to patch");
     case ERR_DEPEX_PARSE_FAILED:              return QObject::tr("Dependency expression parsing failed");
     case ERR_TRUNCATED_IMAGE:                 return QObject::tr("Image is truncated");
+    case ERR_INVALID_CAPSULE:                 return QObject::tr("Invalid capsule");
     default:                                  return QObject::tr("Unknown error %1").arg(errorCode);
     }
 }

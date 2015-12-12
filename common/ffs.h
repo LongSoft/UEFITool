@@ -68,13 +68,10 @@ const QByteArray TOSHIBA_CAPSULE_GUID
 // AMI Aptio extended capsule header
 typedef struct _APTIO_CAPSULE_HEADER {
     EFI_CAPSULE_HEADER    CapsuleHeader;
-    UINT16                RomImageOffset;	// offset in bytes from the beginning of the capsule header to the start of
-    // the capsule volume
-    //!TODO: Enable certificate and ROM layout reading
-    //UINT16                RomLayoutOffset;	// offset to the table of the module descriptors in the capsule's volume
-    // that are included in the signature calculation
+    UINT16                RomImageOffset;  // offset in bytes from the beginning of the capsule header to the start of the capsule volume
+    UINT16                RomLayoutOffset; // offset to the table of the module descriptors in the capsule's volume that are included in the signature calculation
     //FW_CERTIFICATE      FWCert;
-    //ROM_AREA			  RomAreaMap[1];
+    //ROM_AREA            RomAreaMap[1];
 } APTIO_CAPSULE_HEADER;
 
 // AMI Aptio signed extended capsule GUID
@@ -454,6 +451,35 @@ const QByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
 const QByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID //0F9D89E8-9259-4F76-A5AF-0C89E34023DF
 ("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
 
+//#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
+#define WIN_CERT_TYPE_EFI_GUID         0x0EF1
+
+typedef struct _WIN_CERTIFICATE {
+    UINT32  Length;
+    UINT16  Revision;
+    UINT16  CertificateType;
+    //UINT8 CertData[];
+} WIN_CERTIFICATE;
+
+typedef struct _WIN_CERTIFICATE_UEFI_GUID {
+    WIN_CERTIFICATE   Header;     // Standard WIN_CERTIFICATE
+    EFI_GUID          CertType;   // Determines format of CertData
+    // UINT8          CertData[]; // Certificate data follows
+} WIN_CERTIFICATE_UEFI_GUID;
+
+// WIN_CERTIFICATE_UEFI_GUID.CertType
+const QByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
+("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
+//const QByteArray EFI_CERT_TYPE_PKCS7_GUID
+//("\x9D\xD2\xAF\x4A\xDF\x68\xEE\x49\x8A\xA9\x34\x7D\x37\x56\x65\xA7");
+
+// WIN_CERTIFICATE_UEFI_GUID.CertData
+typedef struct _EFI_CERT_BLOCK_RSA_2048_SHA256 {
+    UINT32  HashType;
+    UINT8   PublicKey[256];
+    UINT8   Signature[256];
+} EFI_CERT_BLOCK_RSA_2048_SHA256;
+
 // Version section
 typedef struct _EFI_VERSION_SECTION {
     UINT8    Size[3];
@@ -549,42 +575,9 @@ typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
 
 ///
 /// If present, this must be the first opcode,
-/// EFI_DEP_SOR is only used by DXE driver.
+/// EFI_DEP_SOR is only used by DXE drivers
 ///
 #define EFI_DEP_SOR           0x09
-
-//*****************************************************************************
-// UEFI Crypto-signed Stuff
-//*****************************************************************************
-
-#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
-#define WIN_CERT_TYPE_EFI_GUID         0x0EF1
-
-typedef struct _WIN_CERTIFICATE {
-    UINT32  Length;
-    UINT16  Revision;
-    UINT16  CertificateType;
-    //UINT8 CertData[];
-} WIN_CERTIFICATE;
-
-typedef struct _WIN_CERTIFICATE_UEFI_GUID {
-    WIN_CERTIFICATE   Header;     // Standard WIN_CERTIFICATE
-    EFI_GUID          CertType;   // Determines format of CertData
-    // UINT8          CertData[]; // Certificate data follows
-} WIN_CERTIFICATE_UEFI_GUID;
-
-// WIN_CERTIFICATE_UEFI_GUID.CertType
-const QByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
-("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
-const QByteArray EFI_CERT_TYPE_PKCS7_GUID
-("\x9D\xD2\xAF\x4A\xDF\x68\xEE\x49\x8A\xA9\x34\x7D\x37\x56\x65\xA7");
-
-// WIN_CERTIFICATE_UEFI_GUID.CertData
-typedef struct _EFI_CERT_BLOCK_RSA_2048_SHA256 {
-    UINT32  HashType;
-    UINT8   PublicKey[256];
-    UINT8   Signature[256];
-} EFI_CERT_BLOCK_RSA_2048_SHA256;
 
 // Restore previous packing rules
 #pragma pack(pop)
