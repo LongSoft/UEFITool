@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
             // Split the read line
             QList<QByteArray> list = line.split(' ');
             if (list.count() < 3) {
-                std::cout << line.toStdString() << "skipped, too few arguments" << std::endl << std::endl;
+                std::cout << line.constData() << "skipped, too few arguments" << std::endl << std::endl;
                 continue;
             }
             // Get search mode
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
             else if (list.at(0) == QString("all"))
                 mode = SEARCH_MODE_ALL;
             else {
-                std::cout << line.toStdString() << "skipped, invalid search mode" << std::endl << std::endl;
+                std::cout << line.constData() << "skipped, invalid search mode" << std::endl << std::endl;
                 continue;
             }
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
             else if (list.at(1) == QString("count"))
                 count = true;
             else {
-                std::cout << line.toStdString() << "skipped, invalid result type" << std::endl << std::endl;
+                std::cout << line.constData() << "skipped, invalid result type" << std::endl << std::endl;
                 continue;
             }
 
@@ -126,17 +126,17 @@ int main(int argc, char *argv[])
             QString found;
             result = w.find(mode, count, list.at(2), found);
             if (result) {
-                std::cout << line.toStdString() << "skipped, find failed with error " << result << std::endl << std::endl;
+                std::cout << line.constData() << "skipped, find failed with error " << (UINT32)result << std::endl << std::endl;
                 continue;
             }
 
             if (found.isEmpty()) {
                 // Nothing is found
-                std::cout << line.toStdString() << "nothing found" << std::endl << std::endl;
+                std::cout << line.constData() << "nothing found" << std::endl << std::endl;
             }
             else {
                 // Print result
-                std::cout << line.toStdString() << found.toStdString() << std::endl;
+                std::cout << line.constData() << found.toStdString() << std::endl;
                 somethingFound = true;
             }
         }
