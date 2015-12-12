@@ -2550,7 +2550,7 @@ STATUS FfsParser::parseUiSectionBody(const QModelIndex & index)
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
 
-    QString text = QString::fromUtf16((const ushort*)model->body(index).constData(), model->body(index).size()/2);
+    QString text = QString::fromUtf16((const ushort*)model->body(index).constData());
 
     // Add info
     model->addInfo(index, tr("\nText: %1").arg(text));
