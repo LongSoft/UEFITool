@@ -1143,7 +1143,10 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
 
     // Check header checksum by recalculating it
     bool msgInvalidChecksum = false;
-    if (calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength))
+    QByteArray tempHeader((const char*)volumeHeader, volumeHeader->HeaderLength);
+    ((EFI_FIRMWARE_VOLUME_HEADER*)tempHeader.data())->Checksum = 0;
+    UINT16 calculated = calculateChecksum16((const UINT16*)tempHeader.constData(), volumeHeader->HeaderLength);
+    if (volumeHeader->Checksum != calculated)
         msgInvalidChecksum = true;
 
     // Get info
@@ -1164,7 +1167,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         .hexarg2(volumeHeader->Attributes, 8)
         .arg(emptyByte ? "1" : "0")
         .hexarg2(volumeHeader->Checksum, 4)
-        .arg(msgInvalidChecksum ? tr("invalid") : tr("valid"));
+        .arg(msgInvalidChecksum ? tr("invalid, should be %1h").hexarg2(calculated, 4) : tr("valid"));
 
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
@@ -1557,28 +1560,33 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
     EFI_FFS_FILE_HEADER* tempFileHeader = (EFI_FFS_FILE_HEADER*)(tempHeader.data());
     tempFileHeader->IntegrityCheck.Checksum.Header = 0;
     tempFileHeader->IntegrityCheck.Checksum.File = 0;
-    UINT8 calculated = calculateChecksum8((const UINT8*)tempFileHeader, header.size() - 1);
+    UINT8 calculatedHeader = calculateChecksum8((const UINT8*)tempFileHeader, header.size() - 1);
     bool msgInvalidHeaderChecksum = false;
-    if (fileHeader->IntegrityCheck.Checksum.Header != calculated)
+    if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader)
         msgInvalidHeaderChecksum = true;
 
     // Check data checksum
     // Data checksum must be calculated
     bool msgInvalidDataChecksum = false;
+    UINT8 calculatedData = 0;
     if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
         UINT32 bufferSize = file.size() - header.size();
         // Exclude file tail from data checksum calculation
         if (pdata.volume.revision == 1 && (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT))
             bufferSize -= sizeof(UINT16);
-        calculated = calculateChecksum8((const UINT8*)(file.constData() + header.size()), bufferSize);
-        if (fileHeader->IntegrityCheck.Checksum.File != calculated)
+        calculatedData = calculateChecksum8((const UINT8*)(file.constData() + header.size()), bufferSize);
+        if (fileHeader->IntegrityCheck.Checksum.File != calculatedData)
             msgInvalidDataChecksum = true;
     }
     // Data checksum must be one of predefined values
-    else if (pdata.volume.revision == 1 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM)
+    else if (pdata.volume.revision == 1 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM) {
+        calculatedData = FFS_FIXED_CHECKSUM;
         msgInvalidDataChecksum = true;
-    else if (pdata.volume.revision == 2 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM2)
+    }
+    else if (pdata.volume.revision == 2 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM2) {
+        calculatedData = FFS_FIXED_CHECKSUM2;
         msgInvalidDataChecksum = true;
+    }
 
     // Check file type
     bool msgUnknownType = false;
@@ -1623,9 +1631,9 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
         .hexarg(body.size()).arg(body.size())
         .hexarg2(fileHeader->State, 2)
         .hexarg2(fileHeader->IntegrityCheck.Checksum.Header, 2)
-        .arg(msgInvalidHeaderChecksum ? tr("invalid") : tr("valid"))
+        .arg(msgInvalidHeaderChecksum ? tr("invalid, should be %1h").hexarg2(calculatedHeader, 2) : tr("valid"))
         .hexarg2(fileHeader->IntegrityCheck.Checksum.File, 2)
-        .arg(msgInvalidDataChecksum ? tr("invalid") : tr("valid"));
+        .arg(msgInvalidDataChecksum ? tr("invalid, should be %1h").hexarg2(calculatedData, 2) : tr("valid"));
 
     // Check if the file is a Volume Top File
     QString text;
