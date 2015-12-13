@@ -91,7 +91,9 @@ STATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPat
 
     QPair<QModelIndex, QModelIndex> indexes;
     Q_FOREACH(indexes, files) {
-        QByteArray data = model->header(indexes.first).left(16);
+        QByteArray data(16, '\x00');
+        if (!model->hasEmptyHeader(indexes.first))
+            data = model->header(indexes.first).left(16);
         result.append(guidToQString((const UINT8*)data.constData()));
 
         // Special case of freeform subtype GUID files
