@@ -36,7 +36,7 @@ Right now there are some alternatives to UEFITool that you could find useful too
 * **[Chipsec](https://github.com/chipsec/chipsec)** by Intel. Cross-platform partially open source console application written in Python and C. Can be used to test Intel-based platforms for various security-related misconfigurations, but also has NVRAM parser and other components aimed to firmware modification.
 * **MMTool** by AMI. Windows-only proprietary application available to AMI clients. Works only with Aptio4- and AptioV-based firmware images, but has some interesting features including OptionROM replacement and microcode update. Must be licensed from AMI.
 * **H2OEZE** by Insyde. Windows-only proprietary application available to Insyde clients. Works only with InsydeH2O-based firmware images. Must be licensed from Insyde.
-* **SCT BIOS Editor** by Phoenix. Windows-only proprietary application available to Phoenix clients. Works only with InsydeH2O-based firmware images. Must be licensed from Phoenix.
+* **SCT BIOS Editor** by Phoenix. Windows-only proprietary application available to Phoenix clients. Works only with Phoenix SCT-based firmware images. Must be licensed from Phoenix.
 
 ## Installation
 
