@@ -67,7 +67,7 @@ UINT8 FFSUtil::findFileByGUID(const QModelIndex index, const QString guid, QMode
         return ERR_INVALID_SECTION;
     }
 
-    if(!ffsEngine->treeModel()->nameString(index).compare(guid)) {
+    if(!ffsEngine->treeModel()->name(index).compare(guid)) {
         result = index;
         return ERR_SUCCESS;
     }
@@ -152,7 +152,7 @@ UINT8 FFSUtil::getNameByGUID(QString guid, QString & name)
     if(ret)
         return ERR_ITEM_NOT_FOUND;
 
-    name = ffsEngine->treeModel()->textString(result);
+    name = ffsEngine->treeModel()->text(result);
 
     return ERR_SUCCESS;
 }
@@ -164,17 +164,19 @@ UINT8 FFSUtil::getLastVolumeIndex(QModelIndex & result)
     QModelIndex rootIdx;
 
     getRootIndex(rootIdx);
-
-    ret = findFileByGUID(rootIdx, amiBoardSection.GUID, amiFileIdx);
-    if(ret) {
-        printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
-        return ERR_ITEM_NOT_FOUND;
+	
+    for(int i=0; i < AMIBOARD_SIZE; i++){
+	ret = findFileByGUID(rootIdx, amiBoardSection[i].GUID, amiFileIdx);
+	if(ret) {
+           printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection[i].name), qPrintable(amiBoardSection[i].GUID));
+    	} else
+	   break;
     }
+    if(ret)
+	return ERR_ITEM_NOT_FOUND;
 
     getLastSibling(amiFileIdx, volumeIdxCount);
-
     result = volumeIdxCount;
-
     return ERR_SUCCESS;
 }
 
@@ -185,15 +187,19 @@ UINT8 FFSUtil::getAmiBoardPE32Index(QModelIndex & result)
 
     getRootIndex(rootIdx);
 
-    ret = findFileByGUID(rootIdx, amiBoardSection.GUID, amiFileIdx);
-    if(ret) {
-        printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
-        return ERR_ITEM_NOT_FOUND;
+    for(int i=0; i < AMIBOARD_SIZE; i++){
+        ret = findFileByGUID(rootIdx, amiBoardSection[i].GUID, amiFileIdx);
+        if(ret) {
+           printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection[i].name), qPrintable(amiBoardSection[i].GUID));
+        } else
+           break;
     }
+    if(ret)
+        return ERR_ITEM_NOT_FOUND;
 
     ret = findSectionByIndex(amiFileIdx, EFI_SECTION_PE32, amiSectionIdx);
     if(ret) {
-        printf("ERROR: PE32 Section of GUID %s couldn't be found!\n",qPrintable(amiBoardSection.GUID));
+        printf("ERROR: PE32 Section of AmiBoardInfo couldn't be found!\n");
         return ERR_ITEM_NOT_FOUND;
     }
 
@@ -240,10 +246,9 @@ UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
         return ret;
     }
 
-    ret = dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32,
-                                amiboard, EXTRACT_MODE_BODY);
-    if(ret){
-        printf("ERROR: Failed to dump '%s' [%s] from BIOS!\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+   ret = extract(amiSectionIdx, amiboard, EXTRACT_MODE_BODY);
+   if(ret){
+        printf("ERROR: Failed to dump AmiBoardInfo from BIOS!\n");
         return ret;
     }
 
@@ -260,7 +265,7 @@ UINT8 FFSUtil::injectDSDT(QByteArray dsdt)
 
     ret = replace(amiSectionIdx, patchedAmiboard, REPLACE_MODE_BODY);
     if(ret) {
-        printf("ERROR: Failed to replace '%s' [%s]\n", qPrintable(amiBoardSection.name), qPrintable(amiBoardSection.GUID));
+        printf("ERROR: Failed to replace AmiBoardInfo\n");
         return ERR_REPLACE;
     }
 

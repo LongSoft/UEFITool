@@ -51,11 +51,17 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
 
     buf.clear();
 
-    printf("* Dumping AmiBoardInfo from BIOS...\n");
-    ret = fu->dumpSectionByGUID(amiBoardSection.GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
-    if (ret) {
-        printf("ERROR: Dumping AmiBoardInfo failed!\n");
-        return ret;
+   for(int i=0; i < AMIBOARD_SIZE; i++){
+	printf("* Dumping AmiBoardInfo from BIOS...\n");
+        ret = fu->dumpSectionByGUID(amiBoardSection[i].GUID, EFI_SECTION_PE32, buf, EXTRACT_MODE_BODY);
+        if(ret) {
+           printf("ERROR: '%s' [%s] couldn't be found!\n", qPrintable(amiBoardSection[i].name), qPrintable(amiBoardSection[i].GUID));
+        } else
+           break;
+    }
+    if(ret){
+	printf("ERROR: Dumping AmiBoardInfo failed!\n");
+        return ERR_ITEM_NOT_FOUND;
     }
 
     printf("* Extracting DSDT from AmiBoardInfo...\n");    
@@ -65,7 +71,7 @@ UINT8 OZMTool::DSDTExtract(QString inputfile, QString outputdir)
         return ret;
     }
 
-    outputFile = pathConcatenate(outputdir, amiBoardSection.name + ".bin");
+    outputFile = pathConcatenate(outputdir, amiBoardSection[0].name + ".bin");
 
     printf("* Writing DSDT and AmiBoardInfo to files...\n");
     ret = fileWrite(outputFile, buf);

@@ -122,8 +122,11 @@ static const sectionEntry coreDxeSection = {
     "CORE_DXE","5AE3F37E-4EAE-41AE-8240-35465B5E81EB", "coredxe.efi", SRC_EFI, EFI_SECTION_PE32, TRUE
 };
 
-static const sectionEntry amiBoardSection = {
-    "AmiBoardInfo","9F3A0016-AE55-4288-829D-D22FD344C347", "amiboardinfo.efi", SRC_EFI, EFI_SECTION_PE32, TRUE
+#define AMIBOARD_SIZE 2
+
+static const sectionEntry amiBoardSection[] = {
+    {"AmiBoardInfo","9F3A0016-AE55-4288-829D-D22FD344C347", "amiboardinfo.efi", SRC_EFI, EFI_SECTION_PE32, TRUE},
+    {"AmiBoardInfo2","9F3A0016-AE55-4288-829D-D55FD3AAC347", "amiboardinfo2.efi", SRC_EFI, EFI_SECTION_PE32, TRUE}
 };
 
 static const sectionEntry filesystemSection = {

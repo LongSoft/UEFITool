@@ -28,6 +28,7 @@ SOURCES  += ozmtool_main.cpp \
  ../types.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
+ ../peimage.cpp \
  ../ffsengine.cpp \
  ../treeitem.cpp \
  ../treemodel.cpp \
@@ -38,6 +39,7 @@ SOURCES  += ozmtool_main.cpp \
  ../LZMA/SDK/C/LzmaEnc.c \
  ../Tiano/EfiTianoDecompress.c \
  ../Tiano/EfiTianoCompress.c \
+ ../Tiano/EfiTianoCompressLegacy.c \
     util.cpp \
     ffsutil.cpp
 
