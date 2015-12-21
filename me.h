@@ -1,6 +1,6 @@
 /* me.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -21,7 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 const QByteArray ME_VERSION_SIGNATURE("\x24\x4D\x41\x4E", 4);  //$MAN
 const QByteArray ME_VERSION_SIGNATURE2("\x24\x4D\x4E\x32", 4); //$MN2
 
-typedef struct {
+typedef struct _ME_VERSION {
     UINT32 signature;
     UINT32 reserved; // Unknown for me
     UINT16 major;

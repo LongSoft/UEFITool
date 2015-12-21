@@ -1,6 +1,6 @@
 /*++ EfiTianoDecompress.c
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.<BR>
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.<BR>
 Copyright (c) 2004 - 2010, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
@@ -103,7 +103,6 @@ Returns: (VOID)
     Sd->mBitBuf = (UINT32)(Sd->mBitBuf << NumOfBits);
 
     while (NumOfBits > Sd->mBitCount) {
-
         Sd->mBitBuf |= (UINT32)(Sd->mSubBitBuf << (NumOfBits = (UINT16)(NumOfBits - Sd->mBitCount)));
 
         if (Sd->mCompSize > 0) {
@@ -114,7 +113,6 @@ Returns: (VOID)
             Sd->mSubBitBuf = 0;
             Sd->mSubBitBuf = Sd->mSrcBase[Sd->mInBuf++];
             Sd->mBitCount = 8;
-
         }
         else {
             //
@@ -122,7 +120,6 @@ Returns: (VOID)
             //
             Sd->mSubBitBuf = 0;
             Sd->mBitCount = 8;
-
         }
     }
 
@@ -270,7 +267,6 @@ BAD_TABLE - The table is corrupted.
     Mask = (UINT16)(1U << (15 - TableBits));
 
     for (Char = 0; Char < NumOfChar; Char++) {
-
         Len = BitLen[Char];
         if (Len == 0 || Len >= 17) {
             continue;
@@ -279,17 +275,14 @@ BAD_TABLE - The table is corrupted.
         NextCode = (UINT16)(Start[Len] + Weight[Len]);
 
         if (Len <= TableBits) {
-
             for (Index = Start[Len]; Index < NextCode; Index++) {
                 // Check to prevent possible heap corruption
                 if (Index >= (UINT16)(1U << TableBits))
                     return (UINT16)BAD_TABLE;
                 Table[Index] = Char;
             }
-
         }
         else {
-
             Index3 = Start[Len];
             Pointer = &Table[Index3 >> JuBits];
             Index = (UINT16)(Len - TableBits);
@@ -318,7 +311,6 @@ BAD_TABLE - The table is corrupted.
             }
 
             *Pointer = Char;
-
         }
 
         Start[Len] = NextCode;
@@ -360,7 +352,6 @@ The position value decoded.
         Mask = 1U << (BITBUFSIZ - 1 - 8);
 
         do {
-
             if (Sd->mBitBuf & Mask) {
                 Val = Sd->mRight[Val];
             }
@@ -443,7 +434,6 @@ BAD_TABLE - Table is corrupted.
     Index = 0;
 
     while (Index < Number) {
-
         CharC = (UINT16)(Sd->mBitBuf >> (BITBUFSIZ - 3));
 
         if (CharC == 7) {
@@ -521,13 +511,11 @@ Returns: (VOID)
 
     Index = 0;
     while (Index < Number) {
-
         CharC = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
         if (CharC >= NT) {
             Mask = 1U << (BITBUFSIZ - 1 - 8);
 
             do {
-
                 if (Mask & Sd->mBitBuf) {
                     CharC = Sd->mRight[CharC];
                 }
@@ -536,7 +524,6 @@ Returns: (VOID)
                 }
 
                 Mask >>= 1;
-
             } while (CharC >= NT);
         }
         //
@@ -545,7 +532,6 @@ Returns: (VOID)
         FillBuf(Sd, Sd->mPTLen[CharC]);
 
         if (CharC <= 2) {
-
             if (CharC == 0) {
                 CharC = 1;
             }
@@ -559,12 +545,9 @@ Returns: (VOID)
             while ((INT16)(--CharC) >= 0) {
                 Sd->mCLen[Index++] = 0;
             }
-
         }
         else {
-
             Sd->mCLen[Index++] = (UINT8)(CharC - 2);
-
         }
     }
 
@@ -687,7 +670,6 @@ Returns: (VOID)
             else {
                 Sd->mDstBase[Sd->mOutBuf++] = (UINT8)CharC;
             }
-
         }
         else {
             //
@@ -698,6 +680,12 @@ Returns: (VOID)
             BytesRemain = CharC;
 
             DataIdx = Sd->mOutBuf - DecodeP(Sd) - 1;
+
+            // Check to prevent possible heap corruption
+            if (DataIdx >= Sd->mOrigSize - BytesRemain) {
+                Sd->mBadTableFlag = 1;
+                return;
+            }
 
             BytesRemain--;
             while ((INT16)(BytesRemain) >= 0) {
@@ -714,10 +702,10 @@ Returns: (VOID)
 
 EFI_STATUS
 GetInfo(
-IN      VOID    *Source,
-IN      UINT32  SrcSize,
-OUT     UINT32  *DstSize,
-OUT     UINT32  *ScratchSize
+IN      const VOID    *Source,
+IN      UINT32        SrcSize,
+OUT     UINT32        *DstSize,
+OUT     UINT32        *ScratchSize
 )
 /*++
 
@@ -739,7 +727,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
 {
-    UINT8 *Src;
+    const UINT8 *Src;
 
     *ScratchSize = sizeof(SCRATCH_DATA);
 
@@ -754,13 +742,13 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 
 EFI_STATUS
 Decompress(
-IN      VOID    *Source,
-IN      UINT32  SrcSize,
-IN OUT  VOID    *Destination,
-IN      UINT32  DstSize,
-IN OUT  VOID    *Scratch,
-IN      UINT32  ScratchSize,
-IN      UINT8   Version
+IN      const VOID *Source,
+IN      UINT32     SrcSize,
+IN OUT  VOID       *Destination,
+IN      UINT32     DstSize,
+IN OUT  VOID       *Scratch,
+IN      UINT32     ScratchSize,
+IN      UINT8      Version
 )
 /*++
 
@@ -792,7 +780,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
     UINT32        OrigSize;
     EFI_STATUS    Status;
     SCRATCH_DATA  *Sd;
-    UINT8         *Src;
+    const UINT8         *Src;
     UINT8         *Dst;
 
     Status = EFI_SUCCESS;
@@ -853,7 +841,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
         return EFI_INVALID_PARAMETER;
     }
 
-    Sd->mSrcBase = Src;
+    Sd->mSrcBase = (UINT8*)Src;
     Sd->mDstBase = Dst;
     Sd->mCompSize = CompSize;
     Sd->mOrigSize = OrigSize;
@@ -881,7 +869,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 EFI_STATUS
 EFIAPI
 EfiTianoGetInfo(
-IN      VOID                    *Source,
+IN      const VOID              *Source,
 IN      UINT32                  SrcSize,
 OUT     UINT32                  *DstSize,
 OUT     UINT32                  *ScratchSize
@@ -918,7 +906,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 EFI_STATUS
 EFIAPI
 EfiDecompress(
-IN      VOID                    *Source,
+IN      const VOID              *Source,
 IN      UINT32                  SrcSize,
 IN OUT  VOID                    *Destination,
 IN      UINT32                  DstSize,
@@ -965,7 +953,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 EFI_STATUS
 EFIAPI
 TianoDecompress(
-IN      VOID                          *Source,
+IN      const VOID                    *Source,
 IN      UINT32                        SrcSize,
 IN OUT  VOID                          *Destination,
 IN      UINT32                        DstSize,

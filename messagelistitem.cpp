@@ -9,7 +9,7 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #include "messagelistitem.h"
 
@@ -33,7 +33,6 @@ MessageListItem::MessageListItem(const QIcon & icon, const QString & text, QList
 
 MessageListItem::~MessageListItem()
 {
-
 }
 
 QModelIndex MessageListItem::index() const

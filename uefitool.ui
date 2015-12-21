@@ -20,7 +20,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>UEFITool 0.18.3</string>
+   <string>UEFITool</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <property name="sizePolicy">
@@ -33,7 +33,16 @@
     <property name="spacing">
      <number>0</number>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
@@ -53,7 +62,16 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
           <number>5</number>
          </property>
          <item>
@@ -63,12 +81,6 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
-           </property>
-           <property name="font">
-            <font>
-             <family>Consolas</family>
-             <pointsize>9</pointsize>
-            </font>
            </property>
            <property name="indentation">
             <number>10</number>
@@ -97,17 +109,20 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <property name="margin">
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
           <number>5</number>
          </property>
          <item>
           <widget class="QPlainTextEdit" name="infoEdit">
-           <property name="font">
-            <font>
-             <family>Consolas</family>
-             <pointsize>9</pointsize>
-            </font>
-           </property>
            <property name="acceptDrops">
             <bool>false</bool>
            </property>
@@ -133,17 +148,20 @@
         <property name="spacing">
          <number>0</number>
         </property>
-        <property name="margin">
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
          <number>5</number>
         </property>
         <item>
          <widget class="QListWidget" name="messageListWidget">
-          <property name="font">
-           <font>
-            <family>Consolas</family>
-            <pointsize>9</pointsize>
-           </font>
-          </property>
           <property name="mouseTracking">
            <bool>true</bool>
           </property>
@@ -170,6 +188,7 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionOpenImageFile"/>
+    <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
     <addaction name="actionSearch"/>
@@ -213,6 +232,8 @@
       <string>&amp;Padding</string>
      </property>
      <addaction name="actionExtract"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
     </widget>
     <widget class="QMenu" name="menuVolumeActions">
      <property name="title">
@@ -225,7 +246,8 @@
      <addaction name="separator"/>
      <addaction name="actionInsertInto"/>
      <addaction name="separator"/>
-     <addaction name="actionRemove"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
     </widget>
     <widget class="QMenu" name="menuFileActions">
      <property name="title">
@@ -269,6 +291,8 @@
       <string>&amp;Messages</string>
      </property>
      <addaction name="actionMessagesCopy"/>
+     <addaction name="actionMessagesCopyAll"/>
+     <addaction name="separator"/>
      <addaction name="actionMessagesClear"/>
     </widget>
     <addaction name="menuCapsuleActions"/>
@@ -491,6 +515,25 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="actionMessagesCopyAll">
+   <property name="text">
+    <string>C&amp;opy all</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionOpenImageFileInNewWindow">
+   <property name="text">
+    <string>&amp;Open image file in new window...</string>
+   </property>
+   <property name="toolTip">
+    <string>Open image file in new window</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
    </property>
   </action>
  </widget>

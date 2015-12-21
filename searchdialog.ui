@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>340</width>
-    <height>214</height>
+    <width>400</width>
+    <height>237</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,12 +36,6 @@
        </item>
        <item row="0" column="1">
         <widget class="QLineEdit" name="hexEdit">
-         <property name="font">
-          <font>
-           <family>Consolas</family>
-           <pointsize>9</pointsize>
-          </font>
-         </property>
          <property name="inputMask">
           <string/>
          </property>
@@ -53,12 +47,6 @@
           <string>Search scope</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
-          <property name="spacing">
-           <number>6</number>
-          </property>
-          <property name="margin">
-           <number>9</number>
-          </property>
           <item>
            <widget class="QRadioButton" name="hexScopeFullRadioButton">
             <property name="text">
@@ -101,15 +89,9 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="guidEdit">
-         <property name="font">
-          <font>
-           <family>Consolas</family>
-           <pointsize>9</pointsize>
-          </font>
-         </property>
+        <widget class="GuidLineEdit" name="guidEdit">
          <property name="inputMask">
-          <string>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx; </string>
+          <string>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</string>
          </property>
          <property name="text">
           <string>........-....-....-....-............</string>
@@ -122,12 +104,6 @@
           <string>Search scope</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_5">
-          <property name="spacing">
-           <number>6</number>
-          </property>
-          <property name="margin">
-           <number>9</number>
-          </property>
           <item>
            <widget class="QRadioButton" name="guidScopeFullRadioButton">
             <property name="text">
@@ -217,6 +193,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>GuidLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>guidlineedit.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>tabWidget</tabstop>
   <tabstop>hexEdit</tabstop>

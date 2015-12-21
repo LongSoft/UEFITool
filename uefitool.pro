@@ -10,17 +10,20 @@ SOURCES  += uefitool_main.cpp \
  types.cpp \
  descriptor.cpp \
  ffs.cpp \
+ peimage.cpp \
  ffsengine.cpp \
  treeitem.cpp \
  treemodel.cpp \
  messagelistitem.cpp \
+ guidlineedit.cpp \
  LZMA/LzmaCompress.c \
  LZMA/LzmaDecompress.c \
  LZMA/SDK/C/LzFind.c \
  LZMA/SDK/C/LzmaDec.c \
  LZMA/SDK/C/LzmaEnc.c \
  Tiano/EfiTianoDecompress.c \
- Tiano/EfiTianoCompress.c
+ Tiano/EfiTianoCompress.c \
+ Tiano/EfiTianoCompressLegacy.c
 
 HEADERS  += uefitool.h \
  searchdialog.h \
@@ -35,11 +38,11 @@ HEADERS  += uefitool.h \
  treeitem.h \
  treemodel.h \
  messagelistitem.h \
+ guidlineedit.h \
  LZMA/LzmaCompress.h \
  LZMA/LzmaDecompress.h \
  Tiano/EfiTianoDecompress.h \
  Tiano/EfiTianoCompress.h
-           
 
 FORMS    += uefitool.ui \
  searchdialog.ui

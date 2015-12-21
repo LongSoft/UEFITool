@@ -1,6 +1,6 @@
 /* treeitem.cpp
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution. The full text of the license may be found at
@@ -15,39 +15,26 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "types.h"
 
-
-
-
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compression,
-                   const QString & name, const QString & text, const QString & info,
-                   const QByteArray & header, const QByteArray & body, const QByteArray & tail,
-                   TreeItem *parent)
+    const QString & name, const QString & text, const QString & info,
+    const QByteArray & header, const QByteArray & body,
+    TreeItem *parent) : 
+    itemAction(Actions::NoAction),
+    itemType(type),
+    itemSubtype(subtype),
+    itemCompression(compression),
+    itemName(name),
+    itemText(text),
+    itemInfo(info),
+    itemHeader(header),
+    itemBody(body),
+    parentItem(parent)
 {
-    itemAction = Actions::NoAction;
-    itemType = type;
-    itemSubtype = subtype;
-    itemCompression = compression;
-    itemName = name;
-    itemText = text;
-    itemInfo = info;
-    itemHeader = header;
-    itemBody = body;
-    itemTail = tail;
-    parentItem = parent;
-
-    // Set default names
-    setDefaultNames();
 }
 
 TreeItem::~TreeItem()
 {
     qDeleteAll(childItems);
-}
-
-void TreeItem::setDefaultNames()
-{
-    itemTypeName = itemTypeToQString(itemType);
-    itemSubtypeName = itemSubtypeToQString(itemType, itemSubtype);
 }
 
 void TreeItem::appendChild(TreeItem *item)
@@ -95,17 +82,17 @@ int TreeItem::columnCount() const
 
 QVariant TreeItem::data(int column) const
 {
-    switch(column)
+    switch (column)
     {
-    case 0: //Name
+    case 0: // Name
         return itemName;
-    case 1: //Action
+    case 1: // Action
         return actionTypeToQString(itemAction);
-    case 2: //Type
-        return itemTypeName;
-    case 3: //Subtype
-        return itemSubtypeName;
-    case 4: //Text
+    case 2: // Type
+        return itemTypeToQString(itemType);
+    case 3: // Subtype
+        return itemSubtypeToQString(itemType, itemSubtype);
+    case 4: // Text
         return itemText;
     default:
         return QVariant();
@@ -117,9 +104,19 @@ TreeItem *TreeItem::parent()
     return parentItem;
 }
 
-void TreeItem::setName(const QString &text)
+QString TreeItem::name() const
 {
-    itemName = text;
+    return itemName;
+}
+
+void TreeItem::setName(const QString &name)
+{
+    itemName = name;
+}
+
+QString TreeItem::text() const
+{
+    return itemText;
 }
 
 void TreeItem::setText(const QString &text)
@@ -127,19 +124,19 @@ void TreeItem::setText(const QString &text)
     itemText = text;
 }
 
-void TreeItem::setTypeName(const QString &text)
-{
-    itemTypeName = text;
-}
-
-void TreeItem::setSubtypeName(const QString &text)
-{
-    itemSubtypeName = text;
-}
-
 QString TreeItem::info() const
 {
     return itemInfo;
+}
+
+void TreeItem::addInfo(const QString &info)
+{
+    itemInfo += info;
+}
+
+void TreeItem::setInfo(const QString &info)
+{
+    itemInfo = info;
 }
 
 int TreeItem::row() const
@@ -155,10 +152,21 @@ UINT8 TreeItem::type() const
     return itemType;
 }
 
+void TreeItem::setType(const UINT8 type)
+{
+    itemType = type;
+}
+
 UINT8 TreeItem::subtype() const
 {
     return itemSubtype;
 }
+
+void TreeItem::setSubtype(const UINT8 subtype)
+{
+    itemSubtype = subtype;
+}
+
 
 UINT8 TreeItem::compression() const
 {
@@ -175,11 +183,6 @@ QByteArray TreeItem::body() const
     return itemBody;
 }
 
-QByteArray TreeItem::tail() const
-{
-    return itemTail;
-}
-
 bool TreeItem::hasEmptyHeader() const
 {
     return itemHeader.isEmpty();
@@ -188,11 +191,6 @@ bool TreeItem::hasEmptyHeader() const
 bool TreeItem::hasEmptyBody() const
 {
     return itemBody.isEmpty();
-}
-
-bool TreeItem::hasEmptyTail() const
-{
-    return itemTail.isEmpty();
 }
 
 UINT8 TreeItem::action() const
@@ -206,7 +204,7 @@ void TreeItem::setAction(const UINT8 action)
 
     // On insert action, set insert action for children
     if (action == Actions::Insert)
-        for(int i = 0; i < childCount(); i++)
+        for (int i = 0; i < childCount(); i++)
             child(i)->setAction(Actions::Insert);
 
     // Set rebuild action for parent, if it has no action now
@@ -215,8 +213,3 @@ void TreeItem::setAction(const UINT8 action)
         parentItem->setAction(Actions::Rebuild);
 }
 
-void TreeItem::setSubtype(const UINT8 subtype)
-{
-    itemSubtype = subtype;
-    itemSubtypeName = itemSubtypeToQString(itemType, itemSubtype);
-}

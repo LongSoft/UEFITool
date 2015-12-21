@@ -1,14 +1,14 @@
 QT       += core
 QT       -= gui
 
-TARGET    = UEFIPatch
+TARGET    = UEFIFind
 TEMPLATE  = app
 CONFIG   += console
 CONFIG   -= app_bundle
-DEFINES  += _CONSOLE
+DEFINES  += _CONSOLE _DISABLE_ENGINE_MESSAGES
 
-SOURCES  += uefipatch_main.cpp \
- uefipatch.cpp \
+SOURCES  += uefifind_main.cpp \
+ uefifind.cpp \
  ../types.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
@@ -25,7 +25,7 @@ SOURCES  += uefipatch_main.cpp \
  ../Tiano/EfiTianoCompress.c \
  ../Tiano/EfiTianoCompressLegacy.c
 
-HEADERS  += uefipatch.h \
+HEADERS  += uefifind.h \
  ../basetypes.h \
  ../descriptor.h \
  ../gbe.h \

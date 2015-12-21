@@ -9,7 +9,7 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #ifndef __MESSAGELISTITEM_H__
 #define __MESSAGELISTITEM_H__
@@ -26,7 +26,7 @@ public:
     MessageListItem(const QString & text, QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
     MessageListItem(const QIcon & icon, const QString & text, QListWidget * parent = 0, int type = Type, const QModelIndex & index = QModelIndex());
     ~MessageListItem();
-    
+
     QModelIndex index() const;
     void setIndex(QModelIndex & index);
 

@@ -1,6 +1,6 @@
 /* types.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -40,26 +40,28 @@ namespace Types {
         Padding,
         Volume,
         File,
-        Section
+        Section,
+        FreeSpace
     };
 }
 
 namespace Subtypes {
     enum ImageSubtypes{
         IntelImage = 70,
-        BiosImage
+        UefiImage
     };
 
     enum CapsuleSubtypes {
-        AptioCapsule = 80,
-        UefiCapsule
+        AptioSignedCapsule = 80,
+        AptioUnsignedCapsule,
+        UefiCapsule,
+        ToshibaCapsule
     };
 
     enum VolumeSubtypes {
-        NormalVolume = 90,
-        BootVolume,
-        UnknownVolume,
-        NvramVolume
+        UnknownVolume = 90,
+        Ffs2Volume,
+        Ffs3Volume
     };
 
     enum RegionSubtypes {
@@ -67,7 +69,14 @@ namespace Subtypes {
         GbeRegion,
         MeRegion,
         BiosRegion,
-        PdrRegion
+        PdrRegion,
+        EcRegion
+    };
+
+    enum PaddingSubtypes {
+        ZeroPadding = 110,
+        OnePadding,
+        DataPadding
     };
 };
 
@@ -75,6 +84,7 @@ namespace Subtypes {
 extern QString actionTypeToQString(const UINT8 action);
 extern QString itemTypeToQString(const UINT8 type);
 extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
-extern QString compressionTypeToQString(UINT8 algorithm);
+extern QString compressionTypeToQString(const UINT8 algorithm);
 extern QString regionTypeToQString(const UINT8 type);
+
 #endif

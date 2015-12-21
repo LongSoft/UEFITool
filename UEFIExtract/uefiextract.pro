@@ -13,6 +13,7 @@ SOURCES  += uefiextract_main.cpp \
  ../descriptor.cpp \
  ../ffs.cpp \
  ../ffsengine.cpp \
+ ../peimage.cpp \
  ../treeitem.cpp \
  ../treemodel.cpp \
  ../LZMA/LzmaCompress.c \
@@ -21,7 +22,8 @@ SOURCES  += uefiextract_main.cpp \
  ../LZMA/SDK/C/LzmaDec.c \
  ../LZMA/SDK/C/LzmaEnc.c \
  ../Tiano/EfiTianoDecompress.c \
- ../Tiano/EfiTianoCompress.c
+ ../Tiano/EfiTianoCompress.c \
+ ../Tiano/EfiTianoCompressLegacy.c
 
 HEADERS  += uefiextract.h \
  ../basetypes.h \

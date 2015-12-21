@@ -9,7 +9,7 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #ifndef __LZMACOMPRESS_H__
 #define __LZMACOMPRESS_H__
@@ -24,14 +24,14 @@ extern "C" {
 #define LZMA_DICTIONARY_SIZE 0x800000
 #define _LZMA_SIZE_OPT
 
-INT32
-EFIAPI
-LzmaCompress (
-  const UINT8  *Source,
-  UINT32       SourceSize,
-  UINT8    *Destination,
-  UINT32   *DestinationSize
-  );
+    INT32
+        EFIAPI
+        LzmaCompress(
+        const UINT8  *Source,
+        UINT32       SourceSize,
+        UINT8    *Destination,
+        UINT32   *DestinationSize
+        );
 
 #ifdef __cplusplus
 }

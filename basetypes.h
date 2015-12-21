@@ -1,6 +1,6 @@
 /* basetypes.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -17,17 +17,18 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <stdarg.h>
 #include <stdint.h>
 
-typedef uint8_t   BOOLEAN;
-typedef int8_t    INT8;
-typedef uint8_t   UINT8;
-typedef int16_t   INT16;
-typedef uint16_t  UINT16;
-typedef int32_t   INT32;
-typedef uint32_t  UINT32;
-typedef int64_t   INT64;
-typedef uint64_t  UINT64;
-typedef char      CHAR8;
-typedef uint16_t  CHAR16;
+typedef uint8_t      BOOLEAN;
+typedef int8_t       INT8;
+typedef uint8_t      UINT8;
+typedef int16_t      INT16;
+typedef uint16_t     UINT16;
+typedef int32_t      INT32;
+typedef uint32_t     UINT32;
+typedef int64_t      INT64;
+typedef uint64_t     UINT64;
+typedef char         CHAR8;
+typedef uint16_t     CHAR16;
+typedef unsigned int UINTN; 
 
 #define CONST  const
 #define VOID   void
@@ -40,12 +41,6 @@ typedef uint16_t  CHAR16;
 #ifndef FALSE
 #define FALSE ((BOOLEAN)(0==1))
 #endif
-
-/* Will be fixed in next UEFITool
-#ifndef NULL
-#define NULL  ((VOID *) 0)
-#endif
-*/
 
 #define ERR_SUCCESS                         0
 #define ERR_INVALID_PARAMETER               1
@@ -85,22 +80,25 @@ typedef uint16_t  CHAR16;
 #define ERR_COMPLEX_BLOCK_MAP               35
 #define ERR_DIR_ALREADY_EXIST               36
 #define ERR_DIR_CREATE                      37
-#define ERR_UNKNOWN_PATCH_TYPE              38   
+#define ERR_UNKNOWN_PATCH_TYPE              38
 #define ERR_PATCH_OFFSET_OUT_OF_BOUNDS      39
 #define ERR_INVALID_SYMBOL                  40
 #define ERR_NOTHING_TO_PATCH                41
+#define ERR_DEPEX_PARSE_FAILED              42
+#define ERR_TRUNCATED_IMAGE                 43
+#define ERR_BAD_RELOCATION_ENTRY            44
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions
 #define IN
 #define OUT
 #define EFIAPI
-#define EFI_STATUS UINT8
+#define EFI_STATUS UINTN
 #define EFI_SUCCESS ERR_SUCCESS
-#define EFI_INVALID_PARAMETER ERR_INVALID_PARAMETER 
+#define EFI_INVALID_PARAMETER ERR_INVALID_PARAMETER
 #define EFI_OUT_OF_RESOURCES ERR_OUT_OF_RESOURCES
 #define EFI_BUFFER_TOO_SMALL ERR_BUFFER_TOO_SMALL
-#define EFI_ERROR(X) X
+#define EFI_ERROR(X) (X)
 
 // Compression algorithms
 #define COMPRESSION_ALGORITHM_UNKNOWN 0
@@ -129,8 +127,8 @@ typedef uint16_t  CHAR16;
 #define PATCH_MODE_BODY       1
 
 // Patch types
-#define PATCH_TYPE_OFFSET     'O'
-#define PATCH_TYPE_PATTERN    'P'
+#define PATCH_TYPE_OFFSET    'O'
+#define PATCH_TYPE_PATTERN   'P'
 
 // Erase polarity types
 #define ERASE_POLARITY_FALSE   0
@@ -138,12 +136,12 @@ typedef uint16_t  CHAR16;
 #define ERASE_POLARITY_UNKNOWN 0xFF
 
 // Search modes
-#define SEARCH_MODE_HEADER  1
-#define SEARCH_MODE_BODY    2
-#define SEARCH_MODE_ALL     3
+#define SEARCH_MODE_HEADER    1
+#define SEARCH_MODE_BODY      2
+#define SEARCH_MODE_ALL       3
 
 // EFI GUID
-typedef struct {
+typedef struct _EFI_GUID {
     UINT8 Data[16];
 } EFI_GUID;
 
@@ -152,5 +150,10 @@ typedef struct {
 
 #include <assert.h>
 #define ASSERT(x) assert(x)
+
+//Hexarg macros
+#define hexarg(X) arg(QString("%1").arg((X),0,16).toUpper())
+#define hexarg2(X, Y) arg(QString("%1").arg((X),(Y),16,QChar('0')).toUpper())
+
 
 #endif

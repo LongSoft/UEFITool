@@ -24,30 +24,26 @@ UEFIExtract::~UEFIExtract()
     delete ffsEngine;
 }
 
-UINT8 UEFIExtract::extractAll(QString path)
+UINT8 UEFIExtract::init(const QString & path)
 {
-    QFileInfo fileInfo = QFileInfo(path);
+	fileInfo = QFileInfo(path);
 
-    if (!fileInfo.exists())
-        return ERR_FILE_OPEN;
+	if (!fileInfo.exists())
+		return ERR_FILE_OPEN;
 
-    QFile inputFile;
-    inputFile.setFileName(path);
+	QFile inputFile;
+	inputFile.setFileName(path);
 
-    if (!inputFile.open(QFile::ReadOnly))
-        return ERR_FILE_OPEN;
+	if (!inputFile.open(QFile::ReadOnly))
+		return ERR_FILE_OPEN;
 
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
+	QByteArray buffer = inputFile.readAll();
+	inputFile.close();
 
-    UINT8 result = ffsEngine->parseImageFile(buffer);
-    if (result)
-        return result;
+	return ffsEngine->parseImageFile(buffer);
+}
 
-    QModelIndex rootIndex = ffsEngine->treeModel()->index(0, 0);
-    result = ffsEngine->dump(rootIndex, fileInfo.fileName().append(".dump"));
-    if (result)
-        return result;
-
-    return ERR_SUCCESS;
+UINT8 UEFIExtract::extract(QString guid)
+{
+	return ffsEngine->dump(ffsEngine->treeModel()->index(0, 0), fileInfo.fileName().append(".dump"), guid);
 }

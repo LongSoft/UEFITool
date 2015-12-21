@@ -1,6 +1,6 @@
 /* descriptor.cpp
 
-Copyright (c) 2013, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -15,13 +15,13 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
-UINT8* calculateAddress8(UINT8* baseAddress, const UINT8 baseOrLimit)
+const UINT8* calculateAddress8(const UINT8* baseAddress, const UINT8 baseOrLimit)
 {
     return baseAddress + baseOrLimit * 0x10;
 }
 
 // 16 bit base or limit
-UINT8* calculateAddress16(UINT8* baseAddress, const UINT16 baseOrLimit)
+const UINT8* calculateAddress16(const UINT8* baseAddress, const UINT16 baseOrLimit)
 {
     return baseAddress + baseOrLimit * 0x1000;
 }

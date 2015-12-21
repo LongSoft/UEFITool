@@ -9,7 +9,7 @@
   THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
-*/
+  */
 
 #include <QApplication>
 #include <QString>
@@ -23,9 +23,10 @@ int main(int argc, char *argv[])
     a.setApplicationName("UEFITool");
 
     UEFITool w;
+    w.setProgramPath(a.arguments().at(0));
     if (a.arguments().length() > 1)
         w.openImageFile(a.arguments().at(1));
     w.show();
-    
+
     return a.exec();
 }

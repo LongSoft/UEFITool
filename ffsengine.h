@@ -1,6 +1,6 @@
 /* ffsengine.h
 
-Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -67,6 +67,7 @@ public:
     UINT8 parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
+    UINT8 parseEcRegion(const QByteArray & ec, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     UINT8 parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseFile(const QByteArray & file, QModelIndex & index, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
@@ -81,7 +82,8 @@ public:
     UINT8 reconstructImageFile(QByteArray &reconstructed);
     UINT8 reconstruct(const QModelIndex &index, QByteArray & reconstructed);
     UINT8 reconstructIntelImage(const QModelIndex& index, QByteArray & reconstructed);
-    UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed);
+    UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed, bool includeHeader = true);
+    UINT8 reconstructPadding(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructBios(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructVolume(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructFile(const QModelIndex& index, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base, QByteArray& reconstructed);
@@ -94,7 +96,7 @@ public:
     UINT8 replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
     UINT8 remove(const QModelIndex & index);
     UINT8 rebuild(const QModelIndex & index);
-    UINT8 dump(const QModelIndex & index, const QString path);
+    UINT8 dump(const QModelIndex & index, const QString & path, const QString & filter = QString());
     UINT8 patch(const QModelIndex & index, const QVector<PatchData> & patches);
 
     // Search routines
@@ -110,8 +112,11 @@ private:
     UINT32 newPeiCoreEntryPoint;
 
     // Parsing helpers
+    UINT32 getPaddingType(const QByteArray & padding);
+    void  parseAprioriRawSection(const QByteArray & body, QString & parsed);
+    UINT8 parseDepexSection(const QByteArray & body, QString & parsed);
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
-    UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize);
+    UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
 
@@ -123,7 +128,7 @@ private:
     UINT8 getBase(const QByteArray& file, UINT32& base);
     UINT8 getEntryPoint(const QByteArray& file, UINT32 &entryPoint);
     UINT8 rebase(QByteArray & executable, const UINT32 base);
-    void rebasePeiFiles(const QModelIndex & index);
+    void  rebasePeiFiles(const QModelIndex & index);
 
     // Patch routines
     UINT8 patchVtf(QByteArray &vtf);
@@ -137,10 +142,14 @@ private:
 #endif
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
-    
+
     // Internal operations
     bool hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
     UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
+
+    // Recursive dump
+    bool dumped;
+    UINT8 recursiveDump(const QModelIndex & index, const QString & path, const QString & filter);
 };
 
 #endif

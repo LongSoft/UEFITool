@@ -1,4 +1,4 @@
-/* searchdialog.h
+/* guidlineedit.h
 
   Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
@@ -11,28 +11,26 @@
 
   */
 
-#ifndef SEARCHDIALOG_H
-#define SEARCHDIALOG_H
+#ifndef __GUIDLINEEDIT_H__
+#define __GUIDLINEEDIT_H__
 
-#include <QDialog>
-#include <QRegExpValidator>
-#include "ui_searchdialog.h"
+#include <QLineEdit>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QString>
 
-class SearchDialog : public QDialog
+#include "basetypes.h"
+
+class GuidLineEdit : public QLineEdit
 {
-    Q_OBJECT
-
 public:
-    SearchDialog(QWidget *parent = 0);
-    ~SearchDialog();
-    Ui::SearchDialog* ui;
+    GuidLineEdit(QWidget * parent = 0);
+    GuidLineEdit(const QString & contents, QWidget * parent = 0);
+    ~GuidLineEdit();
 
-private slots:
-    void setEditFocus(int index);
+protected:
+    void keyPressEvent(QKeyEvent * event);
 
-private:
-    QRegExpValidator hexValidator;
-    QRegExpValidator guidValidator;
 };
 
 #endif
