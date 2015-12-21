@@ -54,7 +54,8 @@ namespace Subtypes {
     enum CapsuleSubtypes {
         AptioSignedCapsule = 80,
         AptioUnsignedCapsule,
-        UefiCapsule
+        UefiCapsule,
+        ToshibaCapsule
     };
 
     enum VolumeSubtypes {
@@ -68,7 +69,8 @@ namespace Subtypes {
         GbeRegion,
         MeRegion,
         BiosRegion,
-        PdrRegion
+        PdrRegion,
+        EcRegion
     };
 
     enum PaddingSubtypes {

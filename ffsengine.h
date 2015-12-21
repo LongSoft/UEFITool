@@ -67,6 +67,7 @@ public:
     UINT8 parseMeRegion(const QByteArray & me, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseBiosRegion(const QByteArray & bios, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parsePdrRegion(const QByteArray & pdr, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
+    UINT8 parseEcRegion(const QByteArray & ec, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     UINT8 parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseFile(const QByteArray & file, QModelIndex & index, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
@@ -82,6 +83,7 @@ public:
     UINT8 reconstruct(const QModelIndex &index, QByteArray & reconstructed);
     UINT8 reconstructIntelImage(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed, bool includeHeader = true);
+    UINT8 reconstructPadding(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructBios(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructVolume(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructFile(const QModelIndex& index, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base, QByteArray& reconstructed);

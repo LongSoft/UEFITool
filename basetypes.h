@@ -85,6 +85,8 @@ typedef unsigned int UINTN;
 #define ERR_INVALID_SYMBOL                  40
 #define ERR_NOTHING_TO_PATCH                41
 #define ERR_DEPEX_PARSE_FAILED              42
+#define ERR_TRUNCATED_IMAGE                 43
+#define ERR_BAD_RELOCATION_ENTRY            44
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions
