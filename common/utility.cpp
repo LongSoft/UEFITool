@@ -24,12 +24,11 @@ PARSING_DATA parsingDataFromQModelIndex(const QModelIndex & index)
 {
     if (index.isValid()) {
         TreeModel* model = (TreeModel*)index.model();
-        return *(PARSING_DATA*)model->parsingData(index).data();
+        if (!model->hasEmptyParsingData(index))
+            return *(PARSING_DATA*)model->parsingData(index).data();
     }
 
     PARSING_DATA data;
-    data.fixed = FALSE;     // Item is not fixed by default
-    data.isOnFlash = TRUE;  // Data is on flash by default
     data.offset = 0;
     data.address = 0;
     data.ffsVersion = 0;    // Unknown by default
@@ -186,8 +185,13 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
             return ERR_STANDARD_DECOMPRESSION_FAILED;
 
         // Allocate memory
-        decompressed = new UINT8[decompressedSize];
-        scratch = new UINT8[scratchSize];
+        try {
+            decompressed = new UINT8[decompressedSize];
+            scratch = new UINT8[scratchSize];
+        }
+        catch (std::bad_alloc) {
+            return ERR_STANDARD_DECOMPRESSION_FAILED;
+        }
 
         // Decompress section data
 
@@ -222,7 +226,12 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
             return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
 
         // Allocate memory
-        decompressed = new UINT8[decompressedSize];
+        try {
+            decompressed = new UINT8[decompressedSize];
+        }
+        catch (std::bad_alloc) {
+            return ERR_STANDARD_DECOMPRESSION_FAILED;
+        }
 
         // Decompress section data
         if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {

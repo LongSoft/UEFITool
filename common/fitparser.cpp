@@ -58,14 +58,8 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
     if (!fitIndex.isValid())
         return ERR_SUCCESS;
     
-    // Get parsing data for the current item
-    PARSING_DATA pdata = parsingDataFromQModelIndex(fitIndex);
-
     // Explicitly set the item as fixed
-    pdata.fixed = TRUE;
-
-    // Set modified parsing data
-    model->setParsingData(fitIndex, parsingDataToQByteArray(pdata));
+    model->setFixed(index, true);
 
     // Special case of FIT header
     const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(model->body(fitIndex).constData() + fitOffset);
@@ -98,7 +92,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
     fitTable.append(currentStrings);
 
     // Process all other entries
-    bool modifiedImageMayNotWork = false;
+    bool msgModifiedImageMayNotWork = false;
     for (UINT32 i = 1; i < fitHeader->Size; i++) {
         currentStrings.clear();
         const FIT_ENTRY* currentEntry = fitHeader + i;
@@ -121,7 +115,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         case FIT_TYPE_AC_KEY_MANIFEST:
         case FIT_TYPE_AC_BOOT_POLICY:
         default:
-            modifiedImageMayNotWork = true;
+            msgModifiedImageMayNotWork = true;
             break;
         }
 
@@ -134,7 +128,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         fitTable.append(currentStrings);
     }
 
-    if (modifiedImageMayNotWork)
+    if (msgModifiedImageMayNotWork)
         msg(tr("Opened image may not work after any modification"));
 
     return ERR_SUCCESS;

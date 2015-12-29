@@ -226,6 +226,58 @@ UINT8 TreeModel::action(const QModelIndex &index) const
     return item->action();
 }
 
+bool TreeModel::fixed(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return false;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->fixed();
+}
+
+bool TreeModel::compressed(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return false;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->compressed();
+}
+
+void TreeModel::setFixed(const QModelIndex &index, const bool fixed)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setFixed(fixed);
+
+    if (!item->parent())
+        return;
+
+    if (fixed) {
+        if (item->compressed() && item->parent()->compressed() == FALSE) {
+            item->setFixed(item->parent()->fixed());
+            return;
+        }
+
+        if (item->parent()->type() != Types::Root)
+            item->parent()->setFixed(fixed);
+    }
+
+    emit dataChanged(index, index);
+}
+
+void TreeModel::setCompressed(const QModelIndex &index, const bool compressed)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setCompressed(compressed);
+
+    emit dataChanged(index, index);
+}
+
+
 void TreeModel::setSubtype(const QModelIndex & index, const UINT8 subtype)
 {
     if (!index.isValid())
@@ -276,13 +328,13 @@ void TreeModel::setInfo(const QModelIndex &index, const QString &data)
     emit dataChanged(index, index);
 }
 
-void TreeModel::addInfo(const QModelIndex &index, const QString &data)
+void TreeModel::addInfo(const QModelIndex &index, const QString &data, const bool append)
 {
     if (!index.isValid())
         return;
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    item->addInfo(data);
+    item->addInfo(data, (BOOLEAN)append);
     emit dataChanged(index, index);
 }
 
@@ -293,7 +345,18 @@ void TreeModel::setAction(const QModelIndex &index, const UINT8 action)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setAction(action);
-    emit dataChanged(this->index(0, 0), index);
+
+    // On insert action, set insert action for children
+    if (action == Actions::Insert)
+        for (int i = 0; i < item->childCount(); i++)
+            setAction(index.child(i, 0), Actions::Insert);
+
+    // Set rebuild action for parent, if it has no action now
+    if (index.parent().isValid() && this->type(index.parent()) != Types::Root
+        && this->action(index.parent()) == Actions::NoAction)
+            setAction(index.parent(), Actions::Rebuild);
+    
+    emit dataChanged(index, index);
 }
 
 void TreeModel::setParsingData(const QModelIndex &index, const QByteArray &data)
@@ -308,7 +371,8 @@ void TreeModel::setParsingData(const QModelIndex &index, const QByteArray &data)
 
 QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype,
     const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
+    const QByteArray & header, const QByteArray & body, 
+    const bool fixed, const QByteArray & parsingData,
     const QModelIndex & parent, const UINT8 mode)
 {
     TreeItem *item = 0;
@@ -330,7 +394,8 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype,
         }
     }
 
-    TreeItem *newItem = new TreeItem(type, subtype, name, text, info, header, body, parsingData, parentItem);
+    TreeItem *newItem = new TreeItem(type, subtype, name, text, info, header, body, fixed, this->compressed(parent), parsingData, parentItem);
+     
     if (mode == CREATE_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);
@@ -354,7 +419,9 @@ QModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype,
 
     emit layoutChanged();
 
-    return createIndex(newItem->row(), parentColumn, newItem);
+    QModelIndex created = createIndex(newItem->row(), parentColumn, newItem);
+    setFixed(created, fixed); // Non-trivial logic requires additional call
+    return created;
 }
 
 QModelIndex TreeModel::findParentOfType(const QModelIndex& index, UINT8 type) const

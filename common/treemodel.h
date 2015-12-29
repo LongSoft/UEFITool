@@ -48,8 +48,10 @@ public:
     void setName(const QModelIndex &index, const QString &name);
     void setText(const QModelIndex &index, const QString &text);
     void setInfo(const QModelIndex &index, const QString &info);
-    void addInfo(const QModelIndex &index, const QString &info);
+    void addInfo(const QModelIndex &index, const QString &info, const bool append = TRUE);
     void setParsingData(const QModelIndex &index, const QByteArray &data);
+    void setFixed(const QModelIndex &index, const bool fixed);
+    void setCompressed(const QModelIndex &index, const bool compressed);
     
     QString name(const QModelIndex &index) const;
     QString text(const QModelIndex &index) const;
@@ -63,10 +65,14 @@ public:
     QByteArray parsingData(const QModelIndex &index) const;
     bool hasEmptyParsingData(const QModelIndex &index) const;
     UINT8 action(const QModelIndex &index) const;
+    bool fixed(const QModelIndex &index) const;
+    
+    bool compressed(const QModelIndex &index) const;
 
     QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), 
+        const bool fixed = false, const QByteArray & parsingData = QByteArray(),
         const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     QModelIndex findParentOfType(const QModelIndex & index, UINT8 type) const;

@@ -94,22 +94,18 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body = buffer.mid(capsuleHeaderSize);
         QString name = tr("UEFI capsule");
-        QString info = tr("Offset: 0h\nCapsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
+        QString info = tr("Capsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
             .arg(guidToQString(capsuleHeader->CapsuleGuid))
             .hexarg(buffer.size()).arg(buffer.size())
             .hexarg(capsuleHeaderSize).arg(capsuleHeaderSize)
             .hexarg(capsuleHeader->CapsuleImageSize - capsuleHeaderSize).arg(capsuleHeader->CapsuleImageSize - capsuleHeaderSize)
             .hexarg2(capsuleHeader->Flags, 8);
 
-        // Construct parsing data
-        PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
-        pdata.fixed = TRUE;
-
         // Set capsule offset fixup for correct volume allignment warnings
         capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
+        index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, TRUE, QByteArray(), root);
     }
     // Check buffer for being Toshiba capsule header
     else if (buffer.startsWith(TOSHIBA_CAPSULE_GUID)) {
@@ -132,22 +128,18 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
         QString name = tr("Toshiba capsule");
-        QString info = tr("Offset: 0h\nCapsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
+        QString info = tr("Capsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
             .arg(guidToQString(capsuleHeader->CapsuleGuid))
             .hexarg(buffer.size()).arg(buffer.size())
             .hexarg(capsuleHeaderSize).arg(capsuleHeaderSize)
             .hexarg(capsuleHeader->FullSize - capsuleHeaderSize).arg(capsuleHeader->FullSize - capsuleHeaderSize)
             .hexarg2(capsuleHeader->Flags, 8);
 
-        // Construct parsing data
-        PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
-        pdata.fixed = TRUE;
-
         // Set capsule offset fixup for correct volume allignment warnings
         capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, Subtypes::ToshibaCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
+        index = model->addItem(Types::Capsule, Subtypes::ToshibaCapsule, name, QString(), info, header, body, TRUE, QByteArray(), root);
     }
     // Check buffer for being extended Aptio signed capsule header
     else if (buffer.startsWith(APTIO_SIGNED_CAPSULE_GUID) || buffer.startsWith(APTIO_UNSIGNED_CAPSULE_GUID)) {
@@ -175,22 +167,18 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         QByteArray header = buffer.left(capsuleHeaderSize);
         QByteArray body = buffer.mid(capsuleHeaderSize);
         QString name = tr("AMI Aptio capsule");
-        QString info = tr("Offset: 0h\nCapsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
+        QString info = tr("Capsule GUID: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nImage size: %6h (%7)\nFlags: %8h")
             .arg(guidToQString(capsuleHeader->CapsuleHeader.CapsuleGuid))
             .hexarg(buffer.size()).arg(buffer.size())
             .hexarg(capsuleHeaderSize).arg(capsuleHeaderSize)
             .hexarg(capsuleHeader->CapsuleHeader.CapsuleImageSize - capsuleHeaderSize).arg(capsuleHeader->CapsuleHeader.CapsuleImageSize - capsuleHeaderSize)
             .hexarg2(capsuleHeader->CapsuleHeader.Flags, 8);
 
-        // Construct parsing data
-        PARSING_DATA pdata = parsingDataFromQModelIndex(QModelIndex());
-        pdata.fixed = TRUE;
-
         // Set capsule offset fixup for correct volume allignment warnings
         capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, parsingDataToQByteArray(pdata), root);
+        index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, TRUE, QByteArray(), root);
 
         // Show message about possible Aptio signature break
         if (signedCapsule) {
@@ -220,16 +208,14 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
 
     // Get info
     QString name = tr("UEFI image");
-    QString info = tr("Offset: %1h\nFull size: %2h (%3)")
-        .hexarg(capsuleHeaderSize).hexarg(flashImage.size()).arg(flashImage.size());
+    QString info = tr("Full size: %2h (%3)").hexarg(flashImage.size()).arg(flashImage.size());
 
     // Construct parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
-    pdata.fixed = TRUE;
     pdata.offset = capsuleHeaderSize;
 
     // Add tree item
-    QModelIndex biosIndex = model->addItem(Types::Image, Subtypes::UefiImage, name, QString(), info, QByteArray(), flashImage, parsingDataToQByteArray(pdata), index);
+    QModelIndex biosIndex = model->addItem(Types::Image, Subtypes::UefiImage, name, QString(), info, QByteArray(), flashImage, TRUE, parsingDataToQByteArray(pdata), index);
 
     // Parse the image
     result = parseRawArea(flashImage, biosIndex);
@@ -460,19 +446,16 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         .arg(descriptorMap->NumberOfProcStraps);
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset = parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add Intel image tree item
-    index = model->addItem(Types::Image, Subtypes::IntelImage, name, QString(), info, QByteArray(), intelImage, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Image, Subtypes::IntelImage, name, QString(), info, QByteArray(), intelImage, TRUE, parsingDataToQByteArray(pdata), parent);
 
     // Descriptor
     // Get descriptor info
     QByteArray body = intelImage.left(FLASH_DESCRIPTOR_SIZE);
     name = tr("Descriptor region");
     info = tr("Full size: %1h (%2)").hexarg(FLASH_DESCRIPTOR_SIZE).arg(FLASH_DESCRIPTOR_SIZE);
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Check regions presence once again
     QVector<UINT32> offsets;
@@ -569,7 +552,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
     }
 
     // Add descriptor tree item
-    model->addItem(Types::Region, Subtypes::DescriptorRegion, name, QString(), info, QByteArray(), body, parsingDataToQByteArray(pdata), index);
+    model->addItem(Types::Region, Subtypes::DescriptorRegion, name, QString(), info, QByteArray(), body, TRUE, parsingDataToQByteArray(pdata), index);
 
     // Sort regions in ascending order
     qSort(offsets);
@@ -638,12 +621,10 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
             .hexarg(padding.size()).arg(padding.size());
 
         // Construct parsing data
-        pdata.fixed = TRUE;
         pdata.offset = IntelDataEnd;
-        if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
     }
 
     // Check if the last VTF is found
@@ -684,12 +665,10 @@ STATUS FfsParser::parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffs
         .arg(version->minor);
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::GbeRegion, name, QString(), info, QByteArray(), gbe, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::GbeRegion, name, QString(), info, QByteArray(), gbe, TRUE, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -745,12 +724,10 @@ STATUS FfsParser::parseMeRegion(const QByteArray & me, const UINT32 parentOffset
     }
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::MeRegion, name, QString(), info, QByteArray(), me, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::MeRegion, name, QString(), info, QByteArray(), me, TRUE, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (emptyRegion) {
@@ -778,12 +755,10 @@ STATUS FfsParser::parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffs
         hexarg(pdr.size()).arg(pdr.size());
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::PdrRegion, name, QString(), info, QByteArray(), pdr, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::PdrRegion, name, QString(), info, QByteArray(), pdr, TRUE, parsingDataToQByteArray(pdata), parent);
 
     // Parse PDR region as BIOS space
     UINT8 result = parseRawArea(pdr, index);
@@ -808,12 +783,10 @@ STATUS FfsParser::parseEcRegion(const QByteArray & ec, const UINT32 parentOffset
         hexarg(ec.size()).arg(ec.size());
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::PdrRegion, name, QString(), info, QByteArray(), ec, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::EcRegion, name, QString(), info, QByteArray(), ec, TRUE, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -833,12 +806,10 @@ STATUS FfsParser::parseBiosRegion(const QByteArray & bios, const UINT32 parentOf
         hexarg(bios.size()).arg(bios.size());
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::BiosRegion, name, QString(), info, QByteArray(), bios, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Region, Subtypes::BiosRegion, name, QString(), info, QByteArray(), bios, TRUE, parsingDataToQByteArray(pdata), parent);
 
     return parseRawArea(bios, index);
 }
@@ -882,12 +853,10 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
             .hexarg(padding.size()).arg(padding.size());
 
         // Construct parsing data
-        pdata.fixed = TRUE;
         pdata.offset = offset + headerSize;
-        if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
     }
 
     // Search for and parse all volumes
@@ -908,12 +877,10 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
                 .hexarg(padding.size()).arg(padding.size());
 
             // Construct parsing data
-            pdata.fixed = TRUE;
             pdata.offset = offset + headerSize + paddingOffset;
-            if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add tree item
-            model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+            model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
         }
 
         // Get volume size
@@ -942,12 +909,10 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
                 .hexarg(padding.size()).arg(padding.size());
 
             // Construct parsing data
-            pdata.fixed = TRUE;
             pdata.offset = offset + headerSize + volumeOffset;
-            if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add tree item
-            QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+            QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
             msg(tr("parseRawArea: one of volumes inside overlaps the end of data"), paddingIndex);
 
             // Update variables
@@ -987,12 +952,10 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
             .hexarg(padding.size()).arg(padding.size());
 
         // Construct parsing data
-        pdata.fixed = TRUE;
         pdata.offset = offset + headerSize + volumeOffset;
-        if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
     }
 
     // Parse bodies
@@ -1112,7 +1075,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         // Acquire alignment
         alignment = (UINT32)pow(2.0, (int)(volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
         // Check alignment
-        if (!isUnknown && pdata.isOnFlash && ((pdata.offset + parentOffset - capsuleOffsetFixup) % alignment))
+        if (!isUnknown && !model->compressed(parent) && ((pdata.offset + parentOffset - capsuleOffsetFixup) % alignment))
             msgUnaligned = true;
     }
     else
@@ -1178,7 +1141,6 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     }
 
     // Construct parsing data
-    pdata.fixed = TRUE;
     pdata.offset += parentOffset;
     pdata.emptyByte = emptyByte;
     pdata.ffsVersion = ffsVersion;
@@ -1189,7 +1151,6 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     pdata.volume.hasAppleCrc32 = hasAppleCrc32;
     pdata.volume.hasAppleFSO = hasAppleFSO;
     pdata.volume.isWeakAligned = (volumeHeader->Revision > 1 && (volumeHeader->Attributes & EFI_FVB2_WEAK_ALIGNMENT));
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add text
     QString text;
@@ -1206,7 +1167,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
         else if (ffsVersion == 3)
             subtype = Subtypes::Ffs3Volume;
     }
-    index = model->addItem(Types::Volume, subtype, name, text, info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Volume, subtype, name, text, info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (isUnknown)
@@ -1298,7 +1259,6 @@ STATUS FfsParser::parseVolumeNonUefiData(const QByteArray & data, const UINT32 p
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     // Modify it
-    pdata.fixed = TRUE; // Non-UEFI data is fixed
     pdata.offset += parentOffset;
 
     // Search for VTF GUID backwards in received data
@@ -1322,10 +1282,9 @@ STATUS FfsParser::parseVolumeNonUefiData(const QByteArray & data, const UINT32 p
     // Add non-UEFI data first
     // Get info
     QString info = tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size());
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add padding tree item
-    QModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+    QModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
     msg(tr("parseVolumeNonUefiData: non-UEFI data found in volume's free space"), paddingIndex);
 
     if (vtfIndex >= 0) {
@@ -1346,10 +1305,9 @@ STATUS FfsParser::parseVolumeNonUefiData(const QByteArray & data, const UINT32 p
             pdata.offset += vtfIndex;
             // Get info
             QString info = tr("Full size: %1h (%2)").hexarg(vtf.size()).arg(vtf.size());
-            if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add padding tree item
-            QModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), vtf, parsingDataToQByteArray(pdata), index);
+            QModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), vtf, TRUE, parsingDataToQByteArray(pdata), index);
             msg(tr("parseVolumeNonUefiData: non-UEFI data found in volume's free space"), paddingIndex);
         }
     }
@@ -1403,7 +1361,6 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                         i = ALIGN8(i) - 8;
 
                     // Construct parsing data
-                    pdata.fixed = FALSE; // Free space is not fixed
                     pdata.offset = offset + volumeHeaderSize + fileOffset;
 
                     // Add all bytes before as free space
@@ -1412,10 +1369,9 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
 
                         // Get info
                         QString info = tr("Full size: %1h (%2)").hexarg(free.size()).arg(free.size());
-                        if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
                         // Add free space item
-                        model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), free, parsingDataToQByteArray(pdata), index);
+                        model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), free, FALSE, parsingDataToQByteArray(pdata), index);
                     }
 
                     // Parse non-UEFI data 
@@ -1423,15 +1379,13 @@ STATUS FfsParser::parseVolumeBody(const QModelIndex & index)
                 }
                 else {
                     // Construct parsing data
-                    pdata.fixed = FALSE; // Free space is not fixed
                     pdata.offset = offset + volumeHeaderSize + fileOffset;
 
                     // Get info
                     QString info = tr("Full size: %1h (%2)").hexarg(freeSpace.size()).arg(freeSpace.size());
-                    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
                     // Add free space item
-                    model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), freeSpace, parsingDataToQByteArray(pdata), index);
+                    model->addItem(Types::FreeSpace, 0, tr("Volume free space"), "", info, QByteArray(), freeSpace, FALSE, parsingDataToQByteArray(pdata), index);
                 }
                 break; // Exit from parsing loop
             }
@@ -1647,14 +1601,13 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
     }
 
     // Construct parsing data
-    pdata.fixed = fileHeader->Attributes & FFS_ATTRIB_FIXED;
+    bool fixed = fileHeader->Attributes & FFS_ATTRIB_FIXED;
     pdata.offset += parentOffset;
     pdata.file.hasTail = hasTail ? TRUE : FALSE;
     pdata.file.tail = tail;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::File, fileHeader->Type, name, text, info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::File, fileHeader->Type, name, text, info, header, body, fixed, parsingDataToQByteArray(pdata), parent);
 
     // Overwrite lastVtf, if needed
     if (isVtf) {
@@ -1758,10 +1711,9 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
 
         // Constuct parsing data
         pdata.offset += model->header(index).size();
-        if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
         // Add tree item
-        model->addItem(Types::FreeSpace, 0, tr("Free space"), QString(), info, QByteArray(), free, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::FreeSpace, 0, tr("Free space"), QString(), info, QByteArray(), free, FALSE, parsingDataToQByteArray(pdata), index);
     }
     else 
         i = 0;
@@ -1774,11 +1726,9 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
 
     // Constuct parsing data
     pdata.offset += i;
-    pdata.fixed = TRUE; // This data is fixed
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+    QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
 
     // Show message
     msg(tr("parsePadFileBody: non-UEFI data found in pad-file"), dataIndex);
@@ -1815,12 +1765,10 @@ STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex &
             QString info = tr("Full size: %1h (%2)").hexarg(padding.size()).arg(padding.size());
 
             // Constuct parsing data
-            pdata.fixed = TRUE; // Non-UEFI data is fixed
             pdata.offset += headerSize + sectionOffset;
-            if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
             // Add tree item
-            QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, parsingDataToQByteArray(pdata), index);
+            QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
 
             // Show message
             msg(tr("parseSections: non-UEFI data found in sections area"), dataIndex);
@@ -1847,9 +1795,6 @@ STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex &
             parseSectionBody(current);
             break;
         case Types::Padding:
-            // No parsing required
-            break;
-        case Types::Signature:
             // No parsing required
             break;
         default:
@@ -1923,10 +1868,9 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
 
     // Construct parsing data
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -1972,10 +1916,9 @@ STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const
     pdata.offset += parentOffset;
     pdata.section.compressed.compressionType = compressionType;
     pdata.section.compressed.uncompressedSize = uncompressedLength;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -2104,10 +2047,9 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
     // Construct parsing data
     pdata.offset += parentOffset;
     pdata.section.guidDefined.guid = guid;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
     // Show messages
     if (msgNoAuthStatusAttribute)
@@ -2163,10 +2105,9 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
     // Construct parsing data
     pdata.offset += parentOffset;
     pdata.section.freeformSubtypeGuid.guid = guid;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
     // Rename section
     model->setName(index, guidToQString(guid));
@@ -2210,10 +2151,9 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
 
     // Construct parsing data
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
     
     return ERR_SUCCESS;
 }
@@ -2254,10 +2194,9 @@ STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const U
 
     // Construct parsing data
     pdata.offset += parentOffset;
-    if (pdata.isOnFlash) info.prepend(tr("Offset: %1h\n").hexarg(pdata.offset));
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -2330,11 +2269,12 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
     // Add info
     model->addInfo(index, tr("\nCompression algorithm: %1").arg(compressionTypeToQString(algorithm)));
 
-    // Update parsing data
-    pdata.isOnFlash = (algorithm == COMPRESSION_ALGORITHM_NONE); // Data is not on flash unless not compressed
+    // Update data
     pdata.section.compressed.algorithm = algorithm;
+    if (algorithm != COMPRESSION_ALGORITHM_NONE)
+        model->setCompressed(index, true);
     model->setParsingData(index, parsingDataToQByteArray(pdata));
-
+    
     // Parse decompressed data
     return parseSections(decompressed, index);
 }
@@ -2396,8 +2336,9 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
     // Add info
     model->addInfo(index, info);
 
-    // Update parsing data
-    pdata.isOnFlash = (algorithm == COMPRESSION_ALGORITHM_NONE); // Data is not on flash unless not compressed
+    // Update data
+    if (algorithm != COMPRESSION_ALGORITHM_NONE)
+        model->setCompressed(index, true);
     model->setParsingData(index, parsingDataToQByteArray(pdata));
 
     if (!parseCurrentSection) {
@@ -2758,12 +2699,14 @@ STATUS FfsParser::performSecondPass(const QModelIndex & index)
     if (!index.isValid() || !lastVtf.isValid())
         return ERR_INVALID_PARAMETER;
 
-    // Get parsing data for the last VTF
-    PARSING_DATA pdata = parsingDataFromQModelIndex(lastVtf);
-    if (!pdata.isOnFlash) {
+    // Check for compressed lastVtf
+    if (model->compressed(lastVtf)) {
         msg(tr("performSecondPass: the last VTF appears inside compressed item, the image may be damaged"), lastVtf);
         return ERR_SUCCESS;
     }
+
+    // Get parsing data for the last VTF
+    PARSING_DATA pdata = parsingDataFromQModelIndex(lastVtf);
 
     // Calculate address difference
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + (pdata.file.hasTail ? sizeof(UINT16) : 0);
@@ -2780,12 +2723,15 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
     // Sanity check
     if (!index.isValid())
         return ERR_SUCCESS;
-
-    // Get parsing data for the current item
-    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
-
+    
     // Set address value for non-compressed data
-    if (pdata.isOnFlash) {
+    if (!model->compressed(index)) {
+        // Get parsing data for the current item
+        PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+        // Show offset
+        model->addInfo(index, tr("Offset: %1h\n").hexarg(pdata.offset), false);
+
         // Check address sanity
         if ((const UINT64)diff + pdata.offset <= 0xFFFFFFFFUL)  {
             // Update info
@@ -2800,7 +2746,7 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
             }
 
             // Special case of uncompressed TE image sections
-            if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_TE && pdata.isOnFlash) {
+            if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_TE) {
                 // Check data memory address to be equal to either ImageBase or AdjustedImageBase
                 if (pdata.section.teImage.imageBase == pdata.address + headerSize) {
                     pdata.section.teImage.revision = 1;
@@ -2818,6 +2764,10 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
             model->setParsingData(index, parsingDataToQByteArray(pdata));
         }
     }
+
+    //TODO: debugging, don't shows FIT file fixed attribute correctly
+    model->addInfo(index, tr("\nCompressed: %1").arg(model->compressed(index) ? tr("Yes") : tr("No")));
+    model->addInfo(index, tr("\nFixed: %1").arg(model->fixed(index) ? tr("Yes") : tr("No")));
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {

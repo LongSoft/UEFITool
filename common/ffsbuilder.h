@@ -46,7 +46,10 @@ private:
     // UEFI standard structures
     STATUS buildCapsule(const QModelIndex & index, QByteArray & capsule);
     STATUS buildIntelImage(const QModelIndex & index, QByteArray & intelImage);
-    STATUS buildRegion(const QModelIndex & index, QByteArray & region);
+    STATUS buildGbeRegion(const QModelIndex & index, QByteArray & region);
+    STATUS buildMeRegion(const QModelIndex & index, QByteArray & region);
+    STATUS buildPdrRegion(const QModelIndex & index, QByteArray & region);
+    STATUS buildEcRegion(const QModelIndex & index, QByteArray & region);
     STATUS buildRawArea(const QModelIndex & index, QByteArray & rawArea, bool addHeader = true);
     STATUS buildPadding(const QModelIndex & index, QByteArray & padding);
     STATUS buildVolume(const QModelIndex & index, QByteArray & volume);

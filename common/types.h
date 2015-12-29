@@ -42,7 +42,6 @@ namespace Types {
         Volume,
         File,
         Section,
-        Signature,
         FreeSpace
     };
 }
@@ -71,18 +70,14 @@ namespace Subtypes {
         GbeRegion,
         MeRegion,
         BiosRegion,
-        PdrRegion
+        PdrRegion,
+        EcRegion
     };
 
     enum PaddingSubtypes {
         ZeroPadding = 110,
         OnePadding,
         DataPadding
-    };
-
-    enum SignatureSubtypes {
-        UefiSignature = 120,
-        Pkcs7Signature
     };
 };
 

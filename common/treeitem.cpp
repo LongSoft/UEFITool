@@ -17,7 +17,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, 
     const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, const QByteArray & parsingData,
+    const QByteArray & header, const QByteArray & body, 
+    const BOOLEAN fixed, const BOOLEAN compressed, const QByteArray & parsingData,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
     itemType(type),
@@ -28,23 +29,11 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype,
     itemHeader(header),
     itemBody(body),
     itemParsingData(parsingData),
+    itemFixed(fixed),
+    itemCompressed(compressed),
     parentItem(parent)
 {
-}
-
-TreeItem::~TreeItem()
-{
-    qDeleteAll(childItems);
-}
-
-void TreeItem::appendChild(TreeItem *item)
-{
-    childItems.append(item);
-}
-
-void TreeItem::prependChild(TreeItem *item)
-{
-    childItems.prepend(item);
+    setFixed(fixed);
 }
 
 UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
@@ -63,21 +52,6 @@ UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
         return ERR_ITEM_NOT_FOUND;
     childItems.insert(index + 1, newItem);
     return ERR_SUCCESS;
-}
-
-TreeItem *TreeItem::child(int row)
-{
-    return childItems.value(row, NULL);
-}
-
-int TreeItem::childCount() const
-{
-    return childItems.count();
-}
-
-int TreeItem::columnCount() const
-{
-    return 5;
 }
 
 QVariant TreeItem::data(int column) const
@@ -99,46 +73,6 @@ QVariant TreeItem::data(int column) const
     }
 }
 
-TreeItem *TreeItem::parent()
-{
-    return parentItem;
-}
-
-QString TreeItem::name() const
-{
-    return itemName;
-}
-
-void TreeItem::setName(const QString &name)
-{
-    itemName = name;
-}
-
-QString TreeItem::text() const
-{
-    return itemText;
-}
-
-void TreeItem::setText(const QString &text)
-{
-    itemText = text;
-}
-
-QString TreeItem::info() const
-{
-    return itemInfo;
-}
-
-void TreeItem::addInfo(const QString &info)
-{
-    itemInfo += info;
-}
-
-void TreeItem::setInfo(const QString &info)
-{
-    itemInfo = info;
-}
-
 int TreeItem::row() const
 {
     if (parentItem)
@@ -146,79 +80,3 @@ int TreeItem::row() const
 
     return 0;
 }
-
-UINT8 TreeItem::type() const
-{
-    return itemType;
-}
-
-void TreeItem::setType(const UINT8 type)
-{
-    itemType = type;
-}
-
-UINT8 TreeItem::subtype() const
-{
-    return itemSubtype;
-}
-
-void TreeItem::setSubtype(const UINT8 subtype)
-{
-    itemSubtype = subtype;
-}
-
-QByteArray TreeItem::header() const
-{
-    return itemHeader;
-}
-
-QByteArray TreeItem::body() const
-{
-    return itemBody;
-}
-
-QByteArray TreeItem::parsingData() const
-{
-    return itemParsingData;
-}
-
-bool TreeItem::hasEmptyHeader() const
-{
-    return itemHeader.isEmpty();
-}
-
-bool TreeItem::hasEmptyBody() const
-{
-    return itemBody.isEmpty();
-}
-
-bool TreeItem::hasEmptyParsingData() const
-{
-    return itemParsingData.isEmpty();
-}
-
-void TreeItem::setParsingData(const QByteArray & data)
-{
-    itemParsingData = data;
-}
-
-UINT8 TreeItem::action() const
-{
-    return itemAction;
-}
-
-void TreeItem::setAction(const UINT8 action)
-{
-    itemAction = action;
-
-    // On insert action, set insert action for children
-    if (action == Actions::Insert)
-        for (int i = 0; i < childCount(); i++)
-            child(i)->setAction(Actions::Insert);
-
-    // Set rebuild action for parent, if it has no action now
-    if (parentItem && parentItem->type() != Types::Root
-        && parentItem->action() == Actions::NoAction)
-        parentItem->setAction(Actions::Rebuild);
-}
-

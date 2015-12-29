@@ -79,8 +79,6 @@ typedef struct _SECTION_PARSING_DATA {
 } SECTION_PARSING_DATA;
 
 typedef struct _PARSING_DATA {
-    BOOLEAN fixed;
-    BOOLEAN isOnFlash;
     UINT8   emptyByte;
     UINT8   ffsVersion;
     UINT32  offset;

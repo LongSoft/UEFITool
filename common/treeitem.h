@@ -25,53 +25,60 @@ class TreeItem
 {
 public:
     TreeItem(const UINT8 type, const UINT8 subtype = 0, const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), const QByteArray & parsingData = QByteArray(),
+        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), 
+        const BOOLEAN fixed = FALSE, const BOOLEAN compressed = FALSE, const QByteArray & parsingData = QByteArray(),
         TreeItem *parent = 0);
-    ~TreeItem();
+    ~TreeItem() { qDeleteAll(childItems); }
 
     // Operations with items
-    void appendChild(TreeItem *item);
-    void prependChild(TreeItem *item);
-    UINT8 insertChildBefore(TreeItem *item, TreeItem *newItem);
-    UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);
+    void appendChild(TreeItem *item) { childItems.append(item); }
+    void prependChild(TreeItem *item) { childItems.prepend(item); };
+    UINT8 insertChildBefore(TreeItem *item, TreeItem *newItem);                // Non-trivial implementation in CPP file
+    UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);                 // Non-trivial implementation in CPP file
 
     // Model support operations
-    TreeItem *child(int row);
-    int childCount() const;
-    int columnCount() const;
-    QVariant data(int column) const;
-    int row() const;
-    TreeItem *parent();
+    TreeItem *child(int row) { return childItems.value(row, NULL); }
+    int childCount() const {return childItems.count(); }
+    int columnCount() const { return 5; }
+    QVariant data(int column) const;                                           // Non-trivial implementation in CPP file
+    int row() const;                                                           // Non-trivial implementation in CPP file
+    TreeItem *parent() { return parentItem; }
 
     // Reading operations for item parameters
-    QString name() const;
-    void setName(const QString &text);
+    QString name() const  { return itemName; }
+    void setName(const QString &text) { itemName = text; }
 
-    UINT8 type() const;
-    void setType(const UINT8 type);
+    UINT8 type() const  { return itemType; }
+    void setType(const UINT8 type) { itemType = type; }
 
-    UINT8 subtype() const;
-    void setSubtype(const UINT8 subtype);
+    UINT8 subtype() const { return itemSubtype; }
+    void setSubtype(const UINT8 subtype) { itemSubtype = subtype; }
 
-    QString text() const;
-    void setText(const QString &text);
+    QString text() const { return itemText; }
+    void setText(const QString &text) { itemText = text; }
 
-    QByteArray header() const;
-    bool hasEmptyHeader() const;
+    QByteArray header() const { return itemHeader; }
+    bool hasEmptyHeader() const { return itemHeader.isEmpty(); }
 
-    QByteArray body() const;
-    bool hasEmptyBody() const;
+    QByteArray body() const { return itemBody; };
+    bool hasEmptyBody() const { return itemBody.isEmpty(); }
 
-    QByteArray parsingData() const;
-    bool hasEmptyParsingData() const;
-    void setParsingData(const QByteArray & data);
+    QByteArray parsingData() const { return itemParsingData; }
+    bool hasEmptyParsingData() const { return itemParsingData.isEmpty(); }
+    void setParsingData(const QByteArray & data) { itemParsingData = data; }
 
-    QString info() const;
-    void addInfo(const QString &info);
-    void setInfo(const QString &info);
+    QString info() const { return itemInfo; }
+    void addInfo(const QString &info, const BOOLEAN append) { if (append) itemInfo.append(info); else itemInfo.prepend(info); }
+    void setInfo(const QString &info) { itemInfo = info; }
     
-    UINT8 action() const;
-    void setAction(const UINT8 action);
+    UINT8 action() const {return itemAction; }
+    void setAction(const UINT8 action) { itemAction = action; }
+
+    BOOLEAN fixed() const { return itemFixed; }
+    void setFixed(const bool fixed) { itemFixed = fixed; }
+
+    BOOLEAN compressed() const { return itemCompressed; }
+    void setCompressed(const bool compressed) { itemCompressed = compressed; }
 
 private:
     QList<TreeItem*> childItems;
@@ -84,7 +91,9 @@ private:
     QByteArray itemHeader;
     QByteArray itemBody;
     QByteArray itemParsingData;
-    TreeItem *parentItem;
+    bool       itemFixed;
+    bool       itemCompressed;
+    TreeItem*  parentItem;
 };
 
 #endif
