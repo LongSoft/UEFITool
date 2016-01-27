@@ -221,7 +221,10 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
     result = parseRawArea(flashImage, biosIndex);
     if (result)
         return result;
-
+    
+    // Add offsets
+    addOffsetsRecursive(index);
+    
     // Check if the last VTF is found
     if (!lastVtf.isValid()) {
         msg(tr("parseImageFile: not a single Volume Top File is found, the image may be corrupted"), biosIndex);
@@ -627,6 +630,9 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
     }
 
+    // Add offsets
+    addOffsetsRecursive(index);
+
     // Check if the last VTF is found
     if (!lastVtf.isValid()) {
         msg(tr("parseIntelImage: not a single Volume Top File is found, the image may be corrupted"), index);
@@ -831,14 +837,14 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
 
     // Get parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
-    UINT32 offset = pdata.offset;
     UINT32 headerSize = model->header(index).size();
+    UINT32 offset = pdata.offset + headerSize;
 
     // Search for first volume
     STATUS result;
     UINT32 prevVolumeOffset;
 
-    result = findNextVolume(index, data, 0, prevVolumeOffset);
+    result = findNextVolume(index, data, offset, 0, prevVolumeOffset);
     if (result)
         return result;
 
@@ -853,7 +859,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
             .hexarg(padding.size()).arg(padding.size());
 
         // Construct parsing data
-        pdata.offset = offset + headerSize;
+        pdata.offset = offset;
 
         // Add tree item
         model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
@@ -877,7 +883,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
                 .hexarg(padding.size()).arg(padding.size());
 
             // Construct parsing data
-            pdata.offset = offset + headerSize + paddingOffset;
+            pdata.offset = offset + paddingOffset;
 
             // Add tree item
             model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
@@ -909,7 +915,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
                 .hexarg(padding.size()).arg(padding.size());
 
             // Construct parsing data
-            pdata.offset = offset + headerSize + volumeOffset;
+            pdata.offset = offset + volumeOffset;
 
             // Add tree item
             QModelIndex paddingIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
@@ -938,7 +944,7 @@ STATUS FfsParser::parseRawArea(const QByteArray & data, const QModelIndex & inde
         // Go to next volume
         prevVolumeOffset = volumeOffset;
         prevVolumeSize = volumeSize;
-        result = findNextVolume(index, data, volumeOffset + prevVolumeSize, volumeOffset);
+        result = findNextVolume(index, data, offset, volumeOffset + prevVolumeSize, volumeOffset);
     }
 
     // Padding at the end of BIOS space
@@ -1184,25 +1190,25 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::findNextVolume(const QModelIndex index, const QByteArray & bios, UINT32 volumeOffset, UINT32 & nextVolumeOffset)
+STATUS FfsParser::findNextVolume(const QModelIndex index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset)
 {
     int nextIndex = bios.indexOf(EFI_FV_SIGNATURE, volumeOffset);
     if (nextIndex < EFI_FV_SIGNATURE_OFFSET)
         return ERR_VOLUMES_NOT_FOUND;
 
     // Check volume header to be sane
-    for (; nextIndex > 0; nextIndex = bios.indexOf(EFI_FV_SIGNATURE, volumeOffset + nextIndex + 1)) {
+    for (; nextIndex > 0; nextIndex = bios.indexOf(EFI_FV_SIGNATURE, nextIndex + 1)) {
         const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + nextIndex - EFI_FV_SIGNATURE_OFFSET);
         if (volumeHeader->FvLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY) || volumeHeader->FvLength >= 0xFFFFFFFFUL) {
-            msg(tr("findNextVolume: volume candidate skipped, has invalid FvLength %1h").hexarg2(volumeHeader->FvLength, 16), index);
+            msg(tr("findNextVolume: volume candidate at offset %1h skipped, has invalid FvLength %2h").hexarg(parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET)).hexarg2(volumeHeader->FvLength, 16), index);
             continue;
         }
         if (volumeHeader->Reserved != 0xFF && volumeHeader->Reserved != 0x00) {
-            msg(tr("findNextVolume: volume candidate skipped, has invalid Reserved byte value %1").hexarg2(volumeHeader->Reserved, 2), index);
+            msg(tr("findNextVolume: volume candidate at offset %1h skipped, has invalid Reserved byte value %2").hexarg(parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET)).hexarg2(volumeHeader->Reserved, 2), index);
             continue;
         }
         if (volumeHeader->Revision != 1 && volumeHeader->Revision != 2) {
-            msg(tr("findNextVolume: volume candidate skipped, has invalid Revision byte value %1").hexarg2(volumeHeader->Revision, 2), index);
+            msg(tr("findNextVolume: volume candidate at offset %1h skipped, has invalid Revision byte value %2").hexarg(parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET)).hexarg2(volumeHeader->Revision, 2), index);
             continue;
         }
         // All checks passed, volume found
@@ -2729,9 +2735,6 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
         // Get parsing data for the current item
         PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
-        // Show offset
-        model->addInfo(index, tr("Offset: %1h\n").hexarg(pdata.offset), false);
-
         // Check address sanity
         if ((const UINT64)diff + pdata.offset <= 0xFFFFFFFFUL)  {
             // Update info
@@ -2765,13 +2768,39 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
         }
     }
 
-    //TODO: debugging, don't shows FIT file fixed attribute correctly
+    // Process child items
+    for (int i = 0; i < model->rowCount(index); i++) {
+        addMemoryAddressesRecursive(index.child(i, 0), diff);
+    }
+
+    return ERR_SUCCESS;
+}
+
+STATUS FfsParser::addOffsetsRecursive(const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+    
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+    // Add current offset if the element is not compressed
+    if (!model->compressed(index)) {
+        model->addInfo(index, tr("Offset: %1h\n").hexarg(pdata.offset), false);
+    }
+    // Or it's compressed, but it's parent isn't
+    else if (index.parent().isValid() && !model->compressed(index.parent())) {
+        model->addInfo(index, tr("Offset: %1h\n").hexarg(pdata.offset), false);
+    }
+
+    //TODO: show FIT file fixed attribute correctly
     model->addInfo(index, tr("\nCompressed: %1").arg(model->compressed(index) ? tr("Yes") : tr("No")));
     model->addInfo(index, tr("\nFixed: %1").arg(model->fixed(index) ? tr("Yes") : tr("No")));
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-        addMemoryAddressesRecursive(index.child(i, 0), diff);
+        addOffsetsRecursive(index.child(i, 0));
     }
 
     return ERR_SUCCESS;

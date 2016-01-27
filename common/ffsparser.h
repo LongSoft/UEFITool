@@ -91,12 +91,13 @@ private:
 
     UINT8  getPaddingType(const QByteArray & padding);
     STATUS parseAprioriRawSection(const QByteArray & body, QString & parsed);
-    STATUS findNextVolume(const QModelIndex index, const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
+    STATUS findNextVolume(const QModelIndex index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     STATUS getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT32 getFileSize(const QByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
     STATUS performSecondPass(const QModelIndex & index);
+    STATUS addOffsetsRecursive(const QModelIndex & index);
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
 
     // Internal operations

@@ -10,7 +10,6 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
-
 #include "ffsbuilder.h"
 
 FfsBuilder::FfsBuilder(const TreeModel* treeModel, QObject *parent)
@@ -70,7 +69,7 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
 
             // Right now there is only one capsule image element supported
             if (model->rowCount(index) != 1) {
-                msg(tr("buildCapsule: building of capsules with %1 elements are not supported, original item data used").arg(model->rowCount(index)), index);
+                msg(tr("buildCapsule: building of capsules with %1 elements are not supported, original item data is used").arg(model->rowCount(index)), index);
                 // Use original item data
                 capsule = model->header(index).append(model->body(index));
                 return ERR_SUCCESS;
@@ -90,14 +89,14 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
 
                 // Check build result
                 if (result) {
-                    msg(tr("buildCapsule: building of \"%1\" failed with error \"%2\", original item data used").arg(model->name(imageIndex)).arg(errorCodeToQString(result)), imageIndex);
+                    msg(tr("buildCapsule: building of \"%1\" failed with error \"%2\", original item data is used").arg(model->name(imageIndex)).arg(errorCodeToQString(result)), imageIndex);
                     capsule.append(model->header(imageIndex)).append(model->body(imageIndex));
                 }
                 else
                     capsule.append(imageData);
             }
             else {
-                msg(tr("buildCapsule: unexpected child item of type \"%1\" can't be processed, original item data used").arg(itemTypeToQString(model->type(imageIndex))), imageIndex);
+                msg(tr("buildCapsule: unexpected child item of type \"%1\" can't be processed, original item data is used").arg(itemTypeToQString(model->type(imageIndex))), imageIndex);
                 capsule.append(model->header(imageIndex)).append(model->body(imageIndex));
             }
             
@@ -129,11 +128,10 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
 
 STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intelImage)
 {
+    // Sanity check
     if (!index.isValid())
         return ERR_SUCCESS;
-
     
-
     // No action
     if (model->action(index) == Actions::NoAction) {
         intelImage = model->header(index).append(model->body(index));
@@ -146,7 +144,7 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
         // First child will always be descriptor for this type of image, and it's read only
         QByteArray descriptor = model->header(index.child(0, 0)).append(model->body(index.child(0, 0)));
         
-        // Other regions can be in different order, GbE, PDR and EC my be skipped
+        // Other regions can be in different order, GbE, PDR and EC may be skipped
         QByteArray gbe;
         QByteArray me;
         QByteArray bios;
@@ -178,9 +176,10 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
                 if (!gbe.isEmpty()) {
                     msg(tr("buildIntelImage: more than one GbE region found during image rebuild, the latest one is used"), index);
                 }
+
                 result = buildGbeRegion(currentRegion, gbe);
                 if (result) {
-                    msg(tr("buildIntelImage: building of GbE region failed with error \"%1\", original item data used").arg(errorCodeToQString(result)), currentRegion);
+                    msg(tr("buildIntelImage: building of GbE region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
                     gbe = model->header(currentRegion).append(model->body(currentRegion));
                 }
                 break;
@@ -188,9 +187,10 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
                 if (!me.isEmpty()) {
                     msg(tr("buildIntelImage: more than one ME region found during image rebuild, the latest one is used"), index);
                 }
+
                 result = buildMeRegion(currentRegion, me);
                 if (result) {
-                    msg(tr("buildIntelImage: building of ME region failed with error \"%1\", original item data used").arg(errorCodeToQString(result)), currentRegion);
+                    msg(tr("buildIntelImage: building of ME region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
                     me = model->header(currentRegion).append(model->body(currentRegion));
                 }
                 break;
@@ -198,9 +198,10 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
                 if (!bios.isEmpty()) {
                     msg(tr("buildIntelImage: more than one BIOS region found during image rebuild, the latest one is used"), index);
                 }
+
                 result = buildRawArea(currentRegion, bios);
                 if (result) {
-                    msg(tr("buildIntelImage: building of BIOS region failed with error \"%1\", original item data used").arg(errorCodeToQString(result)), currentRegion);
+                    msg(tr("buildIntelImage: building of BIOS region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
                     bios = model->header(currentRegion).append(model->body(currentRegion));
                 }
                 break;
@@ -208,9 +209,10 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
                 if (!pdr.isEmpty()) {
                     msg(tr("buildIntelImage: more than one PDR region found during image rebuild, the latest one is used"), index);
                 }
+
                 result = buildPdrRegion(currentRegion, pdr);
                 if (result) {
-                    msg(tr("buildIntelImage: building of PDR region failed with error \"%1\", original item data used").arg(errorCodeToQString(result)), currentRegion);
+                    msg(tr("buildIntelImage: building of PDR region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
                     pdr = model->header(currentRegion).append(model->body(currentRegion));
                 }
                 break;
@@ -218,9 +220,10 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
                 if (!ec.isEmpty()) {
                     msg(tr("buildIntelImage: more than one EC region found during image rebuild, the latest one is used"), index);
                 }
+
                 result = buildEcRegion(currentRegion, ec);
                 if (result) {
-                    msg(tr("buildIntelImage: building of EC region failed with error \"%1\", original item data used").arg(errorCodeToQString(result)), currentRegion);
+                    msg(tr("buildIntelImage: building of EC region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
                     ec = model->header(currentRegion).append(model->body(currentRegion));
                 }
                 break;
@@ -230,8 +233,7 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
             }
 
         }
-
-
+        
         // Check size of new image, it must be same as old one
         UINT32 newSize = intelImage.size();
         UINT32 oldSize = model->body(index).size();
@@ -307,13 +309,13 @@ STATUS FfsBuilder::buildRawArea(const QModelIndex & index, QByteArray & rawArea,
                     result = buildPadding(currentChild, currentData);
                 }
                 else {
-                    msg(tr("buildRawArea: unexpected child item of type \"%1\" can't be processed, original item data used").arg(itemTypeToQString(model->type(currentChild))), currentChild);
+                    msg(tr("buildRawArea: unexpected child item of type \"%1\" can't be processed, original item data is used").arg(itemTypeToQString(model->type(currentChild))), currentChild);
                     result = ERR_SUCCESS;
                     currentData = model->header(currentChild).append(model->body(currentChild));
                 }
                 // Check build result
                 if (result) {
-                    msg(tr("buildRawArea: building of \"%1\" failed with error \"%2\", original item data used").arg(model->name(currentChild)).arg(errorCodeToQString(result)), currentChild);
+                    msg(tr("buildRawArea: building of \"%1\" failed with error \"%2\", original item data is used").arg(model->name(currentChild)).arg(errorCodeToQString(result)), currentChild);
                     currentData = model->header(currentChild).append(model->body(currentChild));
                 }
                 // Append current data
@@ -363,7 +365,7 @@ STATUS FfsBuilder::buildPadding(const QModelIndex & index, QByteArray & padding)
     else if (model->action(index) == Actions::Erase) {
         padding = model->header(index).append(model->body(index));
         if(erase(index, padding))
-            msg(tr("buildPadding: erase failed, original item data used"), index);
+            msg(tr("buildPadding: erase failed, original item data is used"), index);
         return ERR_SUCCESS;
     }
 
@@ -387,7 +389,7 @@ STATUS FfsBuilder::buildNonUefiData(const QModelIndex & index, QByteArray & data
     else if (model->action(index) == Actions::Erase) {
         data = model->header(index).append(model->body(index));
         if (erase(index, data))
-            msg(tr("buildNonUefiData: erase failed, original item data used"), index);
+            msg(tr("buildNonUefiData: erase failed, original item data is used"), index);
         return ERR_SUCCESS;
     }
 
