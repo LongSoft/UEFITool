@@ -1,6 +1,6 @@
 /* utility.h
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -29,7 +29,7 @@ QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata);
 extern QString errorCodeToQString(UINT8 errorCode);
 
 // Decompression routine
-extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByteArray & decompressed);
+extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByteArray & decompressed, QByteArray & efiDecompressed = QByteArray());
 
 // Compression routine
 //STATUS compress(const QByteArray & decompressed, QByteArray & compressed, const UINT8 & algorithm);

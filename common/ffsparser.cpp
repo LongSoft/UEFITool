@@ -1,6 +1,6 @@
-/* ffsparser.cpp
+﻿/* ffsparser.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -10,16 +10,18 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
+#include "ffsparser.h"
+
 #include <math.h>
 
-#include "ffsparser.h"
-#include "types.h"
-#include "treemodel.h"
-#include "descriptor.h"
-#include "ffs.h"
-#include "gbe.h"
-#include "me.h"
-#include "fit.h"
+// Region info structure definition
+struct REGION_INFO {
+    UINT32 offset;
+    UINT32 length;
+    UINT8  type;
+    QByteArray data;
+    friend bool operator< (const REGION_INFO & lhs, const REGION_INFO & rhs){ return lhs.offset < rhs.offset; }
+};
 
 FfsParser::FfsParser(TreeModel* treeModel, QObject *parent)
     : QObject(parent), model(treeModel), capsuleOffsetFixup(0)
@@ -45,47 +47,53 @@ void FfsParser::clearMessages()
     messagesVector.clear();
 }
 
-BOOLEAN FfsParser::hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2)
+// Firmware image parsing functions
+STATUS FfsParser::parse(const QByteArray & buffer) 
 {
-    if (begin1 < begin2 && begin2 < end1)
-        return TRUE;
-    if (begin1 < end2 && end2 < end1)
-        return TRUE;
-    if (begin2 < begin1 && begin1 < end2)
-        return TRUE;
-    if (begin2 < end1 && end1 < end2)
-        return TRUE;
-    return FALSE;
+    QModelIndex root;
+    STATUS result = performFirstPass(buffer, root);
+    addOffsetsRecursive(root);
+    if (result)
+        return result;
+
+    if (lastVtf.isValid()) {
+        result = performSecondPass(root);
+    }
+    else {
+        msg(tr("parse: not a single Volume Top File is found, the image may be corrupted"));
+    }
+
+    return result;
 }
 
-// Firmware image parsing functions
-STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & root)
+STATUS FfsParser::performFirstPass(const QByteArray & buffer, QModelIndex & index)
 {
-    // Reset capsule offset fixeup value
+    // Reset capsule offset fixup value
     capsuleOffsetFixup = 0;
 
     // Check buffer size to be more than or equal to size of EFI_CAPSULE_HEADER
     if ((UINT32)buffer.size() <= sizeof(EFI_CAPSULE_HEADER)) {
-        msg(tr("parseImageFile: image file is smaller than minimum size of %1h (%2) bytes").hexarg(sizeof(EFI_CAPSULE_HEADER)).arg(sizeof(EFI_CAPSULE_HEADER)));
+        msg(tr("performFirstPass: image file is smaller than minimum size of %1h (%2) bytes").hexarg(sizeof(EFI_CAPSULE_HEADER)).arg(sizeof(EFI_CAPSULE_HEADER)));
         return ERR_INVALID_PARAMETER;
     }
 
-    QModelIndex index;
     UINT32 capsuleHeaderSize = 0;
     // Check buffer for being normal EFI capsule header
     if (buffer.startsWith(EFI_CAPSULE_GUID)
-        || buffer.startsWith(INTEL_CAPSULE_GUID)) {
+        || buffer.startsWith(INTEL_CAPSULE_GUID)
+        || buffer.startsWith(LENOVO_CAPSULE_GUID)
+        || buffer.startsWith(LENOVO2_CAPSULE_GUID)) {
         // Get info
         const EFI_CAPSULE_HEADER* capsuleHeader = (const EFI_CAPSULE_HEADER*)buffer.constData();
 
         // Check sanity of HeaderSize and CapsuleImageSize values
         if (capsuleHeader->HeaderSize == 0 || capsuleHeader->HeaderSize > (UINT32)buffer.size() || capsuleHeader->HeaderSize > capsuleHeader->CapsuleImageSize) {
-            msg(tr("parseImageFile: UEFI capsule header size of %1h (%2) bytes is invalid")
+            msg(tr("performFirstPass: UEFI capsule header size of %1h (%2) bytes is invalid")
                 .hexarg(capsuleHeader->HeaderSize).arg(capsuleHeader->HeaderSize));
             return ERR_INVALID_CAPSULE;
         }
         if (capsuleHeader->CapsuleImageSize == 0 || capsuleHeader->CapsuleImageSize > (UINT32)buffer.size()) {
-            msg(tr("parseImageFile: UEFI capsule image size of %1h (%2) bytes is invalid")
+            msg(tr("performFirstPass: UEFI capsule image size of %1h (%2) bytes is invalid")
                 .hexarg(capsuleHeader->CapsuleImageSize).arg(capsuleHeader->CapsuleImageSize));
             return ERR_INVALID_CAPSULE;
         }
@@ -105,7 +113,7 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, TRUE, QByteArray(), root);
+        index = model->addItem(Types::Capsule, Subtypes::UefiCapsule, name, QString(), info, header, body, true);
     }
     // Check buffer for being Toshiba capsule header
     else if (buffer.startsWith(TOSHIBA_CAPSULE_GUID)) {
@@ -114,12 +122,12 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
 
         // Check sanity of HeaderSize and FullSize values
         if (capsuleHeader->HeaderSize == 0 || capsuleHeader->HeaderSize > (UINT32)buffer.size() || capsuleHeader->HeaderSize > capsuleHeader->FullSize) {
-            msg(tr("parseImageFile: Toshiba capsule header size of %1h (%2) bytes is invalid")
+            msg(tr("performFirstPass: Toshiba capsule header size of %1h (%2) bytes is invalid")
                 .hexarg(capsuleHeader->HeaderSize).arg(capsuleHeader->HeaderSize));
             return ERR_INVALID_CAPSULE;
         }
         if (capsuleHeader->FullSize == 0 || capsuleHeader->FullSize > (UINT32)buffer.size()) {
-            msg(tr("parseImageFile: Toshiba capsule full size of %1h (%2) bytes is invalid")
+            msg(tr("performFirstPass: Toshiba capsule full size of %1h (%2) bytes is invalid")
                 .hexarg(capsuleHeader->FullSize).arg(capsuleHeader->FullSize));
             return ERR_INVALID_CAPSULE;
         }
@@ -139,14 +147,14 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, Subtypes::ToshibaCapsule, name, QString(), info, header, body, TRUE, QByteArray(), root);
+        index = model->addItem(Types::Capsule, Subtypes::ToshibaCapsule, name, QString(), info, header, body, true);
     }
-    // Check buffer for being extended Aptio signed capsule header
+    // Check buffer for being extended Aptio capsule header
     else if (buffer.startsWith(APTIO_SIGNED_CAPSULE_GUID) || buffer.startsWith(APTIO_UNSIGNED_CAPSULE_GUID)) {
         bool signedCapsule = buffer.startsWith(APTIO_SIGNED_CAPSULE_GUID);
 
         if ((UINT32)buffer.size() <= sizeof(APTIO_CAPSULE_HEADER)) {
-            msg(tr("parseImageFile: AMI capsule image file is smaller than minimum size of %1h (%2) bytes").hexarg(sizeof(APTIO_CAPSULE_HEADER)).arg(sizeof(APTIO_CAPSULE_HEADER)));
+            msg(tr("performFirstPass: AMI capsule image file is smaller than minimum size of %1h (%2) bytes").hexarg(sizeof(APTIO_CAPSULE_HEADER)).arg(sizeof(APTIO_CAPSULE_HEADER)));
             return ERR_INVALID_PARAMETER;
         }
 
@@ -155,11 +163,11 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
 
         // Check sanity of RomImageOffset and CapsuleImageSize values
         if (capsuleHeader->RomImageOffset == 0 || capsuleHeader->RomImageOffset > (UINT32)buffer.size() || capsuleHeader->RomImageOffset > capsuleHeader->CapsuleHeader.CapsuleImageSize) {
-            msg(tr("parseImageFile: AMI capsule image offset of %1h (%2) bytes is invalid").hexarg(capsuleHeader->RomImageOffset).arg(capsuleHeader->RomImageOffset));
+            msg(tr("performFirstPass: AMI capsule image offset of %1h (%2) bytes is invalid").hexarg(capsuleHeader->RomImageOffset).arg(capsuleHeader->RomImageOffset));
             return ERR_INVALID_CAPSULE;
         }
         if (capsuleHeader->CapsuleHeader.CapsuleImageSize == 0 || capsuleHeader->CapsuleHeader.CapsuleImageSize > (UINT32)buffer.size()) {
-            msg(tr("parseImageFile: AMI capsule image size of %1h (%2) bytes is invalid").hexarg(capsuleHeader->CapsuleHeader.CapsuleImageSize).arg(capsuleHeader->CapsuleHeader.CapsuleImageSize));
+            msg(tr("performFirstPass: AMI capsule image size of %1h (%2) bytes is invalid").hexarg(capsuleHeader->CapsuleHeader.CapsuleImageSize).arg(capsuleHeader->CapsuleHeader.CapsuleImageSize));
             return ERR_INVALID_CAPSULE;
         }
 
@@ -178,16 +186,12 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         capsuleOffsetFixup = capsuleHeaderSize;
 
         // Add tree item
-        index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, TRUE, QByteArray(), root);
+        index = model->addItem(Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, QString(), info, header, body, true);
 
         // Show message about possible Aptio signature break
         if (signedCapsule) {
-            msg(tr("parseImageFile: Aptio capsule signature may become invalid after image modifications"), index);
+            msg(tr("performFirstPass: Aptio capsule signature may become invalid after image modifications"), index);
         }
-    }
-    // Other cases
-    else {
-        index = root;
     }
 
     // Skip capsule header to have flash chip image
@@ -202,13 +206,16 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
         // Parse as Intel image
         QModelIndex imageIndex;
         result = parseIntelImage(flashImage, capsuleHeaderSize, index, imageIndex);
-        if (result != ERR_INVALID_FLASH_DESCRIPTOR)
+        if (result != ERR_INVALID_FLASH_DESCRIPTOR) {
+            if (!index.isValid())
+                index = imageIndex;
             return result;
+        }
     }
 
     // Get info
     QString name = tr("UEFI image");
-    QString info = tr("Full size: %2h (%3)").hexarg(flashImage.size()).arg(flashImage.size());
+    QString info = tr("Full size: %1h (%2)").hexarg(flashImage.size()).arg(flashImage.size());
 
     // Construct parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
@@ -219,21 +226,9 @@ STATUS FfsParser::parseImageFile(const QByteArray & buffer, const QModelIndex & 
 
     // Parse the image
     result = parseRawArea(flashImage, biosIndex);
-    if (result)
-        return result;
-    
-    // Add offsets
-    addOffsetsRecursive(index);
-    
-    // Check if the last VTF is found
-    if (!lastVtf.isValid()) {
-        msg(tr("parseImageFile: not a single Volume Top File is found, the image may be corrupted"), biosIndex);
-    }
-    else {
-        return performSecondPass(biosIndex);
-    }
-
-    return ERR_SUCCESS;
+    if (!index.isValid())
+        index = biosIndex;
+    return result;
 }
 
 STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
@@ -247,8 +242,6 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
 
     // Store the beginning of descriptor as descriptor base address
     const UINT8* descriptor = (const UINT8*)intelImage.constData();
-    UINT32 descriptorBegin = 0;
-    UINT32 descriptorEnd = FLASH_DESCRIPTOR_SIZE;
 
     // Check for buffer size to be greater or equal to descriptor region size
     if (intelImage.size() < FLASH_DESCRIPTOR_SIZE) {
@@ -258,7 +251,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
 
     // Parse descriptor map
     const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)(descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
-    const FLASH_DESCRIPTOR_UPPER_MAP*  upperMap = (const FLASH_DESCRIPTOR_UPPER_MAP*)(descriptor + FLASH_DESCRIPTOR_UPPER_MAP_BASE);
+    const FLASH_DESCRIPTOR_UPPER_MAP* upperMap = (const FLASH_DESCRIPTOR_UPPER_MAP*)(descriptor + FLASH_DESCRIPTOR_UPPER_MAP_BASE);
 
     // Check sanity of base values
     if (descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
@@ -291,43 +284,47 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
 
+    // Regions
+    QVector<REGION_INFO> regions;
+
     // ME region
-    QByteArray me;
-    UINT32 meBegin = 0;
-    UINT32 meEnd = 0;
+    REGION_INFO me;
+    me.type = Subtypes::MeRegion;
+    me.offset = 0;
+    me.length = 0;
     if (regionSection->MeLimit) {
-        meBegin = calculateRegionOffset(regionSection->MeBase);
-        meEnd = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
-        me = intelImage.mid(meBegin, meEnd);
-        meEnd += meBegin;
+        me.offset = calculateRegionOffset(regionSection->MeBase);
+        me.length = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+        me.data = intelImage.mid(me.offset, me.length);
+        regions.append(me);
     }
 
     // BIOS region
-    QByteArray bios;
-    UINT32 biosBegin = 0;
-    UINT32 biosEnd = 0;
+    REGION_INFO bios;
+    bios.type = Subtypes::BiosRegion;
+    bios.offset = 0;
+    bios.length = 0;
     if (regionSection->BiosLimit) {
-        biosBegin = calculateRegionOffset(regionSection->BiosBase);
-        biosEnd = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
+        bios.offset = calculateRegionOffset(regionSection->BiosBase);
+        bios.length = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
 
         // Check for Gigabyte specific descriptor map
-        if (biosEnd - biosBegin == (UINT32)intelImage.size()) {
-            if (!meEnd) {
+        if (bios.length == (UINT32)intelImage.size()) {
+            if (!me.offset) {
                 msg(tr("parseIntelImage: can't determine BIOS region start from Gigabyte-specific descriptor"));
                 return ERR_INVALID_FLASH_DESCRIPTOR;
             }
-            biosBegin = meEnd;
-            bios = intelImage.mid(biosBegin, biosEnd);
-            // biosEnd will point to the end of the image file
-            // it may be wrong, but it's pretty hard to detect a padding after BIOS region
-            // with malformed descriptor
+            // Use ME region end as BIOS region offset
+            bios.offset = me.offset + me.length;
+            bios.length = (UINT32)intelImage.size() - bios.offset;
+            bios.data = intelImage.mid(bios.offset, bios.length);
         }
         // Normal descriptor map
         else {
-            bios = intelImage.mid(biosBegin, biosEnd);
-            // Calculate biosEnd
-            biosEnd += biosBegin;
+            bios.data = intelImage.mid(bios.offset, bios.length);
         }
+
+        regions.append(bios);
     }
     else {
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
@@ -335,107 +332,148 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
     }
 
     // GbE region
-    QByteArray gbe;
-    UINT32 gbeBegin = 0;
-    UINT32 gbeEnd = 0;
+    REGION_INFO gbe;
+    gbe.type = Subtypes::GbeRegion;
+    gbe.offset = 0;
+    gbe.length = 0;
     if (regionSection->GbeLimit) {
-        gbeBegin = calculateRegionOffset(regionSection->GbeBase);
-        gbeEnd = calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
-        gbe = intelImage.mid(gbeBegin, gbeEnd);
-        gbeEnd += gbeBegin;
+        gbe.offset = calculateRegionOffset(regionSection->GbeBase);
+        gbe.length = calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
+        gbe.data = intelImage.mid(gbe.offset, gbe.length);
+        regions.append(gbe);
     }
 
     // PDR region
-    QByteArray pdr;
-    UINT32 pdrBegin = 0;
-    UINT32 pdrEnd = 0;
+    REGION_INFO pdr;
+    pdr.type = Subtypes::PdrRegion;
+    pdr.offset = 0;
+    pdr.length = 0;
     if (regionSection->PdrLimit) {
-        pdrBegin = calculateRegionOffset(regionSection->PdrBase);
-        pdrEnd = calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
-        pdr = intelImage.mid(pdrBegin, pdrEnd);
-        pdrEnd += pdrBegin;
+        pdr.offset = calculateRegionOffset(regionSection->PdrBase);
+        pdr.length = calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
+        pdr.data = intelImage.mid(pdr.offset, pdr.length);
+        regions.append(pdr);
     }
 
+    // Reserved1 region
+    REGION_INFO reserved1;
+    reserved1.type = Subtypes::Reserved1Region;
+    reserved1.offset = 0;
+    reserved1.length = 0;
+    if (regionSection->Reserved1Limit && regionSection->Reserved1Base != 0xFFFF && regionSection->Reserved1Limit != 0xFFFF) {
+        reserved1.offset = calculateRegionOffset(regionSection->Reserved1Base);
+        reserved1.length = calculateRegionSize(regionSection->Reserved1Base, regionSection->Reserved1Limit);
+        reserved1.data = intelImage.mid(reserved1.offset, reserved1.length);
+        regions.append(reserved1);
+    }
+
+    // Reserved2 region
+    REGION_INFO reserved2;
+    reserved2.type = Subtypes::Reserved2Region;
+    reserved2.offset = 0;
+    reserved2.length = 0;
+    if (regionSection->Reserved2Limit && regionSection->Reserved2Base != 0xFFFF && regionSection->Reserved2Limit != 0xFFFF) {
+        reserved2.offset = calculateRegionOffset(regionSection->Reserved2Base);
+        reserved2.length = calculateRegionSize(regionSection->Reserved2Base, regionSection->Reserved2Limit);
+        reserved2.data = intelImage.mid(reserved2.offset, reserved2.length);
+        regions.append(reserved2);
+    }
+
+    // Reserved3 region
+    REGION_INFO reserved3;
+    reserved3.type = Subtypes::Reserved3Region;
+    reserved3.offset = 0;
+    reserved3.length = 0;
+
     // EC region
-    QByteArray ec;
-    UINT32 ecBegin = 0;
-    UINT32 ecEnd = 0;
+    REGION_INFO ec;
+    ec.type = Subtypes::EcRegion;
+    ec.offset = 0;
+    ec.length = 0;
+
+    // Reserved4 region
+    REGION_INFO reserved4;
+    reserved3.type = Subtypes::Reserved4Region;
+    reserved4.offset = 0;
+    reserved4.length = 0;
+
+    // Check for EC and reserved region 4 only for v2 descriptor
     if (descriptorVersion == 2) {
+        if (regionSection->Reserved3Limit) {
+            reserved3.offset = calculateRegionOffset(regionSection->Reserved3Base);
+            reserved3.length = calculateRegionSize(regionSection->Reserved3Base, regionSection->Reserved3Limit);
+            reserved3.data = intelImage.mid(reserved3.offset, reserved3.length);
+            regions.append(reserved3);
+        }
+
         if (regionSection->EcLimit) {
-            pdrBegin = calculateRegionOffset(regionSection->EcBase);
-            pdrEnd = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
-            pdr = intelImage.mid(ecBegin, ecEnd);
-            ecEnd += ecBegin;
+            ec.offset = calculateRegionOffset(regionSection->EcBase);
+            ec.length = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
+            ec.data = intelImage.mid(ec.offset, ec.length);
+            regions.append(ec);
+        }
+    
+        if (regionSection->Reserved4Limit) {
+            reserved4.offset = calculateRegionOffset(regionSection->Reserved4Base);
+            reserved4.length = calculateRegionSize(regionSection->Reserved4Base, regionSection->Reserved4Limit);
+            reserved4.data = intelImage.mid(reserved4.offset, reserved4.length);
+            regions.append(reserved4);
         }
     }
 
-    // Check for intersections between regions
-    // Descriptor
-    if (hasIntersection(descriptorBegin, descriptorEnd, gbeBegin, gbeEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with GbE region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (hasIntersection(descriptorBegin, descriptorEnd, meBegin, meEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with ME region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (hasIntersection(descriptorBegin, descriptorEnd, biosBegin, biosEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with BIOS region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (hasIntersection(descriptorBegin, descriptorEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with PDR region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (descriptorVersion == 2 && hasIntersection(descriptorBegin, descriptorEnd, ecBegin, ecEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with EC region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    // GbE
-    if (hasIntersection(gbeBegin, gbeEnd, meBegin, meEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with ME region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (hasIntersection(gbeBegin, gbeEnd, biosBegin, biosEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with BIOS region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (hasIntersection(gbeBegin, gbeEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with PDR region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (descriptorVersion == 2 && hasIntersection(gbeBegin, gbeEnd, ecBegin, ecEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with EC region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    // ME
-    if (hasIntersection(meBegin, meEnd, biosBegin, biosEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with BIOS region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (hasIntersection(meBegin, meEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with PDR region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (descriptorVersion == 2 && hasIntersection(meBegin, meEnd, ecBegin, ecEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with EC region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    // BIOS
-    if (hasIntersection(biosBegin, biosEnd, pdrBegin, pdrEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with PDR region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    if (descriptorVersion == 2 && hasIntersection(biosBegin, biosEnd, ecBegin, ecEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with EC region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
-    // PDR
-    if (descriptorVersion == 2 && hasIntersection(pdrBegin, pdrEnd, ecBegin, ecEnd)) {
-        msg(tr("parseIntelImage: descriptor parsing failed, PDR region has intersection with EC region"));
-        return ERR_INVALID_FLASH_DESCRIPTOR;
-    }
+    // Sort regions in ascending order
+    qSort(regions);
 
+    // Check for intersections and paddings between regions
+    REGION_INFO region;
+    // Check intersection with the descriptor
+    if (regions.first().offset < FLASH_DESCRIPTOR_SIZE) {
+        msg(tr("parseIntelImage: %1 region has intersection with flash descriptor").arg(itemSubtypeToQString(Types::Region, regions.first().type)), index);
+        return ERR_INVALID_FLASH_DESCRIPTOR;
+    }
+    // Check for padding between descriptor and the first region 
+    else if (regions.first().offset > FLASH_DESCRIPTOR_SIZE) {
+        region.offset = FLASH_DESCRIPTOR_SIZE;
+        region.length = regions.first().offset - FLASH_DESCRIPTOR_SIZE;
+        region.data = intelImage.mid(region.offset, region.length);
+        region.type = getPaddingType(region.data);
+        regions.prepend(region);
+    }
+    // Check for intersections/paddings between regions
+    for (int i = 1; i < regions.count(); i++) {
+        UINT32 previousRegionEnd = regions[i-1].offset + regions[i-1].length;
+        // Check that current region is fully present in the image
+        if (regions[i].offset + regions[i].length > (UINT32)intelImage.size()) {
+            msg(tr("parseIntelImage: %1 region is located outside of opened image, if your system uses dual-chip storage, please append another part to the opened image")
+                .arg(itemSubtypeToQString(Types::Region, regions[i].type)), index);
+            return ERR_TRUNCATED_IMAGE;
+        }
+
+        // Check for intersection with previous region
+        if (regions[i].offset < previousRegionEnd) {
+            msg(tr("parseIntelImage: %1 region has intersection with %2 region")
+                .arg(itemSubtypeToQString(Types::Region, regions[i].type))
+                .arg(itemSubtypeToQString(Types::Region, regions[i-1].type)), index);
+            return ERR_INVALID_FLASH_DESCRIPTOR;
+        }
+        // Check for padding between current and previous regions
+        else if (regions[i].offset > previousRegionEnd) {
+            region.offset = previousRegionEnd;
+            region.length = regions[i].offset - previousRegionEnd;
+            region.data = intelImage.mid(region.offset, region.length);
+            region.type = getPaddingType(region.data);
+            regions.insert(i - 1, region);
+        }
+    }
+    // Check for padding after the last region
+    if (regions.last().offset + regions.last().length < (UINT32)intelImage.size()) {
+        region.offset = regions.last().offset + regions.last().length;
+        region.length = intelImage.size() - region.offset;
+        region.data = intelImage.mid(region.offset, region.length);
+        region.type = getPaddingType(region.data);
+        regions.append(region);
+    }
+    
     // Region map is consistent
 
     // Intel image
@@ -459,24 +497,11 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
     QByteArray body = intelImage.left(FLASH_DESCRIPTOR_SIZE);
     name = tr("Descriptor region");
     info = tr("Full size: %1h (%2)").hexarg(FLASH_DESCRIPTOR_SIZE).arg(FLASH_DESCRIPTOR_SIZE);
-
-    // Check regions presence once again
-    QVector<UINT32> offsets;
-    if (regionSection->GbeLimit) {
-        offsets.append(gbeBegin);
-        info += tr("\nGbE region offset:  %1h").hexarg(gbeBegin + parentOffset);
-    }
-    if (regionSection->MeLimit) {
-        offsets.append(meBegin);
-        info += tr("\nME region offset:   %1h").hexarg(meBegin + parentOffset);
-    }
-    if (regionSection->BiosLimit) {
-        offsets.append(biosBegin);
-        info += tr("\nBIOS region offset: %1h").hexarg(biosBegin + parentOffset);
-    }
-    if (regionSection->PdrLimit) {
-        offsets.append(pdrBegin);
-        info += tr("\nPDR region offset:  %1h").hexarg(pdrBegin + parentOffset);
+    
+    // Add offsets of actual regions
+    for (int i = 0; i < regions.count(); i++) {
+        if (regions[i].type != Subtypes::ZeroPadding && regions[i].type != Subtypes::OnePadding && regions[i].type != Subtypes::DataPadding)
+            info += tr("\n%1 region offset: %2h").arg(itemSubtypeToQString(Types::Region, regions[i].type)).hexarg(regions[i].offset + parentOffset);
     }
 
     // Region access settings
@@ -555,93 +580,63 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
     }
 
     // Add descriptor tree item
-    model->addItem(Types::Region, Subtypes::DescriptorRegion, name, QString(), info, QByteArray(), body, TRUE, parsingDataToQByteArray(pdata), index);
-
-    // Sort regions in ascending order
-    qSort(offsets);
-
+    QModelIndex regionIndex = model->addItem(Types::Region, Subtypes::DescriptorRegion, name, QString(), info, QByteArray(), body, TRUE, parsingDataToQByteArray(pdata), index);
+    
     // Parse regions
-    UINT8 result = 0;
-    for (int i = 0; i < offsets.count(); i++) {
-        // Parse GbE region
-        if (offsets.at(i) == gbeBegin) {
-            QModelIndex gbeIndex;
-            result = parseGbeRegion(gbe, gbeBegin, index, gbeIndex);
+    UINT8 result = ERR_SUCCESS;
+    UINT8 parseResult = ERR_SUCCESS;
+    Q_FOREACH(region, regions) {
+        switch (region.type) {
+        case Subtypes::BiosRegion:
+            result = parseBiosRegion(region.data, region.offset, index, regionIndex);
+            break;
+        case Subtypes::MeRegion:
+            result = parseMeRegion(region.data, region.offset, index, regionIndex);
+            break;
+        case Subtypes::GbeRegion:
+            result = parseGbeRegion(region.data, region.offset, index, regionIndex);
+            break;
+        case Subtypes::PdrRegion:
+            result = parsePdrRegion(region.data, region.offset, index, regionIndex);
+            break;
+        case Subtypes::Reserved1Region:
+        case Subtypes::Reserved2Region:
+        case Subtypes::Reserved3Region:
+        case Subtypes::EcRegion:
+        case Subtypes::Reserved4Region:
+            result = parseGeneralRegion(region.type, region.data, region.offset, index, regionIndex);
+            break;
+        case Subtypes::ZeroPadding:
+        case Subtypes::OnePadding:
+        case Subtypes::DataPadding: {
+            // Add padding between regions
+            QByteArray padding = intelImage.mid(region.offset, region.length);
+
+            // Get parent's parsing data
+            PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+            // Get info
+            name = tr("Padding");
+            info = tr("Full size: %1h (%2)")
+                .hexarg(padding.size()).arg(padding.size());
+
+            // Construct parsing data
+            pdata.offset = parentOffset + region.offset;
+
+            // Add tree item
+            regionIndex = model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
+            result = ERR_SUCCESS;
+            } break;
+        default:
+            msg(tr("parseIntelImage: region of unknown type found"), index);
+            result = ERR_INVALID_FLASH_DESCRIPTOR;
         }
-        // Parse ME region
-        else if (offsets.at(i) == meBegin) {
-            QModelIndex meIndex;
-            result = parseMeRegion(me, meBegin, index, meIndex);
-        }
-        // Parse BIOS region
-        else if (offsets.at(i) == biosBegin) {
-            QModelIndex biosIndex;
-            result = parseBiosRegion(bios, biosBegin, index, biosIndex);
-        }
-        // Parse PDR region
-        else if (offsets.at(i) == pdrBegin) {
-            QModelIndex pdrIndex;
-            result = parsePdrRegion(pdr, pdrBegin, index, pdrIndex);
-        }
-        // Parse EC region
-        else if (descriptorVersion == 2 && offsets.at(i) == ecBegin) {
-            QModelIndex ecIndex;
-            result = parseEcRegion(ec, ecBegin, index, ecIndex);
-        }
-        if (result)
-            return result;
+        // Store the first failed result as a final result
+        if (!parseResult && result)
+            parseResult = result;
     }
 
-    // Add the data after the last region as padding
-    UINT32 IntelDataEnd = 0;
-    UINT32 LastRegionOffset = offsets.last();
-    if (LastRegionOffset == gbeBegin)
-        IntelDataEnd = gbeEnd;
-    else if (LastRegionOffset == meBegin)
-        IntelDataEnd = meEnd;
-    else if (LastRegionOffset == biosBegin)
-        IntelDataEnd = biosEnd;
-    else if (LastRegionOffset == pdrBegin)
-        IntelDataEnd = pdrEnd;
-    else if (descriptorVersion == 2 && LastRegionOffset == ecBegin)
-        IntelDataEnd = ecEnd;
-
-    if (IntelDataEnd > (UINT32)intelImage.size()) { // Image file is truncated
-        msg(tr("parseIntelImage: image size %1 (%2) is smaller than the end of last region %3 (%4), may be damaged")
-            .hexarg(intelImage.size()).arg(intelImage.size())
-            .hexarg(IntelDataEnd).arg(IntelDataEnd), index);
-        return ERR_TRUNCATED_IMAGE;
-    }
-    else if (IntelDataEnd < (UINT32)intelImage.size()) { // Insert padding
-        QByteArray padding = intelImage.mid(IntelDataEnd);
-
-        // Get parent's parsing data
-        PARSING_DATA pdata = parsingDataFromQModelIndex(index);
-
-        // Get info
-        name = tr("Padding");
-        info = tr("Full size: %1h (%2)")
-            .hexarg(padding.size()).arg(padding.size());
-
-        // Construct parsing data
-        pdata.offset = IntelDataEnd;
-
-        // Add tree item
-        model->addItem(Types::Padding, getPaddingType(padding), name, QString(), info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
-    }
-
-    // Add offsets
-    addOffsetsRecursive(index);
-
-    // Check if the last VTF is found
-    if (!lastVtf.isValid()) {
-        msg(tr("parseIntelImage: not a single Volume Top File is found, the image may be corrupted"), index);
-    }
-    else {
-        return performSecondPass(index);
-    }
-
-    return ERR_SUCCESS;
+    return parseResult;
 }
 
 STATUS FfsParser::parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
@@ -774,25 +769,25 @@ STATUS FfsParser::parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffs
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseEcRegion(const QByteArray & ec, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseGeneralRegion(const UINT8 subtype, const QByteArray & region, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Check sanity
-    if (ec.isEmpty())
+    if (region.isEmpty())
         return ERR_EMPTY_REGION;
 
     // Get parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Get info
-    QString name = tr("EC region");
+    QString name = tr("%1 region").arg(itemSubtypeToQString(Types::Region, subtype));
     QString info = tr("Full size: %1h (%2)").
-        hexarg(ec.size()).arg(ec.size());
+        hexarg(region.size()).arg(region.size());
 
     // Construct parsing data
     pdata.offset += parentOffset;
 
     // Add tree item
-    index = model->addItem(Types::Region, Subtypes::EcRegion, name, QString(), info, QByteArray(), ec, TRUE, parsingDataToQByteArray(pdata), parent);
+    index = model->addItem(Types::Region, subtype, name, QString(), info, QByteArray(), region, TRUE, parsingDataToQByteArray(pdata), parent);
 
     return ERR_SUCCESS;
 }
@@ -1190,7 +1185,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::findNextVolume(const QModelIndex index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset)
+STATUS FfsParser::findNextVolume(const QModelIndex & index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset)
 {
     int nextIndex = bios.indexOf(EFI_FV_SIGNATURE, volumeOffset);
     if (nextIndex < EFI_FV_SIGNATURE_OFFSET)
@@ -1745,7 +1740,7 @@ STATUS FfsParser::parsePadFileBody(const QModelIndex & index)
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex & index)
+STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex & index, const bool preparse)
 {
     // Sanity check
     if (!index.isValid())
@@ -1759,6 +1754,7 @@ STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex &
     UINT32 headerSize = model->header(index).size();
     UINT32 sectionOffset = 0;
 
+    STATUS result = ERR_SUCCESS;
     while (sectionOffset < bodySize) {
         // Get section size
         UINT32 sectionSize = getSectionSize(sections, sectionOffset, pdata.ffsVersion);
@@ -1773,27 +1769,36 @@ STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex &
             // Constuct parsing data
             pdata.offset += headerSize + sectionOffset;
 
-            // Add tree item
-            QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
+            // Final parsing
+            if (!preparse) {
+                // Add tree item
+                QModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, tr("Non-UEFI data"), "", info, QByteArray(), padding, TRUE, parsingDataToQByteArray(pdata), index);
 
-            // Show message
-            msg(tr("parseSections: non-UEFI data found in sections area"), dataIndex);
-
+                // Show message
+                msg(tr("parseSections: non-UEFI data found in sections area"), dataIndex);
+            }
+            // Preparsing
+            else {
+                return ERR_INVALID_SECTION;
+            }
             break; // Exit from parsing loop
         }
 
         // Parse section header
         QModelIndex sectionIndex;
-        STATUS result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex);
-        if (result)
-            msg(tr("parseSections: section header parsing failed with error \"%1\"").arg(errorCodeToQString(result)), index);
-
+        result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex);
+        if (result) {
+            if (!preparse)
+                msg(tr("parseSections: section header parsing failed with error \"%1\"").arg(errorCodeToQString(result)), index);
+            else
+                return ERR_INVALID_SECTION;
+        }
         // Move to next section
         sectionOffset += sectionSize;
         sectionOffset = ALIGN4(sectionOffset);
     }
 
-    //Parse bodies
+    //Parse bodies, will be skipped on preparse phase
     for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
@@ -2013,7 +2018,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
 
         // Check certificate type
         if (certType == WIN_CERT_TYPE_EFI_GUID) {
-            additionalInfo += tr("\nCertificate type: UEFI").hexarg2(certType, 4);
+            additionalInfo += tr("\nCertificate type: UEFI");
 
             // Get certificate GUID
             const WIN_CERTIFICATE_UEFI_GUID* winCertificateUefiGuid = (const WIN_CERTIFICATE_UEFI_GUID*)(section.constData() + nextHeaderOffset);
@@ -2256,7 +2261,8 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
 
     // Decompress section
     QByteArray decompressed;
-    STATUS result = decompress(model->body(index), algorithm, decompressed);
+    QByteArray efiDecompressed;
+    STATUS result = decompress(model->body(index), algorithm, decompressed, efiDecompressed);
     if (result) {
         msg(tr("parseCompressedSectionBody: decompression failed with error \"%1\"").arg(errorCodeToQString(result)), index);
         return ERR_SUCCESS;
@@ -2270,6 +2276,22 @@ STATUS FfsParser::parseCompressedSectionBody(const QModelIndex & index)
             .hexarg(decompressed.size())
             .arg(decompressed.size()), index);
         model->addInfo(index, tr("\nActual decompressed size: %1h (%2)").hexarg(decompressed.size()).arg(decompressed.size()));
+    }
+
+    // Check for undecided compression algorithm, this is a special case
+    if (algorithm == COMPRESSION_ALGORITHM_UNDECIDED) {
+        // Try preparse of sections decompressed with Tiano algorithm
+        if (ERR_SUCCESS == parseSections(decompressed, index, true)) {
+            algorithm = COMPRESSION_ALGORITHM_TIANO;
+        }
+        // Try preparse of sections decompressed with EFI 1.1 algorithm
+        else if (ERR_SUCCESS == parseSections(efiDecompressed, index, true)) {
+            algorithm = COMPRESSION_ALGORITHM_EFI11;
+            decompressed = efiDecompressed;
+        }
+        else {
+            msg(tr("parseCompressedSectionBody: can't guess the correct decompression algorithm, both preparse steps are failed"), index);
+        }
     }
 
     // Add info
@@ -2302,24 +2324,33 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
     UINT8 algorithm = COMPRESSION_ALGORITHM_NONE;
     // Tiano compressed section
     if (QByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_TIANO) {
+        QByteArray efiDecompressed;
         algorithm = EFI_STANDARD_COMPRESSION;
-        STATUS result = decompress(model->body(index), algorithm, processed);
+        STATUS result = decompress(model->body(index), algorithm, processed, efiDecompressed);
         if (result) {
             parseCurrentSection = false;
             msg(tr("parseGuidedSectionBody: decompression failed with error \"%1\"").arg(errorCodeToQString(result)), index);
             return ERR_SUCCESS;
         }
 
-        if (algorithm == COMPRESSION_ALGORITHM_TIANO) {
-            info += tr("\nCompression algorithm: Tiano");
-            info += tr("\nDecompressed size: %1h (%2)").hexarg(processed.length()).arg(processed.length());
+        // Check for undecided compression algorithm, this is a special case
+        if (algorithm == COMPRESSION_ALGORITHM_UNDECIDED) {
+            // Try preparse of sections decompressed with Tiano algorithm
+            if (ERR_SUCCESS == parseSections(processed, index, true)) {
+                algorithm = COMPRESSION_ALGORITHM_TIANO;
+            }
+            // Try preparse of sections decompressed with EFI 1.1 algorithm
+            else if (ERR_SUCCESS == parseSections(efiDecompressed, index, true)) {
+                algorithm = COMPRESSION_ALGORITHM_EFI11;
+                processed = efiDecompressed;
+            }
+            else {
+                msg(tr("parseGuidedSectionBody: can't guess the correct decompression algorithm, both preparse steps are failed"), index);
+            }
         }
-        else if (algorithm == COMPRESSION_ALGORITHM_EFI11) {
-            info += tr("\nCompression algorithm: EFI 1.1");
-            info += tr("\nDecompressed size: %1h (%2)").hexarg(processed.length()).arg(processed.length());
-        }
-        else
-            info += tr("\nCompression type: unknown");
+        
+        info += tr("\nCompression algorithm: %1").arg(compressionTypeToQString(algorithm));
+        info += tr("\nDecompressed size: %1h (%2)").hexarg(processed.length()).arg(processed.length());
     }
     // LZMA compressed section
     else if (QByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_LZMA) {

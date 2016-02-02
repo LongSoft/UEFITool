@@ -1,6 +1,6 @@
 /* ffsparser.h
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -26,6 +26,13 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "utility.h"
 #include "peimage.h"
 #include "parsingdata.h"
+#include "types.h"
+#include "treemodel.h"
+#include "descriptor.h"
+#include "ffs.h"
+#include "gbe.h"
+#include "me.h"
+#include "fit.h"
 
 class TreeModel;
 
@@ -44,7 +51,7 @@ public:
     void clearMessages();
 
     // Firmware image parsing
-    STATUS parseImageFile(const QByteArray & imageFile, const QModelIndex & index);
+    STATUS parse(const QByteArray &buffer);
     STATUS parseRawArea(const QByteArray & data, const QModelIndex & index);
     STATUS parseVolumeHeader(const QByteArray & volume, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseVolumeBody(const QModelIndex & index);
@@ -67,11 +74,11 @@ private:
     STATUS parseMeRegion(const QByteArray & me, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseBiosRegion(const QByteArray & bios, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseEcRegion(const QByteArray & ec, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseGeneralRegion(const UINT8 subtype, const QByteArray & region, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
 
     STATUS parsePadFileBody(const QModelIndex & index);
     STATUS parseVolumeNonUefiData(const QByteArray & data, const UINT32 parentOffset, const QModelIndex & index);
-    STATUS parseSections(const QByteArray & sections, const QModelIndex & index);
+    STATUS parseSections(const QByteArray & sections, const QModelIndex & index, const bool preparse = false);
 
     STATUS parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
@@ -91,21 +98,18 @@ private:
 
     UINT8  getPaddingType(const QByteArray & padding);
     STATUS parseAprioriRawSection(const QByteArray & body, QString & parsed);
-    STATUS findNextVolume(const QModelIndex index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
+    STATUS findNextVolume(const QModelIndex & index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     STATUS getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT32 getFileSize(const QByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
+    STATUS performFirstPass(const QByteArray & imageFile, QModelIndex & index);
     STATUS performSecondPass(const QModelIndex & index);
     STATUS addOffsetsRecursive(const QModelIndex & index);
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
 
-    // Internal operations
-    BOOLEAN hasIntersection(const UINT32 begin1, const UINT32 end1, const UINT32 begin2, const UINT32 end2);
-
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
-
 };
 
 #endif

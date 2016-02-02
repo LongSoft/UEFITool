@@ -1,6 +1,6 @@
 /* descriptor.h
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -21,7 +21,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 // Flash descriptor header
 typedef struct _FLASH_DESCRIPTOR_HEADER {
-    UINT8 FfVector[16];            // Must be 16 0xFFs
+    UINT8  ReservedVector[16];     // Reserved for ARM ResetVector, 0xFFs on x86/x86-64 machines
     UINT32 Signature;              // 0x0FF0A55A
 } FLASH_DESCRIPTOR_HEADER;
 
@@ -98,7 +98,7 @@ typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION {
     UINT8            InvalidInstruction2;  //
     UINT8            InvalidInstruction3;  //
     UINT16           PartitionBoundary;    // Upper 16 bit of partition boundary address. Default is 0x0000, which makes the boundary to be 0x00001000
-    UINT16           ReservedZero;         // Still unknown, zero in all descriptors I have seen
+    UINT16 : 16;
 } FLASH_DESCRIPTOR_COMPONENT_SECTION;
 
 // Region section
@@ -115,16 +115,16 @@ typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
     UINT16 GbeLimit;                   //
     UINT16 PdrBase;                    // PDR
     UINT16 PdrLimit;                   //
-    UINT16 Region5Base;                // Reserved region
-    UINT16 Region5Limit;               //
-    UINT16 Region6Base;                // Reserved region
-    UINT16 Region6Limit;               //
-    UINT16 Region7Base;                // Reserved region
-    UINT16 Region7Limit;               //
+    UINT16 Reserved1Base;              // Reserved1
+    UINT16 Reserved1Limit;             //
+    UINT16 Reserved2Base;              // Reserved2
+    UINT16 Reserved2Limit;             //
+    UINT16 Reserved3Base;              // Reserved3
+    UINT16 Reserved3Limit;             //
     UINT16 EcBase;                     // EC
     UINT16 EcLimit;                    //
-    UINT16 Region9Base;                // Reserved region
-    UINT16 Region9Limit;               //
+    UINT16 Reserved4Base;              // Reserved4
+    UINT16 Reserved4Limit;             //
 } FLASH_DESCRIPTOR_REGION_SECTION;
 
 // Master section

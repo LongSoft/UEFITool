@@ -1,6 +1,6 @@
 /* uefifind_main.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -148,9 +148,9 @@ int main(int argc, char *argv[])
         return ERR_SUCCESS;
     }
     else {
-        std::cout << "UEFIFind 0.10.4.1" << std::endl << std::endl <<
-            "Usage: uefifind {header | body | all} {list | count} pattern imagefile" << std::endl <<
-            "    or uefifind file patternsfile imagefile" << std::endl;
+        std::cout << "UEFIFind 0.10.5" << std::endl << std::endl <<
+            "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
+            "    or UEFIFind file patternsfile imagefile" << std::endl;
         return ERR_INVALID_PARAMETER;
     }
 }

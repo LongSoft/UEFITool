@@ -1,6 +1,6 @@
 /* uefifind.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -46,7 +46,7 @@ STATUS UEFIFind::init(const QString & path)
     QByteArray buffer = inputFile.readAll();
     inputFile.close();
 
-    result = ffsParser->parseImageFile(buffer, model->index(0,0));
+    result = ffsParser->parse(buffer);
     if (result)
         return result;
 

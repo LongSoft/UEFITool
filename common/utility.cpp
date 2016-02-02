@@ -1,6 +1,6 @@
 /* utility.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -151,11 +151,12 @@ UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length)
 }
 
 // Compression routines
-STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArray & decompressedData)
+STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArray & decompressedData, QByteArray & efiDecompressedData)
 {
     const UINT8* data;
     UINT32 dataSize;
     UINT8* decompressed;
+    UINT8* efiDecompressed;
     UINT32 decompressedSize = 0;
     UINT8* scratch;
     UINT32 scratchSize = 0;
@@ -167,7 +168,7 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
         decompressedData = compressedData;
         algorithm = COMPRESSION_ALGORITHM_NONE;
         return ERR_SUCCESS;
-    case EFI_STANDARD_COMPRESSION:
+    case EFI_STANDARD_COMPRESSION: {
         // Set default algorithm to unknown
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
 
@@ -185,34 +186,45 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
             return ERR_STANDARD_DECOMPRESSION_FAILED;
 
         // Allocate memory
-        try {
-            decompressed = new UINT8[decompressedSize];
-            scratch = new UINT8[scratchSize];
-        }
-        catch (std::bad_alloc) {
+        decompressed = (UINT8*)malloc(decompressedSize);
+        efiDecompressed = (UINT8*)malloc(decompressedSize);
+        scratch = (UINT8*)malloc(scratchSize);
+        if (!decompressed || !efiDecompressed || !scratch) {
+            if (decompressed) free(decompressed);
+            if (efiDecompressed) free(efiDecompressed);
+            if (scratch) free(scratch);
             return ERR_STANDARD_DECOMPRESSION_FAILED;
         }
 
-        // Decompress section data
+        // Decompress section data using both algorithms
+        STATUS result = ERR_SUCCESS;
+        // Try Tiano
+        STATUS TianoResult = TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize);
+        // Try EFI 1.1
+        STATUS EfiResult = EfiDecompress(data, dataSize, efiDecompressed, decompressedSize, scratch, scratchSize);
 
-        //TODO: separate EFI1.1 from Tiano another way
-        // Try Tiano decompression first
-        if (ERR_SUCCESS != TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
-            // Not Tiano, try EFI 1.1
-            if (ERR_SUCCESS != EfiDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize)) {
-                delete[] decompressed;
-                delete[] scratch;
-                return ERR_STANDARD_DECOMPRESSION_FAILED;
-            }
-            else algorithm = COMPRESSION_ALGORITHM_EFI11;
+        if (EfiResult == ERR_SUCCESS && TianoResult == ERR_SUCCESS) { // Both decompressions are OK 
+            algorithm = COMPRESSION_ALGORITHM_UNDECIDED;
+            decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+            efiDecompressedData = QByteArray((const char*)efiDecompressed, decompressedSize);
         }
-        else algorithm = COMPRESSION_ALGORITHM_TIANO;
+        else if (TianoResult == ERR_SUCCESS) { // Only Tiano is OK
+            algorithm = COMPRESSION_ALGORITHM_TIANO;
+            decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+        }
+        else if (EfiResult == ERR_SUCCESS) { // Only EFI 1.1 is OK
+            algorithm = COMPRESSION_ALGORITHM_EFI11;
+            decompressedData = QByteArray((const char*)efiDecompressed, decompressedSize);
+        }
+        else { // Both decompressions failed
+            result = ERR_STANDARD_DECOMPRESSION_FAILED;
+        }
 
-        decompressedData = QByteArray((const char*)decompressed, decompressedSize);
-
-        delete[] decompressed;
-        delete[] scratch;
-        return ERR_SUCCESS;
+        free(decompressed);
+        free(efiDecompressed);
+        free(scratch);
+        return result;
+    }
     case EFI_CUSTOMIZED_COMPRESSION:
         // Set default algorithm to unknown
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
@@ -226,10 +238,8 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
             return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
 
         // Allocate memory
-        try {
-            decompressed = new UINT8[decompressedSize];
-        }
-        catch (std::bad_alloc) {
+        decompressed = (UINT8*)malloc(decompressedSize);
+        if (!decompressed) {
             return ERR_STANDARD_DECOMPRESSION_FAILED;
         }
 
@@ -241,13 +251,13 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
 
             // Get info again
             if (ERR_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
-                delete[] decompressed;
+                free(decompressed);
                 return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
 
             // Decompress section data again
             if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
-                delete[] decompressed;
+                free(decompressed);
                 return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
             else {
@@ -260,7 +270,7 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
             decompressedData = QByteArray((const char*)decompressed, decompressedSize);
         }
 
-        delete[] decompressed;
+        free(decompressed);
         return ERR_SUCCESS;
     default:
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;

@@ -1,6 +1,6 @@
 /* uefitool.cpp
 
-  Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+  Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha18"))
+version(tr("0.30.0_alpha19"))
 {
     clipboard = QApplication::clipboard();
 
@@ -566,7 +566,7 @@ void UEFITool::extract(const UINT8 mode)
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2015, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
+        "Copyright (c) 2016, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
         "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
         "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
         "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
@@ -657,7 +657,7 @@ void UEFITool::openImageFile(QString path)
     init();
     setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
 
-    UINT8 result = ffsParser->parseImageFile(buffer, model->index(0,0));
+    UINT8 result = ffsParser->parse(buffer);
     showParserMessages();
     if (result) {
         QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToQString(result), QMessageBox::Ok);

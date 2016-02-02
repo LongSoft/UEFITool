@@ -1,6 +1,6 @@
 /* ffs.h
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -52,6 +52,14 @@ const QByteArray EFI_CAPSULE_GUID
 // Intel capsule GUID
 const QByteArray INTEL_CAPSULE_GUID
 ("\xB9\x82\x91\x53\xB5\xAB\x91\x43\xB6\x9A\xE3\xA9\x43\xF7\x2F\xCC", 16);
+
+// Lenovo capsule GUID
+const QByteArray LENOVO_CAPSULE_GUID
+("\xD3\xAF\x0B\xE2\x14\x99\x4F\x4F\x95\x37\x31\x29\xE0\x90\xEB\x3C", 16);
+
+// Another Lenovo capsule GUID
+const QByteArray LENOVO2_CAPSULE_GUID
+("\x76\xFE\xB5\x25\x43\x82\x5C\x4A\xA9\xBD\x7E\xE3\x24\x61\x98\xB5", 16);
 
 // Toshiba EFI Capsule header
 typedef struct _TOSHIBA_CAPSULE_HEADER {

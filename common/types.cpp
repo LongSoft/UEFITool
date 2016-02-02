@@ -1,6 +1,6 @@
 /* types.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -21,16 +21,24 @@ QString regionTypeToQString(const UINT8 type)
     {
     case Subtypes::DescriptorRegion:
         return QObject::tr("Descriptor");
-    case Subtypes::GbeRegion:
-        return QObject::tr("GbE");
-    case Subtypes::MeRegion:
-        return QObject::tr("ME");
     case Subtypes::BiosRegion:
         return QObject::tr("BIOS");
+    case Subtypes::MeRegion:
+        return QObject::tr("ME");
+    case Subtypes::GbeRegion:
+        return QObject::tr("GbE");
     case Subtypes::PdrRegion:
         return QObject::tr("PDR");
+    case Subtypes::Reserved1Region:
+        return QObject::tr("Reserved1");
+    case Subtypes::Reserved2Region:
+        return QObject::tr("Reserved2");
+    case Subtypes::Reserved3Region:
+        return QObject::tr("Reserved3");
     case Subtypes::EcRegion:
         return QObject::tr("EC");
+    case Subtypes::Reserved4Region:
+        return QObject::tr("Reserved4");
     default:
         return QObject::tr("Unknown");
     };
@@ -124,6 +132,8 @@ QString compressionTypeToQString(const UINT8 algorithm)
         return QObject::tr("EFI 1.1");
     case COMPRESSION_ALGORITHM_TIANO:
         return QObject::tr("Tiano");
+    case COMPRESSION_ALGORITHM_UNDECIDED:
+        return QObject::tr("Undecided Tiano/EFI 1.1");
     case COMPRESSION_ALGORITHM_LZMA:
         return QObject::tr("LZMA");
     case COMPRESSION_ALGORITHM_IMLZMA:
