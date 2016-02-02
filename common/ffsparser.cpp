@@ -2319,12 +2319,12 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
 
     // Check if section requires processing
     QByteArray processed = model->body(index);
+    QByteArray efiDecompressed;
     QString info;
     bool parseCurrentSection = true;
     UINT8 algorithm = COMPRESSION_ALGORITHM_NONE;
     // Tiano compressed section
     if (QByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_TIANO) {
-        QByteArray efiDecompressed;
         algorithm = EFI_STANDARD_COMPRESSION;
         STATUS result = decompress(model->body(index), algorithm, processed, efiDecompressed);
         if (result) {
@@ -2355,7 +2355,7 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
     // LZMA compressed section
     else if (QByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_LZMA) {
         algorithm = EFI_CUSTOMIZED_COMPRESSION;
-        STATUS result = decompress(model->body(index), algorithm, processed);
+        STATUS result = decompress(model->body(index), algorithm, processed, efiDecompressed);
         if (result) {
             parseCurrentSection = false;
             msg(tr("parseGuidedSectionBody: decompression failed with error \"%1\"").arg(errorCodeToQString(result)), index);

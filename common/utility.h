@@ -29,7 +29,7 @@ QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata);
 extern QString errorCodeToQString(UINT8 errorCode);
 
 // Decompression routine
-extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByteArray & decompressed, QByteArray & efiDecompressed = QByteArray());
+extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByteArray & decompressed, QByteArray & efiDecompressed);
 
 // Compression routine
 //STATUS compress(const QByteArray & decompressed, QByteArray & compressed, const UINT8 & algorithm);
