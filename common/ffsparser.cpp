@@ -1786,7 +1786,7 @@ STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex &
 
         // Parse section header
         QModelIndex sectionIndex;
-        result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex);
+        result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex, preparse);
         if (result) {
             if (!preparse)
                 msg(tr("parseSections: section header parsing failed with error \"%1\"").arg(errorCodeToQString(result)), index);
@@ -1816,7 +1816,7 @@ STATUS FfsParser::parseSections(const QByteArray & sections, const QModelIndex &
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -1825,12 +1825,12 @@ STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 pa
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     switch (sectionHeader->Type) {
     // Special
-    case EFI_SECTION_COMPRESSION:           return parseCompressedSectionHeader(section, parentOffset, parent, index);
-    case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, parentOffset, parent, index);
-    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, parentOffset, parent, index);
-    case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, parentOffset, parent, index);
+    case EFI_SECTION_COMPRESSION:           return parseCompressedSectionHeader(section, parentOffset, parent, index, preparse);
+    case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, parentOffset, parent, index, preparse);
+    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, parentOffset, parent, index, preparse);
+    case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, parentOffset, parent, index, preparse);
     case SCT_SECTION_POSTCODE:
-    case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, parentOffset, parent, index);
+    case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, parentOffset, parent, index, preparse);
     // Common
     case EFI_SECTION_DISPOSABLE:
     case EFI_SECTION_DXE_DEPEX:
@@ -1842,16 +1842,16 @@ STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 pa
     case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_USER_INTERFACE:
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
-    case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, parentOffset, parent, index);
+    case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, parentOffset, parent, index, preparse);
     // Unknown
     default: 
-        STATUS result = parseCommonSectionHeader(section, parentOffset, parent, index);
+        STATUS result = parseCommonSectionHeader(section, parentOffset, parent, index, preparse);
         msg(tr("parseSectionHeader: section with unknown type %1h").hexarg2(sectionHeader->Type, 2), index);
         return result;
     }
 }
 
-STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -1881,12 +1881,13 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
     pdata.offset += parentOffset;
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
-
+    if (!preparse) {
+        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
+    } 
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMPRESSION_SECTION))
@@ -1929,12 +1930,13 @@ STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const
     pdata.section.compressed.uncompressedSize = uncompressedLength;
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
-
+    if (!preparse) {
+        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
+    }
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_GUID_DEFINED_SECTION))
@@ -1959,10 +1961,11 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
         attributes = guidDefinedSectionHeader2->Attributes;
         nextHeaderOffset = sizeof(EFI_GUID_DEFINED_SECTION2);
     }
-    
+
     // Check for special GUIDed sections
     QByteArray additionalInfo;
     QByteArray baGuid((const char*)&guid, sizeof(EFI_GUID));
+    bool msgSignedSectionFound = false;
     bool msgNoAuthStatusAttribute = false;
     bool msgNoProcessingRequiredAttributeCompressed = false;
     bool msgNoProcessingRequiredAttributeSigned = false;
@@ -2036,6 +2039,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
             additionalInfo += tr("\nCertificate type: unknown (%1h)").hexarg2(certType, 4);
             msgUnknownCertType = true;
         }
+        msgSignedSectionFound = true;
     }
 
     QByteArray header = section.left(dataOffset);
@@ -2060,26 +2064,30 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
     pdata.section.guidDefined.guid = guid;
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
+    if (!preparse) {
+        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
-    // Show messages
-    if (msgNoAuthStatusAttribute)
-        msg(tr("parseGuidedSectionHeader: CRC32 GUIDed section without AuthStatusValid attribute"), index);
-    if (msgNoProcessingRequiredAttributeCompressed)
-        msg(tr("parseGuidedSectionHeader: compressed GUIDed section without ProcessingRequired attribute"), index);
-    if (msgNoProcessingRequiredAttributeSigned)
-        msg(tr("parseGuidedSectionHeader: signed GUIDed section without ProcessingRequired attribute"), index);
-    if (msgInvalidCrc)
-        msg(tr("parseGuidedSectionHeader: GUID defined section with invalid CRC32"), index);
-    if (msgUnknownCertType)
-        msg(tr("parseGuidedSectionHeader: signed GUIDed section with unknown type"), index);
-    if (msgUnknownCertSubtype)
-        msg(tr("parseGuidedSectionHeader: signed GUIDed section with unknown subtype"), index);
+        // Show messages
+        if (msgSignedSectionFound)
+            msg(tr("parseGuidedSectionHeader: section signature may become invalid after any modification"), index);
+        if (msgNoAuthStatusAttribute)
+            msg(tr("parseGuidedSectionHeader: CRC32 GUIDed section without AuthStatusValid attribute"), index);
+        if (msgNoProcessingRequiredAttributeCompressed)
+            msg(tr("parseGuidedSectionHeader: compressed GUIDed section without ProcessingRequired attribute"), index);
+        if (msgNoProcessingRequiredAttributeSigned)
+            msg(tr("parseGuidedSectionHeader: signed GUIDed section without ProcessingRequired attribute"), index);
+        if (msgInvalidCrc)
+            msg(tr("parseGuidedSectionHeader: GUID defined section with invalid CRC32"), index);
+        if (msgUnknownCertType)
+            msg(tr("parseGuidedSectionHeader: signed GUIDed section with unknown type"), index);
+        if (msgUnknownCertSubtype)
+            msg(tr("parseGuidedSectionHeader: signed GUIDed section with unknown subtype"), index);
+    }
 
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION))
@@ -2118,15 +2126,16 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
     pdata.section.freeformSubtypeGuid.guid = guid;
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
+    if (!preparse) {
+        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
 
-    // Rename section
-    model->setName(index, guidToQString(guid));
-
+        // Rename section
+        model->setName(index, guidToQString(guid));
+    }
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_VERSION_SECTION))
@@ -2164,12 +2173,13 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
     pdata.offset += parentOffset;
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
-    
+    if (!preparse) {
+        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
+    }
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
+STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(POSTCODE_SECTION))
@@ -2207,8 +2217,9 @@ STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const U
     pdata.offset += parentOffset;
 
     // Add tree item
-    index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
-
+    if (!preparse) {
+        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), parent);
+    }
     return ERR_SUCCESS;
 }
 
