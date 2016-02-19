@@ -378,11 +378,15 @@ UINT8 sectionCreate(QByteArray body, UINT8 sectionType, QByteArray & sectionOut)
     switch (sectionType) {
     case EFI_SECTION_COMPRESSION:
         fe->compress(body, COMPRESSION_ALGORITHM_TIANO, fileBody);
+        alignment = fileBody.size() % 4;
+        if (alignment) {
+            fileBody.append(QByteArray(4 - alignment, '\x00'));
+        }
 
         compressedSection->CompressionType = COMPRESSION_ALGORITHM_TIANO;
         compressedSection->Type = EFI_SECTION_COMPRESSION;
-        compressedSection->UncompressedLength = fileBody.size();
-        uint32ToUint24(sizeof(EFI_COMPRESSION_SECTION) + body.size(), compressedSection->Size);
+        compressedSection->UncompressedLength = body.size(); //fileBody ???
+        uint32ToUint24(sizeof(EFI_COMPRESSION_SECTION) + fileBody.size(), compressedSection->Size); //body.size ???
 
         header.append((const char *) compressedSection, sizeof(EFI_COMPRESSION_SECTION));
         break;
@@ -395,21 +399,20 @@ UINT8 sectionCreate(QByteArray body, UINT8 sectionType, QByteArray & sectionOut)
     case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_USER_INTERFACE:
     case EFI_SECTION_RAW:
+        fileBody.append(body);
+        alignment = fileBody.size() % 4;
+        if (alignment) {
+            fileBody.append(QByteArray(4 - alignment, '\x00'));
+        }
+
         sectionHeader->Type = sectionType;
-        uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER) + body.size(), sectionHeader->Size);
+        uint32ToUint24(sizeof(EFI_COMMON_SECTION_HEADER) + fileBody.size(), sectionHeader->Size);
 
         header.append((const char *) sectionHeader, sizeof(EFI_COMMON_SECTION_HEADER));
-        fileBody.append(body);
         break;
     default:
         printf("ERROR: Invalid sectionType supplied!\n");
         return ERR_ERROR;
-    }
-
-    alignment = fileBody.size() % 4;
-    if (alignment) {
-        alignment = 4 - alignment;
-        fileBody.append(QByteArray(alignment, '\x00'));
     }
 
     sectionOut.append(header);
