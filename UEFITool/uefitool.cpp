@@ -151,6 +151,8 @@ void UEFITool::init()
     connect(ui->finderMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->fitMessagesListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->fitMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
+    connect(ui->builderMessagesListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
+    connect(ui->builderMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
 }
 
 void UEFITool::populateUi(const QModelIndex &current)
@@ -852,7 +854,10 @@ void UEFITool::scrollTreeView(QListWidgetItem* item)
 
 void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (ui->parserMessagesListWidget->underMouse() || ui->finderMessagesListWidget->underMouse()) {
+    if (ui->parserMessagesListWidget->underMouse() ||
+        ui->fitMessagesListWidget->underMouse() ||
+        ui->finderMessagesListWidget->underMouse() ||
+        ui->builderMessagesListWidget->underMouse()) {
         ui->menuMessages->exec(event->globalPos());
         return;
     }

@@ -438,7 +438,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
         region.length = regions.front().offset - FLASH_DESCRIPTOR_SIZE;
         region.data = intelImage.mid(region.offset, region.length);
         region.type = getPaddingType(region.data);
-        regions.insert(regions.cbegin(), region);
+        regions.insert(regions.begin(), region);
     }
     // Check for intersections/paddings between regions
     for (size_t i = 1; i < regions.size(); i++) {
@@ -463,9 +463,9 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
             region.length = regions[i].offset - previousRegionEnd;
             region.data = intelImage.mid(region.offset, region.length);
             region.type = getPaddingType(region.data);
-            std::vector<REGION_INFO>::const_iterator citer = regions.begin();
-            std::advance(citer, i - 1);
-            regions.insert(citer, region);
+            std::vector<REGION_INFO>::iterator iter = regions.begin();
+            std::advance(iter, i - 1);
+            regions.insert(iter, region);
         }
     }
     // Check for padding after the last region

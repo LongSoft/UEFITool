@@ -102,7 +102,7 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
             
             // Check image type
             if (model->type(imageIndex) == Types::Image) {
-                STATUS result;
+                STATUS result = ERR_SUCCESS;
                 if (model->subtype(imageIndex) == Subtypes::IntelImage) {
                     result = buildIntelImage(imageIndex, imageData);
                 }
