@@ -72,13 +72,14 @@ typedef UINT8 STATUS;
 #define ERR_UNKNOWN_COMPRESSION_TYPE        26
 #define ERR_DEPEX_PARSE_FAILED              27
 #define ERR_UNKNOWN_EXTRACT_MODE            28
-#define ERR_UNKNOWN_IMAGE_TYPE              29
-#define ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 30
-#define ERR_UNKNOWN_RELOCATION_TYPE         31
-#define ERR_DIR_ALREADY_EXIST               32
-#define ERR_DIR_CREATE                      33
-#define ERR_TRUNCATED_IMAGE                 34
-#define ERR_INVALID_CAPSULE                 35
+#define ERR_UNKNOWN_REPLACE_MODE            29
+#define ERR_UNKNOWN_IMAGE_TYPE              30
+#define ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 31
+#define ERR_UNKNOWN_RELOCATION_TYPE         32
+#define ERR_DIR_ALREADY_EXIST               33
+#define ERR_DIR_CREATE                      34
+#define ERR_TRUNCATED_IMAGE                 35
+#define ERR_INVALID_CAPSULE                 36
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions

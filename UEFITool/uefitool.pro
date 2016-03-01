@@ -10,7 +10,7 @@ SOURCES += uefitool_main.cpp \
  messagelistitem.cpp \
  guidlineedit.cpp \
  ffsfinder.cpp \
- ffsops.cpp \
+ ../common/ffsops.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \
  ../common/ffs.cpp \
@@ -35,7 +35,7 @@ HEADERS += uefitool.h \
  messagelistitem.h \
  guidlineedit.h \
  ffsfinder.h \
- ffsops.h \
+ ../common/ffsops.h \
  ../common/basetypes.h \
  ../common/descriptor.h \
  ../common/gbe.h \

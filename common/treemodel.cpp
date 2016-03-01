@@ -345,17 +345,6 @@ void TreeModel::setAction(const QModelIndex &index, const UINT8 action)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setAction(action);
-
-    // On insert action, set insert action for children
-    if (action == Actions::Insert)
-        for (int i = 0; i < item->childCount(); i++)
-            setAction(index.child(i, 0), Actions::Insert);
-
-    // Set rebuild action for parent, if it has no action now
-    if (index.parent().isValid() && this->type(index.parent()) != Types::Root
-        && this->action(index.parent()) == Actions::NoAction)
-            setAction(index.parent(), Actions::Rebuild);
-    
     emit dataChanged(index, index);
 }
 

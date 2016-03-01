@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsfinder.h"
 
-FfsFinder::FfsFinder(const TreeModel* treeModel, QObject *parent)
-    : QObject(parent), model(treeModel)
+FfsFinder::FfsFinder(const TreeModel* treeModel)
+    : model(treeModel)
 {
 }
 
@@ -24,10 +24,10 @@ FfsFinder::~FfsFinder()
 
 void FfsFinder::msg(const QString & message, const QModelIndex & index)
 {
-    messagesVector.push_back(QPair<QString, QModelIndex>(message, index));
+    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
 }
 
-QVector<QPair<QString, QModelIndex> > FfsFinder::getMessages() const
+std::vector<std::pair<QString, QModelIndex> > FfsFinder::getMessages() const
 {
     return messagesVector;
 }
@@ -73,11 +73,11 @@ STATUS FfsFinder::findHexPattern(const QModelIndex & index, const QByteArray & h
     INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {
-            msg(tr("Hex pattern \"%1\" found as \"%2\" in %3 at %4-offset %5h")
+            msg(QObject::tr("Hex pattern \"%1\" found as \"%2\" in %3 at %4-offset %5h")
                 .arg(QString(hexPattern))
                 .arg(hexBody.mid(offset, hexPattern.length()).toUpper())
                 .arg(model->name(index))
-                .arg(mode == SEARCH_MODE_BODY ? tr("body") : tr("header"))
+                .arg(mode == SEARCH_MODE_BODY ? QObject::tr("body") : QObject::tr("header"))
                 .hexarg(offset / 2),
                 index);
         }
@@ -142,11 +142,11 @@ STATUS FfsFinder::findGuidPattern(const QModelIndex & index, const QByteArray & 
     INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {
-            msg(tr("GUID pattern \"%1\" found as \"%2\" in %3 at %4-offset %5h")
+            msg(QObject::tr("GUID pattern \"%1\" found as \"%2\" in %3 at %4-offset %5h")
                 .arg(QString(guidPattern))
                 .arg(hexBody.mid(offset, hexPattern.length()).toUpper())
                 .arg(model->name(index))
-                .arg(mode == SEARCH_MODE_BODY ? tr("body") : tr("header"))
+                .arg(mode == SEARCH_MODE_BODY ? QObject::tr("body") : QObject::tr("header"))
                 .hexarg(offset / 2),
                 index);
         }
@@ -180,7 +180,7 @@ STATUS FfsFinder::findTextPattern(const QModelIndex & index, const QString & pat
 
     int offset = -1;
     while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
-        msg(tr("%1 text \"%2\" found in %3 at offset %4h")
+        msg(QObject::tr("%1 text \"%2\" found in %3 at offset %4h")
             .arg(unicode ? "Unicode" : "ASCII")
             .arg(pattern)
             .arg(model->name(index))

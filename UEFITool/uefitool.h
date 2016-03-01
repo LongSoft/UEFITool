@@ -39,10 +39,12 @@
 #include "../common/ffs.h"
 #include "../common/ffsparser.h"
 #include "../common/fitparser.h"
+#include "../common/ffsops.h"
+#include "../common/ffsbuilder.h"
+
 #include "searchdialog.h"
 #include "messagelistitem.h"
 #include "ffsfinder.h"
-#include "ffsops.h"
 
 namespace Ui {
     class UEFITool;
@@ -105,6 +107,7 @@ private:
     FitParser* fitParser;
     FfsFinder* ffsFinder;
     FfsOperations* ffsOps;
+    FfsBuilder* ffsBuilder;
     SearchDialog* searchDialog;
     QClipboard* clipboard;
     QString currentDir;
@@ -121,6 +124,7 @@ private:
     void showFinderMessages();
     void showFitMessages();
     void showFitTable();
+    void showBuilderMessages();
 };
 
 #endif

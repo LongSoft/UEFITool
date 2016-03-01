@@ -10,7 +10,6 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#include <QObject>
 #include "descriptor.h"
 
 // Calculate address of data structure addressed by descriptor address format

@@ -13,13 +13,11 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __FFSPARSER_H__
 #define __FFSPARSER_H__
 
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
+#include <vector>
+
 #include <QObject>
 #include <QModelIndex>
 #include <QByteArray>
-#include <QVector>
 
 #include "basetypes.h"
 #include "treemodel.h"
@@ -36,22 +34,30 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 class TreeModel;
 
-class FfsParser : public QObject
+class FfsParser
 {
-    Q_OBJECT
-
 public:
     // Default constructor and destructor
-    FfsParser(TreeModel* treeModel, QObject *parent = 0);
+    FfsParser(TreeModel* treeModel);
     ~FfsParser();
 
     // Returns messages 
-    QVector<QPair<QString, QModelIndex> > getMessages() const;
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
     // Clears messages
     void clearMessages();
 
     // Firmware image parsing
     STATUS parse(const QByteArray &buffer);
+    
+    // Retuns index of the last VTF after parsing is done
+    const QModelIndex getLastVtf() {return lastVtf;};
+
+private:
+    TreeModel *model;
+    std::vector<std::pair<QString, QModelIndex> > messagesVector;
+    QModelIndex lastVtf;
+    UINT32 capsuleOffsetFixup;
+
     STATUS parseRawArea(const QByteArray & data, const QModelIndex & index);
     STATUS parseVolumeHeader(const QByteArray & volume, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseVolumeBody(const QModelIndex & index);
@@ -59,15 +65,6 @@ public:
     STATUS parseFileBody(const QModelIndex & index);
     STATUS parseSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse = false);
     STATUS parseSectionBody(const QModelIndex & index);
-
-    // Retuns index of the last VTF after parsing is done
-    const QModelIndex getLastVtf() {return lastVtf;};
-
-private:
-    TreeModel *model;
-    QVector<QPair<QString, QModelIndex> > messagesVector;
-    QModelIndex lastVtf;
-    UINT32 capsuleOffsetFixup;
 
     STATUS parseIntelImage(const QByteArray & intelImage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & root);
     STATUS parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
@@ -78,8 +75,8 @@ private:
 
     STATUS parsePadFileBody(const QModelIndex & index);
     STATUS parseVolumeNonUefiData(const QByteArray & data, const UINT32 parentOffset, const QModelIndex & index);
-    STATUS parseSections(const QByteArray & sections, const QModelIndex & index, const bool preparse = false);
 
+    STATUS parseSections(const QByteArray & sections, const QModelIndex & index, const bool preparse = false);
     STATUS parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
     STATUS parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
     STATUS parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);

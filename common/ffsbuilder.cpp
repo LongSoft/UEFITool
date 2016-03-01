@@ -12,8 +12,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 #include "ffsbuilder.h"
 
-FfsBuilder::FfsBuilder(const TreeModel* treeModel, QObject *parent)
-    : QObject(parent), model(treeModel)
+FfsBuilder::FfsBuilder(const TreeModel* treeModel)
+    : model(treeModel)
 {
 }
 
@@ -23,10 +23,10 @@ FfsBuilder::~FfsBuilder()
 
 void FfsBuilder::msg(const QString & message, const QModelIndex & index)
 {
-    messagesVector.push_back(QPair<QString, QModelIndex>(message, index));
+    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
 }
 
-QVector<QPair<QString, QModelIndex> > FfsBuilder::getMessages() const
+std::vector<std::pair<QString, QModelIndex> > FfsBuilder::getMessages() const
 {
     return messagesVector;
 }
@@ -45,6 +45,27 @@ STATUS FfsBuilder::erase(const QModelIndex & index, QByteArray & erased)
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     erased.fill(pdata.emptyByte);
     return ERR_SUCCESS;
+}
+
+STATUS FfsBuilder::build(const QModelIndex & root, QByteArray & image)
+{
+    // Sanity check
+    if (!root.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    if (model->type(root) == Types::Capsule) {
+        return buildCapsule(root, image);
+    }
+    else if (model->type(root) == Types::Image) {
+        if (model->subtype(root) == Subtypes::IntelImage) {
+            return buildIntelImage(root, image);
+        }
+        else if (model->subtype(root) == Subtypes::IntelImage) {
+            return buildRawArea(root, image);
+        }
+    }
+
+    return ERR_NOT_IMPLEMENTED;
 }
 
 STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
@@ -69,7 +90,7 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
 
             // Right now there is only one capsule image element supported
             if (model->rowCount(index) != 1) {
-                msg(tr("buildCapsule: building of capsules with %1 elements are not supported, original item data is used").arg(model->rowCount(index)), index);
+                msg(QObject::tr("buildCapsule: building of capsules with %1 elements are not supported, original item data is used").arg(model->rowCount(index)), index);
                 // Use original item data
                 capsule = model->header(index).append(model->body(index));
                 return ERR_SUCCESS;
@@ -82,21 +103,27 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
             // Check image type
             if (model->type(imageIndex) == Types::Image) {
                 STATUS result;
-                if (model->subtype(imageIndex) == Subtypes::IntelImage)
+                if (model->subtype(imageIndex) == Subtypes::IntelImage) {
                     result = buildIntelImage(imageIndex, imageData);
-                else
+                }
+                else if (model->subtype(imageIndex) == Subtypes::UefiImage) {
                     result = buildRawArea(imageIndex, imageData);
-
+                }
+                else {
+                    msg(QObject::tr("buildCapsule: unexpected item of subtype %1 can't be processed, original item data is used").arg(model->subtype(imageIndex)), imageIndex);
+                    capsule.append(model->header(imageIndex)).append(model->body(imageIndex));
+                }
+                
                 // Check build result
                 if (result) {
-                    msg(tr("buildCapsule: building of \"%1\" failed with error \"%2\", original item data is used").arg(model->name(imageIndex)).arg(errorCodeToQString(result)), imageIndex);
+                    msg(QObject::tr("buildCapsule: building of \"%1\" failed with error \"%2\", original item data is used").arg(model->name(imageIndex)).arg(errorCodeToQString(result)), imageIndex);
                     capsule.append(model->header(imageIndex)).append(model->body(imageIndex));
                 }
                 else
                     capsule.append(imageData);
             }
             else {
-                msg(tr("buildCapsule: unexpected child item of type \"%1\" can't be processed, original item data is used").arg(itemTypeToQString(model->type(imageIndex))), imageIndex);
+                msg(QObject::tr("buildCapsule: unexpected item of type %1 can't be processed, original item data is used").arg(model->type(imageIndex)), imageIndex);
                 capsule.append(model->header(imageIndex)).append(model->body(imageIndex));
             }
             
@@ -104,12 +131,12 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
             UINT32 newSize = capsule.size();
             UINT32 oldSize = model->body(index).size();
             if (newSize > oldSize) {
-                msg(tr("buildCapsule: new capsule body size %1h (%2) is bigger than the original %3h (%4)")
+                msg(QObject::tr("buildCapsule: new capsule body size %1h (%2) is bigger than the original %3h (%4)")
                     .hexarg(newSize).arg(newSize).hexarg(oldSize).arg(oldSize),index);
                 return ERR_INVALID_PARAMETER;
             }
             else if (newSize < oldSize) {
-                msg(tr("buildCapsule: new capsule body size %1h (%2) is smaller than the original %3h (%4)")
+                msg(QObject::tr("buildCapsule: new capsule body size %1h (%2) is smaller than the original %3h (%4)")
                     .hexarg(newSize).arg(newSize).hexarg(oldSize).arg(oldSize), index);
                 return ERR_INVALID_PARAMETER;
             }
@@ -122,7 +149,7 @@ STATUS FfsBuilder::buildCapsule(const QModelIndex & index, QByteArray & capsule)
         return ERR_SUCCESS;
     }
 
-    msg(tr("buildCapsule: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
+    msg(QObject::tr("buildCapsule: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -138,22 +165,17 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
         return ERR_SUCCESS;
     }
 
-    // Other supported actions
+    // Rebuild
     else if (model->action(index) == Actions::Rebuild) {
         intelImage.clear();
-        // First child will always be descriptor for this type of image, and it's read only
-        QByteArray descriptor = model->header(index.child(0, 0)).append(model->body(index.child(0, 0)));
-        
-        // Other regions can be in different order, GbE, PDR and EC may be skipped
-        QByteArray gbe;
-        QByteArray me;
-        QByteArray bios;
-        QByteArray pdr;
-        QByteArray ec;
-        QByteArray padding;
 
+        // First child will always be descriptor for this type of image, and it's read only
+        intelImage.append(model->header(index.child(0, 0)).append(model->body(index.child(0, 0))));
+        
+        // Process other regions
         for (int i = 1; i < model->rowCount(index); i++) {
             QModelIndex currentRegion = index.child(i, 0);
+
             // Skip regions with Remove action
             if (model->action(currentRegion) == Actions::Remove)
                 continue;
@@ -161,89 +183,53 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
             // Check item type to be either region or padding
             UINT8 type = model->type(currentRegion);
             if (type == Types::Padding) {
-                if (!padding.isEmpty()) {
-                    msg(tr("buildIntelImage: more than one padding found during image rebuild, the latest one is used"), index);
-                }
-                padding = model->header(currentRegion).append(model->body(currentRegion));
+                // Add padding as is
+                intelImage.append(model->header(currentRegion).append(model->body(currentRegion)));
                 continue;
             }
 
             // Check region subtype
             STATUS result;
+            QByteArray region;
             UINT8 regionType = model->subtype(currentRegion);
             switch (regionType) {
-            case Subtypes::GbeRegion:
-                if (!gbe.isEmpty()) {
-                    msg(tr("buildIntelImage: more than one GbE region found during image rebuild, the latest one is used"), index);
-                }
-
-                result = buildGbeRegion(currentRegion, gbe);
-                if (result) {
-                    msg(tr("buildIntelImage: building of GbE region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
-                    gbe = model->header(currentRegion).append(model->body(currentRegion));
-                }
-                break;
-            case Subtypes::MeRegion:
-                if (!me.isEmpty()) {
-                    msg(tr("buildIntelImage: more than one ME region found during image rebuild, the latest one is used"), index);
-                }
-
-                result = buildMeRegion(currentRegion, me);
-                if (result) {
-                    msg(tr("buildIntelImage: building of ME region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
-                    me = model->header(currentRegion).append(model->body(currentRegion));
-                }
-                break;
             case Subtypes::BiosRegion:
-                if (!bios.isEmpty()) {
-                    msg(tr("buildIntelImage: more than one BIOS region found during image rebuild, the latest one is used"), index);
-                }
-
-                result = buildRawArea(currentRegion, bios);
-                if (result) {
-                    msg(tr("buildIntelImage: building of BIOS region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
-                    bios = model->header(currentRegion).append(model->body(currentRegion));
-                }
-                break;
             case Subtypes::PdrRegion:
-                if (!pdr.isEmpty()) {
-                    msg(tr("buildIntelImage: more than one PDR region found during image rebuild, the latest one is used"), index);
-                }
-
-                result = buildPdrRegion(currentRegion, pdr);
+                result = buildRawArea(currentRegion, region);
                 if (result) {
-                    msg(tr("buildIntelImage: building of PDR region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
-                    pdr = model->header(currentRegion).append(model->body(currentRegion));
+                    msg(QObject::tr("buildIntelImage: building of %1 region failed with error \"%2\", original item data is used").arg(regionTypeToQString(regionType)).arg(errorCodeToQString(result)), currentRegion);
+                    region = model->header(currentRegion).append(model->body(currentRegion));
                 }
                 break;
+            case Subtypes::GbeRegion:
+            case Subtypes::MeRegion:
             case Subtypes::EcRegion:
-                if (!ec.isEmpty()) {
-                    msg(tr("buildIntelImage: more than one EC region found during image rebuild, the latest one is used"), index);
-                }
-
-                result = buildEcRegion(currentRegion, ec);
-                if (result) {
-                    msg(tr("buildIntelImage: building of EC region failed with error \"%1\", original item data is used").arg(errorCodeToQString(result)), currentRegion);
-                    ec = model->header(currentRegion).append(model->body(currentRegion));
-                }
+            case Subtypes::Reserved1Region:
+            case Subtypes::Reserved2Region:
+            case Subtypes::Reserved3Region:
+            case Subtypes::Reserved4Region:
+                // Add region as is
+                region = model->header(currentRegion).append(model->body(currentRegion));
                 break;
             default:
-                msg(tr("buildIntelImage: don't know how to build region of unknown type"), index);
+                msg(QObject::tr("buildIntelImage: don't know how to build region of unknown type"), index);
                 return ERR_UNKNOWN_ITEM_TYPE;
             }
 
+            // Append the resulting region
+            intelImage.append(region);
         }
         
         // Check size of new image, it must be same as old one
         UINT32 newSize = intelImage.size();
         UINT32 oldSize = model->body(index).size();
         if (newSize > oldSize) {
-            msg(tr("buildIntelImage: new image size %1h (%2) is bigger than the original %3h (%4)")
+            msg(QObject::tr("buildIntelImage: new image size %1h (%2) is bigger than the original %3h (%4)")
                 .hexarg(newSize).arg(newSize).hexarg(oldSize).arg(oldSize), index);
             return ERR_INVALID_PARAMETER;
         }
         else if (newSize < oldSize) {
-            msg(tr("buildIntelImage: new image size %1h (%2) is smaller than the original %3h (%4)")
+            msg(QObject::tr("buildIntelImage: new image size %1h (%2) is smaller than the original %3h (%4)")
                 .hexarg(newSize).arg(newSize).hexarg(oldSize).arg(oldSize), index);
             return ERR_INVALID_PARAMETER;
         }
@@ -252,27 +238,7 @@ STATUS FfsBuilder::buildIntelImage(const QModelIndex & index, QByteArray & intel
         return ERR_SUCCESS;
     }
 
-    msg(tr("buildIntelImage: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
-    return ERR_NOT_IMPLEMENTED;
-}
-
-STATUS FfsBuilder::buildGbeRegion(const QModelIndex & index, QByteArray & region)
-{
-    return ERR_NOT_IMPLEMENTED;
-}
-
-STATUS FfsBuilder::buildMeRegion(const QModelIndex & index, QByteArray & region)
-{
-    return ERR_NOT_IMPLEMENTED;
-}
-
-STATUS FfsBuilder::buildPdrRegion(const QModelIndex & index, QByteArray & region)
-{
-    return ERR_NOT_IMPLEMENTED;
-}
-
-STATUS FfsBuilder::buildEcRegion(const QModelIndex & index, QByteArray & region)
-{
+    msg(QObject::tr("buildIntelImage: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -281,8 +247,6 @@ STATUS FfsBuilder::buildRawArea(const QModelIndex & index, QByteArray & rawArea,
     // Sanity check
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
-
-    STATUS result;
 
     // No action required
     if (model->action(index) == Actions::NoAction) {
@@ -299,6 +263,7 @@ STATUS FfsBuilder::buildRawArea(const QModelIndex & index, QByteArray & rawArea,
 
             // Build children
             for (int i = 0; i < model->rowCount(index); i++) {
+                STATUS result = ERR_SUCCESS;
                 QModelIndex currentChild = index.child(i, 0);
                 QByteArray currentData;
                 // Check child type
@@ -309,13 +274,12 @@ STATUS FfsBuilder::buildRawArea(const QModelIndex & index, QByteArray & rawArea,
                     result = buildPadding(currentChild, currentData);
                 }
                 else {
-                    msg(tr("buildRawArea: unexpected child item of type \"%1\" can't be processed, original item data is used").arg(itemTypeToQString(model->type(currentChild))), currentChild);
-                    result = ERR_SUCCESS;
+                    msg(QObject::tr("buildRawArea: unexpected item of type %1 can't be processed, original item data is used").arg(model->type(currentChild)), currentChild);
                     currentData = model->header(currentChild).append(model->body(currentChild));
                 }
                 // Check build result
                 if (result) {
-                    msg(tr("buildRawArea: building of \"%1\" failed with error \"%2\", original item data is used").arg(model->name(currentChild)).arg(errorCodeToQString(result)), currentChild);
+                    msg(QObject::tr("buildRawArea: building of %1 failed with error \"%2\", original item data is used").arg(model->name(currentChild)).arg(errorCodeToQString(result)), currentChild);
                     currentData = model->header(currentChild).append(model->body(currentChild));
                 }
                 // Append current data
@@ -326,12 +290,12 @@ STATUS FfsBuilder::buildRawArea(const QModelIndex & index, QByteArray & rawArea,
             UINT32 newSize = rawArea.size();
             UINT32 oldSize = model->body(index).size();
             if (newSize > oldSize) {
-                msg(tr("buildRawArea: new area size %1h (%2) is bigger than the original %3h (%4)")
+                msg(QObject::tr("buildRawArea: new area size %1h (%2) is bigger than the original %3h (%4)")
                     .hexarg(newSize).arg(newSize).hexarg(oldSize).arg(oldSize), index);
                 return ERR_INVALID_PARAMETER;
             }
             else if (newSize < oldSize) {
-                msg(tr("buildRawArea: new area size %1h (%2) is smaller than the original %3h (%4)")
+                msg(QObject::tr("buildRawArea: new area size %1h (%2) is smaller than the original %3h (%4)")
                     .hexarg(newSize).arg(newSize).hexarg(oldSize).arg(oldSize), index);
                 return ERR_INVALID_PARAMETER;
             }
@@ -345,7 +309,7 @@ STATUS FfsBuilder::buildRawArea(const QModelIndex & index, QByteArray & rawArea,
         return ERR_SUCCESS;
     }
 
-    msg(tr("buildRawArea: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
+    msg(QObject::tr("buildRawArea: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -365,11 +329,11 @@ STATUS FfsBuilder::buildPadding(const QModelIndex & index, QByteArray & padding)
     else if (model->action(index) == Actions::Erase) {
         padding = model->header(index).append(model->body(index));
         if(erase(index, padding))
-            msg(tr("buildPadding: erase failed, original item data is used"), index);
+            msg(QObject::tr("buildPadding: erase failed, original item data is used"), index);
         return ERR_SUCCESS;
     }
 
-    msg(tr("buildPadding: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
+    msg(QObject::tr("buildPadding: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -389,11 +353,11 @@ STATUS FfsBuilder::buildNonUefiData(const QModelIndex & index, QByteArray & data
     else if (model->action(index) == Actions::Erase) {
         data = model->header(index).append(model->body(index));
         if (erase(index, data))
-            msg(tr("buildNonUefiData: erase failed, original item data is used"), index);
+            msg(QObject::tr("buildNonUefiData: erase failed, original item data is used"), index);
         return ERR_SUCCESS;
     }
 
-    msg(tr("buildNonUefiData: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
+    msg(QObject::tr("buildNonUefiData: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -409,7 +373,7 @@ STATUS FfsBuilder::buildFreeSpace(const QModelIndex & index, QByteArray & freeSp
         return ERR_SUCCESS;
     }
 
-    msg(tr("buildFreeSpace: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
+    msg(QObject::tr("buildFreeSpace: unexpected action \"%1\"").arg(actionTypeToQString(model->action(index))), index);
     return ERR_NOT_IMPLEMENTED;
 }
 
@@ -433,7 +397,4 @@ STATUS FfsBuilder::buildSection(const QModelIndex & index, QByteArray & section)
     return ERR_NOT_IMPLEMENTED;
 }
 
-STATUS FfsBuilder::build(const QModelIndex & root, QByteArray & image)
-{
-    return ERR_NOT_IMPLEMENTED;
-}
+

@@ -76,6 +76,7 @@ QString errorCodeToQString(UINT8 errorCode)
     case ERR_CUSTOMIZED_DECOMPRESSION_FAILED: return QObject::tr("Customized compression failed");
     case ERR_UNKNOWN_COMPRESSION_TYPE:        return QObject::tr("Unknown compression type");
     case ERR_UNKNOWN_EXTRACT_MODE:            return QObject::tr("Unknown extract mode");
+    case ERR_UNKNOWN_REPLACE_MODE:            return QObject::tr("Unknown replace mode");
     //case ERR_UNKNOWN_INSERT_MODE:             return QObject::tr("Unknown insert mode");
     case ERR_UNKNOWN_IMAGE_TYPE:              return QObject::tr("Unknown executable image type");
     case ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE: return QObject::tr("Unknown PE optional header type");

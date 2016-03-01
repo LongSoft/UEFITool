@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsops.h"
 
-FfsOperations::FfsOperations(const TreeModel* treeModel, QObject *parent)
-    : QObject(parent), model(treeModel)
+FfsOperations::FfsOperations(TreeModel* treeModel)
+    : model(treeModel)
 {
 }
 
@@ -24,10 +24,10 @@ FfsOperations::~FfsOperations()
 
 void FfsOperations::msg(const QString & message, const QModelIndex & index)
 {
-    messagesVector.push_back(QPair<QString, QModelIndex>(message, index));
+    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
 }
 
-QVector<QPair<QString, QModelIndex> > FfsOperations::getMessages() const
+std::vector<std::pair<QString, QModelIndex> > FfsOperations::getMessages() const
 {
     return messagesVector;
 }
@@ -89,13 +89,13 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         }
     }
     else if (mode == EXTRACT_MODE_BODY) {
-        name += tr("_body");
+        name += QObject::tr("_body");
         // Extract without header and tail
         extracted.clear();
         extracted.append(model->body(index));
     }
     else if (mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
-        name += tr("_body_unc");
+        name += QObject::tr("_body_unc");
         // Extract without header and tail, uncompressed
         extracted.clear();
         // There is no need to redo decompression, we can use child items
@@ -111,3 +111,58 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
     return ERR_SUCCESS;
 }
 
+STATUS  FfsOperations::replace(const QModelIndex & index, const QString & data, const UINT8 mode)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Get data from parsing data
+    //PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+    if (mode == REPLACE_MODE_AS_IS) {
+        return ERR_NOT_IMPLEMENTED;
+    }
+    else if (mode == REPLACE_MODE_BODY) {
+        return ERR_NOT_IMPLEMENTED;
+    }
+    else 
+        return ERR_UNKNOWN_REPLACE_MODE;
+    
+    return ERR_NOT_IMPLEMENTED;
+}
+
+STATUS FfsOperations::remove(const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Set remove action
+    model->setAction(index, Actions::Remove);
+
+    return ERR_SUCCESS;
+}
+
+STATUS FfsOperations::rebuild(const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // On insert action, set insert action for children
+    //if (action == Actions::Insert)
+    //    for (int i = 0; i < item->childCount(); i++)
+    //        setAction(index.child(i, 0), Actions::Insert);
+
+    // Set rebuild action
+    model->setAction(index, Actions::Rebuild);
+
+    // Rebuild parent, if it has no action now
+    QModelIndex parent = index.parent();
+    if (parent.isValid() && model->type(parent) != Types::Root
+        && model->action(parent) == Actions::NoAction)
+       rebuild(parent);
+    
+    return ERR_SUCCESS;
+}

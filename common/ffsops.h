@@ -14,32 +14,36 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __FFSOPS_H__
 #define __FFSOPS_H__
 
+#include <vector>
+
 #include <QObject>
 #include <QByteArray>
 #include <QString>
 #include <QModelIndex>
 
-#include "../common/basetypes.h"
-#include "../common/treemodel.h"
-#include "../common/ffs.h"
-#include "../common/utility.h"
+#include "basetypes.h"
+#include "treemodel.h"
+#include "ffs.h"
+#include "utility.h"
 
-class FfsOperations : public QObject
+class FfsOperations
 {
-    Q_OBJECT
-
 public:
-    explicit FfsOperations(const TreeModel * treeModel, QObject *parent = 0);
+    explicit FfsOperations(TreeModel * treeModel);
     ~FfsOperations();
 
-    QVector<QPair<QString, QModelIndex> > getMessages() const;
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
     void clearMessages();
 
     STATUS extract(const QModelIndex & index, QString & name, QByteArray & extracted, const UINT8 mode);
+    STATUS replace(const QModelIndex & index, const QString & data, const UINT8 mode);
+    
+    STATUS remove(const QModelIndex & index);
+    STATUS rebuild(const QModelIndex & index);
 
 private:
-    const TreeModel* model;
-    QVector<QPair<QString, QModelIndex> > messagesVector;
+    TreeModel* model;
+    std::vector<std::pair<QString, QModelIndex> > messagesVector;
 
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };

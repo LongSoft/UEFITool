@@ -14,26 +14,24 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __FFSFINDER_H__
 #define __FFSFINDER_H__
 
+#include <vector>
+
 #include <QObject>
 #include <QByteArray>
 #include <QString>
 #include <QModelIndex>
-#include <QPair>
 #include <QRegExp>
-#include <QVector>
 
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
 
-class FfsFinder : public QObject
+class FfsFinder
 {
-    Q_OBJECT
-
 public:
-    explicit FfsFinder(const TreeModel * treeModel, QObject *parent = 0);
+    explicit FfsFinder(const TreeModel * treeModel);
     ~FfsFinder();
 	
-    QVector<QPair<QString, QModelIndex> > getMessages() const;
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
     void clearMessages();
 	
     STATUS findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode);
@@ -42,10 +40,9 @@ public:
 	
 private:
     const TreeModel* model;
-	QVector<QPair<QString, QModelIndex> > messagesVector;
+    std::vector<std::pair<QString, QModelIndex> > messagesVector;
 	
 	void msg(const QString & message, const QModelIndex &index = QModelIndex());
-
 };
 
 #endif

@@ -15,7 +15,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <QByteArray>
 #include <QString>
-#include <QVector>
 #include "basetypes.h"
 
 // C++ functions
@@ -138,13 +137,13 @@ const QByteArray EFI_SONY_FILE_SYSTEM_GUID
 // 4F494156-AED6-4D64-A537-B8A5557BCEEC // Sony 1
 
 // Vector of volume GUIDs with FFSv2-compatible files
-extern const QVector<QByteArray> FFSv2Volumes;
+extern const std::vector<QByteArray> FFSv2Volumes;
 
 const QByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4dca-BD6F-1E9689E7349A
 ("\x7A\xC0\x73\x54\xCB\x3D\xCA\x4D\xBD\x6F\x1E\x96\x89\xE7\x34\x9A", 16);
 
 // Vector of volume GUIDs with FFSv3-compatible files
-extern const QVector<QByteArray> FFSv3Volumes;
+extern const std::vector<QByteArray> FFSv3Volumes;
 
 // Firmware volume signature
 const QByteArray EFI_FV_SIGNATURE("_FVH", 4);

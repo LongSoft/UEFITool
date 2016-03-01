@@ -14,6 +14,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __FFSBUILDER_H__
 #define __FFSBUILDER_H__
 
+#include <vector>
+
 #include <QObject>
 #include <QByteArray>
 #include <QString>
@@ -25,31 +27,24 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffs.h"
 #include "utility.h"
 
-class FfsBuilder : public QObject
+class FfsBuilder
 {
-    Q_OBJECT
-
 public:
-    explicit FfsBuilder(const TreeModel * treeModel, QObject *parent = 0);
+    explicit FfsBuilder(const TreeModel * treeModel);
     ~FfsBuilder();
 
-    QVector<QPair<QString, QModelIndex> > getMessages() const;
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
     void clearMessages();
 
     STATUS build(const QModelIndex & root, QByteArray & image);
 
 private:
     const TreeModel* model;
-    QVector<QPair<QString, QModelIndex> > messagesVector;
+    std::vector<std::pair<QString, QModelIndex> > messagesVector;
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 
-    // UEFI standard structures
     STATUS buildCapsule(const QModelIndex & index, QByteArray & capsule);
     STATUS buildIntelImage(const QModelIndex & index, QByteArray & intelImage);
-    STATUS buildGbeRegion(const QModelIndex & index, QByteArray & region);
-    STATUS buildMeRegion(const QModelIndex & index, QByteArray & region);
-    STATUS buildPdrRegion(const QModelIndex & index, QByteArray & region);
-    STATUS buildEcRegion(const QModelIndex & index, QByteArray & region);
     STATUS buildRawArea(const QModelIndex & index, QByteArray & rawArea, bool addHeader = true);
     STATUS buildPadding(const QModelIndex & index, QByteArray & padding);
     STATUS buildVolume(const QModelIndex & index, QByteArray & volume);

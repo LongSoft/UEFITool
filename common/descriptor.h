@@ -13,7 +13,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __DESCRIPTOR_H__
 #define __DESCRIPTOR_H__
 
-#include <QString>
 #include "basetypes.h"
 
 // Make sure we use right packing rules

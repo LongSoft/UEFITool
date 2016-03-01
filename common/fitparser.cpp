@@ -10,12 +10,10 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 #include "fitparser.h"
-#include "types.h"
-#include "treemodel.h"
 
 
-FitParser::FitParser(TreeModel* treeModel, QObject *parent)
-    : QObject(parent), model(treeModel)
+FitParser::FitParser(TreeModel* treeModel)
+    : model(treeModel)
 {
 }
 
@@ -25,10 +23,10 @@ FitParser::~FitParser()
 
 void FitParser::msg(const QString & message, const QModelIndex & index)
 {
-    messagesVector.push_back(QPair<QString, QModelIndex>(message, index));
+    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
 }
 
-QVector<QPair<QString, QModelIndex> > FitParser::getMessages() const
+std::vector<std::pair<QString, QModelIndex> > FitParser::getMessages() const
 {
     return messagesVector;
 }
@@ -73,23 +71,23 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         tempFitHeader->Checksum = 0;
         UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
         if (calculated != fitHeader->Checksum) {
-            msg(tr("Invalid FIT table checksum %1h, should be %2h").hexarg2(fitHeader->Checksum, 2).hexarg2(calculated, 2), fitIndex);
+            msg(QObject::tr("Invalid FIT table checksum %1h, should be %2h").hexarg2(fitHeader->Checksum, 2).hexarg2(calculated, 2), fitIndex);
         }
     }
 
     // Check fit header type
     if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER) {
-        msg(tr("Invalid FIT header type"), fitIndex);
+        msg(QObject::tr("Invalid FIT header type"), fitIndex);
     }
 
     // Add FIT header to fitTable
-    QVector<QString> currentStrings;
-    currentStrings += tr("_FIT_   ");
-    currentStrings += tr("%1").hexarg2(fitSize, 8);
-    currentStrings += tr("%1").hexarg2(fitHeader->Version, 4);
-    currentStrings += fitEntryTypeToQString(fitHeader->Type);
-    currentStrings += tr("%1").hexarg2(fitHeader->Checksum, 2);
-    fitTable.append(currentStrings);
+    std::vector<QString> currentStrings;
+    currentStrings.push_back(QObject::tr("_FIT_   "));
+    currentStrings.push_back(QObject::tr("%1").hexarg2(fitSize, 8));
+    currentStrings.push_back(QObject::tr("%1").hexarg2(fitHeader->Version, 4));
+    currentStrings.push_back(fitEntryTypeToQString(fitHeader->Type));
+    currentStrings.push_back(QObject::tr("%1").hexarg2(fitHeader->Checksum, 2));
+    fitTable.push_back(currentStrings);
 
     // Process all other entries
     bool msgModifiedImageMayNotWork = false;
@@ -100,7 +98,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         // Check entry type
         switch (currentEntry->Type & 0x7F) {
         case FIT_TYPE_HEADER:
-            msg(tr("Second FIT header found, the table is damaged"), fitIndex);
+            msg(QObject::tr("Second FIT header found, the table is damaged"), fitIndex);
             break;
 
         case FIT_TYPE_EMPTY:
@@ -120,16 +118,16 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
         }
 
         // Add entry to fitTable
-        currentStrings += tr("%1").hexarg2(currentEntry->Address, 16);
-        currentStrings += tr("%1").hexarg2(currentEntry->Size, 8);
-        currentStrings += tr("%1").hexarg2(currentEntry->Version, 4);
-        currentStrings += fitEntryTypeToQString(currentEntry->Type);
-        currentStrings += tr("%1").hexarg2(currentEntry->Checksum, 2);
-        fitTable.append(currentStrings);
+        currentStrings.push_back(QObject::tr("%1").hexarg2(currentEntry->Address, 16));
+        currentStrings.push_back(QObject::tr("%1").hexarg2(currentEntry->Size, 8));
+        currentStrings.push_back(QObject::tr("%1").hexarg2(currentEntry->Version, 4));
+        currentStrings.push_back(fitEntryTypeToQString(currentEntry->Type));
+        currentStrings.push_back(QObject::tr("%1").hexarg2(currentEntry->Checksum, 2));
+        fitTable.push_back(currentStrings);
     }
 
     if (msgModifiedImageMayNotWork)
-        msg(tr("Opened image may not work after any modification"));
+        msg(QObject::tr("Opened image may not work after any modification"));
 
     return ERR_SUCCESS;
 }
@@ -137,17 +135,17 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
 QString FitParser::fitEntryTypeToQString(UINT8 type)
 {
     switch (type & 0x7F) {
-    case FIT_TYPE_HEADER:           return tr("Header");
-    case FIT_TYPE_MICROCODE:        return tr("Microcode");
-    case FIT_TYPE_BIOS_AC_MODULE:   return tr("BIOS ACM");
-    case FIT_TYPE_BIOS_INIT_MODULE: return tr("BIOS Init");
-    case FIT_TYPE_TPM_POLICY:       return tr("TPM Policy");
-    case FIT_TYPE_BIOS_POLICY_DATA: return tr("BIOS Policy Data");
-    case FIT_TYPE_TXT_CONF_POLICY:  return tr("TXT Configuration Policy");
-    case FIT_TYPE_AC_KEY_MANIFEST:  return tr("BootGuard Key Manifest");
-    case FIT_TYPE_AC_BOOT_POLICY:   return tr("BootGuard Boot Policy");
-    case FIT_TYPE_EMPTY:            return tr("Empty");
-    default:                        return tr("Unknown");
+    case FIT_TYPE_HEADER:           return QObject::tr("Header");
+    case FIT_TYPE_MICROCODE:        return QObject::tr("Microcode");
+    case FIT_TYPE_BIOS_AC_MODULE:   return QObject::tr("BIOS ACM");
+    case FIT_TYPE_BIOS_INIT_MODULE: return QObject::tr("BIOS Init");
+    case FIT_TYPE_TPM_POLICY:       return QObject::tr("TPM Policy");
+    case FIT_TYPE_BIOS_POLICY_DATA: return QObject::tr("BIOS Policy Data");
+    case FIT_TYPE_TXT_CONF_POLICY:  return QObject::tr("TXT Configuration Policy");
+    case FIT_TYPE_AC_KEY_MANIFEST:  return QObject::tr("BootGuard Key Manifest");
+    case FIT_TYPE_AC_BOOT_POLICY:   return QObject::tr("BootGuard Boot Policy");
+    case FIT_TYPE_EMPTY:            return QObject::tr("Empty");
+    default:                        return QObject::tr("Unknown");
     }
 }
 
@@ -179,11 +177,11 @@ STATUS FitParser::findFitRecursive(const QModelIndex & index, QModelIndex & foun
         if (*(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET) == fitAddress) {
             found = index;
             fitOffset = offset;
-            msg(tr("Real FIT table found at physical address %1h").hexarg(fitAddress), found);
+            msg(QObject::tr("Real FIT table found at physical address %1h").hexarg(fitAddress), found);
             return ERR_SUCCESS;
         }
         else if (model->rowCount(index) == 0) // Show messages only to leaf items
-            msg(tr("FIT table candidate found, but not referenced from the last VTF"), index);
+            msg(QObject::tr("FIT table candidate found, but not referenced from the last VTF"), index);
     }
 
     return ERR_SUCCESS;

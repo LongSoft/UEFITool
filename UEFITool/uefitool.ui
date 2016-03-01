@@ -29,7 +29,7 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_2">
+   <layout class="QHBoxLayout" name="horizontalLayout_1">
     <property name="spacing">
      <number>0</number>
     </property>
@@ -58,7 +58,7 @@
         <property name="title">
          <string>Structure</string>
         </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -105,7 +105,7 @@
         <property name="title">
          <string>Information</string>
         </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -148,7 +148,7 @@
         <attribute name="title">
          <string>Parser</string>
         </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -173,40 +173,11 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="finderTab">
-        <attribute name="title">
-         <string>Search</string>
-        </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>5</number>
-         </property>
-         <property name="topMargin">
-          <number>5</number>
-         </property>
-         <property name="rightMargin">
-          <number>5</number>
-         </property>
-         <property name="bottomMargin">
-          <number>5</number>
-         </property>
-         <item>
-          <widget class="QListWidget" name="finderMessagesListWidget">
-           <property name="mouseTracking">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
        <widget class="QWidget" name="fitTab">
         <attribute name="title">
          <string>FIT</string>
         </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -233,6 +204,64 @@
              <bool>true</bool>
             </property>
            </widget>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="finderTab">
+        <attribute name="title">
+         <string>Search</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QListWidget" name="finderMessagesListWidget">
+           <property name="mouseTracking">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="builderTab">
+        <attribute name="title">
+         <string>Builder</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QListWidget" name="builderMessagesListWidget">
+           <property name="mouseTracking">
+            <bool>true</bool>
+           </property>
           </widget>
          </item>
         </layout>
@@ -293,6 +322,8 @@
       <string>&amp;Region</string>
      </property>
      <addaction name="actionExtract"/>
+     <addaction name="separator"/>
+     <addaction name="actionRebuild"/>
      <addaction name="separator"/>
      <addaction name="actionReplace"/>
     </widget>
