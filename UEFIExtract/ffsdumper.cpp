@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsdumper.h"
 
-FfsDumper::FfsDumper(TreeModel* treeModel, QObject *parent)
-    : QObject(parent), model(treeModel), dumped(false)
+FfsDumper::FfsDumper(TreeModel* treeModel)
+    : model(treeModel), dumped(false)
 {
 }
 
@@ -51,7 +51,7 @@ STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path,
 
         QFile file;
         if (!model->header(index).isEmpty()) {
-            file.setFileName(tr("%1/header.bin").arg(path));
+            file.setFileName(QObject::tr("%1/header.bin").arg(path));
             if (!file.open(QFile::WriteOnly))
                 return ERR_FILE_OPEN;
 
@@ -60,7 +60,7 @@ STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path,
         }
 
         if (!model->body(index).isEmpty()) {
-            file.setFileName(tr("%1/body.bin").arg(path));
+            file.setFileName(QObject::tr("%1/body.bin").arg(path));
             if (!file.open(QFile::WriteOnly))
                 return ERR_FILE_OPEN;
 
@@ -68,12 +68,12 @@ STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path,
             file.close();
         }
 
-        QString info = tr("Type: %1\nSubtype: %2\n%3%4")
+        QString info = QObject::tr("Type: %1\nSubtype: %2\n%3%4")
             .arg(itemTypeToQString(model->type(index)))
             .arg(itemSubtypeToQString(model->type(index), model->subtype(index)))
-            .arg(model->text(index).isEmpty() ? tr("") : tr("Text: %1\n").arg(model->text(index)))
+            .arg(model->text(index).isEmpty() ? QObject::tr("") : QObject::tr("Text: %1\n").arg(model->text(index)))
             .arg(model->info(index));
-        file.setFileName(tr("%1/info.txt").arg(path));
+        file.setFileName(QObject::tr("%1/info.txt").arg(path));
         if (!file.open(QFile::Text | QFile::WriteOnly))
             return ERR_FILE_OPEN;
 

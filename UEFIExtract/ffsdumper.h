@@ -19,18 +19,15 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QByteArray>
 #include <QString>
 #include <QModelIndex>
-#include <QFileInfo>
 
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
 #include "../common/ffs.h"
 
-class FfsDumper : public QObject
+class FfsDumper
 {
-    Q_OBJECT
-
 public:
-    explicit FfsDumper(TreeModel * treeModel, QObject *parent = 0);
+    explicit FfsDumper(TreeModel * treeModel);
     ~FfsDumper();
 
     STATUS dump(const QModelIndex & root, const QString & path, const QString & guid = QString());

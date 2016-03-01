@@ -14,13 +14,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __UEFIFIND_H__
 #define __UEFIFIND_H__
 
+#include <set>
+
 #include <QObject>
 #include <QByteArray>
 #include <QString>
 #include <QDir>
 #include <QFileInfo>
-#include <QPair>
-#include <QSet>
 #include <QString>
 #include <QUuid>
 
@@ -28,19 +28,17 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "../common/ffsparser.h"
 #include "../common/ffs.h"
 
-class UEFIFind : public QObject
+class UEFIFind
 {
-    Q_OBJECT
-
 public:
-    explicit UEFIFind(QObject *parent = 0);
+    explicit UEFIFind();
     ~UEFIFind();
 
     STATUS init(const QString & path);
     STATUS find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result);
 
 private:
-    STATUS findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QPair<QModelIndex, QModelIndex> > & files);
+    STATUS findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files);
     QString guidToQString(const UINT8* guid);
 
     FfsParser* ffsParser;

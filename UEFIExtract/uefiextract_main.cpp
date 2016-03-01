@@ -11,8 +11,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 #include <QCoreApplication>
-#include <QVector>
-#include <QPair>
 #include <QString>
 #include <QFileInfo>
 
@@ -53,10 +51,9 @@ int main(int argc, char *argv[])
         if (result)
             return result;
 
-        QVector<QPair<QString, QModelIndex> > messages = ffsParser.getMessages();
-        QPair<QString, QModelIndex> msg;
-        foreach(msg, messages) {
-            std::cout << msg.first.toLatin1().constData() << std::endl;
+        std::vector<std::pair<QString, QModelIndex> > messages = ffsParser.getMessages();
+        for (size_t i = 0; i < messages.size(); i++) {
+            std::cout << messages[i].first.toLatin1().constData() << std::endl;
         }
 
         FfsDumper ffsDumper(&model);
@@ -75,7 +72,7 @@ int main(int argc, char *argv[])
         }
     }
     else {
-        std::cout << "UEFIExtract 0.10.7" << std::endl << std::endl
+        std::cout << "UEFIExtract 0.10.8" << std::endl << std::endl
                   << "Usage: UEFIExtract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl
                   << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;

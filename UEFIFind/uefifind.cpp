@@ -13,11 +13,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "uefifind.h"
 
-UEFIFind::UEFIFind(QObject *parent) :
-    QObject(parent)
+UEFIFind::UEFIFind()
 {
     model = new TreeModel();
-    ffsParser = new FfsParser(model, this);
+    ffsParser = new FfsParser(model);
     initDone = false;
 }
 
@@ -75,7 +74,7 @@ QString UEFIFind::guidToQString(const UINT8* guid)
 STATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result)
 {
     QModelIndex root = model->index(0, 0);
-    QSet<QPair<QModelIndex, QModelIndex> > files;
+    std::set<std::pair<QModelIndex, QModelIndex> > files;
 
     result.clear();
 
@@ -84,14 +83,14 @@ STATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPat
         return returned;
     
     if (count) {
-        if (files.count())
-            result.append(QString("%1\n").arg(files.count()));
+        if (!files.empty())
+            result.append(QString("%1\n").arg(files.size()));
         return ERR_SUCCESS;
     }
 
-    QPair<QModelIndex, QModelIndex> indexes;
-    Q_FOREACH(indexes, files) {
+    for (std::set<std::pair<QModelIndex, QModelIndex> >::const_iterator citer = files.cbegin(); citer != files.cend(); ++citer) {
         QByteArray data(16, '\x00');
+        std::pair<QModelIndex, QModelIndex> indexes = *citer;
         if (!model->hasEmptyHeader(indexes.first))
             data = model->header(indexes.first).left(16);
         result.append(guidToQString((const UINT8*)data.constData()));
@@ -107,7 +106,7 @@ STATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPat
     return ERR_SUCCESS;
 }
 
-STATUS UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, QSet<QPair<QModelIndex, QModelIndex> > & files)
+STATUS UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files)
 {
     if (!index.isValid())
         return ERR_SUCCESS;
@@ -146,12 +145,12 @@ STATUS UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexP
             if (model->type(index) != Types::File) {
                 QModelIndex ffs = model->findParentOfType(index, Types::File);
                 if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID)
-                    files.insert(QPair<QModelIndex, QModelIndex>(ffs, index));
+                    files.insert(std::pair<QModelIndex, QModelIndex>(ffs, index));
                 else
-                    files.insert(QPair<QModelIndex, QModelIndex>(ffs, QModelIndex()));
+                    files.insert(std::pair<QModelIndex, QModelIndex>(ffs, QModelIndex()));
             }
             else
-                files.insert(QPair<QModelIndex, QModelIndex>(index, QModelIndex()));
+                files.insert(std::pair<QModelIndex, QModelIndex>(index, QModelIndex()));
 
             break;
         }
