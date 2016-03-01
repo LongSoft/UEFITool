@@ -13,6 +13,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef __FFS_H__
 #define __FFS_H__
 
+#include <vector>
+
 #include <QByteArray>
 #include <QString>
 #include "basetypes.h"
