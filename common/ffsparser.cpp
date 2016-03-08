@@ -1032,7 +1032,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     UINT8 ffsVersion = 0;
 
     // Check for FFS v2 volume
-    QByteArray guid = QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID));
+    QByteArray guid = QByteArray((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID));
     if (std::find(FFSv2Volumes.begin(), FFSv2Volumes.end(), guid) != FFSv2Volumes.end()) {
         isUnknown = false;
         ffsVersion = 2;
@@ -2211,7 +2211,7 @@ STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const U
 
     // Get info
     QString name = sectionTypeToQString(sectionHeader->Type) + QObject::tr(" section");
-    QString info = QObject::tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nPostcode: %8h\n")
+    QString info = QObject::tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nPostcode: %8h")
         .hexarg2(postcodeHeader->Type, 2)
         .hexarg(section.size()).arg(section.size())
         .hexarg(header.size()).arg(header.size())
