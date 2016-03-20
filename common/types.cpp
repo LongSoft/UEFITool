@@ -65,6 +65,8 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("Section");
     case Types::FreeSpace:
         return QObject::tr("Free space");
+    case Types::NvramVariableNvar:
+        return QObject::tr("NVAR");
     default:
         return QObject::tr("Unknown");
     }
@@ -118,6 +120,17 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         return sectionTypeToQString(subtype);
     case Types::FreeSpace:
         return QString();
+    case Types::NvramVariableNvar:
+        if (subtype == Subtypes::InvalidNvar)
+            return QObject::tr("Invalid");
+        if (subtype == Subtypes::LinkNvar)
+            return QObject::tr("Link");
+        if (subtype == Subtypes::DataNvar)
+            return QObject::tr("Data");
+        if (subtype == Subtypes::FullNvar)
+            return QObject::tr("Full");
+        else 
+            return QObject::tr("Unknown subtype");
     default:
         return QObject::tr("Unknown subtype");
     }

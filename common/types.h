@@ -42,7 +42,8 @@ namespace Types {
         Volume,
         File,
         Section,
-        FreeSpace
+        FreeSpace,
+        NvramVariableNvar
     };
 }
 
@@ -82,6 +83,13 @@ namespace Subtypes {
         ZeroPadding = 110,
         OnePadding,
         DataPadding
+    };
+
+    enum NvarVariableSubtypes {
+        InvalidNvar = 120,
+        LinkNvar,
+        DataNvar,
+        FullNvar
     };
 };
 

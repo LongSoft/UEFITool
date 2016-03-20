@@ -423,7 +423,7 @@ STATUS FfsParser::parseIntelImage(const QByteArray & intelImage, const UINT32 pa
     }
 
     // Sort regions in ascending order
-    qSort(regions);
+    std::sort(regions.begin(), regions.end());
 
     // Check for intersections and paddings between regions
     REGION_INFO region;
@@ -1595,15 +1595,24 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
         .hexarg2(fileHeader->IntegrityCheck.Checksum.File, 2)
         .arg(msgInvalidDataChecksum ? QObject::tr("invalid, should be %1h").hexarg2(calculatedData, 2) : QObject::tr("valid"));
 
-    // Check if the file is a Volume Top File
+    // Set raw file format to unknown by default
+    pdata.file.format = RAW_FILE_FORMAT_UNKNOWN;
+
     QString text;
     bool isVtf = false;
-    if (EFI_FFS_VOLUME_TOP_FILE_GUID == header.left(sizeof(EFI_GUID))) {
+    QByteArray guid = header.left(sizeof(EFI_GUID));
+    // Check if the file is a Volume Top File
+    if (guid == EFI_FFS_VOLUME_TOP_FILE_GUID) {
         // Mark it as the last VTF
         // This information will later be used to determine memory addresses of uncompressed image elements
         // Because the last byte of the last VFT is mapped to 0xFFFFFFFF physical memory address 
         isVtf = true;
         text = QObject::tr("Volume Top File");
+    }
+    // Check if the file is NVRAM storage with NVAR format
+    else if (guid == NVRAM_NVAR_FILE_GUID) {
+        // Mark the file as NVAR storage
+        pdata.file.format = RAW_FILE_FORMAT_NVAR_STORAGE;
     }
 
     // Construct parsing data
@@ -1674,8 +1683,16 @@ STATUS FfsParser::parseFileBody(const QModelIndex & index)
         return parsePadFileBody(index);
 
     // Parse raw files as raw areas
-    if (model->subtype(index) == EFI_FV_FILETYPE_RAW || model->subtype(index) == EFI_FV_FILETYPE_ALL)
+    if (model->subtype(index) == EFI_FV_FILETYPE_RAW || model->subtype(index) == EFI_FV_FILETYPE_ALL) {
+        // Get data from parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+
+        // Parse NVAR storage
+        if (pdata.file.format == RAW_FILE_FORMAT_NVAR_STORAGE)
+            return parseNvarStorage(model->body(index), index);
+
         return parseRawArea(model->body(index), index);
+    }
 
     // Parse sections
     return parseSections(model->body(index), index);
@@ -1834,7 +1851,7 @@ STATUS FfsParser::parseSectionHeader(const QByteArray & section, const UINT32 pa
     case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, parentOffset, parent, index, preparse);
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, parentOffset, parent, index, preparse);
     case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, parentOffset, parent, index, preparse);
-    case SCT_SECTION_POSTCODE:
+    case PHOENIX_SECTION_POSTCODE:
     case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, parentOffset, parent, index, preparse);
     // Common
     case EFI_SECTION_DISPOSABLE:
@@ -2234,10 +2251,11 @@ STATUS FfsParser::parseSectionBody(const QModelIndex & index)
     // Sanity check
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
-    if ((UINT32)model->header(index).size() < sizeof(EFI_COMMON_SECTION_HEADER))
+    QByteArray header = model->header(index);
+    if (header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
-
-    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(model->header(index).constData());
+    
+    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(header.constData());
 
     switch (sectionHeader->Type) {
     // Encapsulation
@@ -2258,7 +2276,7 @@ STATUS FfsParser::parseSectionBody(const QModelIndex & index)
     case EFI_SECTION_RAW:                   return parseRawSectionBody(index);
     // No parsing needed
     case EFI_SECTION_COMPATIBILITY16:
-    case SCT_SECTION_POSTCODE:
+    case PHOENIX_SECTION_POSTCODE:
     case INSYDE_SECTION_POSTCODE:
     default:
         return ERR_SUCCESS;
@@ -2833,11 +2851,8 @@ STATUS FfsParser::addOffsetsRecursive(const QModelIndex & index)
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     // Add current offset if the element is not compressed
-    if (!model->compressed(index)) {
-        model->addInfo(index, QObject::tr("Offset: %1h\n").hexarg(pdata.offset), false);
-    }
-    // Or it's compressed, but it's parent isn't
-    else if (index.parent().isValid() && !model->compressed(index.parent())) {
+    // or it's compressed, but it's parent isn't
+    if ((!model->compressed(index)) || (index.parent().isValid() && !model->compressed(index.parent()))) {
         model->addInfo(index, QObject::tr("Offset: %1h\n").hexarg(pdata.offset), false);
     }
 
@@ -2850,5 +2865,309 @@ STATUS FfsParser::addOffsetsRecursive(const QModelIndex & index)
         addOffsetsRecursive(index.child(i, 0));
     }
 
+    return ERR_SUCCESS;
+}
+
+STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+    UINT32 parentOffset = pdata.offset + model->header(index).size();
+
+    // Rename parent file
+    model->setText(model->findParentOfType(index, Types::File), QObject::tr("NVAR storage"));
+
+    UINT32 offset = 0;
+    UINT32 guidsInStorage = 0;
+
+    while (1) {
+        bool msgUnknownExtDataFormat = false;
+        bool msgExtHeaderTooLong = false;
+        bool msgExtDataTooShort = false;
+
+        bool isInvalid = false;
+        bool isDataOnly = false;
+        bool hasExtendedHeader = false;
+        bool hasChecksum = false;
+        bool hasTimestampAndHash = false;
+
+        UINT8  storedChecksum = 0;
+        UINT8  calculatedChecksum = 0;
+        UINT16 extendedHeaderSize = 0;
+        UINT8  extendedAttributes = 0;
+        UINT64 timestamp = 0;
+        QByteArray hash;
+
+        UINT8 subtype = Subtypes::FullNvar;
+        QString name;
+        QString text;
+        QByteArray header;
+        QByteArray body;
+        QByteArray extendedData;
+
+        UINT32 guidAreaSize = guidsInStorage * sizeof(EFI_GUID);
+        UINT32 unparsedSize = (UINT32)data.size() - offset - guidAreaSize;
+
+        // Get variable header
+        const NVAR_VARIABLE_HEADER* variableHeader = (const NVAR_VARIABLE_HEADER*)(data.constData() + offset);
+        
+        // Check variable header
+        if (unparsedSize < sizeof(NVAR_VARIABLE_HEADER) ||
+            variableHeader->Signature != NVRAM_NVAR_VARIABLE_SIGNATURE ||
+            unparsedSize < variableHeader->Size) {
+            // Check if the data left is a free space or a padding
+            QByteArray padding = data.mid(offset, unparsedSize);
+            UINT8 type;
+            
+            if (padding.count(pdata.emptyByte) == padding.size()) {
+                // It's a free space
+                name = QObject::tr("Free space");
+                type = Types::FreeSpace;
+                subtype = 0;
+            }
+            else {
+                // It's a padding
+                name = QObject::tr("Padding");
+                type = Types::Padding;
+                subtype = getPaddingType(padding);
+            }
+            // Get info
+            QString info = QObject::tr("Full size: %1h (%2)")
+                .hexarg(padding.size()).arg(padding.size());
+            // Construct parsing data
+            pdata.offset = parentOffset + offset;
+            // Add tree item
+            model->addItem(type, subtype, name, QString(), info, QByteArray(), padding, FALSE, parsingDataToQByteArray(pdata), index);
+
+            // Add GUID storage area
+            QByteArray guidArea = data.right(guidAreaSize);
+            // Get info
+            name = QObject::tr("GUID storage area");
+            info = QObject::tr("Full size: %1h (%2)\nGUIDs in storage: %3")
+                .hexarg(guidArea.size()).arg(guidArea.size())
+                .arg(guidsInStorage);
+            // Construct parsing data
+            pdata.offset = parentOffset + offset + padding.size();
+            // Add tree item
+            model->addItem(Types::Padding, getPaddingType(guidArea), name, QString(), info, QByteArray(), guidArea, FALSE, parsingDataToQByteArray(pdata), index);
+
+            return ERR_SUCCESS;
+        }
+        
+        // Contruct generic header and body
+        header = data.mid(offset, sizeof(NVAR_VARIABLE_HEADER));
+        body = data.mid(offset + sizeof(NVAR_VARIABLE_HEADER), variableHeader->Size - sizeof(NVAR_VARIABLE_HEADER));
+
+        UINT32 lastVariableFlag = pdata.emptyByte == 0 ? 0 : 0xFFFFFF;
+        
+        // Set default next to predefined last value
+        pdata.nvram.nvar.next = lastVariableFlag;
+
+        // Variable is marked as invalid
+        if ((variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_VALID) == 0) { // Valid attribute is not set
+            isInvalid = true;
+            // Do not parse further
+            goto parsing_done;
+        }
+
+        // Add next node information to parsing data
+        if (variableHeader->Next != lastVariableFlag) {
+            subtype = Subtypes::LinkNvar;
+            pdata.nvram.nvar.next = offset + variableHeader->Next;
+        }
+        
+        // Variable with extended header
+        if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_EXT_HEADER) {
+            hasExtendedHeader = true;
+            msgUnknownExtDataFormat = true;
+
+            extendedHeaderSize = *(UINT16*)(body.constData() + body.size() - sizeof(UINT16));
+            if (extendedHeaderSize > body.size()) {
+                msgExtHeaderTooLong = true;
+                isInvalid = true;
+                // Do not parse further
+                goto parsing_done;
+            }
+
+            extendedAttributes = *(UINT8*)(body.constData() + body.size() - extendedHeaderSize);
+
+            // Variable with checksum
+            if (extendedAttributes & NVRAM_NVAR_VARIABLE_EXT_ATTRIB_CHECKSUM) {
+                // Get stored checksum
+                storedChecksum = *(UINT8*)(body.constData() + body.size() - sizeof(UINT16) - sizeof(UINT8));
+
+                // Recalculate checksum for the variable
+                calculatedChecksum = 0;
+                // Include variable data
+                UINT8* start = (UINT8*)(variableHeader + 1);
+                for (UINT8* p = start; p < start + variableHeader->Size - sizeof(NVAR_VARIABLE_HEADER); p++) {
+                    calculatedChecksum += *p;
+                }
+                // Include variable size and flags
+                start = (UINT8*)&variableHeader->Size;
+                for (UINT8*p = start; p < start + sizeof(UINT16); p++) {
+                    calculatedChecksum += *p;
+                }
+                // Include variable attributes
+                calculatedChecksum += variableHeader->Attributes;
+                
+                hasChecksum = true;
+                msgUnknownExtDataFormat = false;
+            }
+
+            extendedData = body.mid(body.size() - extendedHeaderSize + sizeof(UINT8), extendedHeaderSize - sizeof(UINT16) - sizeof(UINT8) - (hasChecksum ? 1 : 0));
+            body = body.left(body.size() - extendedHeaderSize);
+
+            // Variable with authenticated write (for SecureBoot)
+            if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_AUTH_WRITE) {
+                if (extendedData.size() < 40) {
+                    msgExtDataTooShort = true;
+                    isInvalid = true;
+                    // Do not parse further
+                    goto parsing_done;
+                }
+
+                timestamp = *(UINT64*)(extendedData.constData());
+                hash = extendedData.mid(sizeof(UINT64), 0x20); //Length of SHA256 hash
+                hasTimestampAndHash = true;
+                msgUnknownExtDataFormat = false;
+            }
+        }
+
+        // Variable is data-only (nameless and GUIDless link)
+        if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_DATA_ONLY) { // Data-only attribute is set
+            isInvalid = true;
+            QModelIndex nvarIndex;
+            // Search prevously added variable for a link to this variable
+            for (int i = 0; i < model->rowCount(index); i++) {
+                nvarIndex = index.child(i, 0);
+                PARSING_DATA nvarPdata = parsingDataFromQModelIndex(nvarIndex);
+                if (nvarPdata.nvram.nvar.next == offset) { // Previous link is present and valid
+                    isInvalid = false;
+                    break;
+                }
+            }
+            // Check if the link is valid
+            if (!isInvalid) {
+                // Use the name and text of the previous link
+                name = model->name(nvarIndex);
+                text = model->text(nvarIndex);
+
+                if (variableHeader->Next == lastVariableFlag)
+                    subtype = Subtypes::DataNvar;
+            }
+
+            isDataOnly = true;
+            // Do not parse further
+            goto parsing_done;
+        }
+
+        // Get variable name
+        UINT32 nameOffset = (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) ? sizeof(EFI_GUID) : 1; // GUID can be stored with the variable or in a separate storage, so there will only be an index of it
+        CHAR8* namePtr = (CHAR8*)(variableHeader + 1) + nameOffset;
+        UINT32 nameSize = 0;
+        if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_ASCII_NAME) { // Name is stored as ASCII string of CHAR8s
+            text = QString(namePtr);
+            nameSize = text.length() + 1;
+        }
+        else { // Name is stored as UCS2 string of CHAR16s
+            text = QString::fromUtf16((CHAR16*)namePtr);
+            nameSize = (text.length() + 1) * 2;
+        }
+
+        // Get variable GUID
+        if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) { // GUID is strored in the variable itself
+            name = guidToQString(*(EFI_GUID*)(variableHeader + 1));
+        }
+        // GUID is stored in GUID list at the end of the storage
+        else {
+            UINT32 guidIndex = *(UINT8*)(variableHeader + 1);
+            if (guidsInStorage < guidIndex + 1)
+                guidsInStorage = guidIndex + 1;
+
+            // The list begins at the end of the storage and goes backwards
+            const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - guidIndex;
+            name = guidToQString(*guidPtr);
+        }
+
+        // Include variable name and GUID into the header and remove them from body
+        header = data.mid(offset, sizeof(NVAR_VARIABLE_HEADER) + nameOffset + nameSize);
+        body = body.mid(nameOffset + nameSize);
+
+parsing_done:
+        QString info;
+        // Rename invalid variables according to their types
+        if (isInvalid) {
+            name = QObject::tr("Invalid");
+            subtype = Subtypes::InvalidNvar;
+        }
+        else // Add GUID info for valid variables
+            info += QObject::tr("Variable GUID: %1\n").arg(name);
+        
+        // Add header, body and extended data info
+        info += QObject::tr("Full size: %1h (%2)\nHeader size %3h (%4)\nBody size: %5h (%6)")
+            .hexarg(variableHeader->Size).arg(variableHeader->Size)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg(body.size()).arg(body.size());
+        
+        // Add attributes info
+        info += QObject::tr("\nAttributes: %1h").hexarg2(variableHeader->Attributes, 2);
+        // Translate attributes to text
+        if (variableHeader->Attributes) 
+            info += QObject::tr("\nAttributes as text: %1").arg(variableAttributesToQstring(variableHeader->Attributes));
+        pdata.nvram.nvar.attributes = variableHeader->Attributes;
+
+        // Add next node info
+        if (variableHeader->Next != lastVariableFlag)
+            info += QObject::tr("\nNext node at offset: %1h").hexarg(parentOffset + offset + variableHeader->Next);
+
+        // Add extended header info
+        if (hasExtendedHeader) {
+            info += QObject::tr("\nExtended header size: %1h (%2)\nExtended attributes: %3h")
+                .hexarg(extendedHeaderSize).arg(extendedHeaderSize)
+                .hexarg2(extendedAttributes, 2);
+            pdata.nvram.nvar.extendedAttributes = extendedAttributes;
+            // Checksum
+            if (hasChecksum)
+                info += QObject::tr("\nChecksum: %1h%2").hexarg2(storedChecksum, 2)
+                    .arg(calculatedChecksum ? QObject::tr(", invalid, should be %1h").hexarg2(0x100 - calculatedChecksum, 2) : QObject::tr(", valid"));
+            // Extended data
+            if (!extendedData.isEmpty())
+                info += QObject::tr("\nExtended data size: %1h (%2)")
+                    .hexarg(extendedData.size()).arg(extendedData.size());
+            // Authentication data
+            if (hasTimestampAndHash) {
+                info += QObject::tr("\nTimestamp: %1h\nHash: %2")
+                    .hexarg2(timestamp, 16).arg(QString(hash.toHex()));
+
+                pdata.nvram.nvar.timestamp = timestamp;
+                memcpy(pdata.nvram.nvar.hash, hash.constData(), 0x20);
+            }
+        }
+        
+        // Add correct offset to parsing data
+        pdata.offset = parentOffset + offset;
+
+        // Add tree item
+        QModelIndex varIndex = model->addItem(Types::NvramVariableNvar, subtype, name, text, info, header, body, FALSE, parsingDataToQByteArray(pdata), index);
+
+        // Show messages
+        if (msgUnknownExtDataFormat)
+            msg(QObject::tr("parseNvarStorage: unknown extended data format"), varIndex);
+        if (msgExtHeaderTooLong)
+            msg(QObject::tr("parseNvarStorage: extended header size (%1h) is greater than body size (%2h)")
+            .hexarg(extendedHeaderSize).hexarg(body.size()), varIndex);
+        if (msgExtDataTooShort)
+            msg(QObject::tr("parseNvarStorage: extended data size (%1h) is smaller than required for timestamp and hash (0x28)")
+            .hexarg(extendedData.size()), varIndex);
+
+        // Move to next variable
+        offset += variableHeader->Size;
+    }
+    
     return ERR_SUCCESS;
 }

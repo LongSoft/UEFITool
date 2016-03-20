@@ -102,7 +102,7 @@ QString sectionTypeToQString(const UINT8 type)
     case EFI_SECTION_PEI_DEPEX:                 return QObject::tr("PEI dependency");
     case EFI_SECTION_SMM_DEPEX:                 return QObject::tr("SMM dependency");
     case INSYDE_SECTION_POSTCODE:               return QObject::tr("Insyde postcode");
-    case SCT_SECTION_POSTCODE:                  return QObject::tr("SCT postcode");
+    case PHOENIX_SECTION_POSTCODE:              return QObject::tr("Phoenix postcode");
     default:                                    return QObject::tr("Unknown");
     }
 }

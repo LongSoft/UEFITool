@@ -91,8 +91,6 @@ const QByteArray APTIO_SIGNED_CAPSULE_GUID
 const QByteArray APTIO_UNSIGNED_CAPSULE_GUID
 ("\x90\xBB\xEE\x14\x0A\x89\xDB\x43\xAE\xD1\x5D\x3C\x45\x88\xA4\x18", 16);
 
-//14EEBB90-890A-43DB-AED1-5D3C4588A418
-
 //*****************************************************************************
 // EFI Firmware Volume
 //*****************************************************************************
@@ -401,7 +399,7 @@ typedef struct _EFI_COMMON_SECTION_HEADER2 {
 #define EFI_SECTION_RAW                     0x19
 #define EFI_SECTION_PEI_DEPEX               0x1B
 #define EFI_SECTION_SMM_DEPEX               0x1C
-#define SCT_SECTION_POSTCODE                0xF0 // Specific to Phoenix SCT images
+#define PHOENIX_SECTION_POSTCODE            0xF0 // Specific to Phoenix SCT images
 #define INSYDE_SECTION_POSTCODE             0x20 // Specific to Insyde images
 
 // Compression section

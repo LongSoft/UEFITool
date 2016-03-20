@@ -47,7 +47,11 @@ typedef struct _FILE_PARSING_DATA {
         UINT16  tail;
     };
     BOOLEAN hasTail;
+    UINT8 format;
 } FILE_PARSING_DATA;
+
+#define RAW_FILE_FORMAT_UNKNOWN      0
+#define RAW_FILE_FORMAT_NVAR_STORAGE 1
 
 typedef struct _COMPRESSED_SECTION_PARSING_DATA {
     UINT32 uncompressedSize;
@@ -78,6 +82,21 @@ typedef struct _SECTION_PARSING_DATA {
     };
 } SECTION_PARSING_DATA;
 
+typedef struct _NVRAM_NVAR_PARSING_DATA {
+    UINT32 next;
+    UINT8  attributes;
+    UINT8  extendedAttributes;
+    UINT64 timestamp;
+    UINT8  hash[0x20]; //SHA256
+} NVRAM_NVAR_PARSING_DATA;
+
+typedef struct _NVRAM_PARSING_DATA {
+    //union {
+        NVRAM_NVAR_PARSING_DATA      nvar;
+    //};
+} NVRAM_PARSING_DATA;
+
+
 typedef struct _PARSING_DATA {
     UINT8   emptyByte;
     UINT8   ffsVersion;
@@ -91,6 +110,7 @@ typedef struct _PARSING_DATA {
         //FREE_SPACE_PARSING_DATA freeSpace;
         FILE_PARSING_DATA    file;
         SECTION_PARSING_DATA section;
+        NVRAM_PARSING_DATA   nvram;
     };
 } PARSING_DATA;
 

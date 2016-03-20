@@ -31,6 +31,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "gbe.h"
 #include "me.h"
 #include "fit.h"
+#include "nvram.h"
 
 class TreeModel;
 
@@ -104,6 +105,9 @@ private:
     STATUS performSecondPass(const QModelIndex & index);
     STATUS addOffsetsRecursive(const QModelIndex & index);
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
+
+    // NVRAM parsing
+    STATUS parseNvarStorage(const QByteArray & data, const QModelIndex & index);
 
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());

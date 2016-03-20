@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha21"))
+version(tr("0.30.0_alpha22"))
 {
     clipboard = QApplication::clipboard();
 
@@ -161,7 +161,7 @@ void UEFITool::populateUi(const QModelIndex &current)
         return;
 
     UINT8 type = model->type(current);
-    UINT8 subtype = model->subtype(current);
+    //UINT8 subtype = model->subtype(current);
 
     // Set info text
     ui->infoEdit->setPlainText(model->info(current));

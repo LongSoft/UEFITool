@@ -73,7 +73,7 @@ QString errorCodeToQString(UINT8 errorCode)
     case ERR_STANDARD_COMPRESSION_FAILED:     return QObject::tr("Standard compression failed");
     case ERR_CUSTOMIZED_COMPRESSION_FAILED:   return QObject::tr("Customized compression failed");
     case ERR_STANDARD_DECOMPRESSION_FAILED:   return QObject::tr("Standard decompression failed");
-    case ERR_CUSTOMIZED_DECOMPRESSION_FAILED: return QObject::tr("Customized compression failed");
+    case ERR_CUSTOMIZED_DECOMPRESSION_FAILED: return QObject::tr("Customized decompression failed");
     case ERR_UNKNOWN_COMPRESSION_TYPE:        return QObject::tr("Unknown compression type");
     case ERR_UNKNOWN_EXTRACT_MODE:            return QObject::tr("Unknown extract mode");
     case ERR_UNKNOWN_REPLACE_MODE:            return QObject::tr("Unknown replace mode");
