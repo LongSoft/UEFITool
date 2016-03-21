@@ -33,8 +33,6 @@ const QByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID
 
 extern QString variableAttributesToQstring(UINT8 attributes);
 
-extern std::vector<const CHAR8*> nestingVariableNames;
-
 // Make sure we use right packing rules
 #pragma pack(push,1)
 

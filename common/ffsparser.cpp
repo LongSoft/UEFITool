@@ -2252,7 +2252,7 @@ STATUS FfsParser::parseSectionBody(const QModelIndex & index)
     if (!index.isValid())
         return ERR_INVALID_PARAMETER;
     QByteArray header = model->header(index);
-    if (header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
+    if ((UINT32)header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
     
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(header.constData());
@@ -2912,6 +2912,8 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         QByteArray body;
         QByteArray extendedData;
 
+
+
         UINT32 guidAreaSize = guidsInStorage * sizeof(EFI_GUID);
         UINT32 unparsedSize = (UINT32)data.size() - offset - guidAreaSize;
 
@@ -3077,38 +3079,39 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         }
 
         // Get variable name
-        UINT32 nameOffset = (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) ? sizeof(EFI_GUID) : 1; // GUID can be stored with the variable or in a separate storage, so there will only be an index of it
-        CHAR8* namePtr = (CHAR8*)(variableHeader + 1) + nameOffset;
-        UINT32 nameSize = 0;
-        if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_ASCII_NAME) { // Name is stored as ASCII string of CHAR8s
-            text = QString(namePtr);
-            nameSize = text.length() + 1;
-        }
-        else { // Name is stored as UCS2 string of CHAR16s
-            text = QString::fromUtf16((CHAR16*)namePtr);
-            nameSize = (text.length() + 1) * 2;
-        }
+        {
+            UINT32 nameOffset = (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) ? sizeof(EFI_GUID) : 1; // GUID can be stored with the variable or in a separate storage, so there will only be an index of it
+            CHAR8* namePtr = (CHAR8*)(variableHeader + 1) + nameOffset;
+            UINT32 nameSize = 0;
+            if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_ASCII_NAME) { // Name is stored as ASCII string of CHAR8s
+                text = QString(namePtr);
+                nameSize = text.length() + 1;
+            }
+            else { // Name is stored as UCS2 string of CHAR16s
+                text = QString::fromUtf16((CHAR16*)namePtr);
+                nameSize = (text.length() + 1) * 2;
+            }
 
-        // Get variable GUID
-        if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) { // GUID is strored in the variable itself
-            name = guidToQString(*(EFI_GUID*)(variableHeader + 1));
+            // Get variable GUID
+            if (variableHeader->Attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) { // GUID is strored in the variable itself
+                name = guidToQString(*(EFI_GUID*)(variableHeader + 1));
+            }
+            // GUID is stored in GUID list at the end of the storage
+            else {
+                guidIndex = *(UINT8*)(variableHeader + 1);
+                if (guidsInStorage < guidIndex + 1)
+                    guidsInStorage = guidIndex + 1;
+
+                // The list begins at the end of the storage and goes backwards
+                const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
+                name = guidToQString(*guidPtr);
+                hasGuidIndex = true;
+            }
+
+            // Include variable name and GUID into the header and remove them from body
+            header = data.mid(offset, sizeof(NVAR_VARIABLE_HEADER) + nameOffset + nameSize);
+            body = body.mid(nameOffset + nameSize);
         }
-        // GUID is stored in GUID list at the end of the storage
-        else {
-            guidIndex = *(UINT8*)(variableHeader + 1);
-            if (guidsInStorage < guidIndex + 1)
-                guidsInStorage = guidIndex + 1;
-
-            // The list begins at the end of the storage and goes backwards
-            const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
-            name = guidToQString(*guidPtr);
-            hasGuidIndex = true;
-        }
-
-        // Include variable name and GUID into the header and remove them from body
-        header = data.mid(offset, sizeof(NVAR_VARIABLE_HEADER) + nameOffset + nameSize);
-        body = body.mid(nameOffset + nameSize);
-
 parsing_done:
         QString info;
         // Rename invalid variables according to their types
@@ -3187,12 +3190,11 @@ parsing_done:
             .hexarg(extendedData.size()), varIndex);
 
         // Check variable name to be in the list of nesting variables
-        for (std::vector<const CHAR8*>::const_iterator iter = nestingVariableNames.cbegin(); iter != nestingVariableNames.cend(); ++iter)
-            if (QString(*iter) == text.toLatin1()) {
-                STATUS result = parseNvarStorage(body, varIndex);
-                if (result)
-                    msg(QObject::tr("parseNvarStorage: parsing of nested NVAR storage failed with error \"%1\"").arg(errorCodeToQString(result)), varIndex);
-            }
+        if (text.toLatin1() == QString("StdDefaults") || text.toLatin1() == QString("MfgDefaults")) {
+            STATUS result = parseNvarStorage(body, varIndex);
+            if (result)
+                msg(QObject::tr("parseNvarStorage: parsing of nested NVAR storage failed with error \"%1\"").arg(errorCodeToQString(result)), varIndex);
+        }
 
         // Move to next variable
         offset += variableHeader->Size;

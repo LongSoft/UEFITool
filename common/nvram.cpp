@@ -41,7 +41,3 @@ QString variableAttributesToQstring(UINT8 attributes)
     return str.mid(2); // Remove the first comma and space
 }
 
-std::vector<const CHAR8*> nestingVariableNames = {
-    "StdDefaults",
-    "MfgDefaults"
-};
