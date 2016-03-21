@@ -2895,7 +2895,9 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         bool hasExtendedHeader = false;
         bool hasChecksum = false;
         bool hasTimestampAndHash = false;
+        bool hasGuidIndex = false;
 
+        UINT32 guidIndex = 0;
         UINT8  storedChecksum = 0;
         UINT8  calculatedChecksum = 0;
         UINT16 extendedHeaderSize = 0;
@@ -3093,13 +3095,14 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         }
         // GUID is stored in GUID list at the end of the storage
         else {
-            UINT32 guidIndex = *(UINT8*)(variableHeader + 1);
+            guidIndex = *(UINT8*)(variableHeader + 1);
             if (guidsInStorage < guidIndex + 1)
                 guidsInStorage = guidIndex + 1;
 
             // The list begins at the end of the storage and goes backwards
-            const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - guidIndex;
+            const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
             name = guidToQString(*guidPtr);
+            hasGuidIndex = true;
         }
 
         // Include variable name and GUID into the header and remove them from body
@@ -3122,6 +3125,10 @@ parsing_done:
         else // Add GUID info for valid variables
             info += QObject::tr("Variable GUID: %1\n").arg(name);
         
+        // Add GUID index information
+        if (hasGuidIndex)
+            info += QObject::tr("GUID index: %1\n").arg(guidIndex);
+
         // Add header, body and extended data info
         info += QObject::tr("Full size: %1h (%2)\nHeader size %3h (%4)\nBody size: %5h (%6)")
             .hexarg(variableHeader->Size).arg(variableHeader->Size)
@@ -3180,7 +3187,7 @@ parsing_done:
             .hexarg(extendedData.size()), varIndex);
 
         // Check variable name to be in the list of nesting variables
-        for (std::vector<CHAR8*>::const_iterator iter = nestingVariableNames.cbegin(); iter != nestingVariableNames.cend(); ++iter)
+        for (std::vector<const CHAR8*>::const_iterator iter = nestingVariableNames.cbegin(); iter != nestingVariableNames.cend(); ++iter)
             if (QString(*iter) == text.toLatin1()) {
                 STATUS result = parseNvarStorage(body, varIndex);
                 if (result)
