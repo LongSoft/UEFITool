@@ -3190,7 +3190,7 @@ parsing_done:
             .hexarg(extendedData.size()), varIndex);
 
         // Check variable name to be in the list of nesting variables
-        if (text.toLatin1() == QString("StdDefaults") || text.toLatin1() == QString("MfgDefaults")) {
+        if (text == QString("StdDefaults") || text == QString("MfgDefaults")) {
             STATUS result = parseNvarStorage(body, varIndex);
             if (result)
                 msg(QObject::tr("parseNvarStorage: parsing of nested NVAR storage failed with error \"%1\"").arg(errorCodeToQString(result)), varIndex);
