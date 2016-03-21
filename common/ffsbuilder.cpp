@@ -1,4 +1,4 @@
-/* fssbuilder.cpp
+﻿/* fssbuilder.cpp
 
 Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
@@ -60,7 +60,7 @@ STATUS FfsBuilder::build(const QModelIndex & root, QByteArray & image)
         if (model->subtype(root) == Subtypes::IntelImage) {
             return buildIntelImage(root, image);
         }
-        else if (model->subtype(root) == Subtypes::IntelImage) {
+        else if (model->subtype(root) == Subtypes::UefiImage) {
             return buildRawArea(root, image);
         }
     }
