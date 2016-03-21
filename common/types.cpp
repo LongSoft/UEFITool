@@ -123,6 +123,8 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
     case Types::NvramVariableNvar:
         if (subtype == Subtypes::InvalidNvar)
             return QObject::tr("Invalid");
+        if (subtype == Subtypes::InvalidLinkNvar)
+            return QObject::tr("Invalid link");
         if (subtype == Subtypes::LinkNvar)
             return QObject::tr("Link");
         if (subtype == Subtypes::DataNvar)

@@ -23,11 +23,17 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Let's start with NVAR storage, as the most difficult one
 //
 
-//CEF5B9A3-476D-497F-9FDC-E98143E0422C
-const QByteArray NVRAM_NVAR_FILE_GUID
+// CEF5B9A3-476D-497F-9FDC-E98143E0422C
+const QByteArray NVRAM_NVAR_STORAGE_FILE_GUID
 ("\xA3\xB9\xF5\xCE\x6D\x47\x7F\x49\x9F\xDC\xE9\x81\x43\xE0\x42\x2C", 16);
 
+// 9221315B-30BB-46B5-813E-1B1BF4712BD3
+const QByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID
+("\x5B\x31\x21\x92\xBB\x30\xB5\x46\x81\x3E\x1B\x1B\xF4\x71\x2B\xD3", 16);
+
 extern QString variableAttributesToQstring(UINT8 attributes);
+
+extern std::vector<CHAR8*> nestingVariableNames;
 
 // Make sure we use right packing rules
 #pragma pack(push,1)

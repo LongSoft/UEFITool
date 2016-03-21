@@ -87,6 +87,7 @@ namespace Subtypes {
 
     enum NvarVariableSubtypes {
         InvalidNvar = 120,
+        InvalidLinkNvar,
         LinkNvar,
         DataNvar,
         FullNvar

@@ -394,6 +394,20 @@
      <addaction name="separator"/>
      <addaction name="actionMessagesClear"/>
     </widget>
+    <widget class="QMenu" name="menuVariableActions">
+     <property name="title">
+      <string>Variable</string>
+     </property>
+     <addaction name="actionGoToData"/>
+     <addaction name="separator"/>
+     <addaction name="actionExtract"/>
+     <addaction name="actionExtractBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionRebuild"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
+    </widget>
     <addaction name="menuCapsuleActions"/>
     <addaction name="menuImageActions"/>
     <addaction name="menuRegionActions"/>
@@ -401,6 +415,7 @@
     <addaction name="menuVolumeActions"/>
     <addaction name="menuFileActions"/>
     <addaction name="menuSectionActions"/>
+    <addaction name="menuVariableActions"/>
     <addaction name="separator"/>
     <addaction name="menuMessages"/>
    </widget>
@@ -644,6 +659,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+E</string>
+   </property>
+  </action>
+  <action name="actionGoToData">
+   <property name="text">
+    <string>Go to &amp;data</string>
    </property>
   </action>
  </widget>

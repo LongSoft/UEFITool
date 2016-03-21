@@ -56,6 +56,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         else
             name = itemName;
     } break;
+    case Types::NvramVariableNvar:
     case Types::File: {
         name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_');
     } break;
@@ -67,7 +68,6 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         // Append section subtype name
         name += QChar('_') + itemName.replace(' ', '_');
     } break;
-
     case Types::Capsule:
     case Types::Image:
     case Types::Region:

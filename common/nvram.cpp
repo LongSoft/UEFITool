@@ -16,35 +16,32 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 QString variableAttributesToQstring(UINT8 attributes)
 {
-    QString str;
-    
-    if (attributes == 0x00 || attributes == 0xFF) {
+    if (attributes == 0x00 || attributes == 0xFF) 
         return QString();
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_RUNTIME) {
-        str += QObject::tr(", Runtime");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_ASCII_NAME) {
-        str += QObject::tr(", AsciiName");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) {
-        str += QObject::tr(", Guid");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_DATA_ONLY) {
-        str += QObject::tr(", DataOnly");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_EXT_HEADER) {
-        str += QObject::tr(", ExtHeader");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_HW_ERROR_RECORD) {
-        str += QObject::tr(", HwErrorRecord");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_AUTH_WRITE) {
-        str += QObject::tr(", AuthWrite");
-    }
-    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_VALID) {
-        str += QObject::tr(", Valid");
-    }
+    
+    QString str;
 
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_RUNTIME) 
+        str += QObject::tr(", Runtime");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_ASCII_NAME) 
+        str += QObject::tr(", AsciiName");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_GUID) 
+        str += QObject::tr(", Guid");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_DATA_ONLY) 
+        str += QObject::tr(", DataOnly");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_EXT_HEADER) 
+        str += QObject::tr(", ExtHeader");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_HW_ERROR_RECORD) 
+        str += QObject::tr(", HwErrorRecord");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_AUTH_WRITE) 
+        str += QObject::tr(", AuthWrite");
+    if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_VALID) 
+        str += QObject::tr(", Valid");
+    
     return str.mid(2); // Remove the first comma and space
 }
+
+std::vector<CHAR8*> nestingVariableNames = {
+    "StdDefaults",
+    "MfgDefaults"
+};

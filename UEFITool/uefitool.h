@@ -71,6 +71,7 @@ private slots:
     void saveImageFile();
     void search();
 
+    void goToData();
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();

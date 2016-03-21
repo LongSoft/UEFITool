@@ -55,6 +55,7 @@ version(tr("0.30.0_alpha22"))
     connect(ui->actionAbout, SIGNAL(triggered()), this, SLOT(about()));
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
+    connect(ui->actionGoToData, SIGNAL(triggered()), this, SLOT(goToData()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
     // Enable Drag-and-Drop actions
@@ -161,7 +162,7 @@ void UEFITool::populateUi(const QModelIndex &current)
         return;
 
     UINT8 type = model->type(current);
-    //UINT8 subtype = model->subtype(current);
+    UINT8 subtype = model->subtype(current);
 
     // Set info text
     ui->infoEdit->setPlainText(model->info(current));
@@ -174,10 +175,12 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
+    ui->menuVariableActions->setEnabled(type == Types::NvramVariableNvar);
 
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
-    
+    ui->actionGoToData->setEnabled(type == Types::NvramVariableNvar && subtype == Subtypes::LinkNvar);
+
     // Disable rebuild for now
     //ui->actionRebuild->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
     //ui->actionReplace->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
@@ -268,6 +271,34 @@ void UEFITool::search()
         ffsFinder->findTextPattern(rootIndex, pattern, searchDialog->ui->textUnicodeCheckBox->isChecked(),
             (Qt::CaseSensitivity) searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
         showFinderMessages();
+    }
+}
+
+void UEFITool::goToData()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid() || model->type(index) != Types::NvramVariableNvar || model->subtype(index) != Subtypes::LinkNvar)
+        return;
+
+    // Get parent
+    QModelIndex parent = model->parent(index);
+    
+    for (int i = index.row(); i < model->rowCount(parent); i++) {
+        PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+        UINT32 lastVariableFlag = pdata.emptyByte ? 0xFFFFFF : 0;
+        if (pdata.nvram.nvar.next == lastVariableFlag) {
+            ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+            ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+        }
+        
+        for (int j = i + 1; j < model->rowCount(parent); j++) {
+            QModelIndex currentIndex = parent.child(j, 0);
+            PARSING_DATA currentPdata = parsingDataFromQModelIndex(currentIndex);
+            if (currentPdata.offset == pdata.offset + pdata.nvram.nvar.next) {
+                index = currentIndex;
+                break;
+            }
+        }
     }
 }
 
@@ -497,7 +528,10 @@ void UEFITool::extract(const UINT8 mode)
             path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"), name + ".ffs", "FFS files (*.ffs *.bin);;All files (*)");
             break;
         case Types::Section:
-            path = QFileDialog::getSaveFileName(this, tr("Save section file to file"), name + ".sct", "Section files (*.sct *.bin);;All files (*)");
+            path = QFileDialog::getSaveFileName(this, tr("Save section to file"), name + ".sct", "Section files (*.sct *.bin);;All files (*)");
+            break;
+        case Types::NvramVariableNvar:
+            path = QFileDialog::getSaveFileName(this, tr("Save NVAR variable to file"), name + ".nvar", "NVAR variable files (*.nvar *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -530,6 +564,9 @@ void UEFITool::extract(const UINT8 mode)
             else
                 path = QFileDialog::getSaveFileName(this, tr("Save section body to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
         }
+            break;
+        case Types::NvramVariableNvar:
+            path = QFileDialog::getSaveFileName(this, tr("Save NVAR variable body to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -847,8 +884,7 @@ void UEFITool::scrollTreeView(QListWidgetItem* item)
     QModelIndex index = messageItem->index();
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
-        ui->structureTreeView->selectionModel()->clearSelection();
-        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
     }
 }
 
@@ -892,6 +928,9 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         break;
     case Types::Section:
         ui->menuSectionActions->exec(event->globalPos());
+        break;
+    case Types::NvramVariableNvar:
+        ui->menuVariableActions->exec(event->globalPos());
         break;
     }
 }

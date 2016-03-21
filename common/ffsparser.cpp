@@ -1610,7 +1610,7 @@ STATUS FfsParser::parseFileHeader(const QByteArray & file, const UINT32 parentOf
         text = QObject::tr("Volume Top File");
     }
     // Check if the file is NVRAM storage with NVAR format
-    else if (guid == NVRAM_NVAR_FILE_GUID) {
+    else if (guid == NVRAM_NVAR_STORAGE_FILE_GUID || guid == NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID) {
         // Mark the file as NVAR storage
         pdata.file.format = RAW_FILE_FORMAT_NVAR_STORAGE;
     }
@@ -2883,7 +2883,8 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
 
     UINT32 offset = 0;
     UINT32 guidsInStorage = 0;
-
+    
+    // Parse all variables
     while (1) {
         bool msgUnknownExtDataFormat = false;
         bool msgExtHeaderTooLong = false;
@@ -2919,6 +2920,7 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         if (unparsedSize < sizeof(NVAR_VARIABLE_HEADER) ||
             variableHeader->Signature != NVRAM_NVAR_VARIABLE_SIGNATURE ||
             unparsedSize < variableHeader->Size) {
+
             // Check if the data left is a free space or a padding
             QByteArray padding = data.mid(offset, unparsedSize);
             UINT8 type;
@@ -2930,6 +2932,12 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
                 subtype = 0;
             }
             else {
+                // Nothing is parsed yet, but the file is not empty 
+                if (!offset) {
+                    msg(QObject::tr("parseNvarStorage: file can't be parsed as NVAR variables storage"), index);
+                    return ERR_INVALID_FILE;
+                }
+
                 // It's a padding
                 name = QObject::tr("Padding");
                 type = Types::Padding;
@@ -2962,7 +2970,7 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         header = data.mid(offset, sizeof(NVAR_VARIABLE_HEADER));
         body = data.mid(offset + sizeof(NVAR_VARIABLE_HEADER), variableHeader->Size - sizeof(NVAR_VARIABLE_HEADER));
 
-        UINT32 lastVariableFlag = pdata.emptyByte == 0 ? 0 : 0xFFFFFF;
+        UINT32 lastVariableFlag = pdata.emptyByte ? 0xFFFFFF : 0;
         
         // Set default next to predefined last value
         pdata.nvram.nvar.next = lastVariableFlag;
@@ -2977,7 +2985,7 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
         // Add next node information to parsing data
         if (variableHeader->Next != lastVariableFlag) {
             subtype = Subtypes::LinkNvar;
-            pdata.nvram.nvar.next = offset + variableHeader->Next;
+            pdata.nvram.nvar.next = variableHeader->Next;
         }
         
         // Variable with extended header
@@ -3046,7 +3054,7 @@ STATUS FfsParser::parseNvarStorage(const QByteArray & data, const QModelIndex & 
             for (int i = 0; i < model->rowCount(index); i++) {
                 nvarIndex = index.child(i, 0);
                 PARSING_DATA nvarPdata = parsingDataFromQModelIndex(nvarIndex);
-                if (nvarPdata.nvram.nvar.next == offset) { // Previous link is present and valid
+                if (nvarPdata.nvram.nvar.next + nvarPdata.offset - parentOffset == offset) { // Previous link is present and valid
                     isInvalid = false;
                     break;
                 }
@@ -3102,8 +3110,14 @@ parsing_done:
         QString info;
         // Rename invalid variables according to their types
         if (isInvalid) {
-            name = QObject::tr("Invalid");
-            subtype = Subtypes::InvalidNvar;
+            if (variableHeader->Next != lastVariableFlag) {
+                name = QObject::tr("Invalid link");
+                subtype = Subtypes::InvalidLinkNvar;
+            }
+            else {
+                name = QObject::tr("Invalid");
+                subtype = Subtypes::InvalidNvar;
+            }
         }
         else // Add GUID info for valid variables
             info += QObject::tr("Variable GUID: %1\n").arg(name);
@@ -3122,7 +3136,7 @@ parsing_done:
         pdata.nvram.nvar.attributes = variableHeader->Attributes;
 
         // Add next node info
-        if (variableHeader->Next != lastVariableFlag)
+        if (!isInvalid && variableHeader->Next != lastVariableFlag)
             info += QObject::tr("\nNext node at offset: %1h").hexarg(parentOffset + offset + variableHeader->Next);
 
         // Add extended header info
@@ -3164,6 +3178,14 @@ parsing_done:
         if (msgExtDataTooShort)
             msg(QObject::tr("parseNvarStorage: extended data size (%1h) is smaller than required for timestamp and hash (0x28)")
             .hexarg(extendedData.size()), varIndex);
+
+        // Check variable name to be in the list of nesting variables
+        for (std::vector<CHAR8*>::const_iterator iter = nestingVariableNames.cbegin(); iter != nestingVariableNames.cend(); ++iter)
+            if (QString(*iter) == text.toLatin1()) {
+                STATUS result = parseNvarStorage(body, varIndex);
+                if (result)
+                    msg(QObject::tr("parseNvarStorage: parsing of nested NVAR storage failed with error \"%1\"").arg(errorCodeToQString(result)), varIndex);
+            }
 
         // Move to next variable
         offset += variableHeader->Size;
