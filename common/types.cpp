@@ -66,7 +66,11 @@ QString itemTypeToQString(const UINT8 type)
     case Types::FreeSpace:
         return QObject::tr("Free space");
     case Types::NvramVariableNvar:
-        return QObject::tr("NVAR");
+        return QObject::tr("NVAR variable");
+    case Types::NvramStorageVss:
+        return QObject::tr("VSS storage");
+    case Types::NvramVariableVss:
+        return QObject::tr("VSS variable");
     default:
         return QObject::tr("Unknown");
     }
@@ -99,6 +103,8 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("FFSv2");
         else if (subtype == Subtypes::Ffs3Volume)
             return QObject::tr("FFSv3");
+        else if (subtype == Subtypes::VssNvramVolume)
+            return QObject::tr("VSS NVRAM");
         else
             return QObject::tr("Unknown subtype");
     case Types::Capsule: 
@@ -133,6 +139,19 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Full");
         else 
             return QObject::tr("Unknown subtype");
+    case Types::NvramStorageVss:
+        return QString();
+    case Types::NvramVariableVss:
+        if (subtype == Subtypes::InvalidVss)
+            return QObject::tr("Invalid");
+        if (subtype == Subtypes::StandardVss)
+            return QObject::tr("Standard");
+        if (subtype == Subtypes::AppleCrc32Vss)
+            return QObject::tr("Apple CRC32");
+        if (subtype == Subtypes::AuthVss)
+            return QObject::tr("Auth");
+        else
+            return QObject::tr("Unknown subtype");
     default:
         return QObject::tr("Unknown subtype");
     }
@@ -162,7 +181,7 @@ QString actionTypeToQString(const UINT8 action)
 {
     switch (action) {
     case Actions::NoAction:
-        return "";
+        return QString();
     case Actions::Create:
         return QObject::tr("Create");
     case Actions::Insert:

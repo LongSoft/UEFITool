@@ -80,6 +80,7 @@ typedef UINT8 STATUS;
 #define ERR_DIR_CREATE                      34
 #define ERR_TRUNCATED_IMAGE                 35
 #define ERR_INVALID_CAPSULE                 36
+#define ERR_STORAGES_NOT_FOUND              37
 #define ERR_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions
@@ -140,6 +141,21 @@ typedef struct _EFI_GUID {
     UINT8 Data[16];
 } EFI_GUID;
 
+// EFI Time
+typedef struct _EFI_TIME {
+    UINT16  Year;       // Year:       2000 - 20XX
+    UINT8   Month;      // Month:      1 - 12
+    UINT8   Day;        // Day:        1 - 31
+    UINT8   Hour;       // Hour:       0 - 23
+    UINT8   Minute;     // Minute:     0 - 59
+    UINT8   Second;     // Second:     0 - 59
+UINT8: 8;
+    UINT32  Nanosecond; // Nanosecond: 0 - 999,999,999
+    INT16   TimeZone;   // TimeZone:   -1440 to 1440 or UNSPECIFIED (0x07FF)
+    UINT8   Daylight;   // Daylight:   ADJUST_DAYLIGHT (1) or IN_DAYLIGHT (2) 
+UINT8: 8;
+} EFI_TIME;
+
 #define ALIGN4(Value) (((Value)+3) & ~3)
 #define ALIGN8(Value) (((Value)+7) & ~7)
 
@@ -148,7 +164,7 @@ typedef struct _EFI_GUID {
 
 //Hexarg macros
 #define hexarg(X) arg(QString("%1").arg((X),0,16).toUpper())
-#define hexarg2(X, Y) arg(QString("%1").arg((X),(Y),16,QChar('0')).toUpper())
+#define hexarg2(X, Y) arg(QString("%1").arg((X),(Y),16,QLatin1Char('0')).toUpper())
 
 
 #endif

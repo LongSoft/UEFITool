@@ -109,6 +109,12 @@ private:
     // NVRAM parsing
     STATUS parseNvarStorage(const QByteArray & data, const QModelIndex & index);
 
+    STATUS parseStorageArea(const QByteArray & data, const QModelIndex & index);
+    STATUS findNextStorage(const QModelIndex & index, const QByteArray & data, const UINT32 parentOffset, const UINT32 storageOffset, UINT32 & nextStorageOffset);
+    STATUS getStorageSize(const QByteArray & data, const UINT32 storageOffset, UINT32 & storageSize);
+    STATUS parseStorageHeader(const QByteArray & storage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseVssStorageBody(const QByteArray & data, const QModelIndex & index);
+
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };

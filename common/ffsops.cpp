@@ -57,6 +57,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
             name = itemName;
     } break;
     case Types::NvramVariableNvar:
+    case Types::NvramVariableVss:
     case Types::File: {
         name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_');
     } break;

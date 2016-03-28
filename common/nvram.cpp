@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QObject>
 #include "nvram.h"
 
-QString variableAttributesToQstring(UINT8 attributes)
+QString nvarAttributesToQString(const UINT8 attributes)
 {
     if (attributes == 0x00 || attributes == 0xFF) 
         return QString();
@@ -38,6 +38,17 @@ QString variableAttributesToQstring(UINT8 attributes)
     if (attributes & NVRAM_NVAR_VARIABLE_ATTRIB_VALID) 
         str += QObject::tr(", Valid");
     
-    return str.mid(2); // Remove the first comma and space
+    return str.mid(2); // Remove first comma and space
 }
 
+QString efiTimeToQString(const EFI_TIME & time)
+{
+    return QObject::tr("%1-%2-%3T%4:%5:%6.%7")
+        .arg(time.Year, 4, 10, QLatin1Char('0'))
+        .arg(time.Month, 2, 10, QLatin1Char('0'))
+        .arg(time.Day, 2, 10, QLatin1Char('0'))
+        .arg(time.Hour, 2, 10, QLatin1Char('0'))
+        .arg(time.Minute, 2, 10, QLatin1Char('0'))
+        .arg(time.Second, 2, 10, QLatin1Char('0'))
+        .arg(time.Nanosecond);
+}

@@ -43,7 +43,9 @@ namespace Types {
         File,
         Section,
         FreeSpace,
-        NvramVariableNvar
+        NvramVariableNvar,
+        NvramStorageVss,
+        NvramVariableVss
     };
 }
 
@@ -63,7 +65,8 @@ namespace Subtypes {
     enum VolumeSubtypes {
         UnknownVolume = 90,
         Ffs2Volume,
-        Ffs3Volume
+        Ffs3Volume,
+        VssNvramVolume
     };
 
     enum RegionSubtypes {
@@ -91,6 +94,13 @@ namespace Subtypes {
         LinkNvar,
         DataNvar,
         FullNvar
+    };
+
+    enum VssVariableSubtypes {
+        InvalidVss = 130,
+        StandardVss,
+        AppleCrc32Vss,
+        AuthVss
     };
 };
 
