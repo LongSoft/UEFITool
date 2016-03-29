@@ -3360,11 +3360,11 @@ STATUS FfsParser::parseStorageArea(const QByteArray & data, const QModelIndex & 
     }
 
     // Parse bodies
-    /* for (int i = 0; i < model->rowCount(index); i++) {
+    for (int i = 0; i < model->rowCount(index); i++) {
         QModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
-        case Types::Volume:
-            parseVolumeBody(current);
+        case Types::NvramStorageVss:
+            parseVssStorageBody(current);
             break;
         case Types::Padding:
             // No parsing required
@@ -3373,7 +3373,7 @@ STATUS FfsParser::parseStorageArea(const QByteArray & data, const QModelIndex & 
             return ERR_UNKNOWN_ITEM_TYPE;
         }
     }
-    */
+    
     return ERR_SUCCESS;
 }
 
@@ -3421,7 +3421,7 @@ STATUS FfsParser::findNextStorage(const QModelIndex & index, const QByteArray & 
 
 STATUS FfsParser::getStorageSize(const QByteArray & data, const UINT32 storageOffset, UINT32 & storageSize)
 {
-    //TODO: add Fsys support
+    //TODO: add Fsys, GUID and _FDC support
     const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)(data.constData() + storageOffset);
     storageSize = vssHeader->Size;
     return ERR_SUCCESS;
@@ -3480,12 +3480,12 @@ STATUS FfsParser::parseStorageHeader(const QByteArray & storage, const UINT32 pa
     index = model->addItem(Types::NvramStorageVss, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
 
     //Parse the storage
-    parseVssStorageBody(body, index);
+    //parseVssStorageBody(body, index);
 
     return ERR_SUCCESS;
 }
 
-STATUS FfsParser::parseVssStorageBody(const QByteArray & data, const QModelIndex & index)
+STATUS FfsParser::parseVssStorageBody(const QModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
@@ -3494,6 +3494,7 @@ STATUS FfsParser::parseVssStorageBody(const QByteArray & data, const QModelIndex
     // Get parsing data for the current item
     PARSING_DATA pdata = parsingDataFromQModelIndex(index);
     UINT32 parentOffset = pdata.offset + model->header(index).size();
+    const QByteArray data = model->body(index);
 
     // Check that the is enough space for variable header
     const UINT32 dataSize = (UINT32)data.size();

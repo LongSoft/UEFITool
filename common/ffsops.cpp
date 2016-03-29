@@ -52,9 +52,9 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
     switch (model->type(index)) {
     case Types::Volume: {
         if (pdata.volume.hasExtendedHeader)
-            name = guidToQString(pdata.volume.extendedHeaderGuid);
+            name = guidToQString(pdata.volume.extendedHeaderGuid).replace('-', '_');
         else
-            name = itemName;
+            name = itemName.replace('-', '_');
     } break;
     case Types::NvramVariableNvar:
     case Types::NvramVariableVss:
@@ -73,6 +73,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
     case Types::Image:
     case Types::Region:
     case Types::Padding:
+    case Types::NvramStorageVss:
     default:
         name = itemName.replace(' ', '_').replace('/', '_');
     }

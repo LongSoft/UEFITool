@@ -536,6 +536,9 @@ void UEFITool::extract(const UINT8 mode)
         case Types::NvramVariableVss:
             path = QFileDialog::getSaveFileName(this, tr("Save variable to file"), name + ".var", "Variable files (*.var *.bin);;All files (*)");
             break;
+        case Types::NvramStorageVss:
+            path = QFileDialog::getSaveFileName(this, tr("Save variable storage to file"), name + ".vss", "Variable storage files (*.vss *.bin);;All files (*)");
+            break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
         }
@@ -571,6 +574,9 @@ void UEFITool::extract(const UINT8 mode)
         case Types::NvramVariableNvar:
         case Types::NvramVariableVss:
             path = QFileDialog::getSaveFileName(this, tr("Save variable body to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
+            break;
+        case Types::NvramStorageVss:
+            path = QFileDialog::getSaveFileName(this, tr("Save variable storage body to file"), name + ".vsb", "Variable storage body files (*.vsb *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -936,6 +942,9 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::NvramVariableNvar:
     case Types::NvramVariableVss:
         ui->menuVariableActions->exec(event->globalPos());
+        break;
+    case Types::NvramStorageVss:
+        ui->menuStorageActions->exec(event->globalPos());
         break;
     }
 }
