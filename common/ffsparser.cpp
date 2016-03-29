@@ -3514,7 +3514,7 @@ STATUS FfsParser::parseVssStorageBody(const QModelIndex & index)
         UINT32 storedCrc32 = 0;
         UINT32 calculatedCrc32 = 0;
         UINT64 monotonicCounter = 0;
-        EFI_TIME timestamp = { 0 };
+        EFI_TIME timestamp = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         UINT32 pubKeyIndex = 0;
 
         UINT8 subtype = 0;
@@ -3681,7 +3681,7 @@ STATUS FfsParser::parseVssStorageBody(const QModelIndex & index)
         pdata.offset = parentOffset + offset;
 
         // Add tree item
-        QModelIndex varIndex = model->addItem(Types::NvramVariableVss, subtype, name, text, info, header, body, FALSE, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::NvramVariableVss, subtype, name, text, info, header, body, FALSE, parsingDataToQByteArray(pdata), index);
 
         // Move to next variable
         offset += variableSize;
