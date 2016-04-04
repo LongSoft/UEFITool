@@ -74,6 +74,8 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
     case Types::Region:
     case Types::Padding:
     case Types::NvramStorageVss:
+    case Types::NvramStorageFdc:
+    case Types::NvramStorageFsys:
     default:
         name = itemName.replace(' ', '_').replace('/', '_');
     }

@@ -113,7 +113,7 @@ typedef struct _EFI_FIRMWARE_VOLUME_HEADER {
     UINT16                 ExtHeaderOffset;  //Reserved in Revision 1
     UINT8                  Reserved;
     UINT8                  Revision;
-    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[1];
+    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
 } EFI_FIRMWARE_VOLUME_HEADER;
 
 // Standard file system GUIDs

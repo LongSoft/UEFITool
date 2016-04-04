@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha23"))
+version(tr("0.30.0_alpha24"))
 {
     clipboard = QApplication::clipboard();
 
@@ -175,8 +175,9 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
-    ui->menuVariableActions->setEnabled(type == Types::NvramVariableNvar || type == Types::NvramVariableVss);
-
+    ui->menuVariableActions->setEnabled(type == Types::NvramVariableNvar || type == Types::NvramVariableVss || type == Types::NvramVariableFsys);
+    ui->menuStorageActions->setEnabled(type == Types::NvramStorageVss || type == Types::NvramStorageFdc || type == Types::NvramStorageFsys);
+    
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
     ui->actionGoToData->setEnabled(type == Types::NvramVariableNvar && subtype == Subtypes::LinkNvar);
@@ -267,8 +268,14 @@ void UEFITool::search()
         QString pattern = searchDialog->ui->textEdit->text();
         if (pattern.isEmpty())
             return;
-
-        ffsFinder->findTextPattern(rootIndex, pattern, searchDialog->ui->textUnicodeCheckBox->isChecked(),
+        UINT8 mode;
+        if (searchDialog->ui->textScopeHeaderRadioButton->isChecked())
+            mode = SEARCH_MODE_HEADER;
+        else if (searchDialog->ui->textScopeBodyRadioButton->isChecked())
+            mode = SEARCH_MODE_BODY;
+        else
+            mode = SEARCH_MODE_ALL;
+        ffsFinder->findTextPattern(rootIndex, pattern, mode, searchDialog->ui->textUnicodeCheckBox->isChecked(),
             (Qt::CaseSensitivity) searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
         showFinderMessages();
     }
@@ -537,7 +544,11 @@ void UEFITool::extract(const UINT8 mode)
             path = QFileDialog::getSaveFileName(this, tr("Save variable to file"), name + ".var", "Variable files (*.var *.bin);;All files (*)");
             break;
         case Types::NvramStorageVss:
+        case Types::NvramStorageFdc:
             path = QFileDialog::getSaveFileName(this, tr("Save variable storage to file"), name + ".vss", "Variable storage files (*.vss *.bin);;All files (*)");
+            break;
+        case Types::NvramStorageFsys:
+            path = QFileDialog::getSaveFileName(this, tr("Save Fsys storage to file"), name + ".fsys", "Fsys storage files (*.fsys *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -576,7 +587,11 @@ void UEFITool::extract(const UINT8 mode)
             path = QFileDialog::getSaveFileName(this, tr("Save variable body to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
             break;
         case Types::NvramStorageVss:
+        case Types::NvramStorageFdc:
             path = QFileDialog::getSaveFileName(this, tr("Save variable storage body to file"), name + ".vsb", "Variable storage body files (*.vsb *.bin);;All files (*)");
+            break;
+        case Types::NvramStorageFsys:
+            path = QFileDialog::getSaveFileName(this, tr("Save Fsys storage body to file"), name + ".fsb", "Fsys storage body files (*.fsb *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -941,9 +956,12 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         break;
     case Types::NvramVariableNvar:
     case Types::NvramVariableVss:
+    case Types::NvramVariableFsys:
         ui->menuVariableActions->exec(event->globalPos());
         break;
     case Types::NvramStorageVss:
+    case Types::NvramStorageFdc:
+    case Types::NvramStorageFsys:
         ui->menuStorageActions->exec(event->globalPos());
         break;
     }

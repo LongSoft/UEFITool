@@ -99,10 +99,9 @@ typedef struct _VSS_VARIABLE_STORE_HEADER {
 
 // Apple Fsys store header
 typedef struct _APPLE_FSYS_STORE_HEADER {
-    UINT32  Signature; // Fsys signature
-    UINT8   Unknown;   // Still unknown
-    UINT32  Unknown2;  // Still unknown
-    UINT16  Size;      // Size of variable storage
+    UINT32  Signature;  // Fsys signature
+    UINT8   Unknown[5]; // Still unknown
+    UINT16  Size;       // Size of variable storage
 } APPLE_FSYS_STORE_HEADER;
 
 // Apple Fsys variable format
@@ -110,8 +109,8 @@ typedef struct _APPLE_FSYS_STORE_HEADER {
 // CHAR8 Name[];
 // UINT16 DataLength;
 // UINT8 Data[]
-// End with a chunk named "EOF" without data
-// All free bytes are zeros
+// Storage ends with a chunk named "EOF" without data
+// All free bytes in storage are zeroed
 // Has CRC32 of the whole store without checksum field at the end
 
 // Normal variable header
@@ -167,6 +166,19 @@ typedef struct _VSS_AUTH_VARIABLE_HEADER {
 #define NVRAM_VSS_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS 0x00000020
 #define NVRAM_VSS_VARIABLE_APPEND_WRITE                          0x00000040
 #define NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM                   0x80000000
+
+// FDC region can be found in some VSS volumes
+// It has another VSS volume inside
+// _FDC header structure
+typedef struct _FDC_VOLUME_HEADER {
+    UINT32 Signature;
+    UINT32 Size;
+    //EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
+    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
+    //VSS_VARIABLE_STORE_HEADER VssHeader;
+} FDC_VOLUME_HEADER;
+
+#define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
 
 // Restore previous packing rules
 #pragma pack(pop)

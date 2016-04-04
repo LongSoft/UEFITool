@@ -45,7 +45,10 @@ namespace Types {
         FreeSpace,
         NvramVariableNvar,
         NvramStorageVss,
-        NvramVariableVss
+        NvramStorageFdc,
+        NvramStorageFsys,
+        NvramVariableVss,
+        NvramVariableFsys
     };
 }
 

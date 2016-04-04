@@ -156,7 +156,7 @@ STATUS FfsFinder::findGuidPattern(const QModelIndex & index, const QByteArray & 
     return ERR_SUCCESS;
 }
 
-STATUS FfsFinder::findTextPattern(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive)
+STATUS FfsFinder::findTextPattern(const QModelIndex & index, const QString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive)
 {
     if (pattern.isEmpty())
         return ERR_INVALID_PARAMETER;
@@ -166,24 +166,36 @@ STATUS FfsFinder::findTextPattern(const QModelIndex & index, const QString & pat
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findTextPattern(index.child(i, index.column()), pattern, unicode, caseSensitive);
+        findTextPattern(index.child(i, index.column()), pattern, mode, unicode, caseSensitive);
     }
 
-    if (hasChildren)
-        return ERR_SUCCESS;
+    QByteArray body;
+    if (hasChildren) {
+        if (mode != SEARCH_MODE_BODY)
+            body = model->header(index);
+    }
+    else {
+        if (mode == SEARCH_MODE_HEADER)
+            body.append(model->header(index));
+        else if (mode == SEARCH_MODE_BODY)
+            body.append(model->body(index));
+        else
+            body.append(model->header(index)).append(model->body(index));
+    }
 
     QString data;
     if (unicode)
-        data = QString::fromUtf16((const ushort*)model->body(index).data(), model->body(index).length() / 2);
+        data = QString::fromUtf16((const ushort*)body.constData(), body.length() / 2);
     else
-        data = QString::fromLatin1((const char*)model->body(index).data(), model->body(index).length());
+        data = QString::fromLatin1((const char*)body.constData(), body.length());
 
     int offset = -1;
     while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
-        msg(QObject::tr("%1 text \"%2\" found in %3 at offset %4h")
+        msg(QObject::tr("%1 text \"%2\" found in %3 at %4-offset %5h")
             .arg(unicode ? "Unicode" : "ASCII")
             .arg(pattern)
             .arg(model->name(index))
+            .arg(mode == SEARCH_MODE_BODY ? QObject::tr("body") : QObject::tr("header"))
             .hexarg(unicode ? offset * 2 : offset),
             index);
     }

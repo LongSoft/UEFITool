@@ -69,8 +69,14 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("NVAR variable");
     case Types::NvramStorageVss:
         return QObject::tr("VSS storage");
+    case Types::NvramStorageFdc:
+        return QObject::tr("FDC storage");
+    case Types::NvramStorageFsys:
+        return QObject::tr("Fsys storage");
     case Types::NvramVariableVss:
         return QObject::tr("VSS variable");
+    case Types::NvramVariableFsys:
+        return QObject::tr("Fsys variable");
     default:
         return QObject::tr("Unknown");
     }
@@ -140,6 +146,9 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         else 
             return QObject::tr("Unknown subtype");
     case Types::NvramStorageVss:
+    case Types::NvramStorageFdc:
+    case Types::NvramStorageFsys:
+    case Types::NvramVariableFsys:
         return QString();
     case Types::NvramVariableVss:
         if (subtype == Subtypes::InvalidVss)

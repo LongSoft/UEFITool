@@ -35,7 +35,7 @@ extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByte
 //STATUS compress(const QByteArray & decompressed, QByteArray & compressed, const UINT8 & algorithm);
 
 // CRC32 calculation routine
-extern UINT32 crc32(UINT32 initial, const UINT8* buffer, UINT32 length);
+extern UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
 
 // 8bit checksum calculation routine
 extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);

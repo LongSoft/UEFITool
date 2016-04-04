@@ -3364,7 +3364,11 @@ STATUS FfsParser::parseStorageArea(const QByteArray & data, const QModelIndex & 
         QModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
         case Types::NvramStorageVss:
+        case Types::NvramStorageFdc:
             parseVssStorageBody(current);
+            break;
+        case Types::NvramStorageFsys:
+            parseFsysStorageBody(current);
             break;
         case Types::Padding:
             // No parsing required
@@ -3402,16 +3406,21 @@ STATUS FfsParser::findNextStorage(const QModelIndex & index, const QByteArray & 
             //    msg(QObject::tr("findNextStorage: VSS storage candidate at offset %1h skipped, has invalid state %2h").hexarg(parentOffset + offset).hexarg2(vssHeader->State, 2), index);
             //    continue;
             //}
+
             // All checks passed, storage found
             break;
         }
-        //else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE) { //Fsys signature found
-        //  // No checks yet
-        //  break;
-        //}
+        else if (*currentPos == NVRAM_FDC_VOLUME_SIGNATURE) { //FDC signature found
+          // No checks needed
+          break;
+        }
+        else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE) { //Fsys signature found
+          // No checks needed
+          break;
+        }
     }
     // No more storages found
-    if (offset == dataSize - sizeof(UINT32))
+    if (offset >= dataSize - sizeof(UINT32))
         return ERR_STORAGES_NOT_FOUND;
 
     nextStorageOffset = offset;
@@ -3421,66 +3430,198 @@ STATUS FfsParser::findNextStorage(const QModelIndex & index, const QByteArray & 
 
 STATUS FfsParser::getStorageSize(const QByteArray & data, const UINT32 storageOffset, UINT32 & storageSize)
 {
-    //TODO: add Fsys, GUID and _FDC support
-    const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)(data.constData() + storageOffset);
-    storageSize = vssHeader->Size;
+    //TODO: add GUID support
+    const UINT32* signature = (const UINT32*)(data.constData() + storageOffset);
+    if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
+        const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)signature;
+        storageSize = vssHeader->Size;
+    }
+    else if (*signature == NVRAM_FDC_VOLUME_SIGNATURE) {
+        const FDC_VOLUME_HEADER* fdcHeader = (const FDC_VOLUME_HEADER*)signature;
+        storageSize = fdcHeader->Size;
+    }
+    else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE) {
+        const APPLE_FSYS_STORE_HEADER* fsysHeader = (const APPLE_FSYS_STORE_HEADER*)signature;
+        storageSize = fsysHeader->Size;
+    }
     return ERR_SUCCESS;
 }
 
 STATUS FfsParser::parseStorageHeader(const QByteArray & storage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
-    // Parse VSS volume like raw area, seen for now
-    // $VSS, $SVS, Fsys, full volume GUID, _FDC and paddings 
+    // Parse VSS volume like raw area
+    //TODO: seen for now - $VSS, $SVS, Fsys, full volume GUID, _FDC and paddings 
 
-    // The volume must begin with VSS storage to be valid, but after the first one, there can be many variants
     const UINT32 dataSize = (UINT32)storage.size();
-    if (dataSize < sizeof(VSS_VARIABLE_STORE_HEADER)) {
-        msg(QObject::tr("parseStorageHeader: volume body is too small even for VSS storage header"), parent);
+    const UINT32* signature = (const UINT32*)storage.constData();
+    if (dataSize < sizeof(UINT32)) {
+        msg(QObject::tr("parseStorageHeader: volume body is too small even for storage signature"), parent);
         return ERR_SUCCESS;
     }
 
-    // Get VSS storage header
-    const VSS_VARIABLE_STORE_HEADER* vssStorageHeader = (const VSS_VARIABLE_STORE_HEADER*)storage.constData();
+    // VSS variable storages
+    if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
+        // The volume must begin with a storage to be valid, but after the first one, there can be many variants
+        if (dataSize < sizeof(VSS_VARIABLE_STORE_HEADER)) {
+            msg(QObject::tr("parseStorageHeader: volume body is too small even for VSS storage header"), parent);
+            return ERR_SUCCESS;
+        }
 
-    // Check signature
-    if (vssStorageHeader->Signature != NVRAM_VSS_STORE_SIGNATURE && vssStorageHeader->Signature != NVRAM_APPLE_SVS_STORE_SIGNATURE) {
-        msg(QObject::tr("parseStorageHeader: invalid storage signature %1h").hexarg2(vssStorageHeader->Signature, 8), parent);
-        return ERR_SUCCESS;
+        // Get VSS storage header
+        const VSS_VARIABLE_STORE_HEADER* vssStorageHeader = (const VSS_VARIABLE_STORE_HEADER*)signature;
+
+        // Check storage size
+        if (dataSize < vssStorageHeader->Size) {
+            msg(QObject::tr("parseStorageHeader: VSS storage size %1h (%2) is greater than volume body size %3h (%4)")
+                .hexarg2(vssStorageHeader->Size, 8).arg(vssStorageHeader->Size)
+                .hexarg2(dataSize, 8).arg(dataSize), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Get parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
+
+        // Construct header and body
+        QByteArray header = storage.left(sizeof(VSS_VARIABLE_STORE_HEADER));
+        QByteArray body = storage.mid(sizeof(VSS_VARIABLE_STORE_HEADER), vssStorageHeader->Size - sizeof(VSS_VARIABLE_STORE_HEADER));
+
+        // Add info
+        QString name = QObject::tr("VSS storage");
+        QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nFormat: %8h\nState: %9h")
+            .hexarg2(vssStorageHeader->Signature, 8)
+            .hexarg(vssStorageHeader->Size).arg(vssStorageHeader->Size)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg(body.size()).arg(body.size())
+            .hexarg2(vssStorageHeader->Format, 2)
+            .hexarg2(vssStorageHeader->State, 2);
+
+        // Add unknown field for $SVS storages
+        if (*signature == NVRAM_APPLE_SVS_STORE_SIGNATURE)
+            info += QObject::tr("\nUnknown: %1h").hexarg2(vssStorageHeader->Unknown, 4);
+
+        // Add correct offset
+        pdata.offset = parentOffset;
+
+        // Add tree item
+        index = model->addItem(Types::NvramStorageVss, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
+    else if (*signature == NVRAM_FDC_VOLUME_SIGNATURE) {
+        // The volume must begin with a storage to be valid, but after the first one, there can be many variants
+        if (dataSize < sizeof(FDC_VOLUME_HEADER)) {
+            msg(QObject::tr("parseStorageHeader: volume body is too small even for FDC storage header"), parent);
+            return ERR_SUCCESS;
+        }
 
-    // Check storage size
-    if (dataSize < vssStorageHeader->Size) {
-        msg(QObject::tr("parseStorageHeader: first VSS storage size %1h (%2) is greater than volume body size %3h (%4)")
-            .hexarg2(vssStorageHeader->Size, 8).arg(vssStorageHeader->Size)
-            .hexarg2(dataSize, 8).arg(dataSize), parent);
-        return ERR_SUCCESS;
+        // Get VSS storage header
+        const FDC_VOLUME_HEADER* fdcStorageHeader = (const FDC_VOLUME_HEADER*)signature;
+
+        // Check storage size
+        if (dataSize < fdcStorageHeader->Size) {
+            msg(QObject::tr("parseStorageHeader: FDC storage size %1h (%2) is greater than volume body size %3h (%4)")
+                .hexarg2(fdcStorageHeader->Size, 8).arg(fdcStorageHeader->Size)
+                .hexarg2(dataSize, 8).arg(dataSize), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Determine internal volume header size
+        const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(fdcStorageHeader + 1);
+        UINT32 headerSize;
+        if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
+            const EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (const EFI_FIRMWARE_VOLUME_EXT_HEADER*)((const UINT8*)volumeHeader + volumeHeader->ExtHeaderOffset);
+            headerSize = volumeHeader->ExtHeaderOffset + extendedHeader->ExtHeaderSize;
+        }
+        else
+            headerSize = volumeHeader->HeaderLength;
+
+        // Extended header end can be unaligned
+        headerSize = ALIGN8(headerSize);
+
+        // Add VSS storage header
+        headerSize += sizeof(VSS_VARIABLE_STORE_HEADER);
+        
+        // Add FDC header 
+        headerSize += sizeof(FDC_VOLUME_HEADER);
+
+        // Check sanity of combined header size
+        if (dataSize < headerSize) {
+            msg(QObject::tr("parseStorageHeader: FDC storage header size %1h (%2) is greater than volume body size %3h (%4)")
+                .hexarg2(fdcStorageHeader->Size, 8).arg(fdcStorageHeader->Size)
+                .hexarg2(dataSize, 8).arg(dataSize), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Get parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
+
+        // Construct header and body
+        QByteArray header = storage.left(headerSize);
+        QByteArray body = storage.mid(headerSize, fdcStorageHeader->Size - headerSize);
+
+        // Add info
+        QString name = QObject::tr("FDC storage");
+        QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
+            .hexarg2(fdcStorageHeader->Signature, 8)
+            .hexarg(fdcStorageHeader->Size).arg(fdcStorageHeader->Size)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg(body.size()).arg(body.size());
+
+        // TODO: add internal headers info
+
+        // Add correct offset
+        pdata.offset = parentOffset;
+
+        // Add tree item
+        index = model->addItem(Types::NvramStorageFdc, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
+    else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE) {
+        // The volume must begin with a storage to be valid, but after the first one, there can be many variants
+        if (dataSize < sizeof(APPLE_FSYS_STORE_HEADER)) {
+            msg(QObject::tr("parseStorageHeader: volume body is too small even for Fsys storage header"), parent);
+            return ERR_SUCCESS;
+        }
 
-    // Get parsing data
-    PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
+        // Get Fsys storage header
+        const APPLE_FSYS_STORE_HEADER* fsysStorageHeader = (const APPLE_FSYS_STORE_HEADER*)signature;
 
-    // Construct header and body
-    QByteArray header = storage.left(sizeof(VSS_VARIABLE_STORE_HEADER));
-    QByteArray body = storage.mid(sizeof(VSS_VARIABLE_STORE_HEADER), vssStorageHeader->Size - sizeof(VSS_VARIABLE_STORE_HEADER));
+        // Check storage size
+        if (dataSize < fsysStorageHeader->Size) {
+            msg(QObject::tr("parseStorageHeader: Fsys storage size %1h (%2) is greater than volume body size %3h (%4)")
+                .hexarg2(fsysStorageHeader->Size, 4).arg(fsysStorageHeader->Size)
+                .hexarg2(dataSize, 8).arg(dataSize), parent);
+            return ERR_SUCCESS;
+        }
 
-    // Add info
-    QString name = QObject::tr("VSS storage");
-    QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nFormat: %8h\nState: %9h")
-        .hexarg2(vssStorageHeader->Signature, 8)
-        .hexarg(vssStorageHeader->Size).arg(vssStorageHeader->Size)
-        .hexarg(header.size()).arg(header.size())
-        .hexarg(body.size()).arg(body.size())
-        .hexarg2(vssStorageHeader->Format, 2)
-        .hexarg2(vssStorageHeader->State, 2);
+        // Get parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
-    // Add correct offset
-    pdata.offset = parentOffset;
+        // Construct header and body
+        QByteArray header = storage.left(sizeof(APPLE_FSYS_STORE_HEADER));
+        QByteArray body = storage.mid(sizeof(APPLE_FSYS_STORE_HEADER), fsysStorageHeader->Size - sizeof(APPLE_FSYS_STORE_HEADER) - sizeof(UINT32));
 
-    // Add tree item
-    index = model->addItem(Types::NvramStorageVss, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
+        // Check storage checksum
+        UINT32 storedCrc = *(UINT32*)storage.right(sizeof(UINT32)).constBegin();
+        UINT32 calculatedCrc = calculatedCrc = crc32(0, (const UINT8*)storage.constData(), (const UINT32)storage.size() - sizeof(UINT32));
 
-    //Parse the storage
-    //parseVssStorageBody(body, index);
+        // Add info
+        QString name = QObject::tr("Fsys storage");
+        QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nUnknown: %9 %10 %11 %12 %13\nCRC32: %14")
+            .hexarg2(fsysStorageHeader->Signature, 8)
+            .hexarg(fsysStorageHeader->Size).arg(fsysStorageHeader->Size)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg(body.size()).arg(body.size())
+            .hexarg2(fsysStorageHeader->Unknown[0], 2)
+            .hexarg2(fsysStorageHeader->Unknown[1], 2)
+            .hexarg2(fsysStorageHeader->Unknown[2], 2)
+            .hexarg2(fsysStorageHeader->Unknown[3], 2)
+            .hexarg2(fsysStorageHeader->Unknown[4], 2)
+            .arg(storedCrc == calculatedCrc ? QObject::tr("%1h, valid").hexarg2(storedCrc, 8) : QObject::tr("%1h, invalid, should be %2h").hexarg2(storedCrc, 8).hexarg2(calculatedCrc, 8));
+
+        // Add correct offset
+        pdata.offset = parentOffset;
+
+        // Add tree item
+        index = model->addItem(Types::NvramStorageFsys, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
+    }
 
     return ERR_SUCCESS;
 }
@@ -3689,3 +3830,111 @@ STATUS FfsParser::parseVssStorageBody(const QModelIndex & index)
 
     return ERR_SUCCESS;
 }
+
+STATUS FfsParser::parseFsysStorageBody(const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+    UINT32 parentOffset = pdata.offset + model->header(index).size();
+    const QByteArray data = model->body(index);
+
+    // Check that the is enough space for variable header
+    const UINT32 dataSize = (UINT32)data.size();
+    UINT32 offset = 0;
+
+    // Parse all variables
+    while (1) {
+        UINT32 unparsedSize = dataSize - offset;
+        UINT32 variableSize = 0;
+
+        // Get nameSize and name of the variable
+        const UINT8 nameSize = *(UINT8*)(data.constData() + offset);
+        // Check sanity
+        if (unparsedSize >= nameSize + sizeof(UINT8)) {
+            variableSize = nameSize + sizeof(UINT8);
+        }
+
+        QByteArray name;
+        if (variableSize) {
+            name = data.mid(offset + sizeof(UINT8), nameSize);
+            // Check for EOF variable
+            if (nameSize == 3 && name[0] == 'E' && name[1] == 'O' && name[2] == 'F') {
+                // There is no data afterward, add EOF variable and free space and return
+                QByteArray header = data.mid(offset, sizeof(UINT8) + nameSize);
+                QString info = QObject::tr("Full size: %1h (%2)")
+                    .hexarg(header.size()).arg(header.size());
+                
+                // Add correct offset to parsing data
+                pdata.offset = parentOffset + offset;
+                
+                // Add EOF tree item
+                model->addItem(Types::NvramVariableFsys, 0, name, QString(), info, header, QByteArray(), FALSE, parsingDataToQByteArray(pdata), index);
+
+                // Add free space
+                offset += header.size();
+                unparsedSize = dataSize - offset;
+                QByteArray body = data.mid(offset);
+                info = QObject::tr("Full size: %1h (%2)")
+                    .hexarg(body.size()).arg(body.size());
+
+                // Add correct offset to parsing data
+                pdata.offset = parentOffset + offset;
+
+                // Add free space tree item
+                model->addItem(Types::FreeSpace, 0, QObject::tr("Free space"), QString(), info, QByteArray(), body, FALSE, parsingDataToQByteArray(pdata), index);
+
+                return ERR_SUCCESS;
+            }
+        }
+
+        // Get dataSize and data of the variable
+        const UINT16 dataSize = *(UINT16*)(data.constData() + offset + sizeof(UINT8) + nameSize);
+        if (unparsedSize >= sizeof(UINT8) + nameSize + sizeof(UINT16) + dataSize) {
+            variableSize = sizeof(UINT8) + nameSize + sizeof(UINT16) + dataSize;
+        }
+        else {
+            // Last variable is bad, add the rest as padding and return
+            QByteArray body = data.mid(offset);
+            QString info = QObject::tr("Full size: %1h (%2)")
+                .hexarg(body.size()).arg(body.size());
+
+            // Add correct offset to parsing data
+            pdata.offset = parentOffset + offset;
+
+            // Add free space tree item
+            model->addItem(Types::Padding, getPaddingType(body), QObject::tr("Padding"), QString(), info, QByteArray(), body, FALSE, parsingDataToQByteArray(pdata), index);
+            
+            // Show message
+            msg(QObject::tr("parseFsysStorageBody: variable appears too big, added as padding"), index);
+
+            return ERR_SUCCESS;
+        }
+
+        // Construct header and body
+        QByteArray header = data.mid(offset, sizeof(UINT8) + nameSize + sizeof(UINT16));
+        QByteArray body = data.mid(offset + sizeof(UINT8) + nameSize + sizeof(UINT16), dataSize);
+
+        // Add info
+        QString info = QObject::tr("Full size: %1h (%2)\nHeader size %3h (%4)\nBody size: %5h (%6)")
+            .hexarg(variableSize).arg(variableSize)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg(body.size()).arg(body.size());
+
+        // Add correct offset to parsing data
+        pdata.offset = parentOffset + offset;
+
+        // Add tree item
+        model->addItem(Types::NvramVariableFsys, 0, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), index);
+
+        // Move to next variable
+        offset += variableSize;
+    }
+    
+    return ERR_SUCCESS;
+}
+
+

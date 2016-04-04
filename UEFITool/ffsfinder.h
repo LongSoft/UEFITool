@@ -36,7 +36,7 @@ public:
 	
     STATUS findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode);
     STATUS findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode);
-    STATUS findTextPattern(const QModelIndex & index, const QString & pattern, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+    STATUS findTextPattern(const QModelIndex & index, const QString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 	
 private:
     const TreeModel* model;
