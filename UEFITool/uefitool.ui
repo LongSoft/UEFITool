@@ -413,9 +413,9 @@
      <addaction name="separator"/>
      <addaction name="actionRemove"/>
     </widget>
-    <widget class="QMenu" name="menuStorageActions">
+    <widget class="QMenu" name="menuStoreActions">
      <property name="title">
-      <string>S&amp;torage</string>
+      <string>S&amp;tore</string>
      </property>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -436,7 +436,7 @@
     <addaction name="menuVolumeActions"/>
     <addaction name="menuFileActions"/>
     <addaction name="menuSectionActions"/>
-    <addaction name="menuStorageActions"/>
+    <addaction name="menuStoreActions"/>
     <addaction name="menuVariableActions"/>
     <addaction name="separator"/>
     <addaction name="menuMessages"/>

@@ -51,7 +51,7 @@ typedef struct _FILE_PARSING_DATA {
 } FILE_PARSING_DATA;
 
 #define RAW_FILE_FORMAT_UNKNOWN      0
-#define RAW_FILE_FORMAT_NVAR_STORAGE 1
+#define RAW_FILE_FORMAT_NVAR_STORE   1
 
 typedef struct _COMPRESSED_SECTION_PARSING_DATA {
     UINT32 uncompressedSize;

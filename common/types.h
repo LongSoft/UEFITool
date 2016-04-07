@@ -43,33 +43,35 @@ namespace Types {
         File,
         Section,
         FreeSpace,
+        NvramStoreVss,
+        NvramStoreFdc,
+        NvramStoreFsys,
+        NvramStoreEvsa,
         NvramVariableNvar,
-        NvramStorageVss,
-        NvramStorageFdc,
-        NvramStorageFsys,
         NvramVariableVss,
-        NvramVariableFsys
+        NvramVariableFsys,
+        NvramEntryEvsa
     };
 }
 
 namespace Subtypes {
     enum ImageSubtypes{
-        IntelImage = 70,
+        IntelImage = 90,
         UefiImage
     };
 
     enum CapsuleSubtypes {
-        AptioSignedCapsule = 80,
+        AptioSignedCapsule = 100,
         AptioUnsignedCapsule,
         UefiCapsule,
         ToshibaCapsule
     };
 
     enum VolumeSubtypes {
-        UnknownVolume = 90,
+        UnknownVolume = 110,
         Ffs2Volume,
         Ffs3Volume,
-        VssNvramVolume
+        NvramVolume
     };
 
     enum RegionSubtypes {
@@ -86,24 +88,32 @@ namespace Subtypes {
     };
 
     enum PaddingSubtypes {
-        ZeroPadding = 110,
+        ZeroPadding = 120,
         OnePadding,
         DataPadding
     };
 
     enum NvarVariableSubtypes {
-        InvalidNvar = 120,
-        InvalidLinkNvar,
-        LinkNvar,
-        DataNvar,
-        FullNvar
+        InvalidNvarVariable = 130,
+        InvalidLinkNvarVariable,
+        LinkNvarVariable,
+        DataNvarVariable,
+        FullNvarVariable
     };
 
     enum VssVariableSubtypes {
-        InvalidVss = 130,
-        StandardVss,
-        AppleCrc32Vss,
-        AuthVss
+        InvalidVssVariable = 140,
+        StandardVssVariable,
+        Crc32VssVariable,
+        AuthVssVariable
+    };
+
+    enum EvsaVariableSubtypes {
+        InvalidEvsaEntry = 150,
+        UnknownEvsaEntry,
+        GuidEvsaEntry,
+        NameEvsaEntry,
+        DataEvsaEntry,
     };
 };
 

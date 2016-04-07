@@ -20,11 +20,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "basetypes.h"
 
 //
-// Let's start with NVAR storage, as the most difficult one
+// NVAR store
 //
 
 // CEF5B9A3-476D-497F-9FDC-E98143E0422C
-const QByteArray NVRAM_NVAR_STORAGE_FILE_GUID
+const QByteArray NVRAM_NVAR_STORE_FILE_GUID
 ("\xA3\xB9\xF5\xCE\x6D\x47\x7F\x49\x9F\xDC\xE9\x81\x43\xE0\x42\x2C", 16);
 
 // 9221315B-30BB-46B5-813E-1B1BF4712BD3
@@ -65,12 +65,16 @@ typedef struct _NVAR_VARIABLE_HEADER {
 #define NVRAM_NVAR_VARIABLE_EXT_ATTRIB_TIME_BASED  0x20
 
 //
-// Next format is TianoCore VSS and it's variations
+// TianoCore VSS and it's variations
 //
 
 // FFF12B8D-7696-4C8B-A985-2747075B4F50
-const QByteArray NVRAM_VSS_STORAGE_VOLUME_GUID
+const QByteArray NVRAM_VSS_STORE_VOLUME_GUID
 ("\x8D\x2B\xF1\xFF\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 16);
+
+// 00504624-8A59-4EEB-BD0F-6B36E96128E0
+const QByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID
+("\x24\x46\x50\x00\x59\x8A\xEB\x4E\xBD\x0F\x6B\x36\xE9\x61\x28\xE0", 16);
 
 #define NVRAM_VSS_STORE_SIGNATURE            0x53535624 // $VSS
 #define NVRAM_APPLE_SVS_STORE_SIGNATURE      0x53565324 // $SVS
@@ -90,28 +94,12 @@ const QByteArray NVRAM_VSS_STORAGE_VOLUME_GUID
 // Variable store header
 typedef struct _VSS_VARIABLE_STORE_HEADER {
     UINT32  Signature; // $VSS signature
-    UINT32  Size;      // Size of variable storage, including storage header
-    UINT8   Format;    // Storage format state
-    UINT8   State;     // Storage health state 
+    UINT32  Size;      // Size of variable store, including store header
+    UINT8   Format;    // Store format state
+    UINT8   State;     // Store health state 
     UINT16  Unknown;   // Used in Apple $SVS varstores
     UINT32  : 32;
 } VSS_VARIABLE_STORE_HEADER;
-
-// Apple Fsys store header
-typedef struct _APPLE_FSYS_STORE_HEADER {
-    UINT32  Signature;  // Fsys signature
-    UINT8   Unknown[5]; // Still unknown
-    UINT16  Size;       // Size of variable storage
-} APPLE_FSYS_STORE_HEADER;
-
-// Apple Fsys variable format
-// UINT8 NameLength;
-// CHAR8 Name[];
-// UINT16 DataLength;
-// UINT8 Data[]
-// Storage ends with a chunk named "EOF" without data
-// All free bytes in storage are zeroed
-// Has CRC32 of the whole store without checksum field at the end
 
 // Normal variable header
 typedef struct _VSS_VARIABLE_HEADER {
@@ -170,17 +158,84 @@ typedef struct _VSS_AUTH_VARIABLE_HEADER {
 // FDC region can be found in some VSS volumes
 // It has another VSS volume inside
 // _FDC header structure
+#define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
+
 typedef struct _FDC_VOLUME_HEADER {
-    UINT32 Signature;
+    UINT32 Signature; //_FDC
     UINT32 Size;
     //EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
     //VSS_VARIABLE_STORE_HEADER VssHeader;
 } FDC_VOLUME_HEADER;
 
-#define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
+//
+// Apple Fsys
+//
+
+typedef struct _APPLE_FSYS_STORE_HEADER {
+    UINT32  Signature;  // Fsys signature
+    UINT8   Unknown[5]; // Still unknown
+    UINT16  Size;       // Size of variable store
+} APPLE_FSYS_STORE_HEADER;
+
+// Apple Fsys variable format
+// UINT8 NameLength;
+// CHAR8 Name[];
+// UINT16 DataLength;
+// UINT8 Data[]
+// Store ends with a chunk named "EOF" without data
+// All free bytes in store are zeroed
+// Has CRC32 of the whole store without checksum field at the end
+
+//
+// EVSA
+//
+
+#define NVRAM_EVSA_STORE_SIGNATURE 0x41535645
+
+#define NVRAM_EVSA_ENTRY_TYPE_STORE 0xEC
+#define NVRAM_EVSA_ENTRY_TYPE_GUID1 0xED
+#define NVRAM_EVSA_ENTRY_TYPE_GUID2 0xE1
+#define NVRAM_EVSA_ENTRY_TYPE_NAME1 0xEE
+#define NVRAM_EVSA_ENTRY_TYPE_NAME2 0xE2
+#define NVRAM_EVSA_ENTRY_TYPE_DATA1 0xEF
+#define NVRAM_EVSA_ENTRY_TYPE_DATA2 0xE3
+#define NVRAM_EVSA_ENTRY_TYPE_DATA3 0x83
+
+typedef struct _EVSA_ENTRY_HEADER {
+    UINT8  Type;
+    UINT8  Checksum;
+    UINT16 Size;
+} EVSA_ENTRY_HEADER;
+
+typedef struct _EVSA_STORE_ENTRY {
+    EVSA_ENTRY_HEADER Header;
+    UINT32 Signature; // EVSA
+    UINT32 Attributes;
+    UINT32 StoreSize;
+    UINT32 : 32;
+} EVSA_STORE_ENTRY;
+
+typedef struct _EVSA_GUID_ENTRY {
+    EVSA_ENTRY_HEADER Header;
+    UINT16 GuidId;
+    EFI_GUID Guid;
+} EVSA_GUID_ENTRY;
+
+typedef struct _EVSA_NAME_ENTRY {
+    EVSA_ENTRY_HEADER Header;
+    UINT16 VarId;
+    //CHAR16 Name[];
+} EVSA_NAME_ENTRY;
+
+typedef struct _EVSA_DATA_ENTRY {
+    EVSA_ENTRY_HEADER Header;
+    UINT16 GuidId;
+    UINT16 VarId;
+    UINT32 Attributes;
+    //UINT8 Data[];
+} EVSA_DATA_ENTRY;
 
 // Restore previous packing rules
 #pragma pack(pop)
-
 #endif

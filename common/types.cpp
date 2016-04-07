@@ -65,18 +65,22 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("Section");
     case Types::FreeSpace:
         return QObject::tr("Free space");
+    case Types::NvramStoreVss:
+        return QObject::tr("VSS store");
+    case Types::NvramStoreFdc:
+        return QObject::tr("FDC store");
+    case Types::NvramStoreFsys:
+        return QObject::tr("Fsys store");
+    case Types::NvramStoreEvsa:
+        return QObject::tr("EVSA store");
     case Types::NvramVariableNvar:
         return QObject::tr("NVAR variable");
-    case Types::NvramStorageVss:
-        return QObject::tr("VSS storage");
-    case Types::NvramStorageFdc:
-        return QObject::tr("FDC storage");
-    case Types::NvramStorageFsys:
-        return QObject::tr("Fsys storage");
     case Types::NvramVariableVss:
         return QObject::tr("VSS variable");
     case Types::NvramVariableFsys:
         return QObject::tr("Fsys variable");
+    case Types::NvramEntryEvsa:
+        return QObject::tr("EVSA entry");
     default:
         return QObject::tr("Unknown");
     }
@@ -109,8 +113,8 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("FFSv2");
         else if (subtype == Subtypes::Ffs3Volume)
             return QObject::tr("FFSv3");
-        else if (subtype == Subtypes::VssNvramVolume)
-            return QObject::tr("VSS NVRAM");
+        else if (subtype == Subtypes::NvramVolume)
+            return QObject::tr("NVRAM");
         else
             return QObject::tr("Unknown subtype");
     case Types::Capsule: 
@@ -132,33 +136,47 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         return sectionTypeToQString(subtype);
     case Types::FreeSpace:
         return QString();
-    case Types::NvramVariableNvar:
-        if (subtype == Subtypes::InvalidNvar)
-            return QObject::tr("Invalid");
-        if (subtype == Subtypes::InvalidLinkNvar)
-            return QObject::tr("Invalid link");
-        if (subtype == Subtypes::LinkNvar)
-            return QObject::tr("Link");
-        if (subtype == Subtypes::DataNvar)
-            return QObject::tr("Data");
-        if (subtype == Subtypes::FullNvar)
-            return QObject::tr("Full");
-        else 
-            return QObject::tr("Unknown subtype");
-    case Types::NvramStorageVss:
-    case Types::NvramStorageFdc:
-    case Types::NvramStorageFsys:
+    case Types::NvramStoreVss:
+    case Types::NvramStoreFdc:
+    case Types::NvramStoreFsys:
+    case Types::NvramStoreEvsa:
     case Types::NvramVariableFsys:
         return QString();
-    case Types::NvramVariableVss:
-        if (subtype == Subtypes::InvalidVss)
+    case Types::NvramVariableNvar:
+        if (subtype == Subtypes::InvalidNvarVariable)
             return QObject::tr("Invalid");
-        if (subtype == Subtypes::StandardVss)
+        if (subtype == Subtypes::InvalidLinkNvarVariable)
+            return QObject::tr("Invalid link");
+        if (subtype == Subtypes::LinkNvarVariable)
+            return QObject::tr("Link");
+        if (subtype == Subtypes::DataNvarVariable)
+            return QObject::tr("Data");
+        if (subtype == Subtypes::FullNvarVariable)
+            return QObject::tr("Full");
+        else
+            return QObject::tr("Unknown subtype");
+    case Types::NvramVariableVss:
+        if (subtype == Subtypes::InvalidVssVariable)
+            return QObject::tr("Invalid");
+        if (subtype == Subtypes::StandardVssVariable)
             return QObject::tr("Standard");
-        if (subtype == Subtypes::AppleCrc32Vss)
+        if (subtype == Subtypes::Crc32VssVariable)
             return QObject::tr("Apple CRC32");
-        if (subtype == Subtypes::AuthVss)
+        if (subtype == Subtypes::AuthVssVariable)
             return QObject::tr("Auth");
+        else
+            return QObject::tr("Unknown subtype");
+    case Types::NvramEntryEvsa:
+        if (subtype == Subtypes::InvalidEvsaEntry)
+            return QObject::tr("Invalid");
+        if (subtype == Subtypes::UnknownEvsaEntry)
+            return QObject::tr("Unknown");
+        if (subtype == Subtypes::GuidEvsaEntry)
+            return QObject::tr("GUID");
+        if (subtype == Subtypes::NameEvsaEntry)
+            return QObject::tr("Name");
+        if (subtype == Subtypes::DataEvsaEntry)
+            return QObject::tr("Data");
         else
             return QObject::tr("Unknown subtype");
     default:

@@ -107,14 +107,15 @@ private:
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
 
     // NVRAM parsing
-    STATUS parseNvarStorage(const QByteArray & data, const QModelIndex & index);
+    STATUS parseNvarStore(const QByteArray & data, const QModelIndex & index);
 
-    STATUS parseStorageArea(const QByteArray & data, const QModelIndex & index);
-    STATUS findNextStorage(const QModelIndex & index, const QByteArray & data, const UINT32 parentOffset, const UINT32 storageOffset, UINT32 & nextStorageOffset);
-    STATUS getStorageSize(const QByteArray & data, const UINT32 storageOffset, UINT32 & storageSize);
-    STATUS parseStorageHeader(const QByteArray & storage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseVssStorageBody(const QModelIndex & index);
-    STATUS parseFsysStorageBody(const QModelIndex & index);
+    STATUS parseStoreArea(const QByteArray & data, const QModelIndex & index);
+    STATUS findNextStore(const QModelIndex & index, const QByteArray & data, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
+    STATUS getStoreSize(const QByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
+    STATUS parseStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseVssStoreBody(const QModelIndex & index);
+    STATUS parseFsysStoreBody(const QModelIndex & index);
+    STATUS parseEvsaStoreBody(const QModelIndex & index);
 
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());

@@ -153,13 +153,13 @@ STATUS FitParser::findFitRecursive(const QModelIndex & index, QModelIndex & foun
 {
     // Sanity check
     if (!index.isValid())
-        return EFI_SUCCESS;
+        return ERR_SUCCESS;
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
         findFitRecursive(index.child(i, 0), found, fitOffset);
         if (found.isValid())
-            return EFI_SUCCESS;
+            return ERR_SUCCESS;
     }
 
     // Get parsing data for the current item

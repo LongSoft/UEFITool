@@ -176,11 +176,11 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
     ui->menuVariableActions->setEnabled(type == Types::NvramVariableNvar || type == Types::NvramVariableVss || type == Types::NvramVariableFsys);
-    ui->menuStorageActions->setEnabled(type == Types::NvramStorageVss || type == Types::NvramStorageFdc || type == Types::NvramStorageFsys);
+    ui->menuStoreActions->setEnabled(type == Types::NvramStoreVss || type == Types::NvramStoreFdc || type == Types::NvramStoreFsys || type == Types::NvramStoreEvsa);
     
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
-    ui->actionGoToData->setEnabled(type == Types::NvramVariableNvar && subtype == Subtypes::LinkNvar);
+    ui->actionGoToData->setEnabled(type == Types::NvramVariableNvar && subtype == Subtypes::LinkNvarVariable);
 
     // Disable rebuild for now
     //ui->actionRebuild->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
@@ -284,7 +284,7 @@ void UEFITool::search()
 void UEFITool::goToData()
 {
     QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid() || model->type(index) != Types::NvramVariableNvar || model->subtype(index) != Subtypes::LinkNvar)
+    if (!index.isValid() || model->type(index) != Types::NvramVariableNvar || model->subtype(index) != Subtypes::LinkNvarVariable)
         return;
 
     // Get parent
@@ -543,12 +543,15 @@ void UEFITool::extract(const UINT8 mode)
         case Types::NvramVariableVss:
             path = QFileDialog::getSaveFileName(this, tr("Save variable to file"), name + ".var", "Variable files (*.var *.bin);;All files (*)");
             break;
-        case Types::NvramStorageVss:
-        case Types::NvramStorageFdc:
-            path = QFileDialog::getSaveFileName(this, tr("Save variable storage to file"), name + ".vss", "Variable storage files (*.vss *.bin);;All files (*)");
+        case Types::NvramStoreVss:
+        case Types::NvramStoreFdc:
+            path = QFileDialog::getSaveFileName(this, tr("Save variable store to file"), name + ".vss", "Variable store files (*.vss *.bin);;All files (*)");
             break;
-        case Types::NvramStorageFsys:
-            path = QFileDialog::getSaveFileName(this, tr("Save Fsys storage to file"), name + ".fsys", "Fsys storage files (*.fsys *.bin);;All files (*)");
+        case Types::NvramStoreFsys:
+            path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"), name + ".fsys", "Fsys store files (*.fsys *.bin);;All files (*)");
+            break;
+        case Types::NvramStoreEvsa:
+            path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"), name + ".evsa", "EVSA store files (*.evsa *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -586,12 +589,15 @@ void UEFITool::extract(const UINT8 mode)
         case Types::NvramVariableVss:
             path = QFileDialog::getSaveFileName(this, tr("Save variable body to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
             break;
-        case Types::NvramStorageVss:
-        case Types::NvramStorageFdc:
-            path = QFileDialog::getSaveFileName(this, tr("Save variable storage body to file"), name + ".vsb", "Variable storage body files (*.vsb *.bin);;All files (*)");
+        case Types::NvramStoreVss:
+        case Types::NvramStoreFdc:
+            path = QFileDialog::getSaveFileName(this, tr("Save variable store body to file"), name + ".vsb", "Variable store body files (*.vsb *.bin);;All files (*)");
             break;
-        case Types::NvramStorageFsys:
-            path = QFileDialog::getSaveFileName(this, tr("Save Fsys storage body to file"), name + ".fsb", "Fsys storage body files (*.fsb *.bin);;All files (*)");
+        case Types::NvramStoreFsys:
+            path = QFileDialog::getSaveFileName(this, tr("Save Fsys store body to file"), name + ".fsb", "Fsys store body files (*.fsb *.bin);;All files (*)");
+            break;
+        case Types::NvramStoreEvsa:
+            path = QFileDialog::getSaveFileName(this, tr("Save EVSA store body to file"), name + ".esb", "EVSA store body files (*.esb *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -959,10 +965,11 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::NvramVariableFsys:
         ui->menuVariableActions->exec(event->globalPos());
         break;
-    case Types::NvramStorageVss:
-    case Types::NvramStorageFdc:
-    case Types::NvramStorageFsys:
-        ui->menuStorageActions->exec(event->globalPos());
+    case Types::NvramStoreVss:
+    case Types::NvramStoreFdc:
+    case Types::NvramStoreFsys:
+    case Types::NvramStoreEvsa:
+        ui->menuStoreActions->exec(event->globalPos());
         break;
     }
 }

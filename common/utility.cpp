@@ -95,7 +95,7 @@ QString errorCodeToQString(UINT8 errorCode)
     case ERR_DEPEX_PARSE_FAILED:              return QObject::tr("Dependency expression parsing failed");
     case ERR_TRUNCATED_IMAGE:                 return QObject::tr("Image is truncated");
     case ERR_INVALID_CAPSULE:                 return QObject::tr("Invalid capsule");
-    case ERR_STORAGES_NOT_FOUND:              return QObject::tr("Storages not found");
+    case ERR_STORES_NOT_FOUND:                return QObject::tr("Stores not found");
     default:                                  return QObject::tr("Unknown error %1").arg(errorCode);
     }
 }
