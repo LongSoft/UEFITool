@@ -1046,7 +1046,7 @@ STATUS FfsParser::parseVolumeHeader(const QByteArray & volume, const UINT32 pare
     }
 
     // Check for VSS NVRAM volume
-    if (guid == NVRAM_VSS_STORE_VOLUME_GUID || guid == NVRAM_ADDITIONAL_STORE_VOLUME_GUID) {
+    if (guid == NVRAM_MAIN_STORE_VOLUME_GUID || guid == NVRAM_ADDITIONAL_STORE_VOLUME_GUID) {
         isUnknown = false;
         isNvramVolume = true;
     }
@@ -3200,13 +3200,11 @@ parsing_done:
             msg(QObject::tr("parseNvarStore: extended data size (%1h) is smaller than required for timestamp and hash (0x28)")
             .hexarg(extendedData.size()), varIndex);
 
-        // Check variable name to be in the list of nesting variables
-        if (text == QString("StdDefaults") || text == QString("MfgDefaults")) {
-            STATUS result = parseNvarStore(body, varIndex);
-            if (result)
-                msg(QObject::tr("parseNvarStore: parsing of nested NVAR store failed with error \"%1\"").arg(errorCodeToQString(result)), varIndex);
-        }
-
+        // Try parsing the variable data as NVAR storage if it begins with NVAR signature
+        if ((subtype == Subtypes::DataNvarVariable || subtype == Subtypes::FullNvarVariable) && 
+            *(const UINT32*)body.constData() == NVRAM_NVAR_VARIABLE_SIGNATURE)
+            parseNvarStore(body, varIndex);
+        
         // Move to next variable
         offset += variableHeader->Size;
     }
@@ -3281,16 +3279,10 @@ STATUS FfsParser::parseStoreArea(const QByteArray & data, const QModelIndex & in
             return result;
         }
 
-        // Check that store is fully present in input
+        // Check that current store is fully present in input
         if (storeSize > (UINT32)data.size() || storeOffset + storeSize > (UINT32)data.size()) {
-            msg(QObject::tr("parseVssStoreArea: one of stores inside overlaps the end of data"), index);
-            return ERR_INVALID_VOLUME;
-        }
-
-        QByteArray store = data.mid(storeOffset, storeSize);
-        if (storeSize > (UINT32)store.size()) {
             // Mark the rest as padding and finish the parsing
-            QByteArray padding = data.right(store.size());
+            QByteArray padding = data.mid(storeOffset);
 
             // Get info
             name = QObject::tr("Padding");
@@ -3310,6 +3302,7 @@ STATUS FfsParser::parseStoreArea(const QByteArray & data, const QModelIndex & in
             break;
         }
 
+        QByteArray store = data.mid(storeOffset, storeSize);
         // Parse current volume's header
         QModelIndex storeIndex;
         result = parseStoreHeader(store, parentOffset + storeOffset, index, storeIndex);
@@ -3373,6 +3366,7 @@ STATUS FfsParser::parseStoreArea(const QByteArray & data, const QModelIndex & in
         case Types::NvramStoreEvsa:
             parseEvsaStoreBody(current);
             break;
+        case Types::NvramFtwBlock:
         case Types::Padding:
             // No parsing required
             break;
@@ -3404,34 +3398,70 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
                 msg(QObject::tr("findNextStore: VSS store candidate at offset %1h skipped, has invalid size %2h").hexarg(parentOffset + offset).hexarg2(vssHeader->Size, 8), index);
                 continue;
             }
-
             // All checks passed, store found
             break;
         }
         else if (*currentPos == NVRAM_FDC_VOLUME_SIGNATURE) { //FDC signature found
-            // No checks needed
+            const FDC_VOLUME_HEADER* fdcHeader = (const FDC_VOLUME_HEADER*)currentPos;
+            if (fdcHeader->Size == 0 || fdcHeader->Size == 0xFFFFFFFF) {
+                msg(QObject::tr("findNextStore: FDC store candidate at offset %1h skipped, has invalid size %2h").hexarg(parentOffset + offset).hexarg2(fdcHeader->Size, 8), index);
+                continue;
+            }
+            // All checks passed, store found
             break;
         }
         else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE) { //Fsys signature found
-            // No checks needed
+            const APPLE_FSYS_STORE_HEADER* fsysHeader = (const APPLE_FSYS_STORE_HEADER*)currentPos;
+            if (fsysHeader->Size == 0 || fsysHeader->Size == 0xFFFF) {
+                msg(QObject::tr("findNextStore: Fsys store candidate at offset %1h skipped, has invalid size %2h").hexarg(parentOffset + offset).hexarg2(fsysHeader->Size, 4), index);
+                continue;
+            }
+            // All checks passed, store found
             break;
         }
         else if (*currentPos == NVRAM_EVSA_STORE_SIGNATURE) { //EVSA signature found
             if (offset < 4)
                 continue;
-
             const EVSA_STORE_ENTRY* evsaHeader = (const EVSA_STORE_ENTRY*)(currentPos - 1);
             if (evsaHeader->Header.Type != NVRAM_EVSA_ENTRY_TYPE_STORE) {
                 msg(QObject::tr("findNextStore: EVSA store candidate at offset %1h skipped, has invalid type %2h").hexarg(parentOffset + offset - 4).hexarg2(evsaHeader->Header.Type, 2), index);
                 continue;
             }
-
+            if (evsaHeader->StoreSize == 0 || evsaHeader->StoreSize == 0xFFFFFFFF) {
+                msg(QObject::tr("findNextStore: EVSA store candidate at offset %1h skipped, has invalid size %2h").hexarg(parentOffset + offset).hexarg2(evsaHeader->StoreSize, 8), index);
+                continue;
+            }
             // All checks passed, store found
             offset -= 4;
             break;
         }
+        else if (*currentPos == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1) { //Possible FTW block signature found
+            if (QByteArray(data.constData() + offset, sizeof(EFI_GUID)) != NVRAM_MAIN_STORE_VOLUME_GUID) // Check the whole signature
+                continue;
+
+            // Detect header variant based on WriteQueueSize
+            const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* ftwHeader = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)currentPos;
+            if (ftwHeader->WriteQueueSize % 0x10 == 0x04) { // Header with 32 bit WriteQueueSize
+                if (ftwHeader->WriteQueueSize == 0 || ftwHeader->WriteQueueSize == 0xFFFFFFFF) {
+                    msg(QObject::tr("findNextStore: FTW block candidate at offset %1h skipped, has invalid body size %2h").hexarg(parentOffset + offset).hexarg2(ftwHeader->WriteQueueSize, 8), index);
+                    continue;
+                }
+            }
+            else if (ftwHeader->WriteQueueSize % 0x10 == 0x00) { // Header with 64 bit WriteQueueSize
+                const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)currentPos;
+                if (ftw64Header->WriteQueueSize == 0 || ftw64Header->WriteQueueSize >= 0xFFFFFFFF) {
+                    msg(QObject::tr("findNextStore: FTW block candidate at offset %1h skipped, has invalid body size %2h").hexarg(parentOffset + offset).hexarg2(ftw64Header->WriteQueueSize, 16), index);
+                    continue;
+                }
+            }
+            else // Unknown header
+                continue;
+                        
+            // All checks passed, store found
+            break;
+        }
     }
-    // No more storas found
+    // No more stores found
     if (offset >= dataSize - sizeof(UINT32))
         return ERR_STORES_NOT_FOUND;
 
@@ -3442,7 +3472,6 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
 
 STATUS FfsParser::getStoreSize(const QByteArray & data, const UINT32 storeOffset, UINT32 & storeSize)
 {
-    //TODO: add GUID support
     const UINT32* signature = (const UINT32*)(data.constData() + storeOffset);
     if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
         const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)signature;
@@ -3460,13 +3489,23 @@ STATUS FfsParser::getStoreSize(const QByteArray & data, const UINT32 storeOffset
         const EVSA_STORE_ENTRY* evsaHeader = (const EVSA_STORE_ENTRY*)signature;
         storeSize = evsaHeader->StoreSize;
     }
+    else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1) {
+        const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* ftwHeader = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)signature;
+        if (ftwHeader->WriteQueueSize % 0x10 == 0x04) { // Header with 32 bit WriteQueueSize
+            storeSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32) + ftwHeader->WriteQueueSize;
+        }
+        else { //  Header with 64 bit WriteQueueSize
+            const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)signature;
+            storeSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + ftw64Header->WriteQueueSize;
+        }
+    }
     return ERR_SUCCESS;
 }
 
 STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index)
 {
     // Parse VSS volume like raw area
-    //TODO: seen for now - $VSS, $SVS, Fsys, full volume GUID, _FDC, EVSA and paddings 
+    //Seen for now: $VSS, $SVS, Fsys, FTW block, _FDC, EVSA, _FLASH_MAP and paddings 
 
     const UINT32 dataSize = (UINT32)store.size();
     const UINT32* signature = (const UINT32*)store.constData();
@@ -3684,6 +3723,68 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
 
         // Add tree item
         index = model->addItem(Types::NvramStoreEvsa, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
+    }
+    else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1) {
+        // The volume must begin with a store to be valid, but after the first one, there can be many variants
+        if (dataSize < sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64)) {
+            msg(QObject::tr("parseStoreHeader: volume body is too small even for FTW block header"), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Get FTW block headers
+        const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* ftw32BlockHeader = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)signature;
+        const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64BlockHeader = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)signature;
+
+        // Check store size
+        UINT32 ftwBlockSize;
+        bool has32bitHeader;
+        if (ftw32BlockHeader->WriteQueueSize % 0x10 == 0x04) { // Header with 32 bit WriteQueueSize
+            ftwBlockSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32) + ftw32BlockHeader->WriteQueueSize;
+            has32bitHeader = true;
+        }
+        else { // Header with 64 bit WriteQueueSize
+            ftwBlockSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + ftw64BlockHeader->WriteQueueSize;
+            has32bitHeader = false;
+        }
+        if (dataSize < ftwBlockSize) {
+            msg(QObject::tr("parseStoreHeader: FTW block size %1h (%2) is greater than volume body size %3h (%4)")
+                .hexarg2(ftwBlockSize, 4).arg(ftwBlockSize)
+                .hexarg2(dataSize, 8).arg(dataSize), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Get parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
+
+        // Construct header and body
+        UINT32 headerSize = has32bitHeader ? sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32) : sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64);
+        QByteArray header = store.left(headerSize);
+        QByteArray body = store.mid(headerSize, ftwBlockSize - headerSize);
+
+        // Check block header checksum
+        QByteArray crcHeader = header;
+        EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* crcFtwBlockHeader = (EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)header.data();
+        crcFtwBlockHeader->Crc = pdata.emptyByte ? 0xFFFFFFFF : 0;
+        crcFtwBlockHeader->State = pdata.emptyByte ? 0xFF : 0;
+        UINT32 calculatedCrc = crc32(0, (const UINT8*)crcFtwBlockHeader, headerSize);
+        
+        // Add info
+        QString name = QObject::tr("FTW block");
+        QString info = QObject::tr("Signature: %1\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nState: %8h\nHeader CRC32: %9")
+            .arg(guidToQString(ftw32BlockHeader->Signature))
+            .hexarg(ftwBlockSize).arg(ftwBlockSize)
+            .hexarg(headerSize).arg(headerSize)
+            .hexarg(body.size()).arg(body.size())
+            .hexarg2(ftw32BlockHeader->State, 2)
+            .arg(ftw32BlockHeader->Crc == calculatedCrc ? 
+                QObject::tr("%1h, valid").hexarg2(ftw32BlockHeader->Crc, 8) : 
+                QObject::tr("%1h, invalid, should be %2h").hexarg2(ftw32BlockHeader->Crc, 8).hexarg2(calculatedCrc, 8));
+
+        // Add correct offset
+        pdata.offset = parentOffset;
+
+        // Add tree item
+        index = model->addItem(Types::NvramFtwBlock, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
 
     return ERR_SUCCESS;
@@ -3972,7 +4073,7 @@ STATUS FfsParser::parseFsysStoreBody(const QModelIndex & index)
             model->addItem(Types::Padding, getPaddingType(body), QObject::tr("Padding"), QString(), info, QByteArray(), body, FALSE, parsingDataToQByteArray(pdata), index);
             
             // Show message
-            msg(QObject::tr("parseFsysStoreBody: variable appears too big, added as padding"), index);
+            msg(QObject::tr("parseFsysStoreBody: next variable appears too big, added as padding"), index);
 
             return ERR_SUCCESS;
         }
@@ -4015,11 +4116,13 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
     const UINT32 dataSize = (UINT32)data.size();
     UINT32 offset = 0;
 
-    // Parse all variables
-    while (1) {
-        UINT32 unparsedSize = dataSize - offset;
-        UINT32 variableSize = 0;
+    std::map<UINT16, EFI_GUID> guidMap;
+    std::map<UINT16, QString> nameMap;
 
+    // Parse all variables
+    UINT32 unparsedSize = dataSize;
+    while (unparsedSize) {
+        UINT32 variableSize = 0;
         QString name;
         QString info;
         QByteArray header;
@@ -4032,8 +4135,22 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
         // Check variable size
         variableSize = sizeof(EVSA_ENTRY_HEADER);
         if (unparsedSize < variableSize || unparsedSize < entryHeader->Size) {
-            //Add the rest as padding and break from cycle
-            return ERR_SUCCESS;
+            // Last variable is bad, add the rest as padding and return
+            QByteArray body = data.mid(offset);
+            QString info = QObject::tr("Full size: %1h (%2)")
+                .hexarg(body.size()).arg(body.size());
+
+            // Add correct offset to parsing data
+            pdata.offset = parentOffset + offset;
+
+            // Add free space tree item
+            model->addItem(Types::Padding, getPaddingType(body), QObject::tr("Padding"), QString(), info, QByteArray(), body, FALSE, parsingDataToQByteArray(pdata), index);
+
+            // Show message
+            if (unparsedSize < entryHeader->Size)
+                msg(QObject::tr("parseEvsaStoreBody: next variable appears too big, added as padding"), index);
+            
+            break;
         }
         variableSize = entryHeader->Size;
 
@@ -4056,6 +4173,7 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
                     QObject::tr("%1h, invalid, should be %2h").hexarg2(guidHeader->Header.Checksum, 2).hexarg2(calculated, 2))
                 .hexarg2(guidHeader->GuidId, 4);
             subtype = Subtypes::GuidEvsaEntry;
+            guidMap.insert_or_assign(guidHeader->GuidId, guidHeader->Guid);
         }
         // Name entry
         else if (entryHeader->Type == NVRAM_EVSA_ENTRY_TYPE_NAME1 ||
@@ -4074,6 +4192,7 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
                     QObject::tr("%1h, invalid, should be %2h").hexarg2(nameHeader->Header.Checksum, 2).hexarg2(calculated, 2))
                 .hexarg2(nameHeader->VarId, 4);
             subtype = Subtypes::NameEvsaEntry;
+            nameMap.insert_or_assign(nameHeader->VarId, name);
         }
         // Data entry
         else if (entryHeader->Type == NVRAM_EVSA_ENTRY_TYPE_DATA1 ||
@@ -4098,7 +4217,18 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
         }
         // Unknown entry
         else {
-            ;
+            header = data.mid(offset, sizeof(EVSA_ENTRY_HEADER));
+            body = data.mid(offset + sizeof(EVSA_ENTRY_HEADER), entryHeader->Size - sizeof(EVSA_ENTRY_HEADER));
+            name = QObject::tr("Unknown");
+            info = QObject::tr("Full size: %1h (%2)\nHeader size %3h (%4)\nBody size: %5h (%6)\nType: %7h\nChecksum: %8")
+                .hexarg(variableSize).arg(variableSize)
+                .hexarg(header.size()).arg(header.size())
+                .hexarg(body.size()).arg(body.size())
+                .hexarg2(entryHeader->Type, 2)
+                .arg(entryHeader->Checksum == calculated ?
+                    QObject::tr("%1h, valid").hexarg2(calculated, 2) :
+                    QObject::tr("%1h, invalid, should be %2h").hexarg2(entryHeader->Checksum, 2).hexarg2(calculated, 2));
+            subtype = Subtypes::UnknownEvsaEntry;
         }
 
         // Add correct offset to parsing data
@@ -4109,9 +4239,44 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
 
         // Move to next variable
         offset += variableSize;
+        unparsedSize = dataSize - offset;
     }
 
-
+    // Reparse all data variables to detect invalid ones and assign name and test to valid ones
+    for (int i = 0; i < model->rowCount(index); i++) {
+        QModelIndex current = index.child(i, 0);
+        if (model->subtype(current) == Subtypes::DataEvsaEntry) {
+            QByteArray header = model->header(current);
+            const EVSA_DATA_ENTRY* dataHeader = (const EVSA_DATA_ENTRY*)header.constData();
+            QString guid;
+            if (guidMap.count(dataHeader->GuidId)) 
+                guid = guidToQString(guidMap[dataHeader->GuidId]);
+            QString name;
+            if (nameMap.count(dataHeader->VarId))
+                name = nameMap[dataHeader->VarId];
+            
+            // Check for variable validity
+            if (guid.isEmpty() && name.isEmpty()) { // Both name and guid aren't found
+                model->setSubtype(current, Subtypes::InvalidEvsaEntry);
+                model->setName(current, QObject::tr("Invalid"));
+                msg(QObject::tr("parseEvsaStoreBody: data variable with invalid GuidId and invalid VarId"), current);
+            }
+            else if (guid.isEmpty()) { // Guid not found
+                model->setSubtype(current, Subtypes::InvalidEvsaEntry);
+                model->setName(current, QObject::tr("Invalid"));
+                msg(QObject::tr("parseEvsaStoreBody: data variable with invalid GuidId"), current);
+            }
+            else if (name.isEmpty()) { // Name not found
+                model->setSubtype(current, Subtypes::InvalidEvsaEntry);
+                model->setName(current, QObject::tr("Invalid"));
+                msg(QObject::tr("parseEvsaStoreBody: data variable with invalid VarId"), current);
+            }
+            else { // Variable is OK, rename it
+                model->setName(current, guid);
+                model->setText(current, name);
+            }
+        }
+    }
 
     return ERR_SUCCESS;
 }

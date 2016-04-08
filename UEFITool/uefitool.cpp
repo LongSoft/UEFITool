@@ -176,7 +176,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
     ui->menuVariableActions->setEnabled(type == Types::NvramVariableNvar || type == Types::NvramVariableVss || type == Types::NvramVariableFsys);
-    ui->menuStoreActions->setEnabled(type == Types::NvramStoreVss || type == Types::NvramStoreFdc || type == Types::NvramStoreFsys || type == Types::NvramStoreEvsa);
+    ui->menuStoreActions->setEnabled(type == Types::NvramStoreVss || type == Types::NvramStoreFdc || type == Types::NvramStoreFsys || type == Types::NvramStoreEvsa || type == Types::NvramFtwBlock);
     
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
@@ -553,6 +553,9 @@ void UEFITool::extract(const UINT8 mode)
         case Types::NvramStoreEvsa:
             path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"), name + ".evsa", "EVSA store files (*.evsa *.bin);;All files (*)");
             break;
+        case Types::NvramFtwBlock:
+            path = QFileDialog::getSaveFileName(this, tr("Save FTW block to file"), name + ".ftw", "FTW block files (*.ftw *.bin);;All files (*)");
+            break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
         }
@@ -598,6 +601,9 @@ void UEFITool::extract(const UINT8 mode)
             break;
         case Types::NvramStoreEvsa:
             path = QFileDialog::getSaveFileName(this, tr("Save EVSA store body to file"), name + ".esb", "EVSA store body files (*.esb *.bin);;All files (*)");
+            break;
+        case Types::NvramFtwBlock:
+            path = QFileDialog::getSaveFileName(this, tr("Save FTW block body to file"), name + ".ftb", "FTW block body files (*.ftb *.bin);;All files (*)");
             break;
         default:
             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
@@ -969,6 +975,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::NvramStoreFdc:
     case Types::NvramStoreFsys:
     case Types::NvramStoreEvsa:
+    case Types::NvramFtwBlock:
         ui->menuStoreActions->exec(event->globalPos());
         break;
     }

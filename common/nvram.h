@@ -40,7 +40,7 @@ extern QString efiTimeToQString(const EFI_TIME & time);
 
 // Variable header
 typedef struct _NVAR_VARIABLE_HEADER {
-    UINT32 Signature;      // NVAR signature
+    UINT32 Signature;      // NVAR
     UINT16 Size;           // Size of the variable including header
     UINT32 Next : 24;      // Offset to the next variable in a list, or empty if latest in the list
     UINT32 Attributes : 8; // Attributes
@@ -64,13 +64,16 @@ typedef struct _NVAR_VARIABLE_HEADER {
 #define NVRAM_NVAR_VARIABLE_EXT_ATTRIB_AUTH_WRITE  0x10
 #define NVRAM_NVAR_VARIABLE_EXT_ATTRIB_TIME_BASED  0x20
 
+
+
 //
 // TianoCore VSS and it's variations
 //
 
 // FFF12B8D-7696-4C8B-A985-2747075B4F50
-const QByteArray NVRAM_VSS_STORE_VOLUME_GUID
+const QByteArray NVRAM_MAIN_STORE_VOLUME_GUID
 ("\x8D\x2B\xF1\xFF\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 16);
+#define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1   0xFFF12B8D
 
 // 00504624-8A59-4EEB-BD0F-6B36E96128E0
 const QByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID
@@ -167,6 +170,28 @@ typedef struct _FDC_VOLUME_HEADER {
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
     //VSS_VARIABLE_STORE_HEADER VssHeader;
 } FDC_VOLUME_HEADER;
+
+// FTW block
+// EFI Fault tolerant working block header
+#define EFI_FAULT_TOLERANT_WORKING_BLOCK_VALID   0x1
+#define EFI_FAULT_TOLERANT_WORKING_BLOCK_INVALID 0x2
+typedef struct {
+    EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID
+    UINT32    Crc; // Crc32 of the header with empty Crc and State fields
+    UINT8     State;
+    UINT8     Reserved3[3];
+    UINT32    WriteQueueSize; // Size of the FTW block without the header
+    //UINT8   WriteQueue[WriteQueueSize];
+} EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32;
+
+typedef struct {
+    EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID
+    UINT32    Crc; // Crc32 of the header with empty Crc and State fields
+    UINT8     State;
+    UINT8     Reserved3[3];
+    UINT64    WriteQueueSize; // Size of the FTW block without the header
+    //UINT8   WriteQueue[WriteQueueSize];
+} EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64;
 
 //
 // Apple Fsys

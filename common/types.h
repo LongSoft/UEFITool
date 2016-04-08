@@ -47,6 +47,7 @@ namespace Types {
         NvramStoreFdc,
         NvramStoreFsys,
         NvramStoreEvsa,
+        NvramFtwBlock,
         NvramVariableNvar,
         NvramVariableVss,
         NvramVariableFsys,

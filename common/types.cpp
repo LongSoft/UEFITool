@@ -73,6 +73,8 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("Fsys store");
     case Types::NvramStoreEvsa:
         return QObject::tr("EVSA store");
+    case Types::NvramFtwBlock:
+        return QObject::tr("FTW block");
     case Types::NvramVariableNvar:
         return QObject::tr("NVAR variable");
     case Types::NvramVariableVss:
@@ -140,6 +142,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
     case Types::NvramStoreFdc:
     case Types::NvramStoreFsys:
     case Types::NvramStoreEvsa:
+    case Types::NvramFtwBlock:
     case Types::NvramVariableFsys:
         return QString();
     case Types::NvramVariableNvar:
