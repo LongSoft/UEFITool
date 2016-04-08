@@ -4173,7 +4173,7 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
                     QObject::tr("%1h, invalid, should be %2h").hexarg2(guidHeader->Header.Checksum, 2).hexarg2(calculated, 2))
                 .hexarg2(guidHeader->GuidId, 4);
             subtype = Subtypes::GuidEvsaEntry;
-            guidMap.insert_or_assign(guidHeader->GuidId, guidHeader->Guid);
+            guidMap.insert(std::pair<UINT16, EFI_GUID>(guidHeader->GuidId, guidHeader->Guid));
         }
         // Name entry
         else if (entryHeader->Type == NVRAM_EVSA_ENTRY_TYPE_NAME1 ||
@@ -4192,7 +4192,7 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
                     QObject::tr("%1h, invalid, should be %2h").hexarg2(nameHeader->Header.Checksum, 2).hexarg2(calculated, 2))
                 .hexarg2(nameHeader->VarId, 4);
             subtype = Subtypes::NameEvsaEntry;
-            nameMap.insert_or_assign(nameHeader->VarId, name);
+            nameMap.insert(std::pair<UINT16, QString>(nameHeader->VarId, name));
         }
         // Data entry
         else if (entryHeader->Type == NVRAM_EVSA_ENTRY_TYPE_DATA1 ||
