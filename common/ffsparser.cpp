@@ -3943,7 +3943,7 @@ STATUS FfsParser::parseVssStoreBody(const QModelIndex & index)
 
         QString info;
         
-        // Rename deleted variables
+        // Rename invalid variables
         if (isInvalid) {
             name = QObject::tr("Invalid");
         }

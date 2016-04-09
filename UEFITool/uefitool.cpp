@@ -130,17 +130,14 @@ void UEFITool::init()
     ui->actionMessagesCopyAll->setDisabled(true);
 
     // Create new model ...
-    if (model)
-        delete model;
-     model = new TreeModel();
+    delete model;
+    model = new TreeModel();
     ui->structureTreeView->setModel(model);
     // ... and ffsParser
-    if (ffsParser)
-        delete ffsParser;
+    delete ffsParser;
     ffsParser = new FfsParser(model);
     // ... and fitParser
-    if (fitParser)
-        delete fitParser;
+    delete fitParser;
     fitParser = new FitParser(model);
 
     // Connect
@@ -678,8 +675,7 @@ void UEFITool::saveImageFile()
 
     QByteArray reconstructed;
     // Create ffsBuilder
-    if (!ffsBuilder)
-        delete ffsBuilder;
+    delete ffsBuilder;
     ffsBuilder = new FfsBuilder(model);
     STATUS result = ffsBuilder->build(model->index(0,0), reconstructed);
     showBuilderMessages();
@@ -759,13 +755,11 @@ void UEFITool::openImageFile(QString path)
     }
 
     // Enable search ...
-    if (ffsFinder)
-        delete ffsFinder;
+    delete ffsFinder;
     ffsFinder = new FfsFinder(model);
     ui->actionSearch->setEnabled(true);
     // ... and other operations
-    if (ffsOps)
-        delete ffsOps;
+    delete ffsOps;
     ffsOps = new FfsOperations(model);
 
     // Set current directory
