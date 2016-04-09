@@ -10,8 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef __FITPARSER_H__
-#define __FITPARSER_H__
+#ifndef FITPARSER_H
+#define FITPARSER_H
 
 #include <vector>
 
@@ -56,4 +56,4 @@ private:
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };
 
-#endif
+#endif // FITPARSER_H

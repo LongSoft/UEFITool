@@ -14,8 +14,8 @@ routines without the need of backward traversal
 
 */
 
-#ifndef __PARSINGDATA_H__
-#define __PARSINGDATA_H__
+#ifndef PARSINGDATA_H
+#define PARSINGDATA_H
 
 #include "basetypes.h"
 
@@ -96,6 +96,7 @@ typedef struct _NVRAM_PARSING_DATA {
     //};
 } NVRAM_PARSING_DATA;
 
+// TODO: add more NVRAM-related PD
 
 typedef struct _PARSING_DATA {
     UINT8   emptyByte;
@@ -114,4 +115,4 @@ typedef struct _PARSING_DATA {
     };
 } PARSING_DATA;
 
-#endif
+#endif // NVRAM_H

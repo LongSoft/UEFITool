@@ -10,8 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef __FFSPARSER_H__
-#define __FFSPARSER_H__
+#ifndef FFSPARSER_H
+#define FFSPARSER_H
 
 #include <vector>
 
@@ -121,4 +121,4 @@ private:
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };
 
-#endif
+#endif // FFSPARSER_H

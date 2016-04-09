@@ -10,8 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef __DESCRIPTOR_H__
-#define __DESCRIPTOR_H__
+#ifndef DESCRIPTOR_H
+#define DESCRIPTOR_H
 
 #include "basetypes.h"
 
@@ -200,4 +200,5 @@ extern const UINT8* calculateAddress16(const UINT8* baseAddress, const UINT16 ba
 extern UINT32 calculateRegionOffset(const UINT16 base);
 // Calculate size of region using it's base and limit
 extern UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit);
-#endif
+
+#endif // DESCRIPTOR_H

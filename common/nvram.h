@@ -12,8 +12,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __NVRAM_H__
-#define __NVRAM_H__
+#ifndef NVRAM_H
+#define NVRAM_H
 
 #include <QByteArray>
 #include <QString>
@@ -36,7 +36,7 @@ extern QString nvarAttributesToQString(const UINT8 attributes);
 extern QString efiTimeToQString(const EFI_TIME & time);
 
 // Make sure we use right packing rules
-#pragma pack(push,1)
+#pragma pack(push, 1)
 
 // Variable header
 typedef struct _NVAR_VARIABLE_HEADER {
@@ -263,4 +263,5 @@ typedef struct _EVSA_DATA_ENTRY {
 
 // Restore previous packing rules
 #pragma pack(pop)
-#endif
+
+#endif // NVRAM_H

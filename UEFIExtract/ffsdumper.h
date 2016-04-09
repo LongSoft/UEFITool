@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __FFSDUMPER_H__
-#define __FFSDUMPER_H__
+#ifndef FFSDUMPER_H
+#define FFSDUMPER_H
 
 #include <QObject>
 #include <QDir>
@@ -38,4 +38,4 @@ private:
     bool dumped;
 };
 
-#endif
+#endif // FFSDUMPER_H

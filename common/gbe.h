@@ -10,13 +10,13 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef __GBE_H__
-#define __GBE_H__
+#ifndef GBE_H
+#define GBE_H
 
 #include "basetypes.h"
 
 // Make sure we use right packing rules
-#pragma pack(push,1)
+#pragma pack(push, 1)
 
 typedef struct _GBE_MAC_ADDRESS {
     UINT8 vendor[3];
@@ -33,4 +33,5 @@ typedef struct _GBE_VERSION {
 
 // Restore previous packing rules
 #pragma pack(pop)
-#endif
+
+#endif // GBE_H

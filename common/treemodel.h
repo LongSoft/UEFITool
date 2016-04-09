@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __TREEMODEL_H__
-#define __TREEMODEL_H__
+#ifndef TREEMODEL_H
+#define TREEMODEL_H
 
 #include <QAbstractItemModel>
 #include <QModelIndex>
@@ -81,4 +81,4 @@ private:
     TreeItem *rootItem;
 };
 
-#endif
+#endif // TREEMODEL_H

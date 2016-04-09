@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __TYPES_H__
-#define __TYPES_H__
+#ifndef TYPES_H
+#define TYPES_H
 
 #include "basetypes.h"
 
@@ -125,4 +125,4 @@ extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
 extern QString compressionTypeToQString(const UINT8 algorithm);
 extern QString regionTypeToQString(const UINT8 type);
 
-#endif
+#endif // TYPES_H

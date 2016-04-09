@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __BASETYPES_H__
-#define __BASETYPES_H__
+#ifndef BASETYPES_H
+#define BASETYPES_H
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -166,5 +166,4 @@ UINT8: 8;
 #define hexarg(X) arg(QString("%1").arg((X),0,16).toUpper())
 #define hexarg2(X, Y) arg(QString("%1").arg((X),(Y),16,QLatin1Char('0')).toUpper())
 
-
-#endif
+#endif // BASETYPES_H

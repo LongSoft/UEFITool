@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __LZMADECOMPRESS_H__
-#define __LZMADECOMPRESS_H__
+#ifndef LZMADECOMPRESS_H
+#define LZMADECOMPRESS_H
 
 #include "../basetypes.h"
 #include "SDK/C/LzmaDec.h"
@@ -95,4 +95,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // LZMADECOMPRESS_H

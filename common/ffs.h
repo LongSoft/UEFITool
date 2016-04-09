@@ -10,8 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef __FFS_H__
-#define __FFS_H__
+#ifndef FFS_H
+#define FFS_H
 
 #include <vector>
 
@@ -591,4 +591,4 @@ typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
 // Restore previous packing rules
 #pragma pack(pop)
 
-#endif
+#endif // FFS_H

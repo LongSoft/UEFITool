@@ -10,14 +10,14 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef __FIT_H__
-#define __FIT_H__
+#ifndef FIT_H
+#define FIT_H
 
 #include <QByteArray>
 #include "basetypes.h"
 
 // Make sure we use right packing rules
-#pragma pack(push,1)
+#pragma pack(push, 1)
 
 // Memory address of a pointer to FIT, 40h back from the end of flash chip
 #define FIT_POINTER_OFFSET 0x40
@@ -63,4 +63,4 @@ typedef struct _INTEL_MICROCODE_HEADER {
 
 #pragma pack(pop)
 
-#endif
+#endif // FIT_H

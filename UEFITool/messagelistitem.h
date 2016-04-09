@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __MESSAGELISTITEM_H__
-#define __MESSAGELISTITEM_H__
+#ifndef MESSAGELISTITEM_H
+#define MESSAGELISTITEM_H
 
 #include <QModelIndex>
 #include <QListWidgetItem>
@@ -34,4 +34,4 @@ private:
     QModelIndex itemIndex;
 };
 
-#endif
+#endif // MESSAGELISTITEM_H

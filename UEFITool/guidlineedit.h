@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __GUIDLINEEDIT_H__
-#define __GUIDLINEEDIT_H__
+#ifndef GUIDLINEEDIT_H
+#define GUIDLINEEDIT_H
 
 #include <QLineEdit>
 #include <QKeyEvent>
@@ -33,4 +33,4 @@ protected:
 
 };
 
-#endif
+#endif // GUIDLINEEDIT_H

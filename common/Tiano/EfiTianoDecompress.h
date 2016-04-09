@@ -21,8 +21,8 @@ Providing both EFI and Tiano decompress algorithms.
 
 --*/
 
-#ifndef __EFITIANODECOMPRESS_H__
-#define __EFITIANODECOMPRESS_H__
+#ifndef EFITIANODECOMPRESS_H
+#define EFITIANODECOMPRESS_H
 #include <string.h>
 #include <stdlib.h>
 
@@ -135,4 +135,4 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // EFITIANODECOMPRESS_H

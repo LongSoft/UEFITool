@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __UTILITY_H__
-#define __UTILITY_H__
+#ifndef UTILITY_H
+#define UTILITY_H
 
 #include <QString>
 #include <QModelIndex>
@@ -43,4 +43,4 @@ extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 // 16bit checksum calculation routine
 extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
-#endif
+#endif // UTILITY_H

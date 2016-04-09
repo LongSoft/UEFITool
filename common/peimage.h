@@ -13,17 +13,16 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __PE_IMAGE_H__
-#define __PE_IMAGE_H__
+#ifndef PEIMAGE_H
+#define PEIMAGE_H
 
 #include <QString>
-
 #include "basetypes.h"
 
-// Make sure we use right packing rules
-#pragma pack(push,1)
-
 extern QString machineTypeToQString(UINT16 machineType);
+
+// Make sure we use right packing rules
+#pragma pack(push, 1)
 
 //
 // PE32+ Subsystem type for EFI images
@@ -724,4 +723,4 @@ typedef struct {
 
 // Restore previous packing rules
 #pragma pack(pop)
-#endif
+#endif // PEIMAGE_H

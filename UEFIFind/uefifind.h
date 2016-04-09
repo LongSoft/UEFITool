@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __UEFIFIND_H__
-#define __UEFIFIND_H__
+#ifndef UEFIFIND_H
+#define UEFIFIND_H
 
 #include <set>
 
@@ -47,4 +47,4 @@ private:
     bool initDone;
 };
 
-#endif
+#endif // UEFIFIND_H

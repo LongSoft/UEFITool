@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __FFSOPS_H__
-#define __FFSOPS_H__
+#ifndef FFSOPS_H
+#define FFSOPS_H
 
 #include <vector>
 
@@ -48,4 +48,4 @@ private:
     void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };
 
-#endif
+#endif // FFSOPS_H

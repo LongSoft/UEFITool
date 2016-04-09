@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __LZMACOMPRESS_H__
-#define __LZMACOMPRESS_H__
+#ifndef LZMACOMPRESS_H
+#define LZMACOMPRESS_H
 
 #include "SDK/C/Types.h"
 #include "../basetypes.h"
@@ -36,4 +36,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // LZMACOMPRESS_H

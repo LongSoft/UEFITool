@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __TREEITEM_H__
-#define __TREEITEM_H__
+#ifndef TREEITEM_H
+#define TREEITEM_H
 
 #include <QByteArray>
 #include <QList>
@@ -96,4 +96,4 @@ private:
     TreeItem*  parentItem;
 };
 
-#endif
+#endif // TREEITEM_H

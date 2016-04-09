@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __SEARCHDIALOG_H__
-#define __SEARCHDIALOG_H__
+#ifndef SEARCHDIALOG_H
+#define SEARCHDIALOG_H
 
 #include <QDialog>
 #include <QRegExpValidator>
@@ -35,4 +35,4 @@ private:
     QRegExpValidator guidValidator;
 };
 
-#endif
+#endif // SEARCHDIALOG_H

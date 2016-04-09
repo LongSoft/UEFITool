@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __FFSBUILDER_H__
-#define __FFSBUILDER_H__
+#ifndef FFSBUILDER_H
+#define FFSBUILDER_H
 
 #include <vector>
 
@@ -58,4 +58,4 @@ private:
     STATUS erase(const QModelIndex & index, QByteArray & erased);
 };
 
-#endif
+#endif // FFSBUILDER_H

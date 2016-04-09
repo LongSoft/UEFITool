@@ -11,8 +11,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __FFSFINDER_H__
-#define __FFSFINDER_H__
+#ifndef FFSFINDER_H
+#define FFSFINDER_H
 
 #include <vector>
 
@@ -30,19 +30,19 @@ class FfsFinder
 public:
     explicit FfsFinder(const TreeModel * treeModel);
     ~FfsFinder();
-	
+
     std::vector<std::pair<QString, QModelIndex> > getMessages() const;
     void clearMessages();
-	
+
     STATUS findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode);
     STATUS findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode);
     STATUS findTextPattern(const QModelIndex & index, const QString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive);
-	
+
 private:
     const TreeModel* model;
     std::vector<std::pair<QString, QModelIndex> > messagesVector;
-	
-	void msg(const QString & message, const QModelIndex &index = QModelIndex());
+
+    void msg(const QString & message, const QModelIndex &index = QModelIndex());
 };
 
-#endif
+#endif // FFSFINDER_H

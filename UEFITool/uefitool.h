@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __UEFITOOL_H__
-#define __UEFITOOL_H__
+#ifndef UEFITOOL_H
+#define UEFITOOL_H
 
 #include <QMainWindow>
 #include <QByteArray>
@@ -128,4 +128,4 @@ private:
     void showBuilderMessages();
 };
 
-#endif
+#endif // UEFITOOL_H
