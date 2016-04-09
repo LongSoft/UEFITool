@@ -137,12 +137,12 @@ typedef UINT8 STATUS;
 #define SEARCH_MODE_ALL       3
 
 // EFI GUID
-typedef struct _EFI_GUID {
+typedef struct EFI_GUID_ {
     UINT8 Data[16];
 } EFI_GUID;
 
 // EFI Time
-typedef struct _EFI_TIME {
+typedef struct EFI_TIME_ {
     UINT16  Year;       // Year:       2000 - 20XX
     UINT8   Month;      // Month:      1 - 12
     UINT8   Day;        // Day:        1 - 31

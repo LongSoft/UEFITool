@@ -39,7 +39,7 @@ extern QString efiTimeToQString(const EFI_TIME & time);
 #pragma pack(push, 1)
 
 // Variable header
-typedef struct _NVAR_VARIABLE_HEADER {
+typedef struct NVAR_VARIABLE_HEADER_ {
     UINT32 Signature;      // NVAR
     UINT16 Size;           // Size of the variable including header
     UINT32 Next : 24;      // Offset to the next variable in a list, or empty if latest in the list
@@ -95,7 +95,7 @@ const QByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID
 #define NVRAM_VSS_VARIABLE_STORE_STATUS_UNKNOWN 3
 
 // Variable store header
-typedef struct _VSS_VARIABLE_STORE_HEADER {
+typedef struct VSS_VARIABLE_STORE_HEADER_ {
     UINT32  Signature; // $VSS signature
     UINT32  Size;      // Size of variable store, including store header
     UINT8   Format;    // Store format state
@@ -105,7 +105,7 @@ typedef struct _VSS_VARIABLE_STORE_HEADER {
 } VSS_VARIABLE_STORE_HEADER;
 
 // Normal variable header
-typedef struct _VSS_VARIABLE_HEADER {
+typedef struct VSS_VARIABLE_HEADER_ {
     UINT16    StartId;    // Variable start marker AA55
     UINT8     State;      // Variable state 
     UINT8     : 8;
@@ -116,7 +116,7 @@ typedef struct _VSS_VARIABLE_HEADER {
 } VSS_VARIABLE_HEADER;
 
 // Apple variation of normal variable header, with one new field
-typedef struct _VSS_APPLE_VARIABLE_HEADER {
+typedef struct VSS_APPLE_VARIABLE_HEADER_ {
     UINT16    StartId;    // Variable start marker AA55
     UINT8     State;      // Variable state 
     UINT8     : 8;
@@ -128,7 +128,7 @@ typedef struct _VSS_APPLE_VARIABLE_HEADER {
 } VSS_APPLE_VARIABLE_HEADER;
 
 // Authenticated variable header, used for SecureBoot vars
-typedef struct _VSS_AUTH_VARIABLE_HEADER {
+typedef struct VSS_AUTH_VARIABLE_HEADER_ {
     UINT16    StartId;          // Variable start marker AA55
     UINT8     State;            // Variable state 
     UINT8     : 8;
@@ -163,7 +163,7 @@ typedef struct _VSS_AUTH_VARIABLE_HEADER {
 // _FDC header structure
 #define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
 
-typedef struct _FDC_VOLUME_HEADER {
+typedef struct FDC_VOLUME_HEADER_ {
     UINT32 Signature; //_FDC
     UINT32 Size;
     //EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
@@ -197,7 +197,7 @@ typedef struct {
 // Apple Fsys
 //
 
-typedef struct _APPLE_FSYS_STORE_HEADER {
+typedef struct APPLE_FSYS_STORE_HEADER_ {
     UINT32  Signature;  // Fsys signature
     UINT8   Unknown[5]; // Still unknown
     UINT16  Size;       // Size of variable store
@@ -227,13 +227,13 @@ typedef struct _APPLE_FSYS_STORE_HEADER {
 #define NVRAM_EVSA_ENTRY_TYPE_DATA2 0xE3
 #define NVRAM_EVSA_ENTRY_TYPE_DATA3 0x83
 
-typedef struct _EVSA_ENTRY_HEADER {
+typedef struct EVSA_ENTRY_HEADER_ {
     UINT8  Type;
     UINT8  Checksum;
     UINT16 Size;
 } EVSA_ENTRY_HEADER;
 
-typedef struct _EVSA_STORE_ENTRY {
+typedef struct EVSA_STORE_ENTRY_ {
     EVSA_ENTRY_HEADER Header;
     UINT32 Signature; // EVSA
     UINT32 Attributes;
@@ -241,19 +241,19 @@ typedef struct _EVSA_STORE_ENTRY {
     UINT32 : 32;
 } EVSA_STORE_ENTRY;
 
-typedef struct _EVSA_GUID_ENTRY {
+typedef struct EVSA_GUID_ENTRY_ {
     EVSA_ENTRY_HEADER Header;
     UINT16 GuidId;
     EFI_GUID Guid;
 } EVSA_GUID_ENTRY;
 
-typedef struct _EVSA_NAME_ENTRY {
+typedef struct EVSA_NAME_ENTRY_ {
     EVSA_ENTRY_HEADER Header;
     UINT16 VarId;
     //CHAR16 Name[];
 } EVSA_NAME_ENTRY;
 
-typedef struct _EVSA_DATA_ENTRY {
+typedef struct EVSA_DATA_ENTRY_ {
     EVSA_ENTRY_HEADER Header;
     UINT16 GuidId;
     UINT16 VarId;

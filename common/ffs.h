@@ -34,7 +34,7 @@ extern QString sectionTypeToQString(const UINT8 type);
 // EFI Capsule
 //*****************************************************************************
 // Capsule header
-typedef struct _EFI_CAPSULE_HEADER {
+typedef struct EFI_CAPSULE_HEADER_ {
     EFI_GUID  CapsuleGuid;
     UINT32    HeaderSize;
     UINT32    Flags;
@@ -63,7 +63,7 @@ const QByteArray LENOVO2_CAPSULE_GUID
 ("\x76\xFE\xB5\x25\x43\x82\x5C\x4A\xA9\xBD\x7E\xE3\x24\x61\x98\xB5", 16);
 
 // Toshiba EFI Capsule header
-typedef struct _TOSHIBA_CAPSULE_HEADER {
+typedef struct TOSHIBA_CAPSULE_HEADER_ {
     EFI_GUID  CapsuleGuid;
     UINT32    HeaderSize;
     UINT32    FullSize;
@@ -75,7 +75,7 @@ const QByteArray TOSHIBA_CAPSULE_GUID
 ("\x62\x70\xE0\x3B\x51\x1D\xD2\x45\x83\x2B\xF0\x93\x25\x7E\xD4\x61", 16);
 
 // AMI Aptio extended capsule header
-typedef struct _APTIO_CAPSULE_HEADER {
+typedef struct APTIO_CAPSULE_HEADER_ {
     EFI_CAPSULE_HEADER    CapsuleHeader;
     UINT16                RomImageOffset;  // offset in bytes from the beginning of the capsule header to the start of the capsule volume
     UINT16                RomLayoutOffset; // offset to the table of the module descriptors in the capsule's volume that are included in the signature calculation
@@ -96,13 +96,13 @@ const QByteArray APTIO_UNSIGNED_CAPSULE_GUID
 //*****************************************************************************
 // Firmware block map entry
 // FvBlockMap ends with an entry {0x00000000, 0x00000000}
-typedef struct _EFI_FV_BLOCK_MAP_ENTRY {
+typedef struct EFI_FV_BLOCK_MAP_ENTRY_ {
     UINT32  NumBlocks;
     UINT32  Length;
 } EFI_FV_BLOCK_MAP_ENTRY;
 
 // Volume header
-typedef struct _EFI_FIRMWARE_VOLUME_HEADER {
+typedef struct EFI_FIRMWARE_VOLUME_HEADER_ {
     UINT8                  ZeroVector[16];
     EFI_GUID               FileSystemGuid;
     UINT64                 FvLength;
@@ -233,7 +233,7 @@ const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
 #define EFI_FVB2_WEAK_ALIGNMENT     0x80000000
 
 // Extended firmware volume header
-typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER {
+typedef struct EFI_FIRMWARE_VOLUME_EXT_HEADER_ {
     EFI_GUID          FvName;
     UINT32            ExtHeaderSize;
 } EFI_FIRMWARE_VOLUME_EXT_HEADER;
@@ -242,21 +242,21 @@ typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER {
 // The extended header entries follow each other and are
 // terminated by ExtHeaderType EFI_FV_EXT_TYPE_END
 #define EFI_FV_EXT_TYPE_END        0x0000
-typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY {
+typedef struct EFI_FIRMWARE_VOLUME_EXT_ENTRY_ {
     UINT16  ExtEntrySize;
     UINT16  ExtEntryType;
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY;
 
 // GUID that maps OEM file types to GUIDs
 #define EFI_FV_EXT_TYPE_OEM_TYPE   0x0001
-typedef struct _EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE {
+typedef struct EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE_ {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
     UINT32                           TypeMask;
     //EFI_GUID                         Types[1];
 } EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE;
 
 #define EFI_FV_EXT_TYPE_GUID_TYPE  0x0002
-typedef struct _EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE {
+typedef struct EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE_ {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY Header;
     EFI_GUID FormatType;
     //UINT8 Data[];
@@ -275,7 +275,7 @@ typedef union {
     UINT16 Checksum16;      // Revision 2
 } EFI_FFS_INTEGRITY_CHECK;
 // File header
-typedef struct _EFI_FFS_FILE_HEADER {
+typedef struct EFI_FFS_FILE_HEADER_ {
     EFI_GUID                Name;
     EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
     UINT8                   Type;
@@ -285,7 +285,7 @@ typedef struct _EFI_FFS_FILE_HEADER {
 } EFI_FFS_FILE_HEADER;
 
 // Large file header
-typedef struct _EFI_FFS_FILE_HEADER2 {
+typedef struct EFI_FFS_FILE_HEADER2_ {
 EFI_GUID                Name;
 EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
 UINT8                   Type;
@@ -365,13 +365,13 @@ extern UINT32 uint24ToUint32(const UINT8* ffsSize);
 // EFI FFS File Section
 //*****************************************************************************
 // Common section header
-typedef struct _EFI_COMMON_SECTION_HEADER {
+typedef struct EFI_COMMON_SECTION_HEADER_ {
     UINT8    Size[3];
     UINT8    Type;
 } EFI_COMMON_SECTION_HEADER;
 
 // Large file common section header
-typedef struct _EFI_COMMON_SECTION_HEADER2 {
+typedef struct EFI_COMMON_SECTION_HEADER2_ {
     UINT8    Size[3];    //Must be 0xFFFFFF for this header to be used
     UINT8    Type;
     UINT32   ExtendedSize;
@@ -405,14 +405,14 @@ typedef struct _EFI_COMMON_SECTION_HEADER2 {
 #define INSYDE_SECTION_POSTCODE             0x20 // Specific to Insyde images
 
 // Compression section
-typedef struct _EFI_COMPRESSION_SECTION {
+typedef struct EFI_COMPRESSION_SECTION_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   UncompressedLength;
     UINT8    CompressionType;
 } EFI_COMPRESSION_SECTION;
 
-typedef struct _EFI_COMPRESSION_SECTION2 {
+typedef struct EFI_COMPRESSION_SECTION2_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   ExtendedSize;
@@ -426,7 +426,7 @@ typedef struct _EFI_COMPRESSION_SECTION2 {
 #define EFI_CUSTOMIZED_COMPRESSION  0x02
 
 //GUID defined section
-typedef struct _EFI_GUID_DEFINED_SECTION {
+typedef struct EFI_GUID_DEFINED_SECTION_ {
     UINT8    Size[3];
     UINT8    Type;
     EFI_GUID SectionDefinitionGuid;
@@ -434,7 +434,7 @@ typedef struct _EFI_GUID_DEFINED_SECTION {
     UINT16   Attributes;
 } EFI_GUID_DEFINED_SECTION;
 
-typedef struct _EFI_GUID_DEFINED_SECTION2 {
+typedef struct EFI_GUID_DEFINED_SECTION2_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   ExtendedSize;
@@ -463,14 +463,14 @@ const QByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID //0F9D89E8-9259-4F76-A5AF-0C8
 //#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
 #define WIN_CERT_TYPE_EFI_GUID         0x0EF1
 
-typedef struct _WIN_CERTIFICATE {
+typedef struct WIN_CERTIFICATE_ {
     UINT32  Length;
     UINT16  Revision;
     UINT16  CertificateType;
     //UINT8 CertData[];
 } WIN_CERTIFICATE;
 
-typedef struct _WIN_CERTIFICATE_UEFI_GUID {
+typedef struct WIN_CERTIFICATE_UEFI_GUID_ {
     WIN_CERTIFICATE   Header;     // Standard WIN_CERTIFICATE
     EFI_GUID          CertType;   // Determines format of CertData
     // UINT8          CertData[]; // Certificate data follows
@@ -483,20 +483,20 @@ const QByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
 //("\x9D\xD2\xAF\x4A\xDF\x68\xEE\x49\x8A\xA9\x34\x7D\x37\x56\x65\xA7");
 
 // WIN_CERTIFICATE_UEFI_GUID.CertData
-typedef struct _EFI_CERT_BLOCK_RSA_2048_SHA256 {
+typedef struct EFI_CERT_BLOCK_RSA_2048_SHA256_ {
     UINT32  HashType;
     UINT8   PublicKey[256];
     UINT8   Signature[256];
 } EFI_CERT_BLOCK_RSA_2048_SHA256;
 
 // Version section
-typedef struct _EFI_VERSION_SECTION {
+typedef struct EFI_VERSION_SECTION_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT16   BuildNumber;
 } EFI_VERSION_SECTION;
 
-typedef struct _EFI_VERSION_SECTION2 {
+typedef struct EFI_VERSION_SECTION2_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   ExtendedSize;
@@ -504,13 +504,13 @@ typedef struct _EFI_VERSION_SECTION2 {
 } EFI_VERSION_SECTION2;
 
 // Freeform subtype GUID section
-typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION {
+typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION_ {
     UINT8    Size[3];
     UINT8    Type;
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
 
-typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION2 {
+typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION2_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   ExtendedSize;
@@ -518,13 +518,13 @@ typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION2 {
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION2;
 
 // Phoenix SCT and HP postcode section
-typedef struct _POSTCODE_SECTION {
+typedef struct POSTCODE_SECTION_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   Postcode;
 } POSTCODE_SECTION;
 
-typedef struct _POSTCODE_SECTION2 {
+typedef struct POSTCODE_SECTION2_ {
     UINT8    Size[3];
     UINT8    Type;
     UINT32   ExtendedSize;

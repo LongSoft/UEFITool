@@ -19,16 +19,16 @@ routines without the need of backward traversal
 
 #include "basetypes.h"
 
-//typedef struct _CAPSULE_PARSING_DATA {
+//typedef struct CAPSULE_PARSING_DATA_ {
 //} CAPSULE_PARSING_DATA;
 
-//typedef struct _IMAGE_PARSING_DATA {
+//typedef struct IMAGE_PARSING_DATA_ {
 //} IMAGE_PARSING_DATA;
 
-//typedef struct _PADDING_PARSING_DATA {
+//typedef struct PADDING_PARSING_DATA_ {
 //} PADDING_PARSING_DATA;
 
-typedef struct _VOLUME_PARSING_DATA {
+typedef struct VOLUME_PARSING_DATA_ {
     EFI_GUID extendedHeaderGuid;
     UINT32   alignment;
     UINT8    revision;
@@ -38,10 +38,10 @@ typedef struct _VOLUME_PARSING_DATA {
     BOOLEAN  isWeakAligned;
 } VOLUME_PARSING_DATA;
 
-//typedef struct _FREE_SPACE_PARSING_DATA {
+//typedef struct FREE_SPACE_PARSING_DATA_ {
 //} FREE_SPACE_PARSING_DATA;
 
-typedef struct _FILE_PARSING_DATA {
+typedef struct FILE_PARSING_DATA_ {
     union {
         UINT8   tailArray[2];
         UINT16  tail;
@@ -53,27 +53,27 @@ typedef struct _FILE_PARSING_DATA {
 #define RAW_FILE_FORMAT_UNKNOWN      0
 #define RAW_FILE_FORMAT_NVAR_STORE   1
 
-typedef struct _COMPRESSED_SECTION_PARSING_DATA {
+typedef struct COMPRESSED_SECTION_PARSING_DATA_ {
     UINT32 uncompressedSize;
     UINT8  compressionType;
     UINT8  algorithm;
 } COMPRESSED_SECTION_PARSING_DATA;
 
-typedef struct _GUIDED_SECTION_PARSING_DATA {
+typedef struct GUIDED_SECTION_PARSING_DATA_ {
     EFI_GUID guid;
 } GUIDED_SECTION_PARSING_DATA;
 
-typedef struct _FREEFORM_GUIDED_SECTION_PARSING_DATA {
+typedef struct FREEFORM_GUIDED_SECTION_PARSING_DATA_ {
     EFI_GUID guid;
 } FREEFORM_GUIDED_SECTION_PARSING_DATA;
 
-typedef struct _TE_IMAGE_SECTION_PARSING_DATA {
+typedef struct TE_IMAGE_SECTION_PARSING_DATA_ {
     UINT32  imageBase;
     UINT32  adjustedImageBase;
     UINT8   revision;
 } TE_IMAGE_SECTION_PARSING_DATA;
 
-typedef struct _SECTION_PARSING_DATA {
+typedef struct SECTION_PARSING_DATA_ {
     union {
         COMPRESSED_SECTION_PARSING_DATA      compressed;
         GUIDED_SECTION_PARSING_DATA          guidDefined;
@@ -82,7 +82,7 @@ typedef struct _SECTION_PARSING_DATA {
     };
 } SECTION_PARSING_DATA;
 
-typedef struct _NVRAM_NVAR_PARSING_DATA {
+typedef struct NVRAM_NVAR_PARSING_DATA_ {
     UINT32 next;
     UINT8  attributes;
     UINT8  extendedAttributes;
@@ -90,7 +90,7 @@ typedef struct _NVRAM_NVAR_PARSING_DATA {
     UINT8  hash[0x20]; //SHA256
 } NVRAM_NVAR_PARSING_DATA;
 
-typedef struct _NVRAM_PARSING_DATA {
+typedef struct NVRAM_PARSING_DATA_ {
     //union {
         NVRAM_NVAR_PARSING_DATA      nvar;
     //};
@@ -98,7 +98,7 @@ typedef struct _NVRAM_PARSING_DATA {
 
 // TODO: add more NVRAM-related PD
 
-typedef struct _PARSING_DATA {
+typedef struct PARSING_DATA_ {
     UINT8   emptyByte;
     UINT8   ffsVersion;
     UINT32  offset;

@@ -40,7 +40,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 const QByteArray FIT_SIGNATURE
 ("\x5F\x46\x49\x54\x5F\x20\x20\x20", 8); 
 
-typedef struct _FIT_ENTRY {
+typedef struct FIT_ENTRY_ {
     UINT64 Address;
     UINT32 Size;
     UINT16 Version;
@@ -48,7 +48,7 @@ typedef struct _FIT_ENTRY {
     UINT8  Checksum;
 } FIT_ENTRY;
 
-typedef struct _INTEL_MICROCODE_HEADER {
+typedef struct INTEL_MICROCODE_HEADER_ {
     UINT32 Version;
     UINT32 Revision;
     UINT32 Date;

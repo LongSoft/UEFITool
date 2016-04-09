@@ -19,7 +19,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push,1)
 
 // Flash descriptor header
-typedef struct _FLASH_DESCRIPTOR_HEADER {
+typedef struct FLASH_DESCRIPTOR_HEADER_ {
     UINT8  ReservedVector[16];     // Reserved for ARM ResetVector, 0xFFs on x86/x86-64 machines
     UINT32 Signature;              // 0x0FF0A55A
 } FLASH_DESCRIPTOR_HEADER;
@@ -35,7 +35,7 @@ typedef struct _FLASH_DESCRIPTOR_HEADER {
 
 // Descriptor map
 // Base fields are storing bits [11:4] of actual base addresses, all other bits are 0
-typedef struct _FLASH_DESCRIPTOR_MAP {
+typedef struct FLASH_DESCRIPTOR_MAP_ {
     // FLMAP0
     UINT32 ComponentBase : 8;
     UINT32 NumberOfFlashChips : 2;      // Zero-based number of flash chips installed on board
@@ -57,7 +57,7 @@ typedef struct _FLASH_DESCRIPTOR_MAP {
 
 // Component section
 // Flash parameters DWORD structure
-typedef struct _FLASH_PARAMETERS {
+typedef struct FLASH_PARAMETERS_ {
     UINT8 FirstChipDensity : 4;
     UINT8 SecondChipDensity : 4;
     UINT8 : 8;
@@ -90,7 +90,7 @@ typedef struct _FLASH_PARAMETERS {
 #define FLASH_FREQUENCY_17MHZ       0x06
 
 // Component section structure
-typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION {
+typedef struct FLASH_DESCRIPTOR_COMPONENT_SECTION_ {
     FLASH_PARAMETERS FlashParameters;
     UINT8            InvalidInstruction0;  // Instructions for SPI chip, that must not be executed, like FLASH ERASE
     UINT8            InvalidInstruction1;  //
@@ -103,7 +103,7 @@ typedef struct _FLASH_DESCRIPTOR_COMPONENT_SECTION {
 // Region section
 // All base and limit register are storing upper part of actual UINT32 base and limit
 // If limit is zero - region is not present
-typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
+typedef struct FLASH_DESCRIPTOR_REGION_SECTION_ {
     UINT16 DescriptorBase;             // Descriptor
     UINT16 DescriptorLimit;            //                           
     UINT16 BiosBase;                   // BIOS
@@ -127,7 +127,7 @@ typedef struct _FLASH_DESCRIPTOR_REGION_SECTION {
 } FLASH_DESCRIPTOR_REGION_SECTION;
 
 // Master section
-typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION {
+typedef struct FLASH_DESCRIPTOR_MASTER_SECTION_ {
     UINT16 BiosId;
     UINT8 BiosRead;
     UINT8 BiosWrite;
@@ -140,7 +140,7 @@ typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION {
 } FLASH_DESCRIPTOR_MASTER_SECTION;
 
 // Master section v2 (Skylake+)
-typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION_V2 {
+typedef struct FLASH_DESCRIPTOR_MASTER_SECTION_V2_ {
     UINT32 : 8;
     UINT32 BiosRead : 12;
     UINT32 BiosWrite : 12;
@@ -168,14 +168,14 @@ typedef struct _FLASH_DESCRIPTOR_MASTER_SECTION_V2 {
 #define FLASH_DESCRIPTOR_UPPER_MAP_BASE 0x0EFC
 
 // Descriptor upper map structure
-typedef struct _FLASH_DESCRIPTOR_UPPER_MAP {
+typedef struct FLASH_DESCRIPTOR_UPPER_MAP_ {
     UINT8 VsccTableBase; // Base address of VSCC Table for ME, bits [11:4]
     UINT8 VsccTableSize; // Counted in UINT32s
     UINT16 ReservedZero; // Still unknown, zero in all descriptors I have seen
 } FLASH_DESCRIPTOR_UPPER_MAP;
 
 // VSCC table entry structure
-typedef struct _VSCC_TABLE_ENTRY {
+typedef struct VSCC_TABLE_ENTRY_ {
     UINT8   VendorId;          // JEDEC VendorID byte
     UINT8   DeviceId0;         // JEDEC DeviceID first byte
     UINT8   DeviceId1;         // JEDEC DeviceID second byte

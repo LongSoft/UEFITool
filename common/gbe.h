@@ -18,14 +18,14 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Make sure we use right packing rules
 #pragma pack(push, 1)
 
-typedef struct _GBE_MAC_ADDRESS {
+typedef struct GBE_MAC_ADDRESS_ {
     UINT8 vendor[3];
     UINT8 device[3];
 } GBE_MAC_ADDRESS;
 
 #define GBE_VERSION_OFFSET 10
 
-typedef struct _GBE_VERSION {
+typedef struct GBE_VERSION_ {
     UINT8 id : 4;
     UINT8 minor : 4;
     UINT8 major;
