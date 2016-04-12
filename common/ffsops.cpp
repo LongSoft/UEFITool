@@ -59,27 +59,18 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
     case Types::NvramVariableNvar:
     case Types::NvramVariableVss:
     case Types::File: {
-        name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_');
+        name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_').replace('-', '_');
     } break;
     case Types::Section: {
         // Get parent file name
         QModelIndex fileIndex = model->findParentOfType(index, Types::File);
         QString fileText = model->text(fileIndex);
-        name = fileText.isEmpty() ? model->name(fileIndex) : fileText.replace(' ', '_');
+        name = fileText.isEmpty() ? model->name(fileIndex) : fileText.replace(' ', '_').replace('-', '_');
         // Append section subtype name
         name += QChar('_') + itemName.replace(' ', '_');
     } break;
-    case Types::Capsule:
-    case Types::Image:
-    case Types::Region:
-    case Types::Padding:
-    case Types::NvramStoreVss:
-    case Types::NvramStoreFdc:
-    case Types::NvramStoreFsys:
-    case Types::NvramStoreEvsa:
-    case Types::NvramFtwBlock:
     default:
-        name = itemName.replace(' ', '_').replace('/', '_');
+        name = itemName.replace(' ', '_').replace('/', '_').replace('-', '_');
     }
 
     // Get extracted data

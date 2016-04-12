@@ -47,11 +47,13 @@ namespace Types {
         NvramStoreFdc,
         NvramStoreFsys,
         NvramStoreEvsa,
-        NvramFtwBlock,
+        NvramStoreFlashMap,
+        NvramStoreFtw,
         NvramVariableNvar,
         NvramVariableVss,
-        NvramVariableFsys,
-        NvramEntryEvsa
+        NvramEntryFsys,
+        NvramEntryEvsa,
+        NvramEntryFlashMap,
     };
 }
 

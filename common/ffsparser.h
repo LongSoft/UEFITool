@@ -116,6 +116,7 @@ private:
     STATUS parseVssStoreBody(const QModelIndex & index);
     STATUS parseFsysStoreBody(const QModelIndex & index);
     STATUS parseEvsaStoreBody(const QModelIndex & index);
+    STATUS parseFlashMapBody(const QModelIndex & index);
 
     // Message helper
     void msg(const QString & message, const QModelIndex &index = QModelIndex());

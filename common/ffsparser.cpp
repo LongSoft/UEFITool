@@ -3366,7 +3366,10 @@ STATUS FfsParser::parseStoreArea(const QByteArray & data, const QModelIndex & in
         case Types::NvramStoreEvsa:
             parseEvsaStoreBody(current);
             break;
-        case Types::NvramFtwBlock:
+        case Types::NvramStoreFlashMap:
+            parseFlashMapBody(current);
+            break;
+        case Types::NvramStoreFtw:
         case Types::Padding:
             // No parsing required
             break;
@@ -3410,7 +3413,7 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
             // All checks passed, store found
             break;
         }
-        else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE) { //Fsys signature found
+        else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_GAID_STORE_SIGNATURE) { //Fsys or Gaid signature found
             const APPLE_FSYS_STORE_HEADER* fsysHeader = (const APPLE_FSYS_STORE_HEADER*)currentPos;
             if (fsysHeader->Size == 0 || fsysHeader->Size == 0xFFFF) {
                 msg(QObject::tr("findNextStore: Fsys store candidate at offset %1h skipped, has invalid size %2h").hexarg(parentOffset + offset).hexarg2(fsysHeader->Size, 4), index);
@@ -3435,8 +3438,9 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
             offset -= 4;
             break;
         }
-        else if (*currentPos == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1) { //Possible FTW block signature found
-            if (QByteArray(data.constData() + offset, sizeof(EFI_GUID)) != NVRAM_MAIN_STORE_VOLUME_GUID) // Check the whole signature
+        else if (*currentPos == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *currentPos == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) { //Possible FTW block signature found
+            QByteArray guid = QByteArray(data.constData() + offset, sizeof(EFI_GUID));
+            if (guid != NVRAM_MAIN_STORE_VOLUME_GUID && guid != EDKII_WORKING_BLOCK_SIGNATURE_GUID) // Check the whole signature
                 continue;
 
             // Detect header variant based on WriteQueueSize
@@ -3457,6 +3461,14 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
             else // Unknown header
                 continue;
                         
+            // All checks passed, store found
+            break;
+        }
+        else if (*currentPos == NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1) {// Phoenix SCT flash map
+            QByteArray signature = QByteArray(data.constData() + offset, NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_LENGTH);
+            if (signature != NVRAM_PHOENIX_FLASH_MAP_SIGNATURE) // Check the whole signature
+                continue;
+
             // All checks passed, store found
             break;
         }
@@ -3481,7 +3493,7 @@ STATUS FfsParser::getStoreSize(const QByteArray & data, const UINT32 storeOffset
         const FDC_VOLUME_HEADER* fdcHeader = (const FDC_VOLUME_HEADER*)signature;
         storeSize = fdcHeader->Size;
     }
-    else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE) {
+    else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *signature == NVRAM_APPLE_GAID_STORE_SIGNATURE) {
         const APPLE_FSYS_STORE_HEADER* fsysHeader = (const APPLE_FSYS_STORE_HEADER*)signature;
         storeSize = fsysHeader->Size;
     }
@@ -3489,7 +3501,7 @@ STATUS FfsParser::getStoreSize(const QByteArray & data, const UINT32 storeOffset
         const EVSA_STORE_ENTRY* evsaHeader = (const EVSA_STORE_ENTRY*)signature;
         storeSize = evsaHeader->StoreSize;
     }
-    else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1) {
+    else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *signature == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) {
         const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* ftwHeader = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)signature;
         if (ftwHeader->WriteQueueSize % 0x10 == 0x04) { // Header with 32 bit WriteQueueSize
             storeSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32) + ftwHeader->WriteQueueSize;
@@ -3498,6 +3510,10 @@ STATUS FfsParser::getStoreSize(const QByteArray & data, const UINT32 storeOffset
             const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)signature;
             storeSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + ftw64Header->WriteQueueSize;
         }
+    }
+    else if (*signature == NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1) { // Phoenix SCT flash map
+        const PHOENIX_FLASH_MAP_HEADER* flashMapHeader = (const PHOENIX_FLASH_MAP_HEADER*)signature;
+        storeSize = sizeof(PHOENIX_FLASH_MAP_HEADER) + sizeof(PHOENIX_FLASH_MAP_ENTRY) * flashMapHeader->NumEntries;
     }
     return ERR_SUCCESS;
 }
@@ -3516,7 +3532,7 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
 
     // VSS variable stores
     if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
-        // The volume must begin with a store to be valid, but after the first one, there can be many variants
+        // Check dataSize
         if (dataSize < sizeof(VSS_VARIABLE_STORE_HEADER)) {
             msg(QObject::tr("parseStoreHeader: volume body is too small even for VSS store header"), parent);
             return ERR_SUCCESS;
@@ -3528,8 +3544,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         // Check store size
         if (dataSize < vssStoreHeader->Size) {
             msg(QObject::tr("parseStoreHeader: VSS store size %1h (%2) is greater than volume body size %3h (%4)")
-                .hexarg2(vssStoreHeader->Size, 8).arg(vssStoreHeader->Size)
-                .hexarg2(dataSize, 8).arg(dataSize), parent);
+                .hexarg(vssStoreHeader->Size).arg(vssStoreHeader->Size)
+                .hexarg(dataSize).arg(dataSize), parent);
             return ERR_SUCCESS;
         }
 
@@ -3541,18 +3557,15 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         QByteArray body = store.mid(sizeof(VSS_VARIABLE_STORE_HEADER), vssStoreHeader->Size - sizeof(VSS_VARIABLE_STORE_HEADER));
 
         // Add info
-        QString name = QObject::tr("VSS store");
-        QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nFormat: %8h\nState: %9h")
+        QString name = (*signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) ? QObject::tr("SVS store") : QObject::tr("VSS store");
+        QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nFormat: %8h\nState: %9h\nUnknown: %10h")
             .hexarg2(vssStoreHeader->Signature, 8)
             .hexarg(vssStoreHeader->Size).arg(vssStoreHeader->Size)
             .hexarg(header.size()).arg(header.size())
             .hexarg(body.size()).arg(body.size())
             .hexarg2(vssStoreHeader->Format, 2)
-            .hexarg2(vssStoreHeader->State, 2);
-
-        // Add unknown field for $SVS stores
-        if (*signature == NVRAM_APPLE_SVS_STORE_SIGNATURE)
-            info += QObject::tr("\nUnknown: %1h").hexarg2(vssStoreHeader->Unknown, 4);
+            .hexarg2(vssStoreHeader->State, 2)
+            .hexarg2(vssStoreHeader->Unknown, 4);
 
         // Add correct offset
         pdata.offset = parentOffset;
@@ -3561,7 +3574,7 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         index = model->addItem(Types::NvramStoreVss, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
     else if (*signature == NVRAM_FDC_VOLUME_SIGNATURE) {
-        // The volume must begin with a store to be valid, but after the first one, there can be many variants
+        // Check dataSize
         if (dataSize < sizeof(FDC_VOLUME_HEADER)) {
             msg(QObject::tr("parseStoreHeader: volume body is too small even for FDC store header"), parent);
             return ERR_SUCCESS;
@@ -3573,8 +3586,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         // Check store size
         if (dataSize < fdcStoreHeader->Size) {
             msg(QObject::tr("parseStoreHeader: FDC store size %1h (%2) is greater than volume body size %3h (%4)")
-                .hexarg2(fdcStoreHeader->Size, 8).arg(fdcStoreHeader->Size)
-                .hexarg2(dataSize, 8).arg(dataSize), parent);
+                .hexarg(fdcStoreHeader->Size).arg(fdcStoreHeader->Size)
+                .hexarg(dataSize).arg(dataSize), parent);
             return ERR_SUCCESS;
         }
 
@@ -3628,8 +3641,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         // Add tree item
         index = model->addItem(Types::NvramStoreFdc, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
-    else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE) {
-        // The volume must begin with a store to be valid, but after the first one, there can be many variants
+    else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *signature == NVRAM_APPLE_GAID_STORE_SIGNATURE) {
+        // Check dataSize
         if (dataSize < sizeof(APPLE_FSYS_STORE_HEADER)) {
             msg(QObject::tr("parseStoreHeader: volume body is too small even for Fsys store header"), parent);
             return ERR_SUCCESS;
@@ -3641,8 +3654,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         // Check store size
         if (dataSize < fsysStoreHeader->Size) {
             msg(QObject::tr("parseStoreHeader: Fsys store size %1h (%2) is greater than volume body size %3h (%4)")
-                .hexarg2(fsysStoreHeader->Size, 4).arg(fsysStoreHeader->Size)
-                .hexarg2(dataSize, 8).arg(dataSize), parent);
+                .hexarg(fsysStoreHeader->Size).arg(fsysStoreHeader->Size)
+                .hexarg(dataSize).arg(dataSize), parent);
             return ERR_SUCCESS;
         }
 
@@ -3658,7 +3671,7 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         UINT32 calculatedCrc = calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
 
         // Add info
-        QString name = QObject::tr("Fsys store");
+        QString name = (*signature == NVRAM_APPLE_GAID_STORE_SIGNATURE) ? QObject::tr("Gaid store") : QObject::tr("Fsys store");
         QString info = QObject::tr("Signature: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nUnknown: %9 %10 %11 %12 %13\nCRC32: %14")
             .hexarg2(fsysStoreHeader->Signature, 8)
             .hexarg(fsysStoreHeader->Size).arg(fsysStoreHeader->Size)
@@ -3678,7 +3691,7 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         index = model->addItem(Types::NvramStoreFsys, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
     else if (*(signature + 1) == NVRAM_EVSA_STORE_SIGNATURE) {
-        // The volume must begin with a store to be valid, but after the first one, there can be many variants
+        // Check dataSize
         if (dataSize < sizeof(EVSA_STORE_ENTRY)) {
             msg(QObject::tr("parseStoreHeader: volume body is too small even for EVSA store header"), parent);
             return ERR_SUCCESS;
@@ -3690,8 +3703,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         // Check store size
         if (dataSize < evsaStoreHeader->StoreSize) {
             msg(QObject::tr("parseStoreHeader: EVSA store size %1h (%2) is greater than volume body size %3h (%4)")
-                .hexarg2(evsaStoreHeader->StoreSize, 4).arg(evsaStoreHeader->StoreSize)
-                .hexarg2(dataSize, 8).arg(dataSize), parent);
+                .hexarg(evsaStoreHeader->StoreSize).arg(evsaStoreHeader->StoreSize)
+                .hexarg(dataSize).arg(dataSize), parent);
             return ERR_SUCCESS;
         }
 
@@ -3724,8 +3737,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         // Add tree item
         index = model->addItem(Types::NvramStoreEvsa, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
-    else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1) {
-        // The volume must begin with a store to be valid, but after the first one, there can be many variants
+    else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *signature == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) {
+        // Check dataSize
         if (dataSize < sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64)) {
             msg(QObject::tr("parseStoreHeader: volume body is too small even for FTW block header"), parent);
             return ERR_SUCCESS;
@@ -3748,8 +3761,8 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         }
         if (dataSize < ftwBlockSize) {
             msg(QObject::tr("parseStoreHeader: FTW block size %1h (%2) is greater than volume body size %3h (%4)")
-                .hexarg2(ftwBlockSize, 4).arg(ftwBlockSize)
-                .hexarg2(dataSize, 8).arg(dataSize), parent);
+                .hexarg(ftwBlockSize).arg(ftwBlockSize)
+                .hexarg(dataSize).arg(dataSize), parent);
             return ERR_SUCCESS;
         }
 
@@ -3784,7 +3797,46 @@ STATUS FfsParser::parseStoreHeader(const QByteArray & store, const UINT32 parent
         pdata.offset = parentOffset;
 
         // Add tree item
-        index = model->addItem(Types::NvramFtwBlock, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
+        index = model->addItem(Types::NvramStoreFtw, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
+    }
+    else if (*signature == NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1) { // Phoenix SCT flash map
+        if (dataSize < sizeof(PHOENIX_FLASH_MAP_HEADER)) {
+            msg(QObject::tr("parseStoreHeader: volume body is too small even for FlashMap block header"), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Get FlashMap block header
+        const PHOENIX_FLASH_MAP_HEADER* flashMapHeader = (const PHOENIX_FLASH_MAP_HEADER*)signature;
+
+        // Check store size
+        UINT32 flashMapSize = sizeof(PHOENIX_FLASH_MAP_HEADER) + flashMapHeader->NumEntries * sizeof(PHOENIX_FLASH_MAP_ENTRY);
+        if (dataSize < flashMapSize) {
+            msg(QObject::tr("parseStoreHeader: FlashMap block size %1h (%2) is greater than volume body size %3h (%4)")
+                .hexarg(flashMapSize).arg(flashMapSize)
+                .hexarg(dataSize).arg(dataSize), parent);
+            return ERR_SUCCESS;
+        }
+
+        // Get parsing data
+        PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
+
+        // Construct header and body
+        QByteArray header = store.left(sizeof(PHOENIX_FLASH_MAP_HEADER));
+        QByteArray body = store.mid(sizeof(PHOENIX_FLASH_MAP_HEADER), flashMapSize - sizeof(PHOENIX_FLASH_MAP_HEADER));
+
+        // Add info
+        QString name = QObject::tr("Phoenix SCT FlashMap");
+        QString info = QObject::tr("Signature: _FLASH_MAP\nFull size: %1h (%2)\nHeader size: %3h (%4)\nBody size: %5h (%6)\nNumber of entries: %7")
+            .hexarg(flashMapSize).arg(flashMapSize)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg(body.size()).arg(body.size())
+            .arg(flashMapHeader->NumEntries);
+
+        // Add correct offset
+        pdata.offset = parentOffset;
+
+        // Add tree item
+        index = model->addItem(Types::NvramStoreFlashMap, 0, name, QString(), info, header, body, TRUE, parsingDataToQByteArray(pdata), parent);
     }
 
     return ERR_SUCCESS;
@@ -4036,7 +4088,7 @@ STATUS FfsParser::parseFsysStoreBody(const QModelIndex & index)
                 pdata.offset = parentOffset + offset;
                 
                 // Add EOF tree item
-                model->addItem(Types::NvramVariableFsys, 0, name, QString(), info, header, QByteArray(), FALSE, parsingDataToQByteArray(pdata), index);
+                model->addItem(Types::NvramEntryFsys, 0, name, QString(), info, header, QByteArray(), FALSE, parsingDataToQByteArray(pdata), index);
 
                 // Add free space
                 offset += header.size();
@@ -4092,7 +4144,7 @@ STATUS FfsParser::parseFsysStoreBody(const QModelIndex & index)
         pdata.offset = parentOffset + offset;
 
         // Add tree item
-        model->addItem(Types::NvramVariableFsys, 0, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), index);
+        model->addItem(Types::NvramEntryFsys, 0, name, QString(), info, header, body, FALSE, parsingDataToQByteArray(pdata), index);
 
         // Move to next variable
         offset += variableSize;
@@ -4162,7 +4214,9 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
             entryHeader->Type == NVRAM_EVSA_ENTRY_TYPE_GUID2) {
             const EVSA_GUID_ENTRY* guidHeader = (const EVSA_GUID_ENTRY*)entryHeader;
             header = data.mid(offset, sizeof(EVSA_GUID_ENTRY));
-            name = guidToQString(guidHeader->Guid);
+            body = data.mid(offset + sizeof(EVSA_GUID_ENTRY), guidHeader->Header.Size - sizeof(EVSA_GUID_ENTRY));
+            EFI_GUID guid = *(EFI_GUID*)body.constData();
+            name = guidToQString(guid);
             info = QObject::tr("Full size: %1h (%2)\nHeader size %3h (%4)\nBody size: %5h (%6)\nType: %7h\nChecksum: %8\nGuidId: %9h")
                 .hexarg(variableSize).arg(variableSize)
                 .hexarg(header.size()).arg(header.size())
@@ -4173,7 +4227,7 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
                     QObject::tr("%1h, invalid, should be %2h").hexarg2(guidHeader->Header.Checksum, 2).hexarg2(calculated, 2))
                 .hexarg2(guidHeader->GuidId, 4);
             subtype = Subtypes::GuidEvsaEntry;
-            guidMap.insert(std::pair<UINT16, EFI_GUID>(guidHeader->GuidId, guidHeader->Guid));
+            guidMap.insert(std::pair<UINT16, EFI_GUID>(guidHeader->GuidId, guid));
         }
         // Name entry
         else if (entryHeader->Type == NVRAM_EVSA_ENTRY_TYPE_NAME1 ||
@@ -4282,3 +4336,69 @@ STATUS FfsParser::parseEvsaStoreBody(const QModelIndex & index)
 }
 
 
+STATUS FfsParser::parseFlashMapBody(const QModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+    UINT32 parentOffset = pdata.offset + model->header(index).size();
+    const QByteArray data = model->body(index);
+
+    
+    const UINT32 dataSize = (UINT32)data.size();
+    UINT32 offset = 0;
+    UINT32 unparsedSize = dataSize;
+    // Parse all entries
+    while (unparsedSize) {
+        const PHOENIX_FLASH_MAP_ENTRY* entryHeader = (const PHOENIX_FLASH_MAP_ENTRY*)(data.constData() + offset);
+
+        // Check entry size
+        if (unparsedSize < sizeof(PHOENIX_FLASH_MAP_ENTRY)) {
+            // Last variable is bad, add the rest as padding and return
+            QByteArray body = data.mid(offset);
+            QString info = QObject::tr("Full size: %1h (%2)")
+                .hexarg(body.size()).arg(body.size());
+
+            // Add correct offset to parsing data
+            pdata.offset = parentOffset + offset;
+
+            // Add free space tree item
+            model->addItem(Types::Padding, getPaddingType(body), QObject::tr("Padding"), QString(), info, QByteArray(), body, FALSE, parsingDataToQByteArray(pdata), index);
+
+            // Show message
+            if (unparsedSize < entryHeader->Size)
+                msg(QObject::tr("parseFlashMapBody: next entry appears too big, added as padding"), index);
+
+            break;
+        }
+
+        QString name = guidToQString(entryHeader->Guid);
+        
+        // Construct header
+        QByteArray header = data.mid(offset, sizeof(PHOENIX_FLASH_MAP_ENTRY));
+
+        // Add info
+        QString info = QObject::tr("Entry GUID: %1\nFull size: 24h (36)\nHeader size %2h (%3)\nBody size: 0h (0)\nType %4h\nMemory address: %5h\nSize: %6h\nOffset: %7h")
+            .arg(name)
+            .hexarg(header.size()).arg(header.size())
+            .hexarg2(entryHeader->Type, 8)
+            .hexarg2(entryHeader->PhysicalAddress, 8)
+            .hexarg2(entryHeader->Size, 8)
+            .hexarg2(entryHeader->Offset, 8);
+
+        // Add correct offset to parsing data
+        pdata.offset = parentOffset + offset;
+
+        // Add tree item
+        model->addItem(Types::NvramEntryFlashMap, 0, name, QString(), info, header, QByteArray(), TRUE, parsingDataToQByteArray(pdata), index);
+
+        // Move to next variable
+        offset += sizeof(PHOENIX_FLASH_MAP_ENTRY);
+        unparsedSize = dataSize - offset;
+    }
+
+    return ERR_SUCCESS;
+}

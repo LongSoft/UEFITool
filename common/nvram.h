@@ -73,7 +73,6 @@ typedef struct NVAR_VARIABLE_HEADER_ {
 // FFF12B8D-7696-4C8B-A985-2747075B4F50
 const QByteArray NVRAM_MAIN_STORE_VOLUME_GUID
 ("\x8D\x2B\xF1\xFF\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 16);
-#define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1   0xFFF12B8D
 
 // 00504624-8A59-4EEB-BD0F-6B36E96128E0
 const QByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID
@@ -82,6 +81,7 @@ const QByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID
 #define NVRAM_VSS_STORE_SIGNATURE            0x53535624 // $VSS
 #define NVRAM_APPLE_SVS_STORE_SIGNATURE      0x53565324 // $SVS
 #define NVRAM_APPLE_FSYS_STORE_SIGNATURE     0x73797346 // Fsys
+#define NVRAM_APPLE_GAID_STORE_SIGNATURE     0x64696147 // Gaid
 #define NVRAM_VSS_VARIABLE_START_ID          0x55AA
 
 // Variable store header flags
@@ -158,14 +158,14 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 #define NVRAM_VSS_VARIABLE_APPEND_WRITE                          0x00000040
 #define NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM                   0x80000000
 
-// FDC region can be found in some VSS volumes
+// FDC region can be found in Insyde VSS volumes
 // It has another VSS volume inside
 // _FDC header structure
 #define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
 
 typedef struct FDC_VOLUME_HEADER_ {
     UINT32 Signature; //_FDC
-    UINT32 Size;
+    UINT32 Size;      // Size of the whole region
     //EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
     //VSS_VARIABLE_STORE_HEADER VssHeader;
@@ -175,20 +175,28 @@ typedef struct FDC_VOLUME_HEADER_ {
 // EFI Fault tolerant working block header
 #define EFI_FAULT_TOLERANT_WORKING_BLOCK_VALID   0x1
 #define EFI_FAULT_TOLERANT_WORKING_BLOCK_INVALID 0x2
-typedef struct {
+
+// 9E58292B-7C68-497D-0ACE6500FD9F1B95
+const QByteArray EDKII_WORKING_BLOCK_SIGNATURE_GUID
+("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\x0A\xCE\x65\x00\xFD\x9F\x1B\x95", 16);
+
+#define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1   0xFFF12B8D
+#define EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1 0x9E58292B
+
+typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32_ {
     EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID
     UINT32    Crc; // Crc32 of the header with empty Crc and State fields
     UINT8     State;
-    UINT8     Reserved3[3];
+    UINT8     Reserved[3];
     UINT32    WriteQueueSize; // Size of the FTW block without the header
     //UINT8   WriteQueue[WriteQueueSize];
 } EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32;
 
-typedef struct {
+typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
     EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID
     UINT32    Crc; // Crc32 of the header with empty Crc and State fields
     UINT8     State;
-    UINT8     Reserved3[3];
+    UINT8     Reserved[3];
     UINT64    WriteQueueSize; // Size of the FTW block without the header
     //UINT8   WriteQueue[WriteQueueSize];
 } EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64;
@@ -203,7 +211,7 @@ typedef struct APPLE_FSYS_STORE_HEADER_ {
     UINT16  Size;       // Size of variable store
 } APPLE_FSYS_STORE_HEADER;
 
-// Apple Fsys variable format
+// Apple Fsys entry format
 // UINT8 NameLength;
 // CHAR8 Name[];
 // UINT16 DataLength;
@@ -244,7 +252,7 @@ typedef struct EVSA_STORE_ENTRY_ {
 typedef struct EVSA_GUID_ENTRY_ {
     EVSA_ENTRY_HEADER Header;
     UINT16 GuidId;
-    EFI_GUID Guid;
+    //EFI_GUID Guid;
 } EVSA_GUID_ENTRY;
 
 typedef struct EVSA_NAME_ENTRY_ {
@@ -260,6 +268,36 @@ typedef struct EVSA_DATA_ENTRY_ {
     UINT32 Attributes;
     //UINT8 Data[];
 } EVSA_DATA_ENTRY;
+
+
+//
+// Phoenix SCT Flash Map
+//
+
+#define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1 0x414C465F
+#define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_LENGTH 10
+
+// _FLASH_MAP
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_SIGNATURE
+("\x5F\x46\x4C\x41\x53\x48\x5F\x4D\x41\x50", 10);
+
+typedef struct PHOENIX_FLASH_MAP_HEADER_ {
+    UINT8  Signature[10]; // _FLASH_MAP signature
+    UINT16 NumEntries;    // Number of entries in the map
+    UINT32 : 32;          // Reserved field
+} PHOENIX_FLASH_MAP_HEADER;
+
+typedef struct PHOENIX_FLASH_MAP_ENTRY_ {
+    EFI_GUID Guid;
+    UINT32 Type;
+    UINT64 PhysicalAddress;
+    UINT32 Size;
+    UINT32 Offset;
+} PHOENIX_FLASH_MAP_ENTRY;
+
+
+
+
 
 // Restore previous packing rules
 #pragma pack(pop)

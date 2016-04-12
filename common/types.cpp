@@ -73,16 +73,20 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("Fsys store");
     case Types::NvramStoreEvsa:
         return QObject::tr("EVSA store");
-    case Types::NvramFtwBlock:
-        return QObject::tr("FTW block");
+    case Types::NvramStoreFtw:
+        return QObject::tr("FTW store");
+    case Types::NvramStoreFlashMap:
+        return QObject::tr("FlashMap store");
     case Types::NvramVariableNvar:
         return QObject::tr("NVAR variable");
     case Types::NvramVariableVss:
         return QObject::tr("VSS variable");
-    case Types::NvramVariableFsys:
-        return QObject::tr("Fsys variable");
+    case Types::NvramEntryFsys:
+        return QObject::tr("Fsys entry");
     case Types::NvramEntryEvsa:
         return QObject::tr("EVSA entry");
+    case Types::NvramEntryFlashMap:
+        return QObject::tr("FlashMap entry");
     default:
         return QObject::tr("Unknown");
     }
@@ -142,8 +146,10 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
     case Types::NvramStoreFdc:
     case Types::NvramStoreFsys:
     case Types::NvramStoreEvsa:
-    case Types::NvramFtwBlock:
-    case Types::NvramVariableFsys:
+    case Types::NvramStoreFtw:
+    case Types::NvramStoreFlashMap:
+    case Types::NvramEntryFsys:
+    case Types::NvramEntryFlashMap:
         return QString();
     case Types::NvramVariableNvar:
         if (subtype == Subtypes::InvalidNvarVariable)
