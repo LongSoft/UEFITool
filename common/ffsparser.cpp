@@ -3470,7 +3470,7 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
             // Check reserved bytes
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
             bool reservedBytesValid = true;
-            for (int i = 0; i < sizeof(ucodeHeader->Reserved); i++)
+            for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++)
                 if (ucodeHeader->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
                     reservedBytesValid = false;
                     break;
@@ -3503,7 +3503,7 @@ STATUS FfsParser::findNextStore(const QModelIndex & index, const QByteArray & da
             const OEM_ACTIVATION_MARKER* markerHeader = (const OEM_ACTIVATION_MARKER*)(data.constData() + offset - 26);
             // Check reserved bytes
             bool reservedBytesValid = true;
-            for (int i = 0; i < sizeof(markerHeader->Reserved); i++)
+            for (UINT32 i = 0; i < sizeof(markerHeader->Reserved); i++)
                 if (markerHeader->Reserved[i] != OEM_ACTIVATION_MARKER_RESERVED_BYTE) {
                     reservedBytesValid = false;
                     break;
