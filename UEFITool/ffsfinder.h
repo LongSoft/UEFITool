@@ -28,11 +28,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class FfsFinder
 {
 public:
-    explicit FfsFinder(const TreeModel * treeModel);
-    ~FfsFinder();
+    FfsFinder(const TreeModel * treeModel) : model(treeModel) {}
+    ~FfsFinder() {}
 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
-    void clearMessages();
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    void clearMessages() { messagesVector.clear(); }
 
     STATUS findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode);
     STATUS findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode);
@@ -42,7 +42,9 @@ private:
     const TreeModel* model;
     std::vector<std::pair<QString, QModelIndex> > messagesVector;
 
-    void msg(const QString & message, const QModelIndex &index = QModelIndex());
+    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
+        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    }
 };
 
 #endif // FFSFINDER_H

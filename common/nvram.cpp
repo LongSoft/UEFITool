@@ -52,3 +52,30 @@ QString efiTimeToQString(const EFI_TIME & time)
         .arg(time.Second, 2, 10, QLatin1Char('0'))
         .arg(time.Nanosecond);
 }
+
+QString flashMapGuidToQString(const EFI_GUID & guid)
+{
+    const QByteArray baGuid((const char*)&guid, sizeof(EFI_GUID));
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_VOLUME_HEADER)
+        return QObject::tr("Volume header");
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_MICROCODES_GUID)
+        return QObject::tr("Microcodes");
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_CMDB_GUID)
+        return QObject::tr("CMDB");
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_PUBKEY1_GUID || baGuid == NVRAM_PHOENIX_FLASH_MAP_PUBKEY2_GUID)
+        return QObject::tr("SLIC pubkey");
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_MARKER1_GUID || baGuid == NVRAM_PHOENIX_FLASH_MAP_MARKER2_GUID)
+        return QObject::tr("SLIC marker");
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA1_GUID || 
+        baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA2_GUID ||
+        baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA3_GUID || 
+        baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA4_GUID || 
+        baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA5_GUID ||
+        baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA6_GUID ||
+        baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA7_GUID)
+        return QObject::tr("EVSA store");
+    if (baGuid == NVRAM_PHOENIX_FLASH_MAP_SELF_GUID)
+        return QObject::tr("Flash map");
+    return QString();
+}
+

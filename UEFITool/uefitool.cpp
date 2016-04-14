@@ -175,7 +175,8 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuVariableActions->setEnabled(type == Types::NvramVariableNvar || type == Types::NvramVariableVss || type == Types::NvramEntryFsys 
         || type == Types::NvramEntryEvsa || type == Types::NvramEntryFlashMap);
     ui->menuStoreActions->setEnabled(type == Types::NvramStoreVss || type == Types::NvramStoreFdc || type == Types::NvramStoreFsys 
-        || type == Types::NvramStoreEvsa || type == Types::NvramStoreFtw || type == Types::NvramStoreFlashMap);
+        || type == Types::NvramStoreEvsa || type == Types::NvramStoreFtw || type == Types::NvramStoreFlashMap || type == Types::NvramStoreCmdb 
+        || type == Types::Microcode || type == Types::SlicPubkey || type == Types::SlicMarker);
     
     // Enable actions
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
@@ -995,6 +996,10 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::NvramStoreEvsa:
     case Types::NvramStoreFtw:
     case Types::NvramStoreFlashMap:
+    case Types::NvramStoreCmdb:
+    case Types::Microcode:
+    case Types::SlicPubkey:
+    case Types::SlicMarker:
         ui->menuStoreActions->exec(event->globalPos());
         break;
     }

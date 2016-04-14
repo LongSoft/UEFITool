@@ -11,31 +11,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 #include "fitparser.h"
 
-
-FitParser::FitParser(TreeModel* treeModel)
-    : model(treeModel)
-{
-}
-
-FitParser::~FitParser()
-{
-}
-
-void FitParser::msg(const QString & message, const QModelIndex & index)
-{
-    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
-}
-
-std::vector<std::pair<QString, QModelIndex> > FitParser::getMessages() const
-{
-    return messagesVector;
-}
-
-void FitParser::clearMessages()
-{
-    messagesVector.clear();
-}
-
 STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIndex)
 {
     // Check sanity

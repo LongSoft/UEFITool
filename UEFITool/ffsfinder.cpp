@@ -13,30 +13,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsfinder.h"
 
-FfsFinder::FfsFinder(const TreeModel* treeModel)
-    : model(treeModel)
-{
-}
-
-FfsFinder::~FfsFinder()
-{
-}
-
-void FfsFinder::msg(const QString & message, const QModelIndex & index)
-{
-    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
-}
-
-std::vector<std::pair<QString, QModelIndex> > FfsFinder::getMessages() const
-{
-    return messagesVector;
-}
-
-void FfsFinder::clearMessages()
-{
-    messagesVector.clear();
-}
-
 STATUS FfsFinder::findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode)
 {
     if (!index.isValid())

@@ -32,13 +32,13 @@ class FitParser
 {
 public:
     // Default constructor and destructor
-    FitParser(TreeModel* treeModel);
-    ~FitParser();
+    FitParser(TreeModel* treeModel) : model(treeModel) {}
+    ~FitParser() {}
 
     // Returns messages
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; };
     // Clears messages
-    void clearMessages();
+    void clearMessages() { messagesVector.clear(); }
 
     STATUS parse(const QModelIndex & index, const QModelIndex & lastVtf);
     std::vector<std::vector<QString> > getFitTable() const { return fitTable; }
@@ -53,7 +53,9 @@ private:
     QString fitEntryTypeToQString(UINT8 type);
 
     // Message helper
-    void msg(const QString & message, const QModelIndex &index = QModelIndex());
+    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
+        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    }
 };
 
 #endif // FITPARSER_H

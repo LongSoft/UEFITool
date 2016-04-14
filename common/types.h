@@ -49,11 +49,15 @@ namespace Types {
         NvramStoreEvsa,
         NvramStoreFlashMap,
         NvramStoreFtw,
+        NvramStoreCmdb,
         NvramVariableNvar,
         NvramVariableVss,
         NvramEntryFsys,
         NvramEntryEvsa,
         NvramEntryFlashMap,
+        Microcode,
+        SlicPubkey,
+        SlicMarker,
     };
 }
 
@@ -117,6 +121,16 @@ namespace Subtypes {
         GuidEvsaEntry,
         NameEvsaEntry,
         DataEvsaEntry,
+    };
+
+    enum FlashMapEntrySubtypes {
+        VolumeFlashMapEntry = 160,
+        DataBlockFlashMapEntry
+    };
+
+    enum MicrocodeSubtypes {
+        IntelMicrocode = 170,
+        AmdMicrocode
     };
 };
 

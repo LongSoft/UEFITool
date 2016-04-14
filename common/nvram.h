@@ -19,8 +19,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QString>
 #include "basetypes.h"
 
+// Make sure we use right packing rules
+#pragma pack(push, 1)
+
 //
-// NVAR store
+// NVAR store and variables
 //
 
 // CEF5B9A3-476D-497F-9FDC-E98143E0422C
@@ -34,9 +37,6 @@ const QByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID
 extern QString nvarAttributesToQString(const UINT8 attributes);
 
 extern QString efiTimeToQString(const EFI_TIME & time);
-
-// Make sure we use right packing rules
-#pragma pack(push, 1)
 
 // Variable header
 typedef struct NVAR_VARIABLE_HEADER_ {
@@ -67,7 +67,7 @@ typedef struct NVAR_VARIABLE_HEADER_ {
 
 
 //
-// TianoCore VSS and it's variations
+// TianoCore VSS store and variables
 //
 
 // FFF12B8D-7696-4C8B-A985-2747075B4F50
@@ -158,9 +158,10 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 #define NVRAM_VSS_VARIABLE_APPEND_WRITE                          0x00000040
 #define NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM                   0x80000000
 
-// FDC region can be found in Insyde VSS volumes
-// It has another VSS volume inside
-// _FDC header structure
+//
+// FDC region
+//
+
 #define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
 
 typedef struct FDC_VOLUME_HEADER_ {
@@ -171,8 +172,9 @@ typedef struct FDC_VOLUME_HEADER_ {
     //VSS_VARIABLE_STORE_HEADER VssHeader;
 } FDC_VOLUME_HEADER;
 
+//
 // FTW block
-// EFI Fault tolerant working block header
+//
 #define EFI_FAULT_TOLERANT_WORKING_BLOCK_VALID   0x1
 #define EFI_FAULT_TOLERANT_WORKING_BLOCK_INVALID 0x2
 
@@ -202,7 +204,7 @@ typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
 } EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64;
 
 //
-// Apple Fsys
+// Apple Fsys store
 //
 
 typedef struct APPLE_FSYS_STORE_HEADER_ {
@@ -221,7 +223,7 @@ typedef struct APPLE_FSYS_STORE_HEADER_ {
 // Has CRC32 of the whole store without checksum field at the end
 
 //
-// EVSA
+// EVSA store and variables
 //
 
 #define NVRAM_EVSA_STORE_SIGNATURE 0x41535645
@@ -233,7 +235,7 @@ typedef struct APPLE_FSYS_STORE_HEADER_ {
 #define NVRAM_EVSA_ENTRY_TYPE_NAME2 0xE2
 #define NVRAM_EVSA_ENTRY_TYPE_DATA1 0xEF
 #define NVRAM_EVSA_ENTRY_TYPE_DATA2 0xE3
-#define NVRAM_EVSA_ENTRY_TYPE_DATA3 0x83
+#define NVRAM_EVSA_ENTRY_TYPE_DATA_INVALID 0x83
 
 typedef struct EVSA_ENTRY_HEADER_ {
     UINT8  Type;
@@ -269,6 +271,16 @@ typedef struct EVSA_DATA_ENTRY_ {
     //UINT8 Data[];
 } EVSA_DATA_ENTRY;
 
+#define NVRAM_EVSA_DATA_ATTRIBUTE_EXTENDED_HEADER 0x10000000
+
+typedef struct EVSA_DATA_ENTRY_EXTENDED {
+    EVSA_ENTRY_HEADER Header;
+    UINT16 GuidId;
+    UINT16 VarId;
+    UINT32 Attributes;
+    UINT32 DataSize;
+    //UINT8 Data[];
+} EVSA_DATA_ENTRY_EXTENDED;
 
 //
 // Phoenix SCT Flash Map
@@ -289,15 +301,130 @@ typedef struct PHOENIX_FLASH_MAP_HEADER_ {
 
 typedef struct PHOENIX_FLASH_MAP_ENTRY_ {
     EFI_GUID Guid;
-    UINT32 Type;
+    UINT16 DataType;
+    UINT16 EntryType;
     UINT64 PhysicalAddress;
     UINT32 Size;
     UINT32 Offset;
 } PHOENIX_FLASH_MAP_ENTRY;
 
+#define NVRAM_PHOENIX_FLASH_MAP_ENTRY_TYPE_VOLUME     0x0000
+#define NVRAM_PHOENIX_FLASH_MAP_ENTRY_TYPE_DATA_BLOCK 0x0001
 
+extern QString flashMapGuidToQString(const EFI_GUID & guid);
 
+// B091E7D2-05A0-4198-94F0-74B7B8C55459
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_VOLUME_HEADER
+("\xD2\xE7\x91\xB0\xA0\x05\x98\x41\x94\xF0\x74\xB7\xB8\xC5\x54\x59", 16);
 
+// FD3F690E-B4B0-4D68-89DB-19A1A3318F90
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_MICROCODES_GUID
+("\x0E\x69\x3F\xFD\xB0\xB4\x68\x4D\x89\xDB\x19\xA1\xA3\x31\x8F\x90", 16);
+
+// 46310243-7B03-4132-BE44-2243FACA7CDD
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_CMDB_GUID
+("\x43\x02\x31\x46\x03\x7B\x32\x41\xBE\x44\x22\x43\xFA\xCA\x7C\xDD", 16);
+
+// 1B2C4952-D778-4B64-BDA1-15A36F5FA545
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_PUBKEY1_GUID
+("\x52\x49\x2C\x1B\x78\xD7\x64\x4B\xBD\xA1\x15\xA3\x6F\x5F\xA5\x45", 16);
+
+// 127C1C4E-9135-46E3-B006-F9808B0559A5
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_MARKER1_GUID
+("\x4E\x1C\x7C\x12\x35\x91\xE3\x46\xB0\x06\xF9\x80\x8B\x05\x59\xA5", 16);
+
+// 7CE75114-8272-45AF-B536-761BD38852CE
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_PUBKEY2_GUID
+("\x14\x51\xE7\x7C\x72\x82\xAF\x45\xB5\x36\x76\x1B\xD3\x88\x52\xCE", 16);
+
+// 071A3DBE-CFF4-4B73-83F0-598C13DCFDD5
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_MARKER2_GUID
+("\xBE\x3D\x1A\x07\xF4\xCF\x73\x4B\x83\xF0\x59\x8C\x13\xDC\xFD\xD5", 16);
+
+// FACFB110-7BFD-4EFB-873E-88B6B23B97EA
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA1_GUID
+("\x10\xB1\xCF\xFA\xFD\x7B\xFB\x4E\x87\x3E\x88\xB6\xB2\x3B\x97\xEA", 16);
+
+// E68DC11A-A5F4-4AC3-AA2E-29E298BFF645
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA2_GUID
+("\x1A\xC1\x8D\xE6\xF4\xA5\xC3\x4A\xAA\x2E\x29\xE2\x98\xBF\xF6\x45", 16);
+
+// 4B3828AE-0ACE-45B6-8CDB-DAFC28BBF8C5
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA3_GUID
+("\xAE\x28\x38\x4B\xCE\x0A\xB6\x45\x8C\xDB\xDA\xFC\x28\xBB\xF8\xC5", 16);
+
+// C22E6B8A-8159-49A3-B353-E84B79DF19C0
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA4_GUID
+("\x8A\x6B\x2E\xC2\x59\x81\xA3\x49\xB3\x53\xE8\x4B\x79\xDF\x19\xC0", 16);
+
+// B6B5FAB9-75C4-4AAE-8314-7FFFA7156EAA
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA5_GUID
+("\xB9\xFA\xB5\xB6\xC4\x75\xAE\x4A\x83\x14\x7F\xFF\xA7\x15\x6E\xAA", 16);
+
+// 919B9699-8DD0-4376-AA0B-0E54CCA47D8F
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA6_GUID
+("\x99\x96\x9B\x91\xD0\x8D\x76\x43\xAA\x0B\x0E\x54\xCC\xA4\x7D\x8F", 16);
+
+// 58A90A52-929F-44F8-AC35-A7E1AB18AC91
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_EVSA7_GUID
+("\x52\x0A\xA9\x58\x9F\x92\xF8\x44\xAC\x35\xA7\xE1\xAB\x18\xAC\x91", 16);
+
+// 8CB71915-531F-4AF5-82BF-A09140817BAA
+const QByteArray NVRAM_PHOENIX_FLASH_MAP_SELF_GUID
+("\x15\x19\xB7\x8C\x1F\x53\xF5\x4A\x82\xBF\xA0\x91\x40\x81\x7B\xAA", 16);
+
+//
+// SLIC pubkey and marker
+//
+
+typedef struct OEM_ACTIVATION_PUBKEY_ {
+    UINT32 Type;         // 0
+    UINT32 Size;         // 0x9C
+    UINT8  KeyType;
+    UINT8  Version;
+    UINT16 Reserved;
+    UINT32 Algorithm;
+    UINT32 Magic;        // RSA1
+    UINT32 BitLength;
+    UINT32 Exponent;
+    UINT8  Modulus[128];
+} OEM_ACTIVATION_PUBKEY;
+
+#define OEM_ACTIVATION_PUBKEY_TYPE  0x00000000
+#define OEM_ACTIVATION_PUBKEY_MAGIC 0x31415352 // RSA1
+
+typedef struct OEM_ACTIVATION_MARKER_ {
+    UINT32 Type;         // 1
+    UINT32 Size;         // 0xB6
+    UINT32 Version;
+    UINT8  OemId[6];
+    UINT8  OemTableId[8];
+    UINT64 WindowsFlag;
+    UINT32 SlicVersion;
+    UINT8  Reserved[16];
+    UINT8  Signature[128];
+} OEM_ACTIVATION_MARKER;
+
+#define OEM_ACTIVATION_MARKER_TYPE               0x00000001
+#define OEM_ACTIVATION_MARKER_WINDOWS_FLAG_PART1 0x444E4957
+#define OEM_ACTIVATION_MARKER_WINDOWS_FLAG       0x2053574F444E4957UL
+#define OEM_ACTIVATION_MARKER_RESERVED_BYTE      0x00
+
+//
+// Phoenix CMDB, no londer used, requires no parsing
+//
+
+typedef struct PHOENIX_CMDB_HEADER_ {
+    UINT32 Signature;  // CMDB
+    UINT32 HeaderSize; // Size of this header
+    UINT32 TotalSize;  // Total size of header and chunks, without strings
+    // UINT8 StartChunk[3];
+    // UINT8 StringChunk[5][x];
+    // C_STR Strings[2*x + 1];
+} PHOENIX_CMDB_HEADER;
+
+#define NVRAM_PHOENIX_CMDB_HEADER_SIGNATURE 0x42444D43
+#define NVRAM_PHOENIX_CMDB_SIZE 0x100;
 
 // Restore previous packing rules
 #pragma pack(pop)

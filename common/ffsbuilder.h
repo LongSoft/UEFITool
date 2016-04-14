@@ -30,18 +30,20 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class FfsBuilder
 {
 public:
-    explicit FfsBuilder(const TreeModel * treeModel);
-    ~FfsBuilder();
+    FfsBuilder(const TreeModel * treeModel) : model(treeModel) {}
+    ~FfsBuilder() {}
 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
-    void clearMessages();
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    void clearMessages() { messagesVector.clear(); }
 
     STATUS build(const QModelIndex & root, QByteArray & image);
 
 private:
     const TreeModel* model;
     std::vector<std::pair<QString, QModelIndex> > messagesVector;
-    void msg(const QString & message, const QModelIndex &index = QModelIndex());
+    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
+        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    }
 
     STATUS buildCapsule(const QModelIndex & index, QByteArray & capsule);
     STATUS buildIntelImage(const QModelIndex & index, QByteArray & intelImage);

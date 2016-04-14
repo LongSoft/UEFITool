@@ -39,13 +39,13 @@ class FfsParser
 {
 public:
     // Default constructor and destructor
-    FfsParser(TreeModel* treeModel);
-    ~FfsParser();
+    FfsParser(TreeModel* treeModel) : model(treeModel), capsuleOffsetFixup(0) {}
+    ~FfsParser() {}
 
     // Returns messages 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
     // Clears messages
-    void clearMessages();
+    void clearMessages() { messagesVector.clear(); }
 
     // Firmware image parsing
     STATUS parse(const QByteArray &buffer);
@@ -119,7 +119,9 @@ private:
     STATUS parseFlashMapBody(const QModelIndex & index);
 
     // Message helper
-    void msg(const QString & message, const QModelIndex &index = QModelIndex());
+    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
+        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    };
 };
 
 #endif // FFSPARSER_H

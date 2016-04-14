@@ -75,6 +75,8 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("EVSA store");
     case Types::NvramStoreFtw:
         return QObject::tr("FTW store");
+    case Types::NvramStoreCmdb:
+        return QObject::tr("CMDB store");
     case Types::NvramStoreFlashMap:
         return QObject::tr("FlashMap store");
     case Types::NvramVariableNvar:
@@ -87,6 +89,12 @@ QString itemTypeToQString(const UINT8 type)
         return QObject::tr("EVSA entry");
     case Types::NvramEntryFlashMap:
         return QObject::tr("FlashMap entry");
+    case Types::Microcode:
+        return QObject::tr("Microcode");
+    case Types::SlicPubkey:
+        return QObject::tr("SLIC pubkey");
+    case Types::SlicMarker:
+        return QObject::tr("SLIC marker");
     default:
         return QObject::tr("Unknown");
     }
@@ -96,61 +104,58 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
 {
     switch (type) {
     case Types::Root:
-    case Types::Image:
-        if (subtype == Subtypes::IntelImage)
-            return QObject::tr("Intel");
-        else if (Subtypes::UefiImage)
-            return QObject::tr("UEFI");
-        else
-            return QObject::tr("Unknown subtype");
-    case Types::Padding:
-        if (subtype == Subtypes::ZeroPadding)
-            return QObject::tr("Empty (0x00)");
-        else if (subtype == Subtypes::OnePadding)
-            return QObject::tr("Empty (0xFF)");
-        else if (subtype == Subtypes::DataPadding)
-            return QObject::tr("Non-empty");
-        else
-            return QObject::tr("Unknown subtype");
-    case Types::Volume: 
-        if (subtype == Subtypes::UnknownVolume)
-            return QObject::tr("Unknown");
-        else if (subtype == Subtypes::Ffs2Volume)
-            return QObject::tr("FFSv2");
-        else if (subtype == Subtypes::Ffs3Volume)
-            return QObject::tr("FFSv3");
-        else if (subtype == Subtypes::NvramVolume)
-            return QObject::tr("NVRAM");
-        else
-            return QObject::tr("Unknown subtype");
-    case Types::Capsule: 
-        if (subtype == Subtypes::AptioSignedCapsule)
-            return QObject::tr("Aptio signed");
-        else if (subtype == Subtypes::AptioUnsignedCapsule)
-            return QObject::tr("Aptio unsigned");
-        else if (subtype == Subtypes::UefiCapsule)
-            return QObject::tr("UEFI 2.0");
-        else if (subtype == Subtypes::ToshibaCapsule)
-            return QObject::tr("Toshiba");
-        else 
-            return QObject::tr("Unknown subtype");
-    case Types::Region:
-        return regionTypeToQString(subtype);
-    case Types::File:
-        return fileTypeToQString(subtype);
-    case Types::Section:
-        return sectionTypeToQString(subtype);
     case Types::FreeSpace:
-        return QString();
     case Types::NvramStoreVss:
     case Types::NvramStoreFdc:
     case Types::NvramStoreFsys:
     case Types::NvramStoreEvsa:
     case Types::NvramStoreFtw:
     case Types::NvramStoreFlashMap:
+    case Types::NvramStoreCmdb:
     case Types::NvramEntryFsys:
-    case Types::NvramEntryFlashMap:
+    case Types::SlicPubkey:
+    case Types::SlicMarker:
         return QString();
+    case Types::Image:
+        if (subtype == Subtypes::IntelImage)
+            return QObject::tr("Intel");
+        if (Subtypes::UefiImage)
+            return QObject::tr("UEFI");
+        break;
+    case Types::Padding:
+        if (subtype == Subtypes::ZeroPadding)
+            return QObject::tr("Empty (0x00)");
+        if (subtype == Subtypes::OnePadding)
+            return QObject::tr("Empty (0xFF)");
+        if (subtype == Subtypes::DataPadding)
+            return QObject::tr("Non-empty");
+        break;
+    case Types::Volume: 
+        if (subtype == Subtypes::UnknownVolume)
+            return QObject::tr("Unknown");
+        if (subtype == Subtypes::Ffs2Volume)
+            return QObject::tr("FFSv2");
+        if (subtype == Subtypes::Ffs3Volume)
+            return QObject::tr("FFSv3");
+        if (subtype == Subtypes::NvramVolume)
+            return QObject::tr("NVRAM");
+        break;
+    case Types::Capsule: 
+        if (subtype == Subtypes::AptioSignedCapsule)
+            return QObject::tr("Aptio signed");
+        if (subtype == Subtypes::AptioUnsignedCapsule)
+            return QObject::tr("Aptio unsigned");
+        if (subtype == Subtypes::UefiCapsule)
+            return QObject::tr("UEFI 2.0");
+        if (subtype == Subtypes::ToshibaCapsule)
+            return QObject::tr("Toshiba");
+        break;
+    case Types::Region:
+        return regionTypeToQString(subtype);
+    case Types::File:
+        return fileTypeToQString(subtype);
+    case Types::Section:
+        return sectionTypeToQString(subtype);
     case Types::NvramVariableNvar:
         if (subtype == Subtypes::InvalidNvarVariable)
             return QObject::tr("Invalid");
@@ -162,8 +167,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Data");
         if (subtype == Subtypes::FullNvarVariable)
             return QObject::tr("Full");
-        else
-            return QObject::tr("Unknown subtype");
+        break;
     case Types::NvramVariableVss:
         if (subtype == Subtypes::InvalidVssVariable)
             return QObject::tr("Invalid");
@@ -173,8 +177,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Apple CRC32");
         if (subtype == Subtypes::AuthVssVariable)
             return QObject::tr("Auth");
-        else
-            return QObject::tr("Unknown subtype");
+        break;
     case Types::NvramEntryEvsa:
         if (subtype == Subtypes::InvalidEvsaEntry)
             return QObject::tr("Invalid");
@@ -186,11 +189,22 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
             return QObject::tr("Name");
         if (subtype == Subtypes::DataEvsaEntry)
             return QObject::tr("Data");
-        else
-            return QObject::tr("Unknown subtype");
-    default:
-        return QObject::tr("Unknown subtype");
+        break;
+    case Types::NvramEntryFlashMap:
+        if (subtype == Subtypes::VolumeFlashMapEntry)
+            return QObject::tr("Volume");
+        if (subtype == Subtypes::DataBlockFlashMapEntry)
+            return QObject::tr("Data block");
+        break;
+    case Types::Microcode:
+        if (subtype == Subtypes::IntelMicrocode)
+            return QObject::tr("Intel");
+        if (subtype == Subtypes::AmdMicrocode)
+            return QObject::tr("AMD");
+        break;
     }
+
+    return QObject::tr("Unknown subtype");
 }
 
 QString compressionTypeToQString(const UINT8 algorithm)

@@ -12,30 +12,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 #include "ffsbuilder.h"
 
-FfsBuilder::FfsBuilder(const TreeModel* treeModel)
-    : model(treeModel)
-{
-}
-
-FfsBuilder::~FfsBuilder()
-{
-}
-
-void FfsBuilder::msg(const QString & message, const QModelIndex & index)
-{
-    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
-}
-
-std::vector<std::pair<QString, QModelIndex> > FfsBuilder::getMessages() const
-{
-    return messagesVector;
-}
-
-void FfsBuilder::clearMessages()
-{
-    messagesVector.clear();
-}
-
 STATUS FfsBuilder::erase(const QModelIndex & index, QByteArray & erased)
 {
     // Sanity check
