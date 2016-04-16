@@ -13,30 +13,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsops.h"
 
-FfsOperations::FfsOperations(TreeModel* treeModel)
-    : model(treeModel)
-{
-}
-
-FfsOperations::~FfsOperations()
-{
-}
-
-void FfsOperations::msg(const QString & message, const QModelIndex & index)
-{
-    messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
-}
-
-std::vector<std::pair<QString, QModelIndex> > FfsOperations::getMessages() const
-{
-    return messagesVector;
-}
-
-void FfsOperations::clearMessages()
-{
-    messagesVector.clear();
-}
-
 STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteArray & extracted, const UINT8 mode)
 {
     // Sanity check
@@ -49,18 +25,18 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
     // Construct a name for extracted data
     QString itemName = model->name(index);
     QString itemText = model->text(index);
+
+    // Default name
+    name = itemName.replace(' ', '_').replace('/', '_').replace('-', '_');
+
     switch (model->type(index)) {
-    case Types::Volume: {
-        if (pdata.volume.hasExtendedHeader)
-            name = guidToQString(pdata.volume.extendedHeaderGuid).replace('-', '_');
-        else
-            name = itemName.replace('-', '_');
-    } break;
-    case Types::NvramVariableNvar:
-    case Types::NvramVariableVss:
-    case Types::File: {
-        name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_').replace('-', '_');
-    } break;
+    case Types::Volume:        if (pdata.volume.hasExtendedHeader) name = guidToQString(pdata.volume.extendedHeaderGuid).replace('-', '_'); break;
+    case Types::NvarEntry:
+    case Types::VssEntry:
+    case Types::FsysEntry:
+    case Types::EvsaEntry:
+    case Types::FlashMapEntry:
+    case Types::File:          name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_').replace('-', '_'); break;
     case Types::Section: {
         // Get parent file name
         QModelIndex fileIndex = model->findParentOfType(index, Types::File);
@@ -68,9 +44,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         name = fileText.isEmpty() ? model->name(fileIndex) : fileText.replace(' ', '_').replace('-', '_');
         // Append section subtype name
         name += QChar('_') + itemName.replace(' ', '_');
-    } break;
-    default:
-        name = itemName.replace(' ', '_').replace('/', '_').replace('-', '_');
+        } break;
     }
 
     // Get extracted data

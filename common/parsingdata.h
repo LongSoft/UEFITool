@@ -87,7 +87,7 @@ typedef struct NVRAM_NVAR_PARSING_DATA_ {
     UINT8  attributes;
     UINT8  extendedAttributes;
     UINT64 timestamp;
-    UINT8  hash[0x20]; //SHA256
+    UINT8  hash[SHA256_HASH_SIZE]; //SHA256
 } NVRAM_NVAR_PARSING_DATA;
 
 typedef struct NVRAM_PARSING_DATA_ {

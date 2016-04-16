@@ -23,7 +23,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push, 1)
 
 //
-// NVAR store and variables
+// NVAR store and entry
 //
 
 // CEF5B9A3-476D-497F-9FDC-E98143E0422C
@@ -38,33 +38,30 @@ extern QString nvarAttributesToQString(const UINT8 attributes);
 
 extern QString efiTimeToQString(const EFI_TIME & time);
 
-// Variable header
-typedef struct NVAR_VARIABLE_HEADER_ {
+typedef struct NVAR_ENTRY_HEADER_ {
     UINT32 Signature;      // NVAR
-    UINT16 Size;           // Size of the variable including header
-    UINT32 Next : 24;      // Offset to the next variable in a list, or empty if latest in the list
+    UINT16 Size;           // Size of the entry including header
+    UINT32 Next : 24;      // Offset to the next entry in a list, or empty if latest in the list
     UINT32 Attributes : 8; // Attributes
-} NVAR_VARIABLE_HEADER;
+} NVAR_ENTRY_HEADER;
 
 // NVAR signature
-#define NVRAM_NVAR_VARIABLE_SIGNATURE         0x5241564E
+#define NVRAM_NVAR_ENTRY_SIGNATURE         0x5241564E
 
 // Attributes
-#define NVRAM_NVAR_VARIABLE_ATTRIB_RUNTIME         0x01
-#define NVRAM_NVAR_VARIABLE_ATTRIB_ASCII_NAME      0x02
-#define NVRAM_NVAR_VARIABLE_ATTRIB_GUID            0x04
-#define NVRAM_NVAR_VARIABLE_ATTRIB_DATA_ONLY       0x08
-#define NVRAM_NVAR_VARIABLE_ATTRIB_EXT_HEADER      0x10
-#define NVRAM_NVAR_VARIABLE_ATTRIB_HW_ERROR_RECORD 0x20 
-#define NVRAM_NVAR_VARIABLE_ATTRIB_AUTH_WRITE      0x40
-#define NVRAM_NVAR_VARIABLE_ATTRIB_VALID           0x80
+#define NVRAM_NVAR_ENTRY_ATTRIB_RUNTIME         0x01
+#define NVRAM_NVAR_ENTRY_ATTRIB_ASCII_NAME      0x02
+#define NVRAM_NVAR_ENTRY_ATTRIB_GUID            0x04
+#define NVRAM_NVAR_ENTRY_ATTRIB_DATA_ONLY       0x08
+#define NVRAM_NVAR_ENTRY_ATTRIB_EXT_HEADER      0x10
+#define NVRAM_NVAR_ENTRY_ATTRIB_HW_ERROR_RECORD 0x20 
+#define NVRAM_NVAR_ENTRY_ATTRIB_AUTH_WRITE      0x40
+#define NVRAM_NVAR_ENTRY_ATTRIB_VALID           0x80
 
 // Extended attributes
-#define NVRAM_NVAR_VARIABLE_EXT_ATTRIB_CHECKSUM    0x01
-#define NVRAM_NVAR_VARIABLE_EXT_ATTRIB_AUTH_WRITE  0x10
-#define NVRAM_NVAR_VARIABLE_EXT_ATTRIB_TIME_BASED  0x20
-
-
+#define NVRAM_NVAR_ENTRY_EXT_ATTRIB_CHECKSUM    0x01
+#define NVRAM_NVAR_ENTRY_EXT_ATTRIB_AUTH_WRITE  0x10
+#define NVRAM_NVAR_ENTRY_EXT_ATTRIB_TIME_BASED  0x20
 
 //
 // TianoCore VSS store and variables
@@ -273,7 +270,7 @@ typedef struct EVSA_DATA_ENTRY_ {
 
 #define NVRAM_EVSA_DATA_ATTRIBUTE_EXTENDED_HEADER 0x10000000
 
-typedef struct EVSA_DATA_ENTRY_EXTENDED {
+typedef struct EVSA_DATA_ENTRY_EXTENDED_ {
     EVSA_ENTRY_HEADER Header;
     UINT16 GuidId;
     UINT16 VarId;

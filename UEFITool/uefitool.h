@@ -59,7 +59,7 @@ public:
     ~UEFITool();
 
     void openImageFile(QString path);
-    void setProgramPath(QString path);
+    void setProgramPath(QString path) { currentProgramPath = path; }
 
 private slots:
     void init();

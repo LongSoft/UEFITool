@@ -166,4 +166,7 @@ UINT8: 8;
 #define hexarg(X) arg(QString("%1").arg((X),0,16).toUpper())
 #define hexarg2(X, Y) arg(QString("%1").arg((X),(Y),16,QLatin1Char('0')).toUpper())
 
+// SHA256 hash size in bytes
+#define SHA256_HASH_SIZE 0x20
+
 #endif // BASETYPES_H

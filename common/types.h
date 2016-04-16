@@ -43,21 +43,20 @@ namespace Types {
         File,
         Section,
         FreeSpace,
-        NvramStoreVss,
-        NvramStoreFdc,
-        NvramStoreFsys,
-        NvramStoreEvsa,
-        NvramStoreFlashMap,
-        NvramStoreFtw,
-        NvramStoreCmdb,
-        NvramVariableNvar,
-        NvramVariableVss,
-        NvramEntryFsys,
-        NvramEntryEvsa,
-        NvramEntryFlashMap,
+        VssStore,
+        FtwStore,
+        FdcStore,
+        FsysStore,
+        EvsaStore,
+        FlashMapStore,
+        CmdbStore,
+        NvarEntry,
+        VssEntry,
+        FsysEntry,
+        EvsaEntry,
+        FlashMapEntry,
         Microcode,
-        SlicPubkey,
-        SlicMarker,
+        SlicData,
     };
 }
 
@@ -100,22 +99,22 @@ namespace Subtypes {
         DataPadding
     };
 
-    enum NvarVariableSubtypes {
-        InvalidNvarVariable = 130,
-        InvalidLinkNvarVariable,
-        LinkNvarVariable,
-        DataNvarVariable,
-        FullNvarVariable
+    enum NvarEntrySubtypes {
+        InvalidNvarEntry = 130,
+        InvalidLinkNvarEntry,
+        LinkNvarEntry,
+        DataNvarEntry,
+        FullNvarEntry
     };
 
-    enum VssVariableSubtypes {
-        InvalidVssVariable = 140,
-        StandardVssVariable,
-        Crc32VssVariable,
-        AuthVssVariable
+    enum VssEntrySubtypes {
+        InvalidVssEntry = 140,
+        StandardVssEntry,
+        AppleVssEntry,
+        AuthVssEntry
     };
 
-    enum EvsaVariableSubtypes {
+    enum EvsaEntrySubtypes {
         InvalidEvsaEntry = 150,
         UnknownEvsaEntry,
         GuidEvsaEntry,
@@ -125,12 +124,17 @@ namespace Subtypes {
 
     enum FlashMapEntrySubtypes {
         VolumeFlashMapEntry = 160,
-        DataBlockFlashMapEntry
+        DataFlashMapEntry
     };
 
     enum MicrocodeSubtypes {
         IntelMicrocode = 170,
         AmdMicrocode
+    };
+
+    enum SlicDataSubtypes {
+        PubkeySlicData = 180,
+        MarkerSlicData
     };
 };
 

@@ -59,7 +59,7 @@ private:
     QModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
 
-    STATUS parseRawArea(const QByteArray & data, const QModelIndex & index);
+    STATUS parseRawArea(const QModelIndex & index);
     STATUS parseVolumeHeader(const QByteArray & volume, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseVolumeBody(const QModelIndex & index);
     STATUS parseFileHeader(const QByteArray & file, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
@@ -107,12 +107,22 @@ private:
     STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
 
     // NVRAM parsing
-    STATUS parseNvarStore(const QByteArray & data, const QModelIndex & index);
-
-    STATUS parseStoreArea(const QByteArray & data, const QModelIndex & index);
-    STATUS findNextStore(const QModelIndex & index, const QByteArray & data, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
+    STATUS parseNvramVolumeBody(const QModelIndex & index);
+    STATUS findNextStore(const QModelIndex & index, const QByteArray & volume, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
     STATUS getStoreSize(const QByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
     STATUS parseStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    
+    STATUS parseNvarStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseVssStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseFtwStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseFdcStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseFsysStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseEvsaStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseFlashMapStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseCmdbStore(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseSlicData(const QByteArray & data, const QModelIndex & index);
+    //STATUS parseMicrocode(const QByteArray & data, const QModelIndex & index);
+    
     STATUS parseVssStoreBody(const QModelIndex & index);
     STATUS parseFsysStoreBody(const QModelIndex & index);
     STATUS parseEvsaStoreBody(const QModelIndex & index);

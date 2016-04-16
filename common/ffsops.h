@@ -29,11 +29,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class FfsOperations
 {
 public:
-    explicit FfsOperations(TreeModel * treeModel);
-    ~FfsOperations();
 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const;
-    void clearMessages();
+    FfsOperations(TreeModel * treeModel) : model(treeModel) {}
+    ~FfsOperations() {};
+
+    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    void clearMessages() { messagesVector.clear(); }
 
     STATUS extract(const QModelIndex & index, QString & name, QByteArray & extracted, const UINT8 mode);
     STATUS replace(const QModelIndex & index, const QString & data, const UINT8 mode);
@@ -45,7 +46,9 @@ private:
     TreeModel* model;
     std::vector<std::pair<QString, QModelIndex> > messagesVector;
 
-    void msg(const QString & message, const QModelIndex &index = QModelIndex());
+    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
+        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    }
 };
 
 #endif // FFSOPS_H
