@@ -30,6 +30,8 @@ QString regionTypeToQString(const UINT8 type)
     case Subtypes::EcRegion:          return QObject::tr("EC");
     case Subtypes::Reserved4Region:   return QObject::tr("Reserved4");
     };
+
+    return  QObject::tr("Unknown");
 }
 
 QString itemTypeToQString(const UINT8 type)
@@ -59,6 +61,8 @@ QString itemTypeToQString(const UINT8 type)
     case Types::Microcode:     return QObject::tr("Microcode");
     case Types::SlicData:      return QObject::tr("SLIC data");
     }
+
+    return  QObject::tr("Unknown");
 }
 
 QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
@@ -128,6 +132,8 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::AmdMicrocode)             return QObject::tr("AMD");
         break;
     }
+
+    return  QObject::tr("Unknown");
 }
 
 QString compressionTypeToQString(const UINT8 algorithm)
@@ -141,7 +147,7 @@ QString compressionTypeToQString(const UINT8 algorithm)
     case COMPRESSION_ALGORITHM_IMLZMA:       return QObject::tr("Intel modified LZMA");
     }
 
-    return QObject::tr("Unknown");
+    return  QObject::tr("Unknown");
 }
 
 QString actionTypeToQString(const UINT8 action)
@@ -155,4 +161,6 @@ QString actionTypeToQString(const UINT8 action)
     case Actions::Rebuild:       return QObject::tr("Rebuild");
     case Actions::Rebase:        return QObject::tr("Rebase");
     }
+
+    return  QObject::tr("Unknown");
 }
