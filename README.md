@@ -2,6 +2,10 @@
 
 UEFITool is a viewer and editor of firmware images conforming to UEFI Platform Interface (PI) Specifications.
 
+![UEFITool icon](https://raw.githubusercontent.com/LongSoft/UEFITool/master/uefitool.ico "UEFITool icon")
+![Coverity badge](https://scan.coverity.com/projects/1812/badge.svg?flat=1 "Coverity badge")
+
+
 ## Very Brief Introduction to UEFI
 
 Unified Extensible Firmware Interface or UEFI is a post-BIOS firmware specification originally written by Intel for Itanium architecture and than adapted for X86 systems.  
