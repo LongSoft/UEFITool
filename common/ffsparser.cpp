@@ -2921,7 +2921,7 @@ STATUS FfsParser::parseNvarStore(const QByteArray & data, const QModelIndex & in
             QByteArray padding = data.mid(offset, unparsedSize);
             UINT8 type;
             
-            if (padding.count(emptyByte) == unparsedSize) {
+            if ((UINT32)padding.count(emptyByte) == unparsedSize) {
                 // It's a free space
                 name = QObject::tr("Free space");
                 type = Types::FreeSpace;
@@ -3028,7 +3028,7 @@ STATUS FfsParser::parseNvarStore(const QByteArray & data, const QModelIndex & in
 
             // Entry with authenticated write (for SecureBoot)
             if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_AUTH_WRITE) {
-                if (extendedData.size() < sizeof(UINT64) + SHA256_HASH_SIZE) {
+                if ((UINT32)extendedData.size() < sizeof(UINT64) + SHA256_HASH_SIZE) {
                     msgExtDataTooShort = true;
                     isInvalid = true;
                     // Do not parse further
