@@ -3779,7 +3779,7 @@ STATUS FfsParser::parseFsysStoreHeader(const QByteArray & store, const UINT32 pa
 
     // Check store checksum
     UINT32 storedCrc = *(UINT32*)store.right(sizeof(UINT32)).constBegin();
-    UINT32 calculatedCrc = calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
+    UINT32 calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
 
     // Add info
     bool isGaidStore = (fsysStoreHeader->Signature == NVRAM_APPLE_GAID_STORE_SIGNATURE);
