@@ -2370,6 +2370,7 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
             }
             else {
                 msg(QObject::tr("parseGuidedSectionBody: can't guess the correct decompression algorithm, both preparse steps are failed"), index);
+				parseCurrentSection = false;
             }
         }
         
@@ -2390,8 +2391,10 @@ STATUS FfsParser::parseGuidedSectionBody(const QModelIndex & index)
             info += QObject::tr("\nCompression algorithm: LZMA");
             info += QObject::tr("\nDecompressed size: %1h (%2)").hexarg(processed.length()).arg(processed.length());
         }
-        else
+        else {
             info += QObject::tr("\nCompression algorithm: unknown");
+			parseCurrentSection = false;
+		}
     }
 
     // Add info
