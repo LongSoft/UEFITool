@@ -4026,8 +4026,8 @@ STATUS FfsParser::parseSlicMarkerHeader(const QByteArray & store, const UINT32 p
         .hexarg(markerHeader->Size).arg(markerHeader->Size)
         .hexarg(header.size()).arg(header.size())
         .hexarg2(markerHeader->Version, 8)
-        .arg(QLatin1String((const char*)&(markerHeader->OemId), sizeof(markerHeader->OemId)))
-        .arg(QLatin1String((const char*)&(markerHeader->OemTableId), sizeof(markerHeader->OemTableId)))
+        .arg(QString::fromLatin1((const char*)&(markerHeader->OemId), sizeof(markerHeader->OemId)))
+        .arg(QString::fromLatin1((const char*)&(markerHeader->OemTableId), sizeof(markerHeader->OemTableId)))
         .hexarg2(markerHeader->SlicVersion, 8);
 
     // Add correct offset
