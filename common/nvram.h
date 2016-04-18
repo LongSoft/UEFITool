@@ -35,7 +35,7 @@ const QByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID
 ("\x5B\x31\x21\x92\xBB\x30\xB5\x46\x81\x3E\x1B\x1B\xF4\x71\x2B\xD3", 16);
 
 extern QString nvarAttributesToQString(const UINT8 attributes);
-
+extern QString nvarExtendedAttributesToQString(const UINT8 attributes);
 extern QString efiTimeToQString(const EFI_TIME & time);
 
 typedef struct NVAR_ENTRY_HEADER_ {
@@ -49,20 +49,20 @@ typedef struct NVAR_ENTRY_HEADER_ {
 #define NVRAM_NVAR_ENTRY_SIGNATURE         0x5241564E
 
 // Attributes
-#define NVRAM_NVAR_ENTRY_ATTRIB_RUNTIME         0x01
-#define NVRAM_NVAR_ENTRY_ATTRIB_ASCII_NAME      0x02
-#define NVRAM_NVAR_ENTRY_ATTRIB_GUID            0x04
-#define NVRAM_NVAR_ENTRY_ATTRIB_DATA_ONLY       0x08
-#define NVRAM_NVAR_ENTRY_ATTRIB_EXT_HEADER      0x10
-#define NVRAM_NVAR_ENTRY_ATTRIB_HW_ERROR_RECORD 0x20 
-#define NVRAM_NVAR_ENTRY_ATTRIB_AUTH_WRITE      0x40
-#define NVRAM_NVAR_ENTRY_ATTRIB_VALID           0x80
+#define NVRAM_NVAR_ENTRY_RUNTIME         0x01
+#define NVRAM_NVAR_ENTRY_ASCII_NAME      0x02
+#define NVRAM_NVAR_ENTRY_GUID            0x04
+#define NVRAM_NVAR_ENTRY_DATA_ONLY       0x08
+#define NVRAM_NVAR_ENTRY_EXT_HEADER      0x10
+#define NVRAM_NVAR_ENTRY_HW_ERROR_RECORD 0x20 
+#define NVRAM_NVAR_ENTRY_AUTH_WRITE      0x40
+#define NVRAM_NVAR_ENTRY_VALID           0x80
 
 // Extended attributes
-#define NVRAM_NVAR_ENTRY_EXT_ATTRIB_CHECKSUM    0x01
-#define NVRAM_NVAR_ENTRY_EXT_ATTRIB_AUTH_WRITE  0x10
-#define NVRAM_NVAR_ENTRY_EXT_ATTRIB_TIME_BASED  0x20
-
+#define NVRAM_NVAR_ENTRY_EXT_CHECKSUM      0x01
+#define NVRAM_NVAR_ENTRY_EXT_AUTH_WRITE    0x10
+#define NVRAM_NVAR_ENTRY_EXT_TIME_BASED    0x20
+#define NVRAM_NVAR_ENTRY_EXT_UNKNOWN_MASK  0xCE
 //
 // TianoCore VSS store and variables
 //
@@ -96,7 +96,7 @@ typedef struct VSS_VARIABLE_STORE_HEADER_ {
     UINT32  Signature; // $VSS signature
     UINT32  Size;      // Size of variable store, including store header
     UINT8   Format;    // Store format state
-    UINT8   State;     // Store health state 
+    UINT8   State;     // Store health state
     UINT16  Unknown;   // Used in Apple $SVS varstores
     UINT32  : 32;
 } VSS_VARIABLE_STORE_HEADER;
@@ -104,10 +104,10 @@ typedef struct VSS_VARIABLE_STORE_HEADER_ {
 // Normal variable header
 typedef struct VSS_VARIABLE_HEADER_ {
     UINT16    StartId;    // Variable start marker AA55
-    UINT8     State;      // Variable state 
+    UINT8     State;      // Variable state
     UINT8     : 8;
     UINT32    Attributes; // Variable attributes
-    UINT32    NameSize;   // Size of variable name, null-terminated UCS2 string
+    UINT32    NameSize;   // Size of variable name, stored as null-terminated UCS2 string
     UINT32    DataSize;   // Size of variable data without header and name
     EFI_GUID  VendorGuid; // Variable vendor GUID
 } VSS_VARIABLE_HEADER;
@@ -115,10 +115,10 @@ typedef struct VSS_VARIABLE_HEADER_ {
 // Apple variation of normal variable header, with one new field
 typedef struct VSS_APPLE_VARIABLE_HEADER_ {
     UINT16    StartId;    // Variable start marker AA55
-    UINT8     State;      // Variable state 
+    UINT8     State;      // Variable state
     UINT8     : 8;
     UINT32    Attributes; // Variable attributes
-    UINT32    NameSize;   // Size of variable name, null-terminated UCS2 string
+    UINT32    NameSize;   // Size of variable name, stored as null-terminated UCS2 string
     UINT32    DataSize;   // Size of variable data without header and name
     EFI_GUID  VendorGuid; // Variable vendor GUID
     UINT32    DataCrc32;  // CRC32 of the data
@@ -133,7 +133,7 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
     UINT64    MonotonicCounter; // Monotonic counter against replay attack
     EFI_TIME  Timestamp;        // Time stamp against replay attack
     UINT32    PubKeyIndex;      // Index in PubKey database
-    UINT32    NameSize;         // Size of variable name, null-terminated UCS2 string
+    UINT32    NameSize;         // Size of variable name, stored as null-terminated UCS2 string
     UINT32    DataSize;         // Size of variable data without header and name
     EFI_GUID  VendorGuid;       // Variable vendor GUID
 } VSS_AUTH_VARIABLE_HEADER;
@@ -154,15 +154,18 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 #define NVRAM_VSS_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS 0x00000020
 #define NVRAM_VSS_VARIABLE_APPEND_WRITE                          0x00000040
 #define NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM                   0x80000000
+#define NVRAM_VSS_VARIABLE_UNKNOWN_MASK                          0x7FFFFF80
+
+extern QString vssAttributesToQString(const UINT32 attributes);
 
 //
-// FDC region
+// _FDC region
 //
 
 #define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
 
 typedef struct FDC_VOLUME_HEADER_ {
-    UINT32 Signature; //_FDC
+    UINT32 Signature; //_FDC signature
     UINT32 Size;      // Size of the whole region
     //EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
@@ -192,7 +195,7 @@ typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32_ {
 } EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32;
 
 typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
-    EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID
+    EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID or EDKII_WORKING_BLOCK_SIGNATURE_GUID
     UINT32    Crc; // Crc32 of the header with empty Crc and State fields
     UINT8     State;
     UINT8     Reserved[3];
@@ -205,8 +208,9 @@ typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
 //
 
 typedef struct APPLE_FSYS_STORE_HEADER_ {
-    UINT32  Signature;  // Fsys signature
-    UINT8   Unknown[5]; // Still unknown
+    UINT32  Signature;  // Fsys or Gaid signature
+    UINT8   Unknown0;   // Still unknown
+    UINT32  Unknown1;   // Still unknown
     UINT16  Size;       // Size of variable store
 } APPLE_FSYS_STORE_HEADER;
 
@@ -220,18 +224,18 @@ typedef struct APPLE_FSYS_STORE_HEADER_ {
 // Has CRC32 of the whole store without checksum field at the end
 
 //
-// EVSA store and variables
+// EVSA store and entries
 //
 
 #define NVRAM_EVSA_STORE_SIGNATURE 0x41535645
 
-#define NVRAM_EVSA_ENTRY_TYPE_STORE 0xEC
-#define NVRAM_EVSA_ENTRY_TYPE_GUID1 0xED
-#define NVRAM_EVSA_ENTRY_TYPE_GUID2 0xE1
-#define NVRAM_EVSA_ENTRY_TYPE_NAME1 0xEE
-#define NVRAM_EVSA_ENTRY_TYPE_NAME2 0xE2
-#define NVRAM_EVSA_ENTRY_TYPE_DATA1 0xEF
-#define NVRAM_EVSA_ENTRY_TYPE_DATA2 0xE3
+#define NVRAM_EVSA_ENTRY_TYPE_STORE        0xEC
+#define NVRAM_EVSA_ENTRY_TYPE_GUID1        0xED
+#define NVRAM_EVSA_ENTRY_TYPE_GUID2        0xE1
+#define NVRAM_EVSA_ENTRY_TYPE_NAME1        0xEE
+#define NVRAM_EVSA_ENTRY_TYPE_NAME2        0xE2
+#define NVRAM_EVSA_ENTRY_TYPE_DATA1        0xEF
+#define NVRAM_EVSA_ENTRY_TYPE_DATA2        0xE3
 #define NVRAM_EVSA_ENTRY_TYPE_DATA_INVALID 0x83
 
 typedef struct EVSA_ENTRY_HEADER_ {
@@ -242,7 +246,7 @@ typedef struct EVSA_ENTRY_HEADER_ {
 
 typedef struct EVSA_STORE_ENTRY_ {
     EVSA_ENTRY_HEADER Header;
-    UINT32 Signature; // EVSA
+    UINT32 Signature; // EVSA signature
     UINT32 Attributes;
     UINT32 StoreSize;
     UINT32 : 32;
@@ -268,7 +272,16 @@ typedef struct EVSA_DATA_ENTRY_ {
     //UINT8 Data[];
 } EVSA_DATA_ENTRY;
 
-#define NVRAM_EVSA_DATA_ATTRIBUTE_EXTENDED_HEADER 0x10000000
+// VSS variable attributes
+#define NVRAM_EVSA_DATA_NON_VOLATILE                          0x00000001
+#define NVRAM_EVSA_DATA_BOOTSERVICE_ACCESS                    0x00000002
+#define NVRAM_EVSA_DATA_RUNTIME_ACCESS                        0x00000004
+#define NVRAM_EVSA_DATA_HARDWARE_ERROR_RECORD                 0x00000008
+#define NVRAM_EVSA_DATA_AUTHENTICATED_WRITE_ACCESS            0x00000010
+#define NVRAM_EVSA_DATA_TIME_BASED_AUTHENTICATED_WRITE_ACCESS 0x00000020
+#define NVRAM_EVSA_DATA_APPEND_WRITE                          0x00000040
+#define NVRAM_EVSA_DATA_EXTENDED_HEADER                       0x10000000
+#define NVRAM_EVSA_DATA_UNKNOWN_MASK                          0xEFFFFF80
 
 typedef struct EVSA_DATA_ENTRY_EXTENDED_ {
     EVSA_ENTRY_HEADER Header;
@@ -278,6 +291,8 @@ typedef struct EVSA_DATA_ENTRY_EXTENDED_ {
     UINT32 DataSize;
     //UINT8 Data[];
 } EVSA_DATA_ENTRY_EXTENDED;
+
+extern QString evsaAttributesToQString(const UINT32 attributes);
 
 //
 // Phoenix SCT Flash Map
@@ -381,7 +396,7 @@ typedef struct OEM_ACTIVATION_PUBKEY_ {
     UINT8  Version;
     UINT16 Reserved;
     UINT32 Algorithm;
-    UINT32 Magic;        // RSA1
+    UINT32 Magic;        // RSA1 signature
     UINT32 BitLength;
     UINT32 Exponent;
     UINT8  Modulus[128];
@@ -396,7 +411,7 @@ typedef struct OEM_ACTIVATION_MARKER_ {
     UINT32 Version;
     UINT8  OemId[6];
     UINT8  OemTableId[8];
-    UINT64 WindowsFlag;
+    UINT64 WindowsFlag;  // WINDOWS signature
     UINT32 SlicVersion;
     UINT8  Reserved[16];
     UINT8  Signature[128];
@@ -412,7 +427,7 @@ typedef struct OEM_ACTIVATION_MARKER_ {
 //
 
 typedef struct PHOENIX_CMDB_HEADER_ {
-    UINT32 Signature;  // CMDB
+    UINT32 Signature;  // CMDB signature
     UINT32 HeaderSize; // Size of this header
     UINT32 TotalSize;  // Total size of header and chunks, without strings
     // UINT8 StartChunk[3];

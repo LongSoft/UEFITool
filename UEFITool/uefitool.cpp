@@ -299,7 +299,7 @@ void UEFITool::goToData()
     for (int i = index.row(); i < model->rowCount(parent); i++) {
         PARSING_DATA pdata = parsingDataFromQModelIndex(index);
         UINT32 lastVariableFlag = pdata.emptyByte ? 0xFFFFFF : 0;
-        if (pdata.nvram.nvar.next == lastVariableFlag) {
+        if (pdata.nvar.next == lastVariableFlag) {
             ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
             ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
         }
@@ -307,7 +307,7 @@ void UEFITool::goToData()
         for (int j = i + 1; j < model->rowCount(parent); j++) {
             QModelIndex currentIndex = parent.child(j, 0);
             PARSING_DATA currentPdata = parsingDataFromQModelIndex(currentIndex);
-            if (currentPdata.offset == pdata.offset + pdata.nvram.nvar.next) {
+            if (currentPdata.offset == pdata.offset + pdata.nvar.next) {
                 index = currentIndex;
                 break;
             }

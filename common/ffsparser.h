@@ -56,6 +56,10 @@ public:
 private:
     TreeModel *model;
     std::vector<std::pair<QString, QModelIndex> > messagesVector;
+    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
+        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    };
+
     QModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
 
@@ -113,25 +117,21 @@ private:
     STATUS parseStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     
     STATUS parseNvarStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseVssStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseFtwStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseFdcStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseFsysStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseEvsaStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseFlashMapStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseCmdbStore(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseSlicData(const QByteArray & data, const QModelIndex & index);
-    //STATUS parseMicrocode(const QByteArray & data, const QModelIndex & index);
+    STATUS parseVssStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseFtwStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseFdcStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseFsysStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseEvsaStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseFlashMapStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseCmdbStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseSlicPubkeyHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseSlicMarkerHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    STATUS parseIntelMicrocodeHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     
     STATUS parseVssStoreBody(const QModelIndex & index);
     STATUS parseFsysStoreBody(const QModelIndex & index);
     STATUS parseEvsaStoreBody(const QModelIndex & index);
     STATUS parseFlashMapBody(const QModelIndex & index);
-
-    // Message helper
-    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
-        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
-    };
 };
 
 #endif // FFSPARSER_H

@@ -20,25 +20,68 @@ QString nvarAttributesToQString(const UINT8 attributes)
         return QString();
 
     QString str;
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_RUNTIME)         str += QObject::tr(", Runtime");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_ASCII_NAME)      str += QObject::tr(", AsciiName");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_GUID)            str += QObject::tr(", Guid");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_DATA_ONLY)       str += QObject::tr(", DataOnly");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_EXT_HEADER)      str += QObject::tr(", ExtHeader");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_HW_ERROR_RECORD) str += QObject::tr(", HwErrorRecord");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_AUTH_WRITE)      str += QObject::tr(", AuthWrite");
-    if (attributes & NVRAM_NVAR_ENTRY_ATTRIB_VALID)           str += QObject::tr(", Valid");
+    if (attributes & NVRAM_NVAR_ENTRY_RUNTIME)         str += QObject::tr(", Runtime");
+    if (attributes & NVRAM_NVAR_ENTRY_ASCII_NAME)      str += QObject::tr(", AsciiName");
+    if (attributes & NVRAM_NVAR_ENTRY_GUID)            str += QObject::tr(", Guid");
+    if (attributes & NVRAM_NVAR_ENTRY_DATA_ONLY)       str += QObject::tr(", DataOnly");
+    if (attributes & NVRAM_NVAR_ENTRY_EXT_HEADER)      str += QObject::tr(", ExtHeader");
+    if (attributes & NVRAM_NVAR_ENTRY_HW_ERROR_RECORD) str += QObject::tr(", HwErrorRecord");
+    if (attributes & NVRAM_NVAR_ENTRY_AUTH_WRITE)      str += QObject::tr(", AuthWrite");
+    if (attributes & NVRAM_NVAR_ENTRY_VALID)           str += QObject::tr(", Valid");
     
+    return str.mid(2); // Remove first comma and space
+}
+
+QString nvarExtendedAttributesToQString(const UINT8 attributes)
+{
+    QString str;
+    if (attributes & NVRAM_NVAR_ENTRY_EXT_CHECKSUM)        str += QObject::tr(", Checksum");
+    if (attributes & NVRAM_NVAR_ENTRY_EXT_AUTH_WRITE)      str += QObject::tr(", AuthWrite");
+    if (attributes & NVRAM_NVAR_ENTRY_EXT_TIME_BASED)      str += QObject::tr(", TimeBasedAuthWrite");
+    if (attributes & NVRAM_NVAR_ENTRY_EXT_UNKNOWN_MASK)    str += QObject::tr(", Unknown");
+
+    return str.mid(2); // Remove first comma and space
+}
+
+extern QString vssAttributesToQString(const UINT32 attributes)
+{
+    QString str;
+    if (attributes & NVRAM_VSS_VARIABLE_NON_VOLATILE)                          str += QObject::tr(", NonVolatile");
+    if (attributes & NVRAM_VSS_VARIABLE_BOOTSERVICE_ACCESS)                    str += QObject::tr(", BootService");
+    if (attributes & NVRAM_VSS_VARIABLE_RUNTIME_ACCESS)                        str += QObject::tr(", Runtime");
+    if (attributes & NVRAM_VSS_VARIABLE_HARDWARE_ERROR_RECORD)                 str += QObject::tr(", HwErrorRecord");
+    if (attributes & NVRAM_VSS_VARIABLE_AUTHENTICATED_WRITE_ACCESS)            str += QObject::tr(", AuthWrite");
+    if (attributes & NVRAM_VSS_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS) str += QObject::tr(", TimeBasedAuthWrite");
+    if (attributes & NVRAM_VSS_VARIABLE_APPEND_WRITE)                          str += QObject::tr(", AppendWrite");
+    if (attributes & NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM)                   str += QObject::tr(", AppleChecksum");
+    if (attributes & NVRAM_VSS_VARIABLE_UNKNOWN_MASK)                          str += QObject::tr(", Unknown");
+
+    return str.mid(2); // Remove first comma and space
+}
+
+QString evsaAttributesToQString(const UINT32 attributes)
+{
+    QString str;
+    if (attributes & NVRAM_EVSA_DATA_NON_VOLATILE)                          str += QObject::tr(", NonVolatile");
+    if (attributes & NVRAM_EVSA_DATA_BOOTSERVICE_ACCESS)                    str += QObject::tr(", BootService");
+    if (attributes & NVRAM_EVSA_DATA_RUNTIME_ACCESS)                        str += QObject::tr(", Runtime");
+    if (attributes & NVRAM_EVSA_DATA_HARDWARE_ERROR_RECORD)                 str += QObject::tr(", HwErrorRecord");
+    if (attributes & NVRAM_EVSA_DATA_AUTHENTICATED_WRITE_ACCESS)            str += QObject::tr(", AuthWrite");
+    if (attributes & NVRAM_EVSA_DATA_TIME_BASED_AUTHENTICATED_WRITE_ACCESS) str += QObject::tr(", TimeBasedAuthWrite");
+    if (attributes & NVRAM_EVSA_DATA_APPEND_WRITE)                          str += QObject::tr(", AppendWrite");
+    if (attributes & NVRAM_EVSA_DATA_EXTENDED_HEADER)                       str += QObject::tr(", ExtendedHeader");
+    if (attributes & NVRAM_EVSA_DATA_UNKNOWN_MASK)                          str += QObject::tr(", Unknown");
+
     return str.mid(2); // Remove first comma and space
 }
 
 QString efiTimeToQString(const EFI_TIME & time)
 {
     return QObject::tr("%1-%2-%3T%4:%5:%6.%7")
-        .arg(time.Year, 4, 10, QLatin1Char('0'))
-        .arg(time.Month, 2, 10, QLatin1Char('0'))
-        .arg(time.Day, 2, 10, QLatin1Char('0'))
-        .arg(time.Hour, 2, 10, QLatin1Char('0'))
+        .arg(time.Year,   4, 10, QLatin1Char('0'))
+        .arg(time.Month,  2, 10, QLatin1Char('0'))
+        .arg(time.Day,    2, 10, QLatin1Char('0'))
+        .arg(time.Hour,   2, 10, QLatin1Char('0'))
         .arg(time.Minute, 2, 10, QLatin1Char('0'))
         .arg(time.Second, 2, 10, QLatin1Char('0'))
         .arg(time.Nanosecond);

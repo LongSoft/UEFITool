@@ -82,21 +82,10 @@ typedef struct SECTION_PARSING_DATA_ {
     };
 } SECTION_PARSING_DATA;
 
-typedef struct NVRAM_NVAR_PARSING_DATA_ {
+typedef struct NVAR_ENTRY_PARSING_DATA_ {
+    BOOLEAN isValid;
     UINT32 next;
-    UINT8  attributes;
-    UINT8  extendedAttributes;
-    UINT64 timestamp;
-    UINT8  hash[SHA256_HASH_SIZE]; //SHA256
-} NVRAM_NVAR_PARSING_DATA;
-
-typedef struct NVRAM_PARSING_DATA_ {
-    //union {
-        NVRAM_NVAR_PARSING_DATA      nvar;
-    //};
-} NVRAM_PARSING_DATA;
-
-// TODO: add more NVRAM-related PD
+} NVAR_ENTRY_PARSING_DATA;
 
 typedef struct PARSING_DATA_ {
     UINT8   emptyByte;
@@ -104,14 +93,10 @@ typedef struct PARSING_DATA_ {
     UINT32  offset;
     UINT32  address;
     union {
-        //CAPSULE_PARSING_DATA capsule;
-        //IMAGE_PARSING_DATA image;
-        //PADDING_PARSING_DATA padding;
-        VOLUME_PARSING_DATA  volume;
-        //FREE_SPACE_PARSING_DATA freeSpace;
-        FILE_PARSING_DATA    file;
-        SECTION_PARSING_DATA section;
-        NVRAM_PARSING_DATA   nvram;
+        VOLUME_PARSING_DATA       volume;
+        FILE_PARSING_DATA         file;
+        SECTION_PARSING_DATA      section;
+        NVAR_ENTRY_PARSING_DATA   nvar;
     };
 } PARSING_DATA;
 

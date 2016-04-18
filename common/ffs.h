@@ -19,16 +19,12 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QString>
 #include "basetypes.h"
 
-// C++ functions
-// GUID to QString routine
-extern QString guidToQString(const EFI_GUID& guid);
-// File type to QString routine
-extern QString fileTypeToQString(const UINT8 type);
-// Section type to QString routine
-extern QString sectionTypeToQString(const UINT8 type);
-
 // Make sure we use right packing rules
 #pragma pack(push,1)
+
+extern QString guidToQString(const EFI_GUID& guid);
+extern QString fileTypeToQString(const UINT8 type);
+extern QString sectionTypeToQString(const UINT8 type);
 
 //*****************************************************************************
 // EFI Capsule
@@ -517,7 +513,7 @@ typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION2_ {
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION2;
 
-// Phoenix SCT and HP postcode section
+// Phoenix SCT and Insyde postcode section
 typedef struct POSTCODE_SECTION_ {
     UINT8    Size[3];
     UINT8    Type;
@@ -563,13 +559,13 @@ typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
 
 ///
 /// If present, this must be the first and only opcode,
-/// EFI_DEP_BEFORE is only used by DXE driver.
+/// EFI_DEP_BEFORE is only used by DXE drivers
 ///
 #define EFI_DEP_BEFORE        0x00
 
 ///
 /// If present, this must be the first and only opcode,
-/// EFI_DEP_AFTER is only used by DXE driver.
+/// EFI_DEP_AFTER is only used by DXE drivers
 ///
 #define EFI_DEP_AFTER         0x01
 

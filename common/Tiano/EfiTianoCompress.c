@@ -511,13 +511,19 @@ Returns:
     mText[i] = 0;
   }
 
-  mLevel      = malloc ((WNDSIZ + UINT8_MAX + 1) * sizeof(*mLevel));
-  mChildCount = malloc ((WNDSIZ + UINT8_MAX + 1) * sizeof(*mChildCount));
-  mPosition   = malloc ((WNDSIZ + UINT8_MAX + 1) * sizeof(*mPosition));
-  mParent     = malloc (WNDSIZ * 2 * sizeof(*mParent));
-  mPrev       = malloc (WNDSIZ * 2 * sizeof(*mPrev));
-  mNext       = malloc ((MAX_HASH_VAL + 1) * sizeof(*mNext));
-  
+  mLevel            = malloc((WNDSIZ + UINT8_MAX + 1) * sizeof(*mLevel));
+  if (!mLevel)        return EFI_OUT_OF_RESOURCES;
+  mChildCount       = malloc((WNDSIZ + UINT8_MAX + 1) * sizeof(*mChildCount));
+  if (!mChildCount)   return EFI_OUT_OF_RESOURCES;
+  mPosition         = malloc((WNDSIZ + UINT8_MAX + 1) * sizeof(*mPosition));
+  if (!mPosition)     return EFI_OUT_OF_RESOURCES;
+  mParent           = malloc(WNDSIZ * 2 * sizeof(*mParent));
+  if (!mParent)       return EFI_OUT_OF_RESOURCES;
+  mPrev             = malloc(WNDSIZ * 2 * sizeof(*mPrev));
+  if (!mPrev)         return EFI_OUT_OF_RESOURCES;
+  mNext             = malloc((MAX_HASH_VAL + 1) * sizeof(*mNext));
+  if (!mNext)         return EFI_OUT_OF_RESOURCES;
+
   mBufSiz = 16 * 1024U;
   while ((mBuf = malloc(mBufSiz)) == NULL) {
     mBufSiz = (mBufSiz / 10U) * 9U;
