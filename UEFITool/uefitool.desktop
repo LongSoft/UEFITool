@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=UEFITool
+Comment=UEFI firmware image viewer and editor
+Path=/usr/bin
+Exec=uefitool
+Icon=uefitool
+Terminal=false
+Categories=Development;System;Utility;HardwareSettings;Electronics;Engineering;
+Keywords=BIOS;
