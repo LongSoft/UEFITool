@@ -2,7 +2,7 @@
 
 UEFITool is a viewer and editor of firmware images conforming to UEFI Platform Interface (PI) Specifications.
 
-![UEFITool icon](https://raw.githubusercontent.com/LongSoft/UEFITool/master/uefitool.ico "UEFITool icon")
+![UEFITool icon](https://raw.githubusercontent.com/LongSoft/UEFITool/new_engine/UEFITool/icons/uefitool_64x64.png "UEFITool icon")
 ![Coverity badge](https://scan.coverity.com/projects/1812/badge.svg?flat=1 "Coverity badge")
 
 

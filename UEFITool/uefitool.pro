@@ -63,5 +63,5 @@ FORMS += uefitool.ui \
 
 RC_FILE = uefitool.rc
 
-ICON = uefitool.icns
+ICON = icons/uefitool.icns
 
