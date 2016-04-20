@@ -19,15 +19,6 @@ routines without the need of backward traversal
 
 #include "basetypes.h"
 
-//typedef struct CAPSULE_PARSING_DATA_ {
-//} CAPSULE_PARSING_DATA;
-
-//typedef struct IMAGE_PARSING_DATA_ {
-//} IMAGE_PARSING_DATA;
-
-//typedef struct PADDING_PARSING_DATA_ {
-//} PADDING_PARSING_DATA;
-
 typedef struct VOLUME_PARSING_DATA_ {
     EFI_GUID extendedHeaderGuid;
     UINT32   alignment;
@@ -38,20 +29,9 @@ typedef struct VOLUME_PARSING_DATA_ {
     BOOLEAN  isWeakAligned;
 } VOLUME_PARSING_DATA;
 
-//typedef struct FREE_SPACE_PARSING_DATA_ {
-//} FREE_SPACE_PARSING_DATA;
-
 typedef struct FILE_PARSING_DATA_ {
-    union {
-        UINT8   tailArray[2];
-        UINT16  tail;
-    };
-    BOOLEAN hasTail;
-    UINT8 format;
+    EFI_GUID guid;
 } FILE_PARSING_DATA;
-
-#define RAW_FILE_FORMAT_UNKNOWN      0
-#define RAW_FILE_FORMAT_NVAR_STORE   1
 
 typedef struct COMPRESSED_SECTION_PARSING_DATA_ {
     UINT32 uncompressedSize;
@@ -83,8 +63,8 @@ typedef struct SECTION_PARSING_DATA_ {
 } SECTION_PARSING_DATA;
 
 typedef struct NVAR_ENTRY_PARSING_DATA_ {
+    UINT32  next;
     BOOLEAN isValid;
-    UINT32 next;
 } NVAR_ENTRY_PARSING_DATA;
 
 typedef struct PARSING_DATA_ {

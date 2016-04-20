@@ -149,11 +149,11 @@ typedef struct EFI_TIME_ {
     UINT8   Hour;       // Hour:       0 - 23
     UINT8   Minute;     // Minute:     0 - 59
     UINT8   Second;     // Second:     0 - 59
-UINT8: 8;
+    UINT8   : 8;
     UINT32  Nanosecond; // Nanosecond: 0 - 999,999,999
     INT16   TimeZone;   // TimeZone:   -1440 to 1440 or UNSPECIFIED (0x07FF)
     UINT8   Daylight;   // Daylight:   ADJUST_DAYLIGHT (1) or IN_DAYLIGHT (2) 
-UINT8: 8;
+    UINT8   : 8;
 } EFI_TIME;
 
 #define ALIGN4(Value) (((Value)+3) & ~3)

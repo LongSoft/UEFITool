@@ -24,9 +24,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class TreeItem
 {
 public:
-    TreeItem(const UINT8 type, const UINT8 subtype = 0, const QString &name = QString(), const QString &text = QString(), const QString &info = QString(),
-        const QByteArray & header = QByteArray(), const QByteArray & body = QByteArray(), 
-        const BOOLEAN fixed = FALSE, const BOOLEAN compressed = FALSE, const QByteArray & parsingData = QByteArray(),
+    TreeItem(const UINT8 type, const UINT8 subtype, const QString &name, const QString &text, const QString &info,
+        const QByteArray & header, const QByteArray & body, const QByteArray & tail,
+        const BOOLEAN fixed, const BOOLEAN compressed, const QByteArray & parsingData,
         TreeItem *parent = 0);
     ~TreeItem() { qDeleteAll(childItems); }
 
@@ -63,6 +63,9 @@ public:
     QByteArray body() const { return itemBody; };
     bool hasEmptyBody() const { return itemBody.isEmpty(); }
 
+    QByteArray tail() const { return itemTail; };
+    bool hasEmptyTail() const { return itemTail.isEmpty(); }
+
     QByteArray parsingData() const { return itemParsingData; }
     bool hasEmptyParsingData() const { return itemParsingData.isEmpty(); }
     void setParsingData(const QByteArray & data) { itemParsingData = data; }
@@ -90,6 +93,7 @@ private:
     QString    itemInfo;
     QByteArray itemHeader;
     QByteArray itemBody;
+    QByteArray itemTail;
     QByteArray itemParsingData;
     bool       itemFixed;
     bool       itemCompressed;

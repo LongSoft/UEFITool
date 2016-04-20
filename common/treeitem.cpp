@@ -17,7 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, 
     const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, 
+    const QByteArray & header, const QByteArray & body, const QByteArray & tail,
     const BOOLEAN fixed, const BOOLEAN compressed, const QByteArray & parsingData,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
@@ -28,6 +28,7 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype,
     itemInfo(info),
     itemHeader(header),
     itemBody(body),
+    itemTail(tail),
     itemParsingData(parsingData),
     itemFixed(fixed),
     itemCompressed(compressed),

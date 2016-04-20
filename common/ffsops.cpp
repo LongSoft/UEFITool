@@ -53,11 +53,7 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         extracted.clear();
         extracted.append(model->header(index));
         extracted.append(model->body(index));
-        // Handle file tail
-        if (model->type(index) == Types::File) {
-            if (pdata.file.hasTail)
-                extracted.append(pdata.file.tailArray[0]).append(pdata.file.tailArray[1]);
-        }
+        extracted.append(model->tail(index));
     }
     else if (mode == EXTRACT_MODE_BODY) {
         name += QObject::tr("_body");
@@ -72,8 +68,12 @@ STATUS FfsOperations::extract(const QModelIndex & index, QString & name, QByteAr
         // There is no need to redo decompression, we can use child items
         for (int i = 0; i < model->rowCount(index); i++) {
              QModelIndex childIndex = index.child(i, 0);
+             // Ensure 4-byte alignment of current section
+             extracted.append(QByteArray('\x00', ALIGN4((UINT32)extracted.size()) - (UINT32)extracted.size()));
+             // Add current section header, body and tail
              extracted.append(model->header(childIndex));
              extracted.append(model->body(childIndex));
+             extracted.append(model->tail(childIndex));
         }
     }
     else

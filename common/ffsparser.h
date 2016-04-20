@@ -116,7 +116,7 @@ private:
     STATUS getStoreSize(const QByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
     STATUS parseStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     
-    STATUS parseNvarStore(const QByteArray & data, const QModelIndex & index);
+    STATUS parseNvarStore(const QModelIndex & index);
     STATUS parseVssStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseFtwStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
     STATUS parseFdcStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
