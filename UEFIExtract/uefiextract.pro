@@ -11,6 +11,7 @@ SOURCES += uefiextract_main.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \
  ../common/ffs.cpp \
+ ../common/nvram.cpp \
  ../common/ffsparser.cpp \
  ../common/peimage.cpp \
  ../common/treeitem.cpp \
@@ -26,6 +27,7 @@ HEADERS += ffsdumper.h \
  ../common/gbe.h \
  ../common/me.h \
  ../common/ffs.h \
+ ../common/nvram.h \
  ../common/ffsparser.h \
  ../common/peimage.h \
  ../common/types.h \
