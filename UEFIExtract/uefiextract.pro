@@ -27,7 +27,7 @@ HEADERS += ffsdumper.h \
  ../common/gbe.h \
  ../common/me.h \
  ../common/ffs.h \
- ../common/nvram.cpp \
+ ../common/nvram.h \
  ../common/ffsparser.h \
  ../common/peimage.h \
  ../common/types.h \
