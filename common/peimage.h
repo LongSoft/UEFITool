@@ -39,13 +39,16 @@ extern QString machineTypeToQString(UINT16 machineType);
 #define EFI_IMAGE_FILE_MACHINE_ARM            0x01c0 // ARM little endian
 #define EFI_IMAGE_FILE_MACHINE_THUMB          0x01c2 // ARM or Thumb (interworking)
 #define EFI_IMAGE_FILE_MACHINE_ARMNT          0x01c4 // ARMv7 (or higher) Thumb mode only
+#define EFI_IMAGE_FILE_MACHINE_APPLE_ARM      0x01c6 // Apple ARM
 #define EFI_IMAGE_FILE_MACHINE_POWERPC        0x01f0 // Power PC little endian
 #define EFI_IMAGE_FILE_MACHINE_POWERPCFP      0x01f1 // Power PC with floating point support
 #define EFI_IMAGE_FILE_MACHINE_IA64           0x0200 // Itanium
 #define EFI_IMAGE_FILE_MACHINE_EBC            0x0ebc // EFI Byte Code
 #define EFI_IMAGE_FILE_MACHINE_AMD64          0x8664 // x86-64
-#define EFI_IMAGE_FILE_MACHINE_ARM64          0xaa64 // ARMv8 in 64-bit mode 
-
+#define EFI_IMAGE_FILE_MACHINE_AARCH64        0xaa64 // ARMv8 in 64-bit mode 
+#define EFI_IMAGE_FILE_MACHINE_RISCV32        0x5032 // RISC-V 32-bit
+#define EFI_IMAGE_FILE_MACHINE_RISCV64        0x5064 // RISC-V 64-bit
+#define EFI_IMAGE_FILE_MACHINE_RISCV128       0x5128 // RISC-V 128-bit
 //
 // EXE file formats
 //
@@ -429,18 +432,19 @@ typedef struct {
 //
 // I386 relocation types
 //
-#define EFI_IMAGE_REL_I386_ABSOLUTE 0x0000  // Reference is absolute, no relocation is necessary
-#define EFI_IMAGE_REL_I386_DIR16    0x0001  // Direct 16-bit reference to the symbols virtual address
-#define EFI_IMAGE_REL_I386_REL16    0x0002  // PC-relative 16-bit reference to the symbols virtual address
-#define EFI_IMAGE_REL_I386_DIR32    0x0006  // Direct 32-bit reference to the symbols virtual address
-#define EFI_IMAGE_REL_I386_DIR32NB  0x0007  // Direct 32-bit reference to the symbols virtual address, base not included
-#define EFI_IMAGE_REL_I386_SEG12    0x0009  // Direct 16-bit reference to the segment-selector bits of a 32-bit virtual address
-#define EFI_IMAGE_REL_I386_SECTION  0x000A
-#define EFI_IMAGE_REL_I386_SECREL   0x000B
-#define EFI_IMAGE_REL_I386_REL32    0x0014  // PC-relative 32-bit reference to the symbols virtual address
+#define EFI_IMAGE_REL_I386_ABSOLUTE    0x0000  // Reference is absolute, no relocation is necessary
+#define EFI_IMAGE_REL_I386_DIR16       0x0001  // Direct 16-bit reference to the symbols virtual address
+#define EFI_IMAGE_REL_I386_REL16       0x0002  // PC-relative 16-bit reference to the symbols virtual address
+#define EFI_IMAGE_REL_I386_DIR32       0x0006  // Direct 32-bit reference to the symbols virtual address
+#define EFI_IMAGE_REL_I386_DIR32NB     0x0007  // Direct 32-bit reference to the symbols virtual address, base not included
+#define EFI_IMAGE_REL_I386_SEG12       0x0009  // Direct 16-bit reference to the segment-selector bits of a 32-bit virtual address
+#define EFI_IMAGE_REL_I386_SECTION     0x000A
+#define EFI_IMAGE_REL_I386_SECREL      0x000B
+#define EFI_IMAGE_REL_I386_REL32       0x0014  // PC-relative 32-bit reference to the symbols virtual address
+
 
 //
-// x64 processor relocation types
+// x64 relocation types
 //
 #define EFI_IMAGE_REL_AMD64_ABSOLUTE  0x0000
 #define EFI_IMAGE_REL_AMD64_ADDR64    0x0001
@@ -459,6 +463,13 @@ typedef struct {
 #define EFI_IMAGE_REL_AMD64_SREL32    0x000E
 #define EFI_IMAGE_REL_AMD64_PAIR      0x000F
 #define EFI_IMAGE_REL_AMD64_SSPAN32   0x0010
+
+//
+// RISC-V relocation types
+//
+#define EFI_IMAGE_REL_BASED_RISCV_HI20  0x0005
+#define EFI_IMAGE_REL_BASED_RISCV_LO12I 0x0007
+#define EFI_IMAGE_REL_BASED_RISCV_LO12S 0x0008
 
 //
 // Based relocation format

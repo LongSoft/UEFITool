@@ -368,13 +368,23 @@ typedef struct EFI_COMMON_SECTION_HEADER_ {
 
 // Large file common section header
 typedef struct EFI_COMMON_SECTION_HEADER2_ {
-    UINT8    Size[3];    //Must be 0xFFFFFF for this header to be used
+    UINT8    Size[3];    // Must be 0xFFFFFF for this header to be used
     UINT8    Type;
     UINT32   ExtendedSize;
 } EFI_COMMON_SECTION_HEADER2;
 
+// Apple common section header
+typedef struct EFI_COMMON_SECTION_HEADER_APPLE {
+    UINT8    Size[3];    
+    UINT8    Type;
+    UINT32   Reserved;   // Must be 0x7FFF for this header to be used
+} EFI_COMMON_SECTION_HEADER_APPLE;
+
 // Section2 usage indicator
 #define EFI_SECTION2_IS_USED 0xFFFFFF
+
+// Apple section usage indicator
+#define EFI_SECTION_APPLE_USED 0x7FFF
 
 // File section types
 #define EFI_SECTION_ALL 0x00 // Impossible attribute for file in the FS
@@ -398,23 +408,18 @@ typedef struct EFI_COMMON_SECTION_HEADER2_ {
 #define EFI_SECTION_PEI_DEPEX               0x1B
 #define EFI_SECTION_SMM_DEPEX               0x1C
 #define PHOENIX_SECTION_POSTCODE            0xF0 // Specific to Phoenix SCT images
-#define INSYDE_SECTION_POSTCODE             0x20 // Specific to Insyde images
+#define INSYDE_SECTION_POSTCODE             0x20 // Specific to Insyde H2O images
 
 // Compression section
 typedef struct EFI_COMPRESSION_SECTION_ {
-    UINT8    Size[3];
-    UINT8    Type;
     UINT32   UncompressedLength;
     UINT8    CompressionType;
 } EFI_COMPRESSION_SECTION;
 
-typedef struct EFI_COMPRESSION_SECTION2_ {
-    UINT8    Size[3];
-    UINT8    Type;
-    UINT32   ExtendedSize;
+typedef struct EFI_COMPRESSION_SECTION_APPLE_ {
     UINT32   UncompressedLength;
-    UINT8    CompressionType;
-} EFI_COMPRESSION_SECTION2;
+    UINT32   CompressionType;
+} EFI_COMPRESSION_SECTION_APPLE;
 
 // Compression types
 #define EFI_NOT_COMPRESSED          0x00
@@ -423,21 +428,17 @@ typedef struct EFI_COMPRESSION_SECTION2_ {
 
 //GUID defined section
 typedef struct EFI_GUID_DEFINED_SECTION_ {
-    UINT8    Size[3];
-    UINT8    Type;
     EFI_GUID SectionDefinitionGuid;
     UINT16   DataOffset;
     UINT16   Attributes;
 } EFI_GUID_DEFINED_SECTION;
 
-typedef struct EFI_GUID_DEFINED_SECTION2_ {
-    UINT8    Size[3];
-    UINT8    Type;
-    UINT32   ExtendedSize;
+typedef struct EFI_GUID_DEFINED_SECTION_APPLE_ {
     EFI_GUID SectionDefinitionGuid;
     UINT16   DataOffset;
     UINT16   Attributes;
-} EFI_GUID_DEFINED_SECTION2;
+    UINT32   Reserved;
+} EFI_GUID_DEFINED_SECTION_APPLE;
 
 // Attributes for GUID defined section
 #define EFI_GUIDED_SECTION_PROCESSING_REQUIRED  0x01
@@ -453,7 +454,7 @@ const QByteArray EFI_GUIDED_SECTION_TIANO // A31280AD-481E-41B6-95E8-127F4C98477
 const QByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
 ("\x98\x58\x4E\xEE\x14\x39\x59\x42\x9D\x6E\xDC\x7B\xD7\x94\x03\xCF", 16);
 
-const QByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID //0F9D89E8-9259-4F76-A5AF-0C89E34023DF
+const QByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID // 0F9D89E8-9259-4F76-A5AF-0C89E34023DF
 ("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
 
 //#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
@@ -475,8 +476,6 @@ typedef struct WIN_CERTIFICATE_UEFI_GUID_ {
 // WIN_CERTIFICATE_UEFI_GUID.CertType
 const QByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
 ("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
-//const QByteArray EFI_CERT_TYPE_PKCS7_GUID
-//("\x9D\xD2\xAF\x4A\xDF\x68\xEE\x49\x8A\xA9\x34\x7D\x37\x56\x65\xA7");
 
 // WIN_CERTIFICATE_UEFI_GUID.CertData
 typedef struct EFI_CERT_BLOCK_RSA_2048_SHA256_ {
@@ -487,69 +486,18 @@ typedef struct EFI_CERT_BLOCK_RSA_2048_SHA256_ {
 
 // Version section
 typedef struct EFI_VERSION_SECTION_ {
-    UINT8    Size[3];
-    UINT8    Type;
     UINT16   BuildNumber;
 } EFI_VERSION_SECTION;
 
-typedef struct EFI_VERSION_SECTION2_ {
-    UINT8    Size[3];
-    UINT8    Type;
-    UINT32   ExtendedSize;
-    UINT16   BuildNumber;
-} EFI_VERSION_SECTION2;
-
 // Freeform subtype GUID section
 typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION_ {
-    UINT8    Size[3];
-    UINT8    Type;
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
 
-typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION2_ {
-    UINT8    Size[3];
-    UINT8    Type;
-    UINT32   ExtendedSize;
-    EFI_GUID SubTypeGuid;
-} EFI_FREEFORM_SUBTYPE_GUID_SECTION2;
-
 // Phoenix SCT and Insyde postcode section
 typedef struct POSTCODE_SECTION_ {
-    UINT8    Size[3];
-    UINT8    Type;
     UINT32   Postcode;
 } POSTCODE_SECTION;
-
-typedef struct POSTCODE_SECTION2_ {
-    UINT8    Size[3];
-    UINT8    Type;
-    UINT32   ExtendedSize;
-    UINT32   Postcode;
-} POSTCODE_SECTION2;
-
-// Other sections
-typedef EFI_COMMON_SECTION_HEADER  EFI_DISPOSABLE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_DISPOSABLE_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_RAW_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_RAW_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_DXE_DEPEX_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_DXE_DEPEX_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_PEI_DEPEX_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_PEI_DEPEX_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_SMM_DEPEX_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_SMM_DEPEX_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_PE32_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_PE32_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_PIC_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_PIC_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_TE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_TE_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_COMPATIBILITY16_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_COMPATIBILITY16_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_FIRMWARE_VOLUME_IMAGE_SECTION2;
-typedef EFI_COMMON_SECTION_HEADER  EFI_USER_INTERFACE_SECTION;
-typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
 
 //*****************************************************************************
 // EFI Dependency Expression

@@ -1870,23 +1870,37 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
-
+    
     // Get data from parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
-    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    UINT32 headerSize = sizeof(EFI_COMMON_SECTION_HEADER);
-    if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED)
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER2);
+    UINT32 headerSize;
+    UINT8  type;
+    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
+    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) {
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE);
+        type = appleHeader->Type;
+    }
+    else {
+        const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER);
+        if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED)
+            headerSize = sizeof(EFI_COMMON_SECTION_HEADER2);
+        type = sectionHeader->Type;
+    }
 
+    // Check sanity again
+    if ((UINT32)section.size() < headerSize)
+        return ERR_INVALID_SECTION;
+    
     QByteArray header = section.left(headerSize);
     QByteArray body = section.mid(headerSize);
 
     // Get info
-    QString name = sectionTypeToQString(sectionHeader->Type) + QObject::tr(" section");
+    QString name = sectionTypeToQString(type) + QObject::tr(" section");
     QString info = QObject::tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
-        .hexarg2(sectionHeader->Type, 2)
+        .hexarg2(type, 2)
         .hexarg(section.size()).arg(section.size())
         .hexarg(headerSize).arg(headerSize)
         .hexarg(body.size()).arg(body.size());
@@ -1896,7 +1910,7 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
 
     // Add tree item
     if (!preparse) {
-        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, QByteArray(), true, parsingDataToQByteArray(pdata), parent);
+        index = model->addItem(Types::Section, type, name, QString(), info, header, body, QByteArray(), true, parsingDataToQByteArray(pdata), parent);
     } 
     return ERR_SUCCESS;
 }
@@ -1904,27 +1918,45 @@ STATUS FfsParser::parseCommonSectionHeader(const QByteArray & section, const UIN
 STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
-    if ((UINT32)section.size() < sizeof(EFI_COMPRESSION_SECTION))
+    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
 
     // Get data from parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
+    UINT32 headerSize;
+    UINT8 compressionType;
+    UINT32 uncompressedLength;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    const EFI_COMPRESSION_SECTION* compressedSectionHeader = (const EFI_COMPRESSION_SECTION*)sectionHeader;
-    UINT32 headerSize = sizeof(EFI_COMPRESSION_SECTION);
-    UINT8 compressionType = compressedSectionHeader->CompressionType;
-    UINT32 uncompressedLength = compressedSectionHeader->UncompressedLength;
-    if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) {
-        if ((UINT32)section.size() < sizeof(EFI_COMPRESSION_SECTION2))
+    const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
+    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
+       
+    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
+        const EFI_COMPRESSION_SECTION_APPLE* appleSectionHeader = (const EFI_COMPRESSION_SECTION_APPLE*)(appleHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_COMPRESSION_SECTION_APPLE);
+        compressionType = (UINT8)appleSectionHeader->CompressionType;
+        uncompressedLength = appleSectionHeader->UncompressedLength;
+    }
+    else if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+        const EFI_COMPRESSION_SECTION* compressedSectionHeader = (const EFI_COMPRESSION_SECTION*)(section2Header + 1);
+        if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_COMPRESSION_SECTION))
             return ERR_INVALID_SECTION;
-        const EFI_COMPRESSION_SECTION2* compressedSectionHeader2 = (const EFI_COMPRESSION_SECTION2*)sectionHeader;
-        headerSize = sizeof(EFI_COMPRESSION_SECTION2);
-        compressionType = compressedSectionHeader2->CompressionType;
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_COMPRESSION_SECTION);
+        compressionType = compressedSectionHeader->CompressionType;
+        uncompressedLength = compressedSectionHeader->UncompressedLength;
+    }
+    else { // Normal section
+        const EFI_COMPRESSION_SECTION* compressedSectionHeader = (const EFI_COMPRESSION_SECTION*)(sectionHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_COMPRESSION_SECTION);
+        compressionType = compressedSectionHeader->CompressionType;
         uncompressedLength = compressedSectionHeader->UncompressedLength;
     }
 
+    // Check sanity again
+    if ((UINT32)section.size() < headerSize)
+        return ERR_INVALID_SECTION;
+    
     QByteArray header = section.left(headerSize);
     QByteArray body = section.mid(headerSize);
 
@@ -1953,28 +1985,49 @@ STATUS FfsParser::parseCompressedSectionHeader(const QByteArray & section, const
 STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
-    if ((UINT32)section.size() < sizeof(EFI_GUID_DEFINED_SECTION))
+    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
 
     // Get data from parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
+    UINT32 headerSize;
+    EFI_GUID guid;
+    UINT16 dataOffset;
+    UINT16 attributes;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)sectionHeader;
-    EFI_GUID guid = guidDefinedSectionHeader->SectionDefinitionGuid;
-    UINT16 dataOffset = guidDefinedSectionHeader->DataOffset;
-    UINT16 attributes = guidDefinedSectionHeader->Attributes;
-    UINT32 nextHeaderOffset = sizeof(EFI_GUID_DEFINED_SECTION);
-    if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) {
-        if ((UINT32)section.size() < sizeof(EFI_GUID_DEFINED_SECTION2))
+    const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
+    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
+
+    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
+        const EFI_GUID_DEFINED_SECTION_APPLE* appleSectionHeader = (const EFI_GUID_DEFINED_SECTION_APPLE*)(appleHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_GUID_DEFINED_SECTION_APPLE);
+        if ((UINT32)section.size() < headerSize)
             return ERR_INVALID_SECTION;
-        const EFI_GUID_DEFINED_SECTION2* guidDefinedSectionHeader2 = (const EFI_GUID_DEFINED_SECTION2*)sectionHeader;
-        guid = guidDefinedSectionHeader2->SectionDefinitionGuid;
-        dataOffset = guidDefinedSectionHeader2->DataOffset;
-        attributes = guidDefinedSectionHeader2->Attributes;
-        nextHeaderOffset = sizeof(EFI_GUID_DEFINED_SECTION2);
+        guid = appleSectionHeader->SectionDefinitionGuid;
+        dataOffset = appleSectionHeader->DataOffset;
+        attributes = appleSectionHeader->Attributes;
     }
+    else if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+        const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(section2Header + 1);
+        if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_GUID_DEFINED_SECTION))
+            return ERR_INVALID_SECTION;
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_GUID_DEFINED_SECTION);
+        guid = guidDefinedSectionHeader->SectionDefinitionGuid;
+        dataOffset = guidDefinedSectionHeader->DataOffset;
+        attributes = guidDefinedSectionHeader->Attributes;
+    }
+    else { // Normal section
+        const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(sectionHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_GUID_DEFINED_SECTION);
+        guid = guidDefinedSectionHeader->SectionDefinitionGuid;
+        dataOffset = guidDefinedSectionHeader->DataOffset;
+        attributes = guidDefinedSectionHeader->Attributes;
+    }
+    // Check sanity again
+    if ((UINT32)section.size() < headerSize)
+        return ERR_INVALID_SECTION;
 
     // Check for special GUIDed sections
     QByteArray additionalInfo;
@@ -1991,10 +2044,10 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
             msgNoAuthStatusAttribute = true;
         }
 
-        if ((UINT32)section.size() < nextHeaderOffset + sizeof(UINT32))
+        if ((UINT32)section.size() < headerSize + sizeof(UINT32))
             return ERR_INVALID_SECTION;
 
-        UINT32 crc = *(UINT32*)(section.constData() + nextHeaderOffset);
+        UINT32 crc = *(UINT32*)(section.constData() + headerSize);
         additionalInfo += QObject::tr("\nChecksum type: CRC32");
         // Calculate CRC32 of section data
         UINT32 calculated = crc32(0, (const UINT8*)section.constData() + dataOffset, section.size() - dataOffset);
@@ -2019,10 +2072,10 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
         }
 
         // Get certificate type and length
-        if ((UINT32)section.size() < nextHeaderOffset + sizeof(WIN_CERTIFICATE))
+        if ((UINT32)section.size() < headerSize + sizeof(WIN_CERTIFICATE))
             return ERR_INVALID_SECTION;
 
-        const WIN_CERTIFICATE* winCertificate = (const WIN_CERTIFICATE*)(section.constData() + nextHeaderOffset);
+        const WIN_CERTIFICATE* winCertificate = (const WIN_CERTIFICATE*)(section.constData() + headerSize);
         UINT32 certLength = winCertificate->Length;
         UINT16 certType = winCertificate->CertificateType;
 
@@ -2038,7 +2091,7 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
             additionalInfo += QObject::tr("\nCertificate type: UEFI");
 
             // Get certificate GUID
-            const WIN_CERTIFICATE_UEFI_GUID* winCertificateUefiGuid = (const WIN_CERTIFICATE_UEFI_GUID*)(section.constData() + nextHeaderOffset);
+            const WIN_CERTIFICATE_UEFI_GUID* winCertificateUefiGuid = (const WIN_CERTIFICATE_UEFI_GUID*)(section.constData() + headerSize);
             QByteArray certTypeGuid((const char*)&winCertificateUefiGuid->CertType, sizeof(EFI_GUID));
 
             if (certTypeGuid == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
@@ -2104,32 +2157,52 @@ STATUS FfsParser::parseGuidedSectionHeader(const QByteArray & section, const UIN
 STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
-    if ((UINT32)section.size() < sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION))
+    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
 
     // Get data from parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
+    UINT32 headerSize;
+    EFI_GUID guid;
+    UINT8 type;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    const EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)sectionHeader;
-    UINT32 headerSize = sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
-    EFI_GUID guid = fsgHeader->SubTypeGuid;
-    if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) {
-        if ((UINT32)section.size() < sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION2))
-            return ERR_INVALID_SECTION;
-        const EFI_FREEFORM_SUBTYPE_GUID_SECTION2* fsgHeader2 = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION2*)sectionHeader;
-        headerSize = sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION2);
-        guid = fsgHeader2->SubTypeGuid;
+    const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
+    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
+
+    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
+        const EFI_FREEFORM_SUBTYPE_GUID_SECTION* appleSectionHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)(appleHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
+        guid = appleSectionHeader->SubTypeGuid;
+        type = appleHeader->Type;
     }
+    else if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+        const EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgSectionHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)(section2Header + 1);
+        if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION))
+            return ERR_INVALID_SECTION;
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
+        guid = fsgSectionHeader->SubTypeGuid;
+        type = section2Header->Type;
+    }
+    else { // Normal section
+        const EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgSectionHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)(sectionHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
+        guid = fsgSectionHeader->SubTypeGuid;
+        type = sectionHeader->Type;
+    }
+
+    // Check sanity again
+    if ((UINT32)section.size() < headerSize)
+        return ERR_INVALID_SECTION;
 
     QByteArray header = section.left(headerSize);
     QByteArray body = section.mid(headerSize);
 
     // Get info
-    QString name = sectionTypeToQString(sectionHeader->Type) + QObject::tr(" section");
+    QString name = sectionTypeToQString(type) + QObject::tr(" section");
     QString info = QObject::tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nSubtype GUID: %8")
-        .hexarg2(fsgHeader->Type, 2)
+        .hexarg2(type, 2)
         .hexarg(section.size()).arg(section.size())
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())
@@ -2141,7 +2214,7 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
 
     // Add tree item
     if (!preparse) {
-        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, QByteArray(), false, parsingDataToQByteArray(pdata), parent);
+        index = model->addItem(Types::Section, type, name, QString(), info, header, body, QByteArray(), false, parsingDataToQByteArray(pdata), parent);
 
         // Rename section
         model->setName(index, guidToQString(guid));
@@ -2152,32 +2225,50 @@ STATUS FfsParser::parseFreeformGuidedSectionHeader(const QByteArray & section, c
 STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
-    if ((UINT32)section.size() < sizeof(EFI_VERSION_SECTION))
+    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
 
     // Get data from parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
+    UINT32 headerSize;
+    UINT16 buildNumber;
+    UINT8 type;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)sectionHeader;
-    UINT32 headerSize = sizeof(EFI_VERSION_SECTION);
-    UINT16 buildNumber = versionHeader->BuildNumber;
-    if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) {
-        if ((UINT32)section.size() < sizeof(EFI_VERSION_SECTION2))
-            return ERR_INVALID_SECTION;
-        const EFI_VERSION_SECTION2* versionHeader2 = (const EFI_VERSION_SECTION2*)sectionHeader;
-        headerSize = sizeof(EFI_VERSION_SECTION2);
-        buildNumber = versionHeader2->BuildNumber;
+    const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
+    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
+
+    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
+        const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)(appleHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_VERSION_SECTION);
+        buildNumber = versionHeader->BuildNumber;
+        type = appleHeader->Type;
     }
+    else if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+        const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)(section2Header + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_VERSION_SECTION);
+        buildNumber = versionHeader->BuildNumber;
+        type = section2Header->Type;
+    }
+    else { // Normal section
+        const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)(sectionHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_VERSION_SECTION);
+        buildNumber = versionHeader->BuildNumber;
+        type = sectionHeader->Type;
+    }
+
+    // Check sanity again
+    if ((UINT32)section.size() < headerSize)
+        return ERR_INVALID_SECTION;
 
     QByteArray header = section.left(headerSize);
     QByteArray body = section.mid(headerSize);
     
     // Get info
-    QString name = sectionTypeToQString(sectionHeader->Type) + QObject::tr(" section");
+    QString name = sectionTypeToQString(type) + QObject::tr(" section");
     QString info = QObject::tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nBuild number: %8")
-        .hexarg2(versionHeader->Type, 2)
+        .hexarg2(type, 2)
         .hexarg(section.size()).arg(section.size())
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())
@@ -2188,7 +2279,7 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
 
     // Add tree item
     if (!preparse) {
-        index = model->addItem(Types::Section, sectionHeader->Type, name, QString(), info, header, body, QByteArray(), false, parsingDataToQByteArray(pdata), parent);
+        index = model->addItem(Types::Section, type, name, QString(), info, header, body, QByteArray(), false, parsingDataToQByteArray(pdata), parent);
     }
     return ERR_SUCCESS;
 }
@@ -2196,32 +2287,50 @@ STATUS FfsParser::parseVersionSectionHeader(const QByteArray & section, const UI
 STATUS FfsParser::parsePostcodeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse)
 {
     // Check sanity
-    if ((UINT32)section.size() < sizeof(POSTCODE_SECTION))
+    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return ERR_INVALID_SECTION;
 
     // Get data from parent's parsing data
     PARSING_DATA pdata = parsingDataFromQModelIndex(parent);
 
     // Obtain header fields
+    UINT32 headerSize;
+    UINT32 postCode;
+    UINT8 type;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-    const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)sectionHeader;
-    UINT32 headerSize = sizeof(POSTCODE_SECTION);
-    UINT32 postCode = postcodeHeader->Postcode;
-    if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) {
-        if ((UINT32)section.size() < sizeof(POSTCODE_SECTION2))
-            return ERR_INVALID_SECTION;
-        const POSTCODE_SECTION2* postcodeHeader2 = (const POSTCODE_SECTION2*)sectionHeader;
-        headerSize = sizeof(POSTCODE_SECTION2);
-        postCode = postcodeHeader2->Postcode;
+    const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
+    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
+
+    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
+        const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)(appleHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(POSTCODE_SECTION);
+        postCode = postcodeHeader->Postcode;
+        type = appleHeader->Type;
     }
+    else if (pdata.ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+        const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)(section2Header + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(POSTCODE_SECTION);
+        postCode = postcodeHeader->Postcode;
+        type = section2Header->Type;
+    }
+    else { // Normal section
+        const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)(sectionHeader + 1);
+        headerSize = sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(POSTCODE_SECTION);
+        postCode = postcodeHeader->Postcode;
+        type = sectionHeader->Type;
+    }
+
+    // Check sanity again
+    if ((UINT32)section.size() < headerSize)
+        return ERR_INVALID_SECTION;
 
     QByteArray header = section.left(headerSize);
     QByteArray body = section.mid(headerSize);
 
     // Get info
-    QString name = sectionTypeToQString(sectionHeader->Type) + QObject::tr(" section");
+    QString name = sectionTypeToQString(type) + QObject::tr(" section");
     QString info = QObject::tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)\nPostcode: %8h")
-        .hexarg2(postcodeHeader->Type, 2)
+        .hexarg2(type, 2)
         .hexarg(section.size()).arg(section.size())
         .hexarg(header.size()).arg(header.size())
         .hexarg(body.size()).arg(body.size())

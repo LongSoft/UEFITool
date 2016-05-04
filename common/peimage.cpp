@@ -18,16 +18,20 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 QString machineTypeToQString(UINT16 machineType)
 {
     switch (machineType) {
-    case EFI_IMAGE_FILE_MACHINE_AMD64:     return QObject::tr("x86-64");
-    case EFI_IMAGE_FILE_MACHINE_ARM:       return QObject::tr("ARM");
-    case EFI_IMAGE_FILE_MACHINE_ARMNT:     return QObject::tr("ARMv7");
-    case EFI_IMAGE_FILE_MACHINE_ARM64:     return QObject::tr("ARM64");
-    case EFI_IMAGE_FILE_MACHINE_EBC:       return QObject::tr("EBC");
-    case EFI_IMAGE_FILE_MACHINE_I386:      return QObject::tr("x86");
-    case EFI_IMAGE_FILE_MACHINE_IA64:      return QObject::tr("IA64");
-    case EFI_IMAGE_FILE_MACHINE_POWERPC:   return QObject::tr("PowerPC");
-    case EFI_IMAGE_FILE_MACHINE_POWERPCFP: return QObject::tr("PowerPC FP");
-    case EFI_IMAGE_FILE_MACHINE_THUMB:     return QObject::tr("Thumb");
-    default:                               return QObject::tr("Unknown %1h").hexarg2(machineType, 4);
+    case EFI_IMAGE_FILE_MACHINE_AMD64:       return QObject::tr("x86-64");
+    case EFI_IMAGE_FILE_MACHINE_ARM:         return QObject::tr("ARM");
+    case EFI_IMAGE_FILE_MACHINE_ARMNT:       return QObject::tr("ARMv7");
+    case EFI_IMAGE_FILE_MACHINE_APPLE_ARM:   return QObject::tr("Apple ARM");
+    case EFI_IMAGE_FILE_MACHINE_AARCH64:     return QObject::tr("AARCH64");
+    case EFI_IMAGE_FILE_MACHINE_EBC:         return QObject::tr("EBC");
+    case EFI_IMAGE_FILE_MACHINE_I386:        return QObject::tr("x86");
+    case EFI_IMAGE_FILE_MACHINE_IA64:        return QObject::tr("IA64");
+    case EFI_IMAGE_FILE_MACHINE_POWERPC:     return QObject::tr("PowerPC");
+    case EFI_IMAGE_FILE_MACHINE_POWERPCFP:   return QObject::tr("PowerPC FP");
+    case EFI_IMAGE_FILE_MACHINE_THUMB:       return QObject::tr("ARM Thumb");
+    case EFI_IMAGE_FILE_MACHINE_RISCV32:     return QObject::tr("RISC-V 32-bit");
+    case EFI_IMAGE_FILE_MACHINE_RISCV64:     return QObject::tr("RISC-V 64-bit");
+    case EFI_IMAGE_FILE_MACHINE_RISCV128:    return QObject::tr("RISC-V 128-bit");
+    default:                                 return QObject::tr("Unknown %1h").hexarg2(machineType, 4);
     }
 }
