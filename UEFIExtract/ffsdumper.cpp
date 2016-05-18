@@ -68,7 +68,7 @@ STATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path,
             file.close();
         }
 
-        QString info = QObject::tr("Type: %1\nSubtype: %2\n%3%4")
+        QString info = QObject::tr("Type: %1\nSubtype: %2\n%3%4\n")
             .arg(itemTypeToQString(model->type(index)))
             .arg(itemSubtypeToQString(model->type(index), model->subtype(index)))
             .arg(model->text(index).isEmpty() ? QObject::tr("") : QObject::tr("Text: %1\n").arg(model->text(index)))
