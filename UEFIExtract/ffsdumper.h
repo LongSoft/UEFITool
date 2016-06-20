@@ -30,10 +30,10 @@ public:
     explicit FfsDumper(TreeModel * treeModel);
     ~FfsDumper();
 
-    STATUS dump(const QModelIndex & root, const QString & path, const QString & guid = QString());
+    STATUS dump(const QModelIndex & root, const QString & path, const bool dumpAll = false, const QString & guid = QString());
 
 private:
-    STATUS recursiveDump(const QModelIndex & root, const QString & path, const QString & guid);
+    STATUS recursiveDump(const QModelIndex & root, const QString & path, const bool dumpAll, const QString & guid);
     TreeModel* model;
     bool dumped;
 };

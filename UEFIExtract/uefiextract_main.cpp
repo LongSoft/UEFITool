@@ -97,14 +97,17 @@ int main(int argc, char *argv[])
         // Create ffsDumper
         FfsDumper ffsDumper(&model);
 
-        // Dump everyting
+        // Dump all non-leaf elements
         if (a.arguments().length() == 2) {
             return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != ERR_SUCCESS);
+        }
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump everything
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != ERR_SUCCESS);
         }
         else { // Dump specific files
             UINT32 returned = 0;
             for (int i = 2; i < a.arguments().length(); i++) {
-                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), a.arguments().at(i));
+                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true, a.arguments().at(i));
                 if (result)
                     returned |= (1 << (i - 1));
             }
@@ -112,9 +115,11 @@ int main(int argc, char *argv[])
         }
     }
     else { // Show version and usage information
-        std::cout << "UEFIExtract 0.10.9" << std::endl << std::endl
-                  << "Usage: UEFIExtract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl
-                  << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
+        std::cout << "UEFIExtract 0.11.0" << std::endl << std::endl
+            << "Usage: UEFIExtract imagefile - dumps only leaf tree items into .dump folder" << std::endl
+            << "       UEFIExtract imagefile all - dumps all tree items"
+            << "       UIFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dumps an FFS file(s) with specific GUID(s)"
+            << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;
     }
 }
