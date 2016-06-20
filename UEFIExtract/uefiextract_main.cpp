@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <iostream>
 
 #include "../common/ffsparser.h"
+#include "../common/fitparser.h"
 #include "ffsdumper.h"
 
 int main(int argc, char *argv[])
@@ -32,36 +33,75 @@ int main(int argc, char *argv[])
     }
 
     if (a.arguments().length() > 1) {
+        // Check that input file exists
         QString path = a.arguments().at(1);
         QFileInfo fileInfo(path);
         if (!fileInfo.exists())
             return ERR_FILE_OPEN;
 
+        // Open the input file
         QFile inputFile;
         inputFile.setFileName(path);
         if (!inputFile.open(QFile::ReadOnly))
             return ERR_FILE_OPEN;
-
+        
+        // Read and close the file
         QByteArray buffer = inputFile.readAll();
         inputFile.close();
 
+        // Create model and ffsParser
         TreeModel model;
         FfsParser ffsParser(&model);
+        // Parse input buffer
         STATUS result = ffsParser.parse(buffer);
         if (result)
             return result;
 
+        // Show ffsParser's messages
         std::vector<std::pair<QString, QModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
             std::cout << messages[i].first.toLatin1().constData() << std::endl;
         }
 
+        // Get last VTF
+        QModelIndex lastVtf = ffsParser.getLastVtf();
+        if (lastVtf.isValid()) {
+            // Create fitParser
+            FitParser fitParser(&model);
+            // Find and parse FIT table
+            result = fitParser.parse(model.index(0, 0), lastVtf);
+            if (ERR_SUCCESS == result) {
+                // Show fitParser's messages
+                std::vector<std::pair<QString, QModelIndex> > fitMessages = fitParser.getMessages();
+                for (size_t i = 0; i < fitMessages.size(); i++) {
+                    std::cout << fitMessages[i].first.toLatin1().constData() << std::endl;
+                }
+
+                // Show FIT table
+                std::vector<std::vector<QString> > fitTable = fitParser.getFitTable();
+                if (fitTable.size()) {
+                    std::cout << "-------------------------------------------------------------------" << std::endl;
+                    std::cout << "     Address     |   Size   | Ver  |           Type           | CS " << std::endl;
+                    std::cout << "-------------------------------------------------------------------" << std::endl;
+                    for (size_t i = 0; i < fitTable.size(); i++) {
+                        std::cout << fitTable[i][0].toLatin1().constData() << " | "
+                            << fitTable[i][1].toLatin1().constData() << " | "
+                            << fitTable[i][2].toLatin1().constData() << " | "
+                            << fitTable[i][3].toLatin1().constData() << " | "
+                            << fitTable[i][4].toLatin1().constData() << std::endl;
+                    }
+                }
+            }
+        }
+        
+        // Create ffsDumper
         FfsDumper ffsDumper(&model);
 
+        // Dump everyting
         if (a.arguments().length() == 2) {
             return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != ERR_SUCCESS);
         }
-        else {
+        else { // Dump specific files
             UINT32 returned = 0;
             for (int i = 2; i < a.arguments().length(); i++) {
                 result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), a.arguments().at(i));
@@ -71,8 +111,8 @@ int main(int argc, char *argv[])
             return returned;
         }
     }
-    else {
-        std::cout << "UEFIExtract 0.10.8" << std::endl << std::endl
+    else { // Show version and usage information
+        std::cout << "UEFIExtract 0.10.9" << std::endl << std::endl
                   << "Usage: UEFIExtract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl
                   << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;

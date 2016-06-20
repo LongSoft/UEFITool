@@ -57,7 +57,7 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
 
     // Add FIT header to fitTable
     std::vector<QString> currentStrings;
-    currentStrings.push_back(QObject::tr("_FIT_   "));
+    currentStrings.push_back(QObject::tr("_FIT_           "));
     currentStrings.push_back(QObject::tr("%1").hexarg2(fitSize, 8));
     currentStrings.push_back(QObject::tr("%1").hexarg2(fitHeader->Version, 4));
     currentStrings.push_back(fitEntryTypeToQString(fitHeader->Type));
@@ -110,17 +110,17 @@ STATUS FitParser::parse(const QModelIndex & index, const QModelIndex & lastVtfIn
 QString FitParser::fitEntryTypeToQString(UINT8 type)
 {
     switch (type & 0x7F) {
-    case FIT_TYPE_HEADER:           return QObject::tr("Header");
-    case FIT_TYPE_MICROCODE:        return QObject::tr("Microcode");
-    case FIT_TYPE_BIOS_AC_MODULE:   return QObject::tr("BIOS ACM");
-    case FIT_TYPE_BIOS_INIT_MODULE: return QObject::tr("BIOS Init");
-    case FIT_TYPE_TPM_POLICY:       return QObject::tr("TPM Policy");
-    case FIT_TYPE_BIOS_POLICY_DATA: return QObject::tr("BIOS Policy Data");
+    case FIT_TYPE_HEADER:           return QObject::tr("Header                  ");
+    case FIT_TYPE_MICROCODE:        return QObject::tr("Microcode               ");
+    case FIT_TYPE_BIOS_AC_MODULE:   return QObject::tr("BIOS ACM                ");
+    case FIT_TYPE_BIOS_INIT_MODULE: return QObject::tr("BIOS Init               ");
+    case FIT_TYPE_TPM_POLICY:       return QObject::tr("TPM Policy              ");
+    case FIT_TYPE_BIOS_POLICY_DATA: return QObject::tr("BIOS Policy Data        ");
     case FIT_TYPE_TXT_CONF_POLICY:  return QObject::tr("TXT Configuration Policy");
-    case FIT_TYPE_AC_KEY_MANIFEST:  return QObject::tr("BootGuard Key Manifest");
-    case FIT_TYPE_AC_BOOT_POLICY:   return QObject::tr("BootGuard Boot Policy");
-    case FIT_TYPE_EMPTY:            return QObject::tr("Empty");
-    default:                        return QObject::tr("Unknown");
+    case FIT_TYPE_AC_KEY_MANIFEST:  return QObject::tr("BootGuard Key Manifest  ");
+    case FIT_TYPE_AC_BOOT_POLICY:   return QObject::tr("BootGuard Boot Policy   ");
+    case FIT_TYPE_EMPTY:            return QObject::tr("Empty                   ");
+    default:                        return QObject::tr("Unknown                 ");
     }
 }
 
