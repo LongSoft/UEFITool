@@ -2938,7 +2938,7 @@ STATUS FfsParser::addMemoryAddressesRecursive(const QModelIndex & index, const U
                     pdata.section.teImage.revision = 2;
                 }
                 else {
-                    msg(QObject::tr("addMemoryAddressesRecursive: image base is nether original nor adjusted, it's likely a part of backup PEI volume or DXE volume, but can also be damaged"), index);
+                    msg(QObject::tr("addMemoryAddressesRecursive: image base is neither original nor adjusted, it's likely a part of backup PEI volume or DXE volume, but can also be damaged"), index);
                     pdata.section.teImage.revision = 0;
                 }
             }
