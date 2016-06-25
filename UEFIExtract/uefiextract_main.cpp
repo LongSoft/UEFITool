@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <iostream>
 
 #include "../common/ffsparser.h"
+#include "../common/ffsreport.h"
 #include "../common/fitparser.h"
 #include "ffsdumper.h"
 
@@ -94,6 +95,20 @@ int main(int argc, char *argv[])
             }
         }
         
+        // Create ffsReport
+        FfsReport ffsReport(&model);
+        std::vector<QString> report = ffsReport.generate();
+        if (report.size()) {
+            QFile file;
+            file.setFileName(fileInfo.fileName().append(".report.txt"));
+            if (file.open(QFile::Text | QFile::WriteOnly)) {
+                for (size_t i = 0; i < report.size(); i++) {
+                    file.write(report[i].toLatin1().append('\n'));
+                }
+                file.close();
+            }
+        }
+                
         // Create ffsDumper
         FfsDumper ffsDumper(&model);
 
@@ -104,6 +119,9 @@ int main(int argc, char *argv[])
         else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump everything
             return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != ERR_SUCCESS);
         }
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("none")) { // Skip dumping
+            return 0;
+        }
         else { // Dump specific files
             UINT32 returned = 0;
             for (int i = 2; i < a.arguments().length(); i++) {
@@ -113,12 +131,15 @@ int main(int argc, char *argv[])
             }
             return returned;
         }
+
+        return 0;
     }
     else { // Show version and usage information
-        std::cout << "UEFIExtract 0.11.0" << std::endl << std::endl
-            << "Usage: UEFIExtract imagefile - dumps only leaf tree items into .dump folder" << std::endl
-            << "       UEFIExtract imagefile all - dumps all tree items"
-            << "       UIFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dumps an FFS file(s) with specific GUID(s)"
+        std::cout << "UEFIExtract 0.12.0" << std::endl << std::endl
+            << "Usage: UEFIExtract imagefile      - generate report and dump only leaf tree items into .dump folder" << std::endl
+            << "       UEFIExtract imagefile all  - generate report and dump all tree items" << std::endl
+            << "       UEFIExtract imagefile none - only generate report, no dump needed" << std::endl
+            << "       UIFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dump only FFS file(s) with specific GUID(s)" << std::endl
             << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;
     }

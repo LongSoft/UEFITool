@@ -13,6 +13,7 @@ SOURCES += uefiextract_main.cpp \
  ../common/ffs.cpp \
  ../common/nvram.cpp \
  ../common/ffsparser.cpp \
+ ../common/ffsreport.cpp \
  ../common/fitparser.cpp \
  ../common/peimage.cpp \
  ../common/treeitem.cpp \
@@ -30,6 +31,7 @@ HEADERS += ffsdumper.h \
  ../common/ffs.h \
  ../common/nvram.h \
  ../common/ffsparser.h \
+ ../common/ffsreport.h \
  ../common/fitparser.h \
  ../common/peimage.h \
  ../common/types.h \
