@@ -6,7 +6,8 @@ TEMPLATE = app
 CONFIG  += console
 CONFIG  -= app_bundle
 
-SOURCES += uefiextract_main.cpp \
+SOURCES += \
+ uefiextract_main.cpp \
  ffsdumper.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \
@@ -22,8 +23,12 @@ SOURCES += uefiextract_main.cpp \
  ../common/LZMA/LzmaDecompress.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/Tiano/EfiTianoDecompress.c \
+ ../common/ustring.cpp \
+ ../bstrlib/bstrlib.c \
+ ../bstrlib/bstrwrap.cpp
 
-HEADERS += ffsdumper.h \
+HEADERS += \
+ ffsdumper.h \
  ../common/basetypes.h \
  ../common/descriptor.h \
  ../common/gbe.h \
@@ -39,5 +44,10 @@ HEADERS += ffsdumper.h \
  ../common/treemodel.h \
  ../common/utility.h \
  ../common/LZMA/LzmaDecompress.h \
- ../common/Tiano/EfiTianoDecompress.h
+ ../common/Tiano/EfiTianoDecompress.h \
+ ../common/umodelindex.h \
+ ../common/ubytearray.h \
+ ../common/ustring.h \
+ ../bstrlib/bstrlib.h \
+ ../bstrlib/bstrwrap.cpp
  

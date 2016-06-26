@@ -15,16 +15,16 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include <QByteArray>
-#include <QString>
+#include "ubytearray.h"
+#include "ustring.h"
 #include "basetypes.h"
 
 // Make sure we use right packing rules
 #pragma pack(push,1)
 
-extern QString guidToQString(const EFI_GUID& guid);
-extern QString fileTypeToQString(const UINT8 type);
-extern QString sectionTypeToQString(const UINT8 type);
+extern UString guidToUString(const EFI_GUID& guid);
+extern UString fileTypeToUString(const UINT8 type);
+extern UString sectionTypeToUString(const UINT8 type);
 
 //*****************************************************************************
 // EFI Capsule
@@ -43,19 +43,19 @@ typedef struct EFI_CAPSULE_HEADER_ {
 #define EFI_CAPSULE_HEADER_FLAG_POPULATE_SYSTEM_TABLE   0x00020000
 
 // Standard EFI capsule GUID
-const QByteArray EFI_CAPSULE_GUID
+const UByteArray EFI_CAPSULE_GUID
 ("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
 
 // Intel capsule GUID
-const QByteArray INTEL_CAPSULE_GUID
+const UByteArray INTEL_CAPSULE_GUID
 ("\xB9\x82\x91\x53\xB5\xAB\x91\x43\xB6\x9A\xE3\xA9\x43\xF7\x2F\xCC", 16);
 
 // Lenovo capsule GUID
-const QByteArray LENOVO_CAPSULE_GUID
+const UByteArray LENOVO_CAPSULE_GUID
 ("\xD3\xAF\x0B\xE2\x14\x99\x4F\x4F\x95\x37\x31\x29\xE0\x90\xEB\x3C", 16);
 
 // Another Lenovo capsule GUID
-const QByteArray LENOVO2_CAPSULE_GUID
+const UByteArray LENOVO2_CAPSULE_GUID
 ("\x76\xFE\xB5\x25\x43\x82\x5C\x4A\xA9\xBD\x7E\xE3\x24\x61\x98\xB5", 16);
 
 // Toshiba EFI Capsule header
@@ -67,7 +67,7 @@ typedef struct TOSHIBA_CAPSULE_HEADER_ {
 } TOSHIBA_CAPSULE_HEADER;
 
 // Toshiba capsule GUID
-const QByteArray TOSHIBA_CAPSULE_GUID
+const UByteArray TOSHIBA_CAPSULE_GUID
 ("\x62\x70\xE0\x3B\x51\x1D\xD2\x45\x83\x2B\xF0\x93\x25\x7E\xD4\x61", 16);
 
 // AMI Aptio extended capsule header
@@ -80,11 +80,11 @@ typedef struct APTIO_CAPSULE_HEADER_ {
 } APTIO_CAPSULE_HEADER;
 
 // AMI Aptio signed extended capsule GUID
-const QByteArray APTIO_SIGNED_CAPSULE_GUID
+const UByteArray APTIO_SIGNED_CAPSULE_GUID
 ("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
 
 // AMI Aptio unsigned extended capsule GUID
-const QByteArray APTIO_UNSIGNED_CAPSULE_GUID
+const UByteArray APTIO_UNSIGNED_CAPSULE_GUID
 ("\x90\xBB\xEE\x14\x0A\x89\xDB\x43\xAE\xD1\x5D\x3C\x45\x88\xA4\x18", 16);
 
 //*****************************************************************************
@@ -113,38 +113,38 @@ typedef struct EFI_FIRMWARE_VOLUME_HEADER_ {
 } EFI_FIRMWARE_VOLUME_HEADER;
 
 // Standard file system GUIDs
-const QByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
 ("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
-const QByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
 ("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
 // Vendor-specific file system GUIDs
-const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
+const UByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
 ("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
-const QByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID
+const UByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID
 ("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
 
 // AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0 // Intel 1
-const QByteArray EFI_INTEL_FILE_SYSTEM_GUID
+const UByteArray EFI_INTEL_FILE_SYSTEM_GUID
 ("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
 // D6A1CD70-4B33-4994-A6EA-375F2CCC5437 // Intel 2
-const QByteArray EFI_INTEL_FILE_SYSTEM2_GUID
+const UByteArray EFI_INTEL_FILE_SYSTEM2_GUID
 ("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
 // 4F494156-AED6-4D64-A537-B8A5557BCEEC // Sony 1
-const QByteArray EFI_SONY_FILE_SYSTEM_GUID
+const UByteArray EFI_SONY_FILE_SYSTEM_GUID
 ("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
 
 
 // Vector of volume GUIDs with FFSv2-compatible files
-extern const std::vector<QByteArray> FFSv2Volumes;
+extern const std::vector<UByteArray> FFSv2Volumes;
 
-const QByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4DCA-BD6F-1E9689E7349A
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4DCA-BD6F-1E9689E7349A
 ("\x7A\xC0\x73\x54\xCB\x3D\xCA\x4D\xBD\x6F\x1E\x96\x89\xE7\x34\x9A", 16);
 
 // Vector of volume GUIDs with FFSv3-compatible files
-extern const std::vector<QByteArray> FFSv3Volumes;
+extern const std::vector<UByteArray> FFSv3Volumes;
 
 // Firmware volume signature
-const QByteArray EFI_FV_SIGNATURE("_FVH", 4);
+const UByteArray EFI_FV_SIGNATURE("_FVH", 4);
 #define EFI_FV_SIGNATURE_OFFSET 0x28
 
 // Firmware volume attributes
@@ -338,19 +338,19 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_HEADER_INVALID         0x20
 
 // PEI apriori file
-const QByteArray EFI_PEI_APRIORI_FILE_GUID
+const UByteArray EFI_PEI_APRIORI_FILE_GUID
 ("\x0A\xCC\x45\x1B\x6A\x15\x8A\x42\xAF\x62\x49\x86\x4D\xA0\xE6\xE6", 16);
 
 // DXE apriori file
-const QByteArray EFI_DXE_APRIORI_FILE_GUID
+const UByteArray EFI_DXE_APRIORI_FILE_GUID
 ("\xE7\x0E\x51\xFC\xDC\xFF\xD4\x11\xBD\x41\x00\x80\xC7\x3C\x88\x81", 16);
 
 // Volume top file
-const QByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
+const UByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
 
 // Pad file GUID
-const QByteArray EFI_FFS_PAD_FILE_GUID
+const UByteArray EFI_FFS_PAD_FILE_GUID
 ("\x85\x65\x53\xE4\x09\x79\x60\x4A\xB5\xC6\xEC\xDE\xA6\xEB\xFB\x54", 16);
 
 // FFS size conversion routines
@@ -445,16 +445,16 @@ typedef struct EFI_GUID_DEFINED_SECTION_APPLE_ {
 #define EFI_GUIDED_SECTION_AUTH_STATUS_VALID    0x02
 
 // GUIDs of GUID-defined sections
-const QByteArray EFI_GUIDED_SECTION_CRC32 // FC1BCDB0-7D31-49AA-936A-A4600D9DD083
+const UByteArray EFI_GUIDED_SECTION_CRC32 // FC1BCDB0-7D31-49AA-936A-A4600D9DD083
 ("\xB0\xCD\x1B\xFC\x31\x7D\xAA\x49\x93\x6A\xA4\x60\x0D\x9D\xD0\x83", 16);
 
-const QByteArray EFI_GUIDED_SECTION_TIANO // A31280AD-481E-41B6-95E8-127F4C984779
+const UByteArray EFI_GUIDED_SECTION_TIANO // A31280AD-481E-41B6-95E8-127F4C984779
 ("\xAD\x80\x12\xA3\x1E\x48\xB6\x41\x95\xE8\x12\x7F\x4C\x98\x47\x79", 16);
 
-const QByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
+const UByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
 ("\x98\x58\x4E\xEE\x14\x39\x59\x42\x9D\x6E\xDC\x7B\xD7\x94\x03\xCF", 16);
 
-const QByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID // 0F9D89E8-9259-4F76-A5AF-0C89E34023DF
+const UByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID // 0F9D89E8-9259-4F76-A5AF-0C89E34023DF
 ("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
 
 //#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
@@ -474,7 +474,7 @@ typedef struct WIN_CERTIFICATE_UEFI_GUID_ {
 } WIN_CERTIFICATE_UEFI_GUID;
 
 // WIN_CERTIFICATE_UEFI_GUID.CertType
-const QByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
+const UByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
 ("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
 
 // WIN_CERTIFICATE_UEFI_GUID.CertData

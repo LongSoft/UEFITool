@@ -16,10 +16,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef PEIMAGE_H
 #define PEIMAGE_H
 
-#include <QString>
+#include "ustring.h"
 #include "basetypes.h"
 
-extern QString machineTypeToQString(UINT16 machineType);
+extern UString machineTypeToUString(UINT16 machineType);
 
 // Make sure we use right packing rules
 #pragma pack(push, 1)
@@ -48,7 +48,8 @@ extern QString machineTypeToQString(UINT16 machineType);
 #define EFI_IMAGE_FILE_MACHINE_AARCH64        0xaa64 // ARMv8 in 64-bit mode 
 #define EFI_IMAGE_FILE_MACHINE_RISCV32        0x5032 // RISC-V 32-bit
 #define EFI_IMAGE_FILE_MACHINE_RISCV64        0x5064 // RISC-V 64-bit
-#define EFI_IMAGE_FILE_MACHINE_RISCV128       0x5128 // RISC-V 128-bit
+#define EFI_IMAGE_FILE_MACHINE_RISCV128       0x5128 // RISC-V 128-bit
+
 //
 // EXE file formats
 //
@@ -469,7 +470,8 @@ typedef struct {
 //
 #define EFI_IMAGE_REL_BASED_RISCV_HI20  0x0005
 #define EFI_IMAGE_REL_BASED_RISCV_LO12I 0x0007
-#define EFI_IMAGE_REL_BASED_RISCV_LO12S 0x0008
+#define EFI_IMAGE_REL_BASED_RISCV_LO12S 0x0008
+
 
 //
 // Based relocation format

@@ -10,7 +10,7 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
-#include <QObject>
+
 #include "treemodel.h"
 #include "utility.h"
 #include "ffs.h"
@@ -20,7 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "LZMA/LzmaDecompress.h"
 
 // Returns either new parsing data instance or obtains it from index
-PARSING_DATA parsingDataFromQModelIndex(const QModelIndex & index)
+PARSING_DATA parsingDataFromUModelIndex(const UModelIndex & index)
 {
     if (index.isValid()) {
         TreeModel* model = (TreeModel*)index.model();
@@ -39,64 +39,64 @@ PARSING_DATA parsingDataFromQModelIndex(const QModelIndex & index)
 }
 
 // Converts parsing data to byte array
-QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata)
+UByteArray parsingDataToUByteArray(const PARSING_DATA & pdata)
 {
-    return QByteArray((const char*)&pdata, sizeof(PARSING_DATA));
+    return UByteArray((const char*)&pdata, sizeof(PARSING_DATA));
 }
 
 // Returns text representation of error code
-QString errorCodeToQString(UINT8 errorCode)
+UString errorCodeToUString(UINT8 errorCode)
 {
     switch (errorCode) {
-    case ERR_SUCCESS:                         return QObject::tr("Success");
-    case ERR_NOT_IMPLEMENTED:                 return QObject::tr("Not implemented");
-    case ERR_INVALID_PARAMETER:               return QObject::tr("Function called with invalid parameter");
-    case ERR_BUFFER_TOO_SMALL:                return QObject::tr("Buffer too small");
-    case ERR_OUT_OF_RESOURCES:                return QObject::tr("Out of resources");
-    case ERR_OUT_OF_MEMORY:                   return QObject::tr("Out of memory");
-    case ERR_FILE_OPEN:                       return QObject::tr("File can't be opened");
-    case ERR_FILE_READ:                       return QObject::tr("File can't be read");
-    case ERR_FILE_WRITE:                      return QObject::tr("File can't be written");
-    case ERR_ITEM_NOT_FOUND:                  return QObject::tr("Item not found");
-    case ERR_UNKNOWN_ITEM_TYPE:               return QObject::tr("Unknown item type");
-    case ERR_INVALID_FLASH_DESCRIPTOR:        return QObject::tr("Invalid flash descriptor");
-    case ERR_INVALID_REGION:                  return QObject::tr("Invalid region");
-    case ERR_EMPTY_REGION:                    return QObject::tr("Empty region");
-    case ERR_BIOS_REGION_NOT_FOUND:           return QObject::tr("BIOS region not found");
-    case ERR_VOLUMES_NOT_FOUND:               return QObject::tr("UEFI volumes not found");
-    case ERR_INVALID_VOLUME:                  return QObject::tr("Invalid UEFI volume");
-    case ERR_VOLUME_REVISION_NOT_SUPPORTED:   return QObject::tr("Volume revision not supported");
-    //case ERR_VOLUME_GROW_FAILED:              return QObject::tr("Volume grow failed");
-    case ERR_UNKNOWN_FFS:                     return QObject::tr("Unknown file system");
-    case ERR_INVALID_FILE:                    return QObject::tr("Invalid file");
-    case ERR_INVALID_SECTION:                 return QObject::tr("Invalid section");
-    case ERR_UNKNOWN_SECTION:                 return QObject::tr("Unknown section");
-    case ERR_STANDARD_COMPRESSION_FAILED:     return QObject::tr("Standard compression failed");
-    case ERR_CUSTOMIZED_COMPRESSION_FAILED:   return QObject::tr("Customized compression failed");
-    case ERR_STANDARD_DECOMPRESSION_FAILED:   return QObject::tr("Standard decompression failed");
-    case ERR_CUSTOMIZED_DECOMPRESSION_FAILED: return QObject::tr("Customized decompression failed");
-    case ERR_UNKNOWN_COMPRESSION_TYPE:        return QObject::tr("Unknown compression type");
-    case ERR_UNKNOWN_EXTRACT_MODE:            return QObject::tr("Unknown extract mode");
-    case ERR_UNKNOWN_REPLACE_MODE:            return QObject::tr("Unknown replace mode");
-    //case ERR_UNKNOWN_INSERT_MODE:             return QObject::tr("Unknown insert mode");
-    case ERR_UNKNOWN_IMAGE_TYPE:              return QObject::tr("Unknown executable image type");
-    case ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE: return QObject::tr("Unknown PE optional header type");
-    case ERR_UNKNOWN_RELOCATION_TYPE:         return QObject::tr("Unknown relocation type");
-    //case ERR_GENERIC_CALL_NOT_SUPPORTED:      return QObject::tr("Generic call not supported");
-    //case ERR_VOLUME_BASE_NOT_FOUND:           return QObject::tr("Volume base address not found");
-    //case ERR_PEI_CORE_ENTRY_POINT_NOT_FOUND:  return QObject::tr("PEI core entry point not found");
-    case ERR_COMPLEX_BLOCK_MAP:               return QObject::tr("Block map structure too complex for correct analysis");
-    case ERR_DIR_ALREADY_EXIST:               return QObject::tr("Directory already exists");
-    case ERR_DIR_CREATE:                      return QObject::tr("Directory can't be created");
-    //case ERR_UNKNOWN_PATCH_TYPE:              return QObject::tr("Unknown patch type");
-    //case ERR_PATCH_OFFSET_OUT_OF_BOUNDS:      return QObject::tr("Patch offset out of bounds");
-    //case ERR_INVALID_SYMBOL:                  return QObject::tr("Invalid symbol");
-    //case ERR_NOTHING_TO_PATCH:                return QObject::tr("Nothing to patch");
-    case ERR_DEPEX_PARSE_FAILED:              return QObject::tr("Dependency expression parsing failed");
-    case ERR_TRUNCATED_IMAGE:                 return QObject::tr("Image is truncated");
-    case ERR_INVALID_CAPSULE:                 return QObject::tr("Invalid capsule");
-    case ERR_STORES_NOT_FOUND:                return QObject::tr("Stores not found");
-    default:                                  return QObject::tr("Unknown error %1").arg(errorCode);
+    case U_SUCCESS:                         return UString("Success");
+    case U_NOT_IMPLEMENTED:                 return UString("Not implemented");
+    case U_INVALID_PARAMETER:               return UString("Function called with invalid parameter");
+    case U_BUFFER_TOO_SMALL:                return UString("Buffer too small");
+    case U_OUT_OF_RESOURCES:                return UString("Out of resources");
+    case U_OUT_OF_MEMORY:                   return UString("Out of memory");
+    case U_FILE_OPEN:                       return UString("File can't be opened");
+    case U_FILE_READ:                       return UString("File can't be read");
+    case U_FILE_WRITE:                      return UString("File can't be written");
+    case U_ITEM_NOT_FOUND:                  return UString("Item not found");
+    case U_UNKNOWN_ITEM_TYPE:               return UString("Unknown item type");
+    case U_INVALID_FLASH_DESCRIPTOR:        return UString("Invalid flash descriptor");
+    case U_INVALID_REGION:                  return UString("Invalid region");
+    case U_EMPTY_REGION:                    return UString("Empty region");
+    case U_BIOS_REGION_NOT_FOUND:           return UString("BIOS region not found");
+    case U_VOLUMES_NOT_FOUND:               return UString("UEFI volumes not found");
+    case U_INVALID_VOLUME:                  return UString("Invalid UEFI volume");
+    case U_VOLUME_REVISION_NOT_SUPPORTED:   return UString("Volume revision not supported");
+    //case U_VOLUME_GROW_FAILED:              return UString("Volume grow failed");
+    case U_UNKNOWN_FFS:                     return UString("Unknown file system");
+    case U_INVALID_FILE:                    return UString("Invalid file");
+    case U_INVALID_SECTION:                 return UString("Invalid section");
+    case U_UNKNOWN_SECTION:                 return UString("Unknown section");
+    case U_STANDARD_COMPRESSION_FAILED:     return UString("Standard compression failed");
+    case U_CUSTOMIZED_COMPRESSION_FAILED:   return UString("Customized compression failed");
+    case U_STANDARD_DECOMPRESSION_FAILED:   return UString("Standard decompression failed");
+    case U_CUSTOMIZED_DECOMPRESSION_FAILED: return UString("Customized decompression failed");
+    case U_UNKNOWN_COMPRESSION_TYPE:        return UString("Unknown compression type");
+    case U_UNKNOWN_EXTRACT_MODE:            return UString("Unknown extract mode");
+    case U_UNKNOWN_REPLACE_MODE:            return UString("Unknown replace mode");
+    //case U_UNKNOWN_INSERT_MODE:             return UString("Unknown insert mode");
+    case U_UNKNOWN_IMAGE_TYPE:              return UString("Unknown executable image type");
+    case U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE: return UString("Unknown PE optional header type");
+    case U_UNKNOWN_RELOCATION_TYPE:         return UString("Unknown relocation type");
+    //case U_GENERIC_CALL_NOT_SUPPORTED:      return UString("Generic call not supported");
+    //case U_VOLUME_BASE_NOT_FOUND:           return UString("Volume base address not found");
+    //case U_PEI_CORE_ENTRY_POINT_NOT_FOUND:  return UString("PEI core entry point not found");
+    case U_COMPLEX_BLOCK_MAP:               return UString("Block map structure too complex for correct analysis");
+    case U_DIR_ALREADY_EXIST:               return UString("Directory already exists");
+    case U_DIR_CREATE:                      return UString("Directory can't be created");
+    //case U_UNKNOWN_PATCH_TYPE:              return UString("Unknown patch type");
+    //case U_PATCH_OFFSET_OUT_OF_BOUNDS:      return UString("Patch offset out of bounds");
+    //case U_INVALID_SYMBOL:                  return UString("Invalid symbol");
+    //case U_NOTHING_TO_PATCH:                return UString("Nothing to patch");
+    case U_DEPEX_PARSE_FAILED:              return UString("Dependency expression parsing failed");
+    case U_TRUNCATED_IMAGE:                 return UString("Image is truncated");
+    case U_INVALID_CAPSULE:                 return UString("Invalid capsule");
+    case U_STORES_NOT_FOUND:                return UString("Stores not found");
+    default:                                return usprintf("Unknown error %02X", errorCode);
     }
 }
 
@@ -152,7 +152,7 @@ UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length)
 }
 
 // Compression routines
-STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArray & decompressedData, QByteArray & efiDecompressedData)
+USTATUS decompress(const UByteArray & compressedData, UINT8 & algorithm, UByteArray & decompressedData, UByteArray & efiDecompressedData)
 {
     const UINT8* data;
     UINT32 dataSize;
@@ -168,7 +168,7 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
     case EFI_NOT_COMPRESSED:
         decompressedData = compressedData;
         algorithm = COMPRESSION_ALGORITHM_NONE;
-        return ERR_SUCCESS;
+        return U_SUCCESS;
     case EFI_STANDARD_COMPRESSION: {
         // Set default algorithm to unknown
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
@@ -180,11 +180,11 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
         // Check header to be valid
         header = (const EFI_TIANO_HEADER*)data;
         if (header->CompSize + sizeof(EFI_TIANO_HEADER) != dataSize)
-            return ERR_STANDARD_DECOMPRESSION_FAILED;
+            return U_STANDARD_DECOMPRESSION_FAILED;
 
         // Get info function is the same for both algorithms
-        if (ERR_SUCCESS != EfiTianoGetInfo(data, dataSize, &decompressedSize, &scratchSize))
-            return ERR_STANDARD_DECOMPRESSION_FAILED;
+        if (U_SUCCESS != EfiTianoGetInfo(data, dataSize, &decompressedSize, &scratchSize))
+            return U_STANDARD_DECOMPRESSION_FAILED;
 
         // Allocate memory
         decompressed = (UINT8*)malloc(decompressedSize);
@@ -194,31 +194,31 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
             if (decompressed) free(decompressed);
             if (efiDecompressed) free(efiDecompressed);
             if (scratch) free(scratch);
-            return ERR_STANDARD_DECOMPRESSION_FAILED;
+            return U_STANDARD_DECOMPRESSION_FAILED;
         }
 
         // Decompress section data using both algorithms
-        STATUS result = ERR_SUCCESS;
+        USTATUS result = U_SUCCESS;
         // Try Tiano
-        STATUS TianoResult = TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize);
+        USTATUS TianoResult = TianoDecompress(data, dataSize, decompressed, decompressedSize, scratch, scratchSize);
         // Try EFI 1.1
-        STATUS EfiResult = EfiDecompress(data, dataSize, efiDecompressed, decompressedSize, scratch, scratchSize);
+        USTATUS EfiResult = EfiDecompress(data, dataSize, efiDecompressed, decompressedSize, scratch, scratchSize);
 
-        if (EfiResult == ERR_SUCCESS && TianoResult == ERR_SUCCESS) { // Both decompressions are OK 
+        if (EfiResult == U_SUCCESS && TianoResult == U_SUCCESS) { // Both decompressions are OK 
             algorithm = COMPRESSION_ALGORITHM_UNDECIDED;
-            decompressedData = QByteArray((const char*)decompressed, decompressedSize);
-            efiDecompressedData = QByteArray((const char*)efiDecompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)decompressed, decompressedSize);
+            efiDecompressedData = UByteArray((const char*)efiDecompressed, decompressedSize);
         }
-        else if (TianoResult == ERR_SUCCESS) { // Only Tiano is OK
+        else if (TianoResult == U_SUCCESS) { // Only Tiano is OK
             algorithm = COMPRESSION_ALGORITHM_TIANO;
-            decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)decompressed, decompressedSize);
         }
-        else if (EfiResult == ERR_SUCCESS) { // Only EFI 1.1 is OK
+        else if (EfiResult == U_SUCCESS) { // Only EFI 1.1 is OK
             algorithm = COMPRESSION_ALGORITHM_EFI11;
-            decompressedData = QByteArray((const char*)efiDecompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)efiDecompressed, decompressedSize);
         }
         else { // Both decompressions failed
-            result = ERR_STANDARD_DECOMPRESSION_FAILED;
+            result = U_STANDARD_DECOMPRESSION_FAILED;
         }
 
         free(decompressed);
@@ -235,47 +235,47 @@ STATUS decompress(const QByteArray & compressedData, UINT8 & algorithm, QByteArr
         dataSize = compressedData.size();
 
         // Get info
-        if (ERR_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize))
-            return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
+        if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize))
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
 
         // Allocate memory
         decompressed = (UINT8*)malloc(decompressedSize);
         if (!decompressed) {
-            return ERR_STANDARD_DECOMPRESSION_FAILED;
+            return U_STANDARD_DECOMPRESSION_FAILED;
         }
 
         // Decompress section data
-        if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
+        if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
             // Intel modified LZMA workaround
             // Decompress section data once again
             data += sizeof(UINT32);
 
             // Get info again
-            if (ERR_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
+            if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
                 free(decompressed);
-                return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
+                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
 
             // Decompress section data again
-            if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
+            if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
                 free(decompressed);
-                return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
+                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
             else {
                 algorithm = COMPRESSION_ALGORITHM_IMLZMA;
-                decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+                decompressedData = UByteArray((const char*)decompressed, decompressedSize);
             }
         }
         else {
             algorithm = COMPRESSION_ALGORITHM_LZMA;
-            decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)decompressed, decompressedSize);
         }
 
         free(decompressed);
-        return ERR_SUCCESS;
+        return U_SUCCESS;
     default:
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
-        return ERR_UNKNOWN_COMPRESSION_TYPE;
+        return U_UNKNOWN_COMPRESSION_TYPE;
     }
 }
 

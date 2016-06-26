@@ -17,6 +17,48 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <stdarg.h>
 #include <stdint.h>
 
+typedef uint8_t USTATUS;
+#define U_SUCCESS                         0
+#define U_INVALID_PARAMETER               1
+#define U_BUFFER_TOO_SMALL                2
+#define U_OUT_OF_RESOURCES                3
+#define U_OUT_OF_MEMORY                   4
+#define U_FILE_OPEN                       5
+#define U_FILE_READ                       6
+#define U_FILE_WRITE                      7
+#define U_ITEM_NOT_FOUND                  8
+#define U_UNKNOWN_ITEM_TYPE               9
+#define U_INVALID_FLASH_DESCRIPTOR        10
+#define U_INVALID_REGION                  11
+#define U_EMPTY_REGION                    12
+#define U_BIOS_REGION_NOT_FOUND           13
+#define U_VOLUMES_NOT_FOUND               14
+#define U_INVALID_VOLUME                  15
+#define U_VOLUME_REVISION_NOT_SUPPORTED   16
+#define U_COMPLEX_BLOCK_MAP               17
+#define U_UNKNOWN_FFS                     18
+#define U_INVALID_FILE                    19
+#define U_INVALID_SECTION                 20
+#define U_UNKNOWN_SECTION                 21
+#define U_STANDARD_COMPRESSION_FAILED     22
+#define U_CUSTOMIZED_COMPRESSION_FAILED   23
+#define U_STANDARD_DECOMPRESSION_FAILED   24
+#define U_CUSTOMIZED_DECOMPRESSION_FAILED 25
+#define U_UNKNOWN_COMPRESSION_TYPE        26
+#define U_DEPEX_PARSE_FAILED              27
+#define U_UNKNOWN_EXTRACT_MODE            28
+#define U_UNKNOWN_REPLACE_MODE            29
+#define U_UNKNOWN_IMAGE_TYPE              30
+#define U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 31
+#define U_UNKNOWN_RELOCATION_TYPE         32
+#define U_DIR_ALREADY_EXIST               33
+#define U_DIR_CREATE                      34
+#define U_TRUNCATED_IMAGE                 35
+#define U_INVALID_CAPSULE                 36
+#define U_STORES_NOT_FOUND                37
+#define U_NOT_IMPLEMENTED                 0xFF
+
+// UDK porting definitions
 typedef uint8_t      BOOLEAN;
 typedef int8_t       INT8;
 typedef uint8_t      UINT8;
@@ -28,7 +70,7 @@ typedef int64_t      INT64;
 typedef uint64_t     UINT64;
 typedef char         CHAR8;
 typedef uint16_t     CHAR16;
-typedef unsigned int UINTN; 
+typedef unsigned int UINTN;
 
 #define CONST  const
 #define VOID   void
@@ -42,56 +84,14 @@ typedef unsigned int UINTN;
 #define FALSE ((BOOLEAN)(0==1))
 #endif
 
-typedef UINT8 STATUS;
-#define ERR_SUCCESS                         0
-#define ERR_INVALID_PARAMETER               1
-#define ERR_BUFFER_TOO_SMALL                2
-#define ERR_OUT_OF_RESOURCES                3
-#define ERR_OUT_OF_MEMORY                   4
-#define ERR_FILE_OPEN                       5
-#define ERR_FILE_READ                       6
-#define ERR_FILE_WRITE                      7
-#define ERR_ITEM_NOT_FOUND                  8
-#define ERR_UNKNOWN_ITEM_TYPE               9
-#define ERR_INVALID_FLASH_DESCRIPTOR        10
-#define ERR_INVALID_REGION                  11
-#define ERR_EMPTY_REGION                    12
-#define ERR_BIOS_REGION_NOT_FOUND           13
-#define ERR_VOLUMES_NOT_FOUND               14
-#define ERR_INVALID_VOLUME                  15
-#define ERR_VOLUME_REVISION_NOT_SUPPORTED   16
-#define ERR_COMPLEX_BLOCK_MAP               17
-#define ERR_UNKNOWN_FFS                     18
-#define ERR_INVALID_FILE                    19
-#define ERR_INVALID_SECTION                 20
-#define ERR_UNKNOWN_SECTION                 21
-#define ERR_STANDARD_COMPRESSION_FAILED     22
-#define ERR_CUSTOMIZED_COMPRESSION_FAILED   23
-#define ERR_STANDARD_DECOMPRESSION_FAILED   24
-#define ERR_CUSTOMIZED_DECOMPRESSION_FAILED 25
-#define ERR_UNKNOWN_COMPRESSION_TYPE        26
-#define ERR_DEPEX_PARSE_FAILED              27
-#define ERR_UNKNOWN_EXTRACT_MODE            28
-#define ERR_UNKNOWN_REPLACE_MODE            29
-#define ERR_UNKNOWN_IMAGE_TYPE              30
-#define ERR_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 31
-#define ERR_UNKNOWN_RELOCATION_TYPE         32
-#define ERR_DIR_ALREADY_EXIST               33
-#define ERR_DIR_CREATE                      34
-#define ERR_TRUNCATED_IMAGE                 35
-#define ERR_INVALID_CAPSULE                 36
-#define ERR_STORES_NOT_FOUND                37
-#define ERR_NOT_IMPLEMENTED                 0xFF
-
-// UDK porting definitions
 #define IN
 #define OUT
 #define EFIAPI
 #define EFI_STATUS UINTN
-#define EFI_SUCCESS ERR_SUCCESS
-#define EFI_INVALID_PARAMETER ERR_INVALID_PARAMETER
-#define EFI_OUT_OF_RESOURCES ERR_OUT_OF_RESOURCES
-#define EFI_BUFFER_TOO_SMALL ERR_BUFFER_TOO_SMALL
+#define EFI_SUCCESS U_SUCCESS
+#define EFI_INVALID_PARAMETER U_INVALID_PARAMETER
+#define EFI_OUT_OF_RESOURCES U_OUT_OF_RESOURCES
+#define EFI_BUFFER_TOO_SMALL U_BUFFER_TOO_SMALL
 #define EFI_ERROR(X) (X)
 
 // Compression algorithms
@@ -161,10 +161,6 @@ typedef struct EFI_TIME_ {
 
 #include <assert.h>
 #define ASSERT(x) assert(x)
-
-//Hexarg macros
-#define hexarg(X) arg(QString("%1").arg((X),0,16).toUpper())
-#define hexarg2(X, Y) arg(QString("%1").arg((X),(Y),16,QLatin1Char('0')).toUpper())
 
 // SHA256 hash size in bytes
 #define SHA256_HASH_SIZE 0x20

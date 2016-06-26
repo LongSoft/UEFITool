@@ -13,53 +13,49 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsreport.h"
 
-std::vector<QString> FfsReport::generate()
+std::vector<UString> FfsReport::generate()
 {
-    std::vector<QString> report;
+    std::vector<UString> report;
     
     // Check model pointer
     if (!model) {
-        report.push_back(QObject::tr("ERROR: Invalid model pointer provided."));
+        report.push_back(UString("ERROR: Invalid model pointer provided"));
         return report;
     }
     
     // Check root index to be valid
-    QModelIndex root = model->index(0,0);
+    UModelIndex root = model->index(0,0);
     if (!root.isValid()) {
-        report.push_back(QObject::tr("ERROR: Model root index is invalid."));
+        report.push_back(UString("ERROR: Model root index is invalid"));
         return report;
     }
 
     // Generate report recursive
-    report.push_back(QObject::tr("      Type       |         Subtype          |   Size   |  CRC32   |   Name "));
-    STATUS result = generateRecursive(report, root);
+    report.push_back(UString("      Type       |        Subtype        |   Size   |  CRC32   |   Name "));
+    USTATUS result = generateRecursive(report, root);
     if (result) {
-        report.push_back(QObject::tr("ERROR: generateRecursive returned %1.")
-        .arg(errorCodeToQString(result)));
+        report.push_back(UString("ERROR: generateRecursive returned ") + errorCodeToUString(result));
     }
         
     return report;
 }
 
-STATUS FfsReport::generateRecursive(std::vector<QString> & report, QModelIndex index, UINT32 level)
+USTATUS FfsReport::generateRecursive(std::vector<UString> & report, UModelIndex index, UINT32 level)
 {
     if (!index.isValid())
-        return ERR_SUCCESS; //Nothing to report for invalid index
+        return U_SUCCESS; //Nothing to report for invalid index
     
     // Calculate item CRC32
-    QByteArray data = model->header(index) + model->body(index) + model->tail(index);
+    UByteArray data = model->header(index) + model->body(index) + model->tail(index);
     UINT32 crc = crc32(0, (const UINT8*)data.constData(), data.size());
 
     // Information on current item
-    QString text = model->text(index);
-    report.push_back(QObject::tr("%1 | %2 | %3 | %4 | %5 %6 %7")
-        .arg(itemTypeToQString(model->type(index)), 16, QChar(' '))
-        .arg(itemSubtypeToQString(model->type(index), model->subtype(index)), 24, QChar(' '))
-        .hexarg2(data.size(), 8)
-        .hexarg2(crc, 8)
-        .arg(' ', level, QChar('-'))
-        .arg(model->name(index))
-        .arg(text.isEmpty() ? "" : text.prepend("| "))
+    UString text = model->text(index);
+    report.push_back(
+        UString(" ") + itemTypeToUString(model->type(index)).leftJustified(16) 
+        + UString("| ") + itemSubtypeToUString(model->type(index), model->subtype(index)).leftJustified(22) 
+        + usprintf("| %08X | %08X | ", data.size(), crc) 
+        + UString(level, '-') + UString(" ") + model->name(index) + (text.isEmpty() ? UString("") : UString(" | ") + text)
         );
     
     // Information on child items
@@ -67,5 +63,5 @@ STATUS FfsReport::generateRecursive(std::vector<QString> & report, QModelIndex i
         generateRecursive(report, index.child(i,0), level + 1);
     }
     
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }

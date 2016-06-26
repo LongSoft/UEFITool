@@ -138,11 +138,11 @@ namespace Subtypes {
     };
 };
 
-// *ToQString conversion routines
-extern QString actionTypeToQString(const UINT8 action);
-extern QString itemTypeToQString(const UINT8 type);
-extern QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype);
-extern QString compressionTypeToQString(const UINT8 algorithm);
-extern QString regionTypeToQString(const UINT8 type);
+// *ToUString conversion routines
+extern UString actionTypeToUString(const UINT8 action);
+extern UString itemTypeToUString(const UINT8 type);
+extern UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype);
+extern UString compressionTypeToUString(const UINT8 algorithm);
+extern UString regionTypeToUString(const UINT8 type);
 
 #endif // TYPES_H

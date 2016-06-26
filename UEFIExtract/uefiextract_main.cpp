@@ -11,11 +11,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 #include <QCoreApplication>
-#include <QString>
 #include <QFileInfo>
-
 #include <iostream>
 
+#include <../common/ustring.h>
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
 #include "../common/fitparser.h"
@@ -35,51 +34,51 @@ int main(int argc, char *argv[])
 
     if (a.arguments().length() > 1) {
         // Check that input file exists
-        QString path = a.arguments().at(1);
+        UString path = a.arguments().at(1);
         QFileInfo fileInfo(path);
         if (!fileInfo.exists())
-            return ERR_FILE_OPEN;
+            return U_FILE_OPEN;
 
         // Open the input file
         QFile inputFile;
         inputFile.setFileName(path);
         if (!inputFile.open(QFile::ReadOnly))
-            return ERR_FILE_OPEN;
+            return U_FILE_OPEN;
         
         // Read and close the file
-        QByteArray buffer = inputFile.readAll();
+        UByteArray buffer = inputFile.readAll();
         inputFile.close();
 
         // Create model and ffsParser
         TreeModel model;
         FfsParser ffsParser(&model);
         // Parse input buffer
-        STATUS result = ffsParser.parse(buffer);
+        USTATUS result = ffsParser.parse(buffer);
         if (result)
             return result;
 
         // Show ffsParser's messages
-        std::vector<std::pair<QString, QModelIndex> > messages = ffsParser.getMessages();
+        std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
             std::cout << messages[i].first.toLatin1().constData() << std::endl;
         }
 
         // Get last VTF
-        QModelIndex lastVtf = ffsParser.getLastVtf();
+        UModelIndex lastVtf = ffsParser.getLastVtf();
         if (lastVtf.isValid()) {
             // Create fitParser
             FitParser fitParser(&model);
             // Find and parse FIT table
             result = fitParser.parse(model.index(0, 0), lastVtf);
-            if (ERR_SUCCESS == result) {
+            if (U_SUCCESS == result) {
                 // Show fitParser's messages
-                std::vector<std::pair<QString, QModelIndex> > fitMessages = fitParser.getMessages();
+                std::vector<std::pair<UString, UModelIndex> > fitMessages = fitParser.getMessages();
                 for (size_t i = 0; i < fitMessages.size(); i++) {
                     std::cout << fitMessages[i].first.toLatin1().constData() << std::endl;
                 }
 
                 // Show FIT table
-                std::vector<std::vector<QString> > fitTable = fitParser.getFitTable();
+                std::vector<std::vector<UString> > fitTable = fitParser.getFitTable();
                 if (fitTable.size()) {
                     std::cout << "-------------------------------------------------------------------" << std::endl;
                     std::cout << "     Address     |   Size   | Ver  |           Type           | CS " << std::endl;
@@ -97,7 +96,7 @@ int main(int argc, char *argv[])
         
         // Create ffsReport
         FfsReport ffsReport(&model);
-        std::vector<QString> report = ffsReport.generate();
+        std::vector<UString> report = ffsReport.generate();
         if (report.size()) {
             QFile file;
             file.setFileName(fileInfo.fileName().append(".report.txt"));
@@ -114,12 +113,12 @@ int main(int argc, char *argv[])
 
         // Dump all non-leaf elements
         if (a.arguments().length() == 2) {
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != ERR_SUCCESS);
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump everything
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != ERR_SUCCESS);
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == UString("all")) { // Dump everything
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("none")) { // Skip dumping
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == UString("none")) { // Skip dumping
             return 0;
         }
         else { // Dump specific files

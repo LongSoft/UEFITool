@@ -15,10 +15,9 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include <QObject>
-#include <QModelIndex>
-#include <QByteArray>
-
+#include "ustring.h"
+#include "ubytearray.h"
+#include "umodelindex.h"
 #include "treemodel.h"
 #include "utility.h"
 #include "parsingdata.h"
@@ -36,25 +35,25 @@ public:
     ~FitParser() {}
 
     // Returns messages
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; };
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; };
     // Clears messages
     void clearMessages() { messagesVector.clear(); }
 
-    STATUS parse(const QModelIndex & index, const QModelIndex & lastVtf);
-    std::vector<std::vector<QString> > getFitTable() const { return fitTable; }
+    USTATUS parse(const UModelIndex & index, const UModelIndex & lastVtf);
+    std::vector<std::vector<UString> > getFitTable() const { return fitTable; }
 
 private:
     TreeModel *model;
-    std::vector<std::pair<QString, QModelIndex> > messagesVector;
-    QModelIndex lastVtf;
-    std::vector<std::vector<QString> > fitTable;
+    std::vector<std::pair<UString, UModelIndex> > messagesVector;
+    UModelIndex lastVtf;
+    std::vector<std::vector<UString> > fitTable;
     
-    STATUS findFitRecursive(const QModelIndex & index, QModelIndex & found, UINT32 & fitOffset);
-    QString fitEntryTypeToQString(UINT8 type);
+    USTATUS findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
+    UString fitEntryTypeToUString(UINT8 type);
 
     // Message helper
-    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
-        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
+        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     }
 };
 

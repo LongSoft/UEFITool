@@ -11,14 +11,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include <QObject>
 #include "treeitem.h"
 #include "types.h"
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, 
-    const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, const QByteArray & tail,
-    const BOOLEAN fixed, const BOOLEAN compressed, const QByteArray & parsingData,
+    const UString & name, const UString & text, const UString & info,
+    const UByteArray & header, const UByteArray & body, const UByteArray & tail,
+    const BOOLEAN fixed, const BOOLEAN compressed, const UByteArray & parsingData,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
     itemType(type),
@@ -41,18 +40,18 @@ UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 {
     int index = childItems.indexOf(item);
     if (index == -1)
-        return ERR_ITEM_NOT_FOUND;
+        return U_ITEM_NOT_FOUND;
     childItems.insert(index, newItem);
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }
 
 UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
 {
     int index = childItems.indexOf(item);
     if (index == -1)
-        return ERR_ITEM_NOT_FOUND;
+        return U_ITEM_NOT_FOUND;
     childItems.insert(index + 1, newItem);
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }
 
 QVariant TreeItem::data(int column) const
@@ -62,11 +61,11 @@ QVariant TreeItem::data(int column) const
     case 0: // Name
         return itemName;
     case 1: // Action
-        return actionTypeToQString(itemAction);
+        return actionTypeToUString(itemAction);
     case 2: // Type
-        return itemTypeToQString(itemType);
+        return itemTypeToUString(itemType);
     case 3: // Subtype
-        return itemSubtypeToQString(itemType, itemSubtype);
+        return itemSubtypeToUString(itemType, itemSubtype);
     case 4: // Text
         return itemText;
     default:
