@@ -15,20 +15,17 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 //TODO: modify properly
 
-#ifdef QT_CORE_LIB
+#ifndef QT_CORE_LIB
 // Use Qt class, if Qt is available
 #include <QString>
 #define UString QString
 #else
-// Use own implementation
+// Use Bstrlib
+#define BSTRLIB_DOESNT_THROW_EXCEPTIONS
 #include "../bstrlib/bstrwrap.h"
-class UString : public CBString {
-};
-
+#define UString CBString
 #endif // QT_CORE_LIB
 
 UString usprintf(const char* fmt, ...);
-
-
 
 #endif // USTRING_H

@@ -14,8 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef TREEITEM_H
 #define TREEITEM_H
 
-#include <QList>
-#include <QVariant>
+#include <list>
 
 #include "ubytearray.h"
 #include "ustring.h"
@@ -28,19 +27,19 @@ public:
         const UByteArray & header, const UByteArray & body, const UByteArray & tail,
         const BOOLEAN fixed, const BOOLEAN compressed, const UByteArray & parsingData,
         TreeItem *parent = 0);
-    ~TreeItem() { qDeleteAll(childItems); }
+    ~TreeItem();                                                               // Non-trivial implementation in CPP file
 
     // Operations with items
-    void appendChild(TreeItem *item) { childItems.append(item); }
-    void prependChild(TreeItem *item) { childItems.prepend(item); };
+    void appendChild(TreeItem *item) { childItems.push_back(item); }
+    void prependChild(TreeItem *item) { childItems.push_front(item); };
     UINT8 insertChildBefore(TreeItem *item, TreeItem *newItem);                // Non-trivial implementation in CPP file
     UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);                 // Non-trivial implementation in CPP file
 
     // Model support operations
-    TreeItem *child(int row) { return childItems.value(row, NULL); }
-    int childCount() const {return childItems.count(); }
+    TreeItem *child(int row) { return *std::next(childItems.begin(), row); }
+    int childCount() const {return childItems.size(); }
     int columnCount() const { return 5; }
-    QVariant data(int column) const;                                           // Non-trivial implementation in CPP file
+    UString data(int column) const;                                            // Non-trivial implementation in CPP file
     int row() const;                                                           // Non-trivial implementation in CPP file
     TreeItem *parent() { return parentItem; }
 
@@ -71,7 +70,7 @@ public:
     void setParsingData(const UByteArray & data) { itemParsingData = data; }
 
     UString info() const { return itemInfo; }
-    void addInfo(const UString &info, const BOOLEAN append) { if (append) itemInfo.append(info); else itemInfo.prepend(info); }
+    void addInfo(const UString &info, const BOOLEAN append) { if (append) itemInfo += info; else itemInfo = info + itemInfo; }
     void setInfo(const UString &info) { itemInfo = info; }
     
     UINT8 action() const {return itemAction; }
@@ -84,7 +83,7 @@ public:
     void setCompressed(const bool compressed) { itemCompressed = compressed; }
 
 private:
-    QList<TreeItem*> childItems;
+    std::list<TreeItem*> childItems;
     UINT8      itemAction;
     UINT8      itemType;
     UINT8      itemSubtype;

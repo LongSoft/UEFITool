@@ -53,9 +53,9 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, UModelIndex 
     UString text = model->text(index);
     report.push_back(
         UString(" ") + itemTypeToUString(model->type(index)).leftJustified(16) 
-        + UString("| ") + itemSubtypeToUString(model->type(index), model->subtype(index)).leftJustified(22) 
+        + UString("| ") + itemSubtypeToUString(model->type(index), model->subtype(index)).leftJustified(22)
         + usprintf("| %08X | %08X | ", data.size(), crc) 
-        + UString(level, '-') + UString(" ") + model->name(index) + (text.isEmpty() ? UString("") : UString(" | ") + text)
+        + UString('-', level) + UString(" ") + model->name(index) + (text.isEmpty() ? UString("") : UString(" | ") + text)
         );
     
     // Information on child items

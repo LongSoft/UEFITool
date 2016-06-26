@@ -28,7 +28,8 @@ UString nvarAttributesToUString(const UINT8 attributes)
     if (attributes & NVRAM_NVAR_ENTRY_AUTH_WRITE)      str += UString(", AuthWrite");
     if (attributes & NVRAM_NVAR_ENTRY_VALID)           str += UString(", Valid");
     
-    return str.mid(2); // Remove first comma and space
+    str.remove(0, 2); // Remove first comma and space
+    return str;
 }
 
 UString nvarExtendedAttributesToUString(const UINT8 attributes)
@@ -39,7 +40,8 @@ UString nvarExtendedAttributesToUString(const UINT8 attributes)
     if (attributes & NVRAM_NVAR_ENTRY_EXT_TIME_BASED)      str += UString(", TimeBasedAuthWrite");
     if (attributes & NVRAM_NVAR_ENTRY_EXT_UNKNOWN_MASK)    str += UString(", Unknown");
 
-    return str.mid(2); // Remove first comma and space
+    str.remove(0, 2); // Remove first comma and space
+    return str;
 }
 
 extern UString vssAttributesToUString(const UINT32 attributes)
@@ -55,7 +57,8 @@ extern UString vssAttributesToUString(const UINT32 attributes)
     if (attributes & NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM)                   str += UString(", AppleChecksum");
     if (attributes & NVRAM_VSS_VARIABLE_UNKNOWN_MASK)                          str += UString(", Unknown");
 
-    return str.mid(2); // Remove first comma and space
+    str.remove(0, 2); // Remove first comma and space
+    return str;
 }
 
 UString evsaAttributesToUString(const UINT32 attributes)
@@ -71,7 +74,8 @@ UString evsaAttributesToUString(const UINT32 attributes)
     if (attributes & NVRAM_EVSA_DATA_EXTENDED_HEADER)                       str += UString(", ExtendedHeader");
     if (attributes & NVRAM_EVSA_DATA_UNKNOWN_MASK)                          str += UString(", Unknown");
 
-    return str.mid(2); // Remove first comma and space
+    str.remove(0, 2); // Remove first comma and space
+    return str;
 }
 
 UString efiTimeToUString(const EFI_TIME & time)

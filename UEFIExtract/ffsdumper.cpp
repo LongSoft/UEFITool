@@ -43,16 +43,16 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         guidToUString(*(const EFI_GUID*)model->header(index).constData()) == guid ||
         guidToUString(*(const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData()) == guid) {
 
-        if (dir.cd(path))
+        if (dir.cd(QString(path)))
             return U_DIR_ALREADY_EXIST;
 
-        if (!dir.mkpath(path))
+        if (!dir.mkpath(QString(path)))
             return U_DIR_CREATE;
 
         QFile file;
         if (dumpAll || model->rowCount(index) == 0)  { // Dump if leaf item or dumpAll is true
             if (!model->header(index).isEmpty()) {
-                file.setFileName(path + UString("/header.bin"));
+                file.setFileName(QString(path) + UString("/header.bin"));
                 if (!file.open(QFile::WriteOnly))
                     return U_FILE_OPEN;
 
@@ -61,7 +61,7 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             }
 
             if (!model->body(index).isEmpty()) {
-                file.setFileName(path + UString("/body.bin"));
+                file.setFileName(QString(path) + UString("/body.bin"));
                 if (!file.open(QFile::WriteOnly))
                     return U_FILE_OPEN;
 
@@ -75,11 +75,11 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             + UString("Subtype: ") + itemSubtypeToUString(model->type(index), model->subtype(index)) + UString("\n")
             + (model->text(index).isEmpty() ? UString("") : UString("Text: ") + model->text(index) + UString("\n"))
             + model->info(index) + UString("\n");
-        file.setFileName(path + UString("/info.txt"));
+        file.setFileName(QString(path) + UString("/info.txt"));
         if (!file.open(QFile::Text | QFile::WriteOnly))
             return U_FILE_OPEN;
 
-        file.write(info.toLatin1());
+        file.write(info);
         file.close();
         dumped = true;
     }
@@ -98,4 +98,5 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
     }
 
     return U_SUCCESS;
+
 }

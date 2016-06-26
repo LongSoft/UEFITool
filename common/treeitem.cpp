@@ -33,28 +33,35 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype,
     itemCompressed(compressed),
     parentItem(parent)
 {
-    setFixed(fixed);
+}
+
+TreeItem::~TreeItem() {
+    std::list<TreeItem*>::iterator begin = childItems.begin();
+    while (begin != childItems.end()) {
+        delete *begin;
+        ++begin;
+    }
 }
 
 UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 {
-    int index = childItems.indexOf(item);
-    if (index == -1)
+    std::list<TreeItem*>::iterator found = std::find(std::begin(childItems), std::end(childItems), item);
+    if (found == std::end(childItems))
         return U_ITEM_NOT_FOUND;
-    childItems.insert(index, newItem);
+    childItems.insert(found, newItem);
     return U_SUCCESS;
 }
 
 UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
 {
-    int index = childItems.indexOf(item);
-    if (index == -1)
+    std::list<TreeItem*>::iterator found = std::find(std::begin(childItems), std::end(childItems), item);
+    if (found == std::end(childItems))
         return U_ITEM_NOT_FOUND;
-    childItems.insert(index + 1, newItem);
+    childItems.insert(++found, newItem);
     return U_SUCCESS;
 }
 
-QVariant TreeItem::data(int column) const
+UString TreeItem::data(int column) const
 {
     switch (column)
     {
@@ -69,14 +76,18 @@ QVariant TreeItem::data(int column) const
     case 4: // Text
         return itemText;
     default:
-        return QVariant();
+        return UString();
     }
 }
 
 int TreeItem::row() const
 {
-    if (parentItem)
-        return parentItem->childItems.indexOf(const_cast<TreeItem*>(this));
-
+    if (parentItem) {
+        std::list<TreeItem*>::const_iterator iter = parentItem->childItems.cbegin();
+        for (int i = 0; i < (int)parentItem->childItems.size(); ++i, ++iter) {
+            if (const_cast<TreeItem*>(this) == *iter)
+                return i;
+        }
+    }
     return 0;
 }

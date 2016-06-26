@@ -14,6 +14,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <cmath>
 #include <algorithm>
+#include <inttypes.h>
 
 // Region info structure definition
 struct REGION_INFO {
@@ -225,7 +226,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 p
 
     // Check for buffer size to be greater or equal to descriptor region size
     if (intelImage.size() < FLASH_DESCRIPTOR_SIZE) {
-        msg(usprintf("parseIntelImage: input file is smaller than minimum descriptor size of %X (%u) bytes", FLASH_DESCRIPTOR_SIZE, FLASH_DESCRIPTOR_SIZE));
+        msg(usprintf("parseIntelImage: input file is smaller than minimum descriptor size of %Xh (%u) bytes", FLASH_DESCRIPTOR_SIZE, FLASH_DESCRIPTOR_SIZE));
         return U_INVALID_FLASH_DESCRIPTOR;
     }
 
@@ -486,8 +487,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 p
     // Add offsets of actual regions
     for (size_t i = 0; i < regions.size(); i++) {
         if (regions[i].type != Subtypes::ZeroPadding && regions[i].type != Subtypes::OnePadding && regions[i].type != Subtypes::DataPadding)
-            info += itemSubtypeToUString(Types::Region, regions[i].type).prepend("\n") 
-            + usprintf(" region offset: %Xh", itemSubtypeToUString(Types::Region, regions[i].type), regions[i].offset + parentOffset);
+            info += UString("\n") + itemSubtypeToUString(Types::Region, regions[i].type)
+            + usprintf(" region offset: %Xh", regions[i].offset + parentOffset);
     }
 
     // Region access settings
@@ -517,8 +518,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 p
     }
     else if (descriptorVersion == 2) {
         const FLASH_DESCRIPTOR_MASTER_SECTION_V2* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION_V2*)calculateAddress8(descriptor, descriptorMap->MasterBase);
-        info += ("\nRegion access settings:");
-        info += ("\nBIOS: %03Xh %03Xh ME: %03Xh %03Xh\nGbE:  %03Xh %03Xh EC: %03Xh %03Xh",
+        info += UString("\nRegion access settings:");
+        info += usprintf("\nBIOS: %03Xh %03Xh ME: %03Xh %03Xh\nGbE:  %03Xh %03Xh EC: %03Xh %03Xh",
             masterSection->BiosRead,
             masterSection->BiosWrite,
             masterSection->MeRead,
@@ -554,7 +555,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 p
     info += UString("\nFlash chips in VSCC table:");
     UINT8 vsscTableSize = upperMap->VsccTableSize * sizeof(UINT32) / sizeof(VSCC_TABLE_ENTRY);
     for (int i = 0; i < vsscTableSize; i++) {
-        info += usprintf("\n02X%02X%02Xh",
+        info += usprintf("\n%02X%02X%02Xh",
             vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1);
         vsccTableEntry++;
     }
@@ -598,7 +599,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 p
 
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %X (%u)",
+            info = usprintf("Full size: %Xh (%u)",
                 padding.size(), padding.size());
 
             // Construct parsing data
@@ -1104,15 +1105,15 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 par
         volumeHeader->ZeroVector[8], volumeHeader->ZeroVector[9], volumeHeader->ZeroVector[10], volumeHeader->ZeroVector[11],
         volumeHeader->ZeroVector[12], volumeHeader->ZeroVector[13], volumeHeader->ZeroVector[14], volumeHeader->ZeroVector[15])
         + guidToUString(volumeHeader->FileSystemGuid) \
-        + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nRevision: %u\nAttributes: %08Xh\nErase polarity: %u\nChecksum: %02Xh",
+        + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nRevision: %u\nAttributes: %08Xh\nErase polarity: %u\nChecksum: %04Xh",
         volumeSize, volumeSize,
         headerSize, headerSize,
         volumeSize - headerSize, volumeSize - headerSize,
         volumeHeader->Revision,
-        volumeHeader->Attributes, 8,
-        emptyByte ? 1 : 0,
+        volumeHeader->Attributes, 
+        (emptyByte ? 1 : 0),
         volumeHeader->Checksum) +
-        (msgInvalidChecksum ? usprintf("invalid, should be %04Xh", calculated) : UString("valid"));
+        (msgInvalidChecksum ? usprintf(", invalid, should be %04Xh", calculated) : UString(", valid"));
 
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
@@ -1177,19 +1178,19 @@ USTATUS FfsParser::findNextVolume(const UModelIndex & index, const UByteArray & 
     for (; nextIndex > 0; nextIndex = bios.indexOf(EFI_FV_SIGNATURE, nextIndex + 1)) {
         const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + nextIndex - EFI_FV_SIGNATURE_OFFSET);
         if (volumeHeader->FvLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY) || volumeHeader->FvLength >= 0xFFFFFFFFUL) {
-            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid FvLength %Xh", 
+            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid FvLength %"PRIX64"h", 
                 parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET), 
                 volumeHeader->FvLength), index);
             continue;
         }
         if (volumeHeader->Reserved != 0xFF && volumeHeader->Reserved != 0x00) {
-            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid Reserved byte value %02X", 
+            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid Reserved byte value %02Xh", 
                 parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET),
                 volumeHeader->Reserved), index);
             continue;
         }
         if (volumeHeader->Revision != 1 && volumeHeader->Revision != 2) {
-            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid Revision byte value %02X", 
+            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid Revision byte value %02Xh", 
                 parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET)
                 ,volumeHeader->Revision), index);
             continue;
@@ -1576,17 +1577,17 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 parentO
     else
         name = UString("Pad-file");
 
-    info = guidToUString(fileHeader->Name).prepend("File GUID : ") + 
-        usprintf("\nType: %02Xh\nAttributes: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\nState: %02Xh\n",
+    info = UString("File GUID: ") + guidToUString(fileHeader->Name) +
+        usprintf("\nType: %02Xh\nAttributes: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\nState: %02Xh",
         fileHeader->Type, 
         fileHeader->Attributes, 
         header.size() + body.size() + tail.size(), header.size() + body.size() + tail.size(),
         header.size(), header.size(),
         body.size(), body.size(),
         tail.size(), tail.size(),
-        fileHeader->State)
-        + (msgInvalidHeaderChecksum ? usprintf("%02Xh, invalid, should be %02Xh", fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader) : usprintf("%02X, valid", calculatedHeader))
-        + (msgInvalidDataChecksum ? usprintf("%02Xh, invalid, should be %02Xh", fileHeader->IntegrityCheck.Checksum.File, calculatedData) : usprintf("%02X, valid", calculatedData));
+        fileHeader->State) +
+        usprintf("\nHeader checksum: %02Xh", fileHeader->IntegrityCheck.Checksum.Header) + (msgInvalidHeaderChecksum ? usprintf(", invalid, should be %02Xh", calculatedHeader) : UString(", valid")) +
+        usprintf("\nData checksum: %02Xh", fileHeader->IntegrityCheck.Checksum.File) + (msgInvalidDataChecksum ? usprintf(", invalid, should be %02Xh", calculatedData) : UString(", valid"));
 
     // Add file GUID to parsing data
     pdata.file.guid = fileHeader->Name;
@@ -2024,7 +2025,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         return U_INVALID_SECTION;
 
     // Check for special GUIDed sections
-    UByteArray additionalInfo;
+    UString additionalInfo;
     UByteArray baGuid((const char*)&guid, sizeof(EFI_GUID));
     bool msgSignedSectionFound = false;
     bool msgNoAuthStatusAttribute = false;
@@ -2049,7 +2050,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
             additionalInfo += usprintf("\nChecksum: %08Xh, valid", crc);
         }
         else {
-            additionalInfo += usprintf("\nChecksum: %02Xh, invalid, should be %02Xh", crc, calculated);
+            additionalInfo += usprintf("\nChecksum: %08Xh, invalid, should be %08Xh", crc, calculated);
             msgInvalidCrc = true;
         }
         // No need to change dataOffset here
@@ -2118,7 +2119,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         attributes);
 
     // Append additional info
-    info.append(additionalInfo);
+    info += additionalInfo;
 
     // Construct parsing data
     pdata.offset += parentOffset;
@@ -2261,7 +2262,7 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
     
     // Get info
     UString name = sectionTypeToUString(type) + (" section");
-    UString info = ("Type: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nBuild number: %u",
+    UString info = usprintf("Type: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nBuild number: %u",
         type, 
         section.size(), section.size(),
         header.size(), header.size(),
@@ -2323,8 +2324,8 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
 
     // Get info
     UString name = sectionTypeToUString(type) + (" section");
-    UString info = ("Type: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nPostcode: %Xh",
-        type, 2,
+    UString info = usprintf("Type: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nPostcode: %Xh",
+        type,
         section.size(), section.size(),
         header.size(), header.size(),
         body.size(), body.size(),
@@ -2682,7 +2683,7 @@ USTATUS FfsParser::parseAprioriRawSection(const UByteArray & body, UString & par
     if (count > 0) {
         for (UINT32 i = 0; i < count; i++) {
             const EFI_GUID* guid = (const EFI_GUID*)body.constData() + i;
-            parsed += guidToUString(*guid).prepend("\n");
+            parsed += UString("\n") + guidToUString(*guid);
         }
     }
 
@@ -2752,7 +2753,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
         return U_SUCCESS;
     }
 
-    UByteArray info;
+    UString info;
     const EFI_IMAGE_DOS_HEADER* dosHeader = (const EFI_IMAGE_DOS_HEADER*)body.constData();
     if (dosHeader->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
         info += usprintf("\nDOS signature: %04Xh, invalid", dosHeader->e_magic);
@@ -2787,7 +2788,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
     info += usprintf("\nDOS signature: %04Xh\nPE signature: %08Xh",
         dosHeader->e_magic, 
         peHeader->Signature) + 
-        machineTypeToUString(imageFileHeader->Machine).prepend("\nMachine type: ") +
+        UString("\nMachine type: ") + machineTypeToUString(imageFileHeader->Machine) +
         usprintf("\nNumber of sections: %u\nCharacteristics: %04Xh",
         imageFileHeader->NumberOfSections, 
         imageFileHeader->Characteristics);
@@ -2810,7 +2811,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
             optionalHeader.H32->ImageBase);
     }
     else if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
-        info += usprintf("\nOptional header signature: %04Xh\nSubsystem: %04Xh\nAddress of entry point: %Xh\nBase of code: %Xh\nImage base: %Xh",
+        info += usprintf("\nOptional header signature: %04Xh\nSubsystem: %04Xh\nAddress of entry point: %Xh\nBase of code: %Xh\nImage base: %"PRIX64"h",
             optionalHeader.H64->Magic, 
             optionalHeader.H64->Subsystem, 
             optionalHeader.H64->AddressOfEntryPoint,
@@ -2840,7 +2841,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
         return U_SUCCESS;
     }
 
-    UByteArray info;
+    UString info;
     const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)body.constData();
     if (teHeader->Signature != EFI_IMAGE_TE_SIGNATURE) {
         info += usprintf("\nSignature: %04Xh, invalid", teHeader->Signature);
@@ -2848,9 +2849,9 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
     }
     else {
         info += usprintf("\nSignature: %04Xh", teHeader->Signature) +
-            machineTypeToUString(teHeader->Machine).prepend("\nMachine type: ") +
+            UString("\nMachine type: ") + machineTypeToUString(teHeader->Machine) +
             usprintf("\nNumber of sections: %u\nSubsystem: %02Xh\nStripped size: %Xh (%u)\n"
-            "Base of code: %Xh\nAddress of entry point: %Xh\nImage base: %Xh\nAdjusted image base: %Xh",
+            "Base of code: %Xh\nAddress of entry point: %Xh\nImage base: %"PRIX64"h\nAdjusted image base: %"PRIX64"h",
             teHeader->NumberOfSections,
             teHeader->Subsystem, 
             teHeader->StrippedSize, teHeader->StrippedSize,
@@ -3256,9 +3257,8 @@ parsing_done:
         info += usprintf("\nAttributes: %02Xh", entryHeader->Attributes);
         // Translate attributes to text
         if (entryHeader->Attributes && entryHeader->Attributes != 0xFF)
-            info += nvarAttributesToUString(entryHeader->Attributes).prepend(" (").append(")");
-
-
+            info += UString(" (") + nvarAttributesToUString(entryHeader->Attributes) + UString(")");
+        
         // Add next node info
         if (!isInvalid && entryHeader->Next != lastVariableFlag)
             info += usprintf("\nNext node at offset: %Xh", parentOffset + offset + entryHeader->Next);
@@ -3267,7 +3267,7 @@ parsing_done:
         if (hasExtendedHeader) {
             info += usprintf("\nExtended header size: %Xh (%u)\nExtended attributes: %Xh (",
                 extendedHeaderSize, extendedHeaderSize,
-                extendedAttributes) + nvarExtendedAttributesToUString(extendedAttributes).append(")");
+                extendedAttributes) + nvarExtendedAttributesToUString(extendedAttributes) + UString(")");
 
             // Checksum
             if (hasChecksum)
@@ -3275,8 +3275,8 @@ parsing_done:
                     (calculatedChecksum ? usprintf(", invalid, should be %02Xh", 0x100 - calculatedChecksum) : UString(", valid"));
             // Authentication data
             if (hasTimestampAndHash) {
-                info += usprintf("\nTimestamp: %Xh\nHash: ",
-                    timestamp) + hash.toHex().toUpper();
+                info += usprintf("\nTimestamp: %"PRIX64"h\nHash: ",
+                    timestamp) + UString(hash.toHex().toUpper());
             }
         }
         
@@ -3378,8 +3378,8 @@ USTATUS FfsParser::parseNvramVolumeBody(const UModelIndex & index)
             UByteArray padding = data.mid(storeOffset);
 
             // Get info
-            name = ("Padding");
-            info = ("Full size: %Xh (%u)", padding.size(), padding.size());
+            name = UString("Padding");
+            info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
             // Construct parsing data
             pdata.offset = parentOffset + storeOffset;
@@ -3770,14 +3770,14 @@ USTATUS FfsParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 pa
 
     // Add info
     UString name("FTW store");
-    UString info = guidToUString(ftw32BlockHeader->Signature).prepend("Signature:") +
-        usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nHeader CRC32: ",
+    UString info = UString("Signature: ") + guidToUString(ftw32BlockHeader->Signature) +
+        usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nHeader CRC32: %08Xh",
         ftwBlockSize, ftwBlockSize,
         headerSize, headerSize,
         body.size(), body.size(),
-        ftw32BlockHeader->State) +
-        (ftw32BlockHeader->Crc == calculatedCrc ? usprintf("%08Xh, valid", ftw32BlockHeader->Crc) :
-         usprintf("%08Xh, invalid, should be %08Xh", ftw32BlockHeader->Crc, calculatedCrc));
+        ftw32BlockHeader->State,
+        ftw32BlockHeader->Crc) +
+        (ftw32BlockHeader->Crc != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
 
     // Add correct offset
     pdata.offset = parentOffset;
@@ -3896,14 +3896,14 @@ USTATUS FfsParser::parseFsysStoreHeader(const UByteArray & store, const UINT32 p
     // Add info
     bool isGaidStore = (fsysStoreHeader->Signature == NVRAM_APPLE_GAID_STORE_SIGNATURE);
     UString name = isGaidStore ? UString("Gaid store") : UString("Fsys store");
-    UString info = usprintf("Signature: %s\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nUnknown0: %02Xh\nUnknown1: %08Xh\nCRC32: ",
+    UString info = usprintf("Signature: %s\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nUnknown0: %02Xh\nUnknown1: %08Xh\nCRC32: %08Xh",
         isGaidStore ? "Gaid" : "Fsys",
         fsysStoreHeader->Size, fsysStoreHeader->Size,
         header.size(), header.size(),
         body.size(), body.size(),
         fsysStoreHeader->Unknown0, 
         fsysStoreHeader->Unknown1)
-        + (storedCrc == calculatedCrc ? usprintf("%08Xh, valid", storedCrc) : usprintf("%08Xh, invalid, should be %08Xh", storedCrc, calculatedCrc));
+        + (storedCrc != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
 
     // Add correct offset
     pdata.offset = parentOffset;
@@ -3947,13 +3947,14 @@ USTATUS FfsParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32 p
 
     // Add info
     UString name("EVSA store");
-    UString info = usprintf("Signature: EVSA\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nAttributes: %08Xh\nChecksum: ",
+    UString info = usprintf("Signature: EVSA\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nAttributes: %08Xh\nChecksum: %02Xh",
         evsaStoreHeader->StoreSize, evsaStoreHeader->StoreSize,
         header.size(), header.size(),
         body.size(), body.size(),
         evsaStoreHeader->Header.Type,
-        evsaStoreHeader->Attributes) +
-        (evsaStoreHeader->Header.Checksum == calculated ? usprintf("%02Xh, valid", calculated) : usprintf("%02Xh, invalid, should be %02Xh", evsaStoreHeader->Header.Checksum, calculated));
+        evsaStoreHeader->Attributes,
+        evsaStoreHeader->Header.Checksum) +
+        (evsaStoreHeader->Header.Checksum != calculated ? usprintf("%, invalid, should be %02Xh", calculated) : UString(", valid"));
 
     // Add correct offset
     pdata.offset = parentOffset;
@@ -4084,7 +4085,7 @@ USTATUS FfsParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT32 
     // Add info
     UString name("SLIC pubkey");
     UString info = usprintf("Type: 0h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
-        "Key type :%02Xh\nVersion: %02Xh\nAlgorithm: %08Xh\nMagic: RSA1\nBit length: %08Xh\nExponent:%08Xh",
+        "Key type :%02Xh\nVersion: %02Xh\nAlgorithm: %08Xh\nMagic: RSA1\nBit length: %08Xh\nExponent: %08Xh",
         pubkeyHeader->Size, pubkeyHeader->Size,
         header.size(), header.size(),
         pubkeyHeader->KeyType,
@@ -4136,8 +4137,8 @@ USTATUS FfsParser::parseSlicMarkerHeader(const UByteArray & store, const UINT32 
         markerHeader->Size, markerHeader->Size,
         header.size(), header.size(),
         markerHeader->Version, 
-        (const char*)&(markerHeader->OemId),
-        (const char*)&(markerHeader->OemTableId),
+        (const char*)UString((const char*)&(markerHeader->OemId), 6),
+        (const char*)UString((const char*)&(markerHeader->OemTableId), 8),
         markerHeader->SlicVersion);
 
     // Add correct offset
@@ -4416,20 +4417,20 @@ USTATUS FfsParser::parseVssStoreBody(const UModelIndex & index)
             header.size(), header.size(),
             body.size(), body.size(), 
             variableHeader->State,
-            variableHeader->Attributes) + vssAttributesToUString(variableHeader->Attributes).append(")");
+            variableHeader->Attributes) + vssAttributesToUString(variableHeader->Attributes) + UString(")");
 
         // Set subtype and add related info
         if (isInvalid)
             subtype = Subtypes::InvalidVssEntry;
         else if (isAuthenticated) {
             subtype = Subtypes::AuthVssEntry;
-            info += usprintf("\nMonotonic counter: %Xh\nTimestamp:", monotonicCounter) + efiTimeToUString(timestamp) 
+            info += usprintf("\nMonotonic counter: %"PRIX64"h\nTimestamp: ", monotonicCounter) + efiTimeToUString(timestamp)
                 + usprintf("\nPubKey index: %u", pubKeyIndex);
         }
         else if (isAppleCrc32) {
             subtype = Subtypes::AppleVssEntry;
-            info += usprintf("\nData checksum: %08X", storedCrc32) +
-                (storedCrc32 == calculatedCrc32 ? UString(", valid") : usprintf(", invalid, should be %08Xh", calculatedCrc32));
+            info += usprintf("\nData checksum: %08Xh", storedCrc32) +
+                (storedCrc32 != calculatedCrc32 ? usprintf(", invalid, should be %08Xh", calculatedCrc32) : UString(", valid"));
         }
         else
             subtype = Subtypes::StandardVssEntry;
@@ -4487,7 +4488,7 @@ USTATUS FfsParser::parseFsysStoreBody(const UModelIndex & index)
                 pdata.offset = parentOffset + offset;
                 
                 // Add EOF tree item
-                model->addItem(Types::FsysEntry, 0, name, UString(), info, header, UByteArray(), UByteArray(), false, parsingDataToUByteArray(pdata), index);
+                model->addItem(Types::FsysEntry, 0, UString(name), UString(), info, header, UByteArray(), UByteArray(), false, parsingDataToUByteArray(pdata), index);
 
                 // Add free space
                 offset += header.size();
@@ -4541,7 +4542,7 @@ USTATUS FfsParser::parseFsysStoreBody(const UModelIndex & index)
         pdata.offset = parentOffset + offset;
 
         // Add tree item
-        model->addItem(Types::FsysEntry, 0, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), index);
+        model->addItem(Types::FsysEntry, 0, UString(name), UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), index);
 
         // Move to next variable
         offset += variableSize;
@@ -4628,7 +4629,7 @@ USTATUS FfsParser::parseEvsaStoreBody(const UModelIndex & index)
                 body.size(), body.size(),
                 guidHeader->Header.Type,
                 guidHeader->Header.Checksum)
-                + (guidHeader->Header.Checksum == calculated ? UString(", valid") : usprintf(", invalid, should be %02Xh", calculated))
+                + (guidHeader->Header.Checksum != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
                 + usprintf("\nGuidId: %04Xh", guidHeader->GuidId);
             subtype = Subtypes::GuidEvsaEntry;
             guidMap.insert(std::pair<UINT16, EFI_GUID>(guidHeader->GuidId, guid));
@@ -4646,7 +4647,7 @@ USTATUS FfsParser::parseEvsaStoreBody(const UModelIndex & index)
                 body.size(), body.size(),
                 nameHeader->Header.Type,
                 nameHeader->Header.Checksum) 
-                + (nameHeader->Header.Checksum == calculated ? UString(", valid") : usprintf(", invalid, should be %02Xh", calculated))
+                + (nameHeader->Header.Checksum != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
                 + usprintf("\nVarId: %04Xh", nameHeader->VarId);
             subtype = Subtypes::NameEvsaEntry;
             nameMap.insert(std::pair<UINT16, UString>(nameHeader->VarId, name));
@@ -4675,12 +4676,12 @@ USTATUS FfsParser::parseEvsaStoreBody(const UModelIndex & index)
                 dataSize, dataSize,
                 dataHeader->Header.Type,
                 dataHeader->Header.Checksum)
-                + (dataHeader->Header.Checksum == calculated ? UString("valid") : usprintf(", invalid, should be %02Xh", calculated))
+                + (dataHeader->Header.Checksum != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
                 + usprintf("\nVarId: %04Xh\nGuidId: %04Xh\nAttributes: %08Xh (",
                 dataHeader->VarId,
                 dataHeader->GuidId,
                 dataHeader->Attributes) 
-                + evsaAttributesToUString(dataHeader->Attributes).append(")");
+                + evsaAttributesToUString(dataHeader->Attributes) + UString(")");
             subtype = Subtypes::DataEvsaEntry;
         }
         // Unknown entry or free space
@@ -4759,7 +4760,7 @@ USTATUS FfsParser::parseEvsaStoreBody(const UModelIndex & index)
                     model->setName(current, guid);
                 }
                 model->setText(current, name);
-                model->addInfo(current, guid.prepend("GUID: ") + name.prepend("\nName: "), false);
+                model->addInfo(current, UString("GUID: ") + guid + UString("\nName: ") + name + UString("\n"), false);
             }
         }
     }

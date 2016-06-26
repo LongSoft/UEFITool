@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <iostream>
+#include <fstream>
 
 #include <../common/ustring.h>
 #include "../common/ffsparser.h"
@@ -34,14 +35,15 @@ int main(int argc, char *argv[])
 
     if (a.arguments().length() > 1) {
         // Check that input file exists
-        UString path = a.arguments().at(1);
-        QFileInfo fileInfo(path);
+        UString path(a.arguments().at(1).toLatin1());
+        QString qpath = QString(path);
+        QFileInfo fileInfo(qpath);
         if (!fileInfo.exists())
             return U_FILE_OPEN;
 
         // Open the input file
         QFile inputFile;
-        inputFile.setFileName(path);
+        inputFile.setFileName(qpath);
         if (!inputFile.open(QFile::ReadOnly))
             return U_FILE_OPEN;
         
@@ -60,7 +62,7 @@ int main(int argc, char *argv[])
         // Show ffsParser's messages
         std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << messages[i].first.toLatin1().constData() << std::endl;
+            std::cout << messages[i].first << std::endl;
         }
 
         // Get last VTF
@@ -74,7 +76,7 @@ int main(int argc, char *argv[])
                 // Show fitParser's messages
                 std::vector<std::pair<UString, UModelIndex> > fitMessages = fitParser.getMessages();
                 for (size_t i = 0; i < fitMessages.size(); i++) {
-                    std::cout << fitMessages[i].first.toLatin1().constData() << std::endl;
+                    std::cout << fitMessages[i].first << std::endl;
                 }
 
                 // Show FIT table
@@ -84,11 +86,11 @@ int main(int argc, char *argv[])
                     std::cout << "     Address     |   Size   | Ver  |           Type           | CS " << std::endl;
                     std::cout << "-------------------------------------------------------------------" << std::endl;
                     for (size_t i = 0; i < fitTable.size(); i++) {
-                        std::cout << fitTable[i][0].toLatin1().constData() << " | "
-                            << fitTable[i][1].toLatin1().constData() << " | "
-                            << fitTable[i][2].toLatin1().constData() << " | "
-                            << fitTable[i][3].toLatin1().constData() << " | "
-                            << fitTable[i][4].toLatin1().constData() << std::endl;
+                        std::cout << fitTable[i][0] << " | "
+                            << fitTable[i][1] << " | "
+                            << fitTable[i][2] << " | "
+                            << fitTable[i][3] << " | "
+                            << fitTable[i][4] << std::endl;
                     }
                 }
             }
@@ -98,14 +100,12 @@ int main(int argc, char *argv[])
         FfsReport ffsReport(&model);
         std::vector<UString> report = ffsReport.generate();
         if (report.size()) {
-            QFile file;
-            file.setFileName(fileInfo.fileName().append(".report.txt"));
-            if (file.open(QFile::Text | QFile::WriteOnly)) {
-                for (size_t i = 0; i < report.size(); i++) {
-                    file.write(report[i].toLatin1().append('\n'));
-                }
-                file.close();
+            std::ofstream ofs;
+            ofs.open("report.txt", std::ofstream::out);
+            for (size_t i = 0; i < report.size(); i++) {
+                ofs << report[i] << std::endl;
             }
+            ofs.close();
         }
                 
         // Create ffsDumper
@@ -113,10 +113,10 @@ int main(int argc, char *argv[])
 
         // Dump all non-leaf elements
         if (a.arguments().length() == 2) {
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump2").toLatin1().constData()) != U_SUCCESS);
         }
         else if (a.arguments().length() == 3 && a.arguments().at(2) == UString("all")) { // Dump everything
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != U_SUCCESS);
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump2").toLatin1().constData(), true) != U_SUCCESS);
         }
         else if (a.arguments().length() == 3 && a.arguments().at(2) == UString("none")) { // Skip dumping
             return 0;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
         else { // Dump specific files
             UINT32 returned = 0;
             for (int i = 2; i < a.arguments().length(); i++) {
-                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true, a.arguments().at(i));
+                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump2").toLatin1().constData(), true, a.arguments().at(i).toLatin1().constData());
                 if (result)
                     returned |= (1 << (i - 1));
             }
@@ -142,4 +142,6 @@ int main(int argc, char *argv[])
             << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;
     }
+
+return 0;
 }

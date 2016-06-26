@@ -58,10 +58,10 @@ USTATUS FitParser::parse(const UModelIndex & index, const UModelIndex & lastVtfI
     // Add FIT header to fitTable
     std::vector<UString> currentStrings;
     currentStrings.push_back(UString("_FIT_           "));
-    currentStrings.push_back(usprintf("%08X",fitSize));
-    currentStrings.push_back(usprintf("%04X",fitHeader->Version));
+    currentStrings.push_back(usprintf("%08X", fitSize));
+    currentStrings.push_back(usprintf("%04X", fitHeader->Version));
     currentStrings.push_back(fitEntryTypeToUString(fitHeader->Type));
-    currentStrings.push_back(usprintf("%02X",fitHeader->Checksum));
+    currentStrings.push_back(usprintf("%02X", fitHeader->Checksum));
     fitTable.push_back(currentStrings);
 
     // Process all other entries
