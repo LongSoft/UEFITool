@@ -49,5 +49,5 @@ HEADERS += \
  ../common/ubytearray.h \
  ../common/ustring.h \
  ../bstrlib/bstrlib.h \
- ../bstrlib/bstrwrap.cpp
+ ../bstrlib/bstrwrap.h
  
