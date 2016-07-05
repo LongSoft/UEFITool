@@ -903,7 +903,7 @@ struct tagbstring t;
 	return bninchrr ((bstring) this, pos, &t);
 }
 
-const CBString CBString::midstr (int left, int len) const {
+CBString CBString::midstr (int left, int len) const {
 struct tagbstring t;
 	if (left < 0) {
 		len += left;

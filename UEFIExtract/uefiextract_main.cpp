@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
         // Show ffsParser's messages
         std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << messages[i].first << std::endl;
+            std::cout << (const char*)messages[i].first.toLocal8Bit() << std::endl;
         }
 
         // Get last VTF
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
                 // Show fitParser's messages
                 std::vector<std::pair<UString, UModelIndex> > fitMessages = fitParser.getMessages();
                 for (size_t i = 0; i < fitMessages.size(); i++) {
-                    std::cout << fitMessages[i].first << std::endl;
+                    std::cout << (const char*)fitMessages[i].first.toLocal8Bit() << std::endl;
                 }
 
                 // Show FIT table
@@ -86,11 +86,11 @@ int main(int argc, char *argv[])
                     std::cout << "     Address     |   Size   | Ver  |           Type           | CS " << std::endl;
                     std::cout << "-------------------------------------------------------------------" << std::endl;
                     for (size_t i = 0; i < fitTable.size(); i++) {
-                        std::cout << fitTable[i][0] << " | "
-                            << fitTable[i][1] << " | "
-                            << fitTable[i][2] << " | "
-                            << fitTable[i][3] << " | "
-                            << fitTable[i][4] << std::endl;
+                        std::cout << (const char*)fitTable[i][0].toLocal8Bit() << " | "
+                            << (const char*)fitTable[i][1].toLocal8Bit() << " | "
+                            << (const char*)fitTable[i][2].toLocal8Bit() << " | "
+                            << (const char*)fitTable[i][3].toLocal8Bit() << " | "
+                            << (const char*)fitTable[i][4].toLocal8Bit() << std::endl;
                     }
                 }
             }
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
             std::ofstream ofs;
             ofs.open("report.txt", std::ofstream::out);
             for (size_t i = 0; i < report.size(); i++) {
-                ofs << report[i] << std::endl;
+                ofs << (const char*)report[i].toLocal8Bit() << std::endl;
             }
             ofs.close();
         }

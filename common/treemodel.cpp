@@ -44,9 +44,9 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
     if (role == Qt::DisplayRole)
-        return (const char*)item->data(index.column());
+        return (const char*)item->data(index.column()).toLocal8Bit();
     else
-        return (const char*)item->info();
+        return (const char*)item->info().toLocal8Bit();
 }
 
 Qt::ItemFlags TreeModel::flags(const UModelIndex &index) const

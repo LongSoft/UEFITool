@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 //TODO: modify properly
 
-#ifndef QT_CORE_LIB
+#if defined(QT_CORE_LIB) && defined (U_USE_QSTRING)
 UString usprintf(const char* fmt, ...) 
 {
     UString msg;

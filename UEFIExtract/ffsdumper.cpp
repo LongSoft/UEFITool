@@ -79,7 +79,7 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         if (!file.open(QFile::Text | QFile::WriteOnly))
             return U_FILE_OPEN;
 
-        file.write(info);
+        file.write(info.toLocal8Bit());
         file.close();
         dumped = true;
     }

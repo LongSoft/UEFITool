@@ -317,7 +317,7 @@ struct CBString : public tagbstring {
 	void findreplacecaseless (const char * find, const char * repl, int pos = 0);
 
 	// Extraction method.
-	const CBString midstr (int left, int len) const;
+	CBString midstr (int left, int len) const;
 
 	// Standard manipulation methods.
 	void setsubstr (int pos, const CBString& b, unsigned char fill = ' ');
@@ -362,8 +362,11 @@ struct CBString : public tagbstring {
 	int read (bNread readPtr, void * parm);
 
     // QString compatibility methods
+    CBString toLocal8Bit() { return *this; }
     bool isEmpty() const { return slen == 0; }
     void clear() { *this = ""; }
+    CBString left(int len) { return midstr(0, len); }
+    CBString mid(int pos, int len) { return midstr(pos, len); }
     static CBString fromUtf16(const ushort* str) { // Naive implementation assuming that only ASCII part of UCS2 is used
         CBString msg; while (*str) { msg += *(char*)str; str++; } return msg;
     }

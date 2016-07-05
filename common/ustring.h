@@ -13,9 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef USTRING_H
 #define USTRING_H
 
-//TODO: modify properly
-
-#ifndef QT_CORE_LIB
+#if defined (QT_CORE_LIB) && defined(U_USE_QSTRING)
 // Use Qt class, if Qt is available
 #include <QString>
 #define UString QString

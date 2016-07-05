@@ -4137,8 +4137,8 @@ USTATUS FfsParser::parseSlicMarkerHeader(const UByteArray & store, const UINT32 
         markerHeader->Size, markerHeader->Size,
         header.size(), header.size(),
         markerHeader->Version, 
-        (const char*)UString((const char*)&(markerHeader->OemId), 6),
-        (const char*)UString((const char*)&(markerHeader->OemTableId), 8),
+        (const char*)UString((const char*)&(markerHeader->OemId)).left(6).toLocal8Bit(),
+        (const char*)UString((const char*)&(markerHeader->OemTableId)).left(8).toLocal8Bit(),
         markerHeader->SlicVersion);
 
     // Add correct offset
