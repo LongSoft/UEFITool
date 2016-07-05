@@ -13,8 +13,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UBYTEARRAY_H
 #define UBYTEARRAY_H
 
-//#define U_USE_QBYTEARRAY
-
 #if defined(QT_CORE_LIB) && defined(U_USE_QBYTEARRAY)
 // Use Qt class, if Qt is available
 #include <QByteArray>

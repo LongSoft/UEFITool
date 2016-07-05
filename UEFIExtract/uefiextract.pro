@@ -45,7 +45,6 @@ HEADERS += \
  ../common/utility.h \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
- ../common/umodelindex.h \
  ../common/ubytearray.h \
  ../common/ustring.h \
  ../bstrlib/bstrlib.h \

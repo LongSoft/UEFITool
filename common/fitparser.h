@@ -17,7 +17,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ustring.h"
 #include "ubytearray.h"
-#include "umodelindex.h"
 #include "treemodel.h"
 #include "utility.h"
 #include "parsingdata.h"

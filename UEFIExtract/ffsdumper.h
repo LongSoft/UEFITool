@@ -18,7 +18,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QDir>
 #include "../common/ubytearray.h"
 #include "../common/ustring.h"
-#include "../common/umodelindex.h"
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
 #include "../common/ffs.h"

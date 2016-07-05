@@ -18,7 +18,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "../common/ubytearray.h"
 #include "../common/ustring.h"
-#include "../common/umodelindex.h"
 #include "basetypes.h"
 #include "treemodel.h"
 #include "ffs.h"

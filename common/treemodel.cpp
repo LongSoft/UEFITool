@@ -14,25 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "treemodel.h"
 
-TreeModel::TreeModel(QObject *parent)
-    : QAbstractItemModel(parent)
-{
-    rootItem = new TreeItem(Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE, UByteArray());
-}
-
-TreeModel::~TreeModel()
-{
-    delete rootItem;
-}
-
-int TreeModel::columnCount(const UModelIndex &parent) const
-{
-    if (parent.isValid())
-        return static_cast<TreeItem*>(parent.internalPointer())->columnCount();
-    else
-        return rootItem->columnCount();
-}
-
+#if defined(QT_CORE_LIB) && defined(U_USE_QITEMMODEL)
 QVariant TreeModel::data(const UModelIndex &index, int role) const
 {
     if (!index.isValid())
@@ -77,6 +59,53 @@ QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
     }
 
     return QVariant();
+}
+#else
+UString TreeModel::data(const UModelIndex &index, int role) const
+{
+    if (!index.isValid())
+        return UString();
+
+    if (role != 0 && role != 0x0100)
+        return UString();
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+
+    if (role == 0)
+        return item->data(index.column());
+    else
+        return item->info();
+}
+
+UString TreeModel::headerData(int section, int orientation,
+    int role) const
+{
+    if (orientation == 1 && role == 0) {
+        switch (section)
+        {
+        case 0:
+            return UString("Name");
+        case 1:
+            return UString("Action");
+        case 2:
+            return UString("Type");
+        case 3:
+            return UString("Subtype");
+        case 4:
+            return UString("Text");
+        }
+    }
+
+    return UString();
+}
+#endif
+
+int TreeModel::columnCount(const UModelIndex &parent) const
+{
+    if (parent.isValid())
+        return static_cast<TreeItem*>(parent.internalPointer())->columnCount();
+    else
+        return rootItem->columnCount();
 }
 
 UModelIndex TreeModel::index(int row, int column, const UModelIndex &parent) const

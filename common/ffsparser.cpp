@@ -12,6 +12,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsparser.h"
 
+#include <map>
 #include <cmath>
 #include <algorithm>
 #include <inttypes.h>
@@ -1027,7 +1028,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 par
     UINT32 alignment = 65536; // Default volume alignment is 64K
     if (volumeHeader->Revision == 1) {
         // Acquire alignment capability bit
-        bool alignmentCap = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_CAP;
+        BOOLEAN alignmentCap = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_CAP;
         if (!alignmentCap) {
             if ((volumeHeader->Attributes & 0xFFFF0000))
                 msgAlignmentBitsSet = true;
@@ -1230,7 +1231,7 @@ USTATUS FfsParser::getVolumeSize(const UByteArray & bios, UINT32 volumeOffset, U
         entry += 1;
     }
 
-    volumeSize = volumeHeader->FvLength;
+    volumeSize = (UINT32)volumeHeader->FvLength;
     bmVolumeSize = calcVolumeSize;
 
     if (volumeSize == 0)
@@ -1604,7 +1605,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 parentO
     }
 
     // Construct parsing data
-    bool fixed = fileHeader->Attributes & FFS_ATTRIB_FIXED;
+    bool fixed(fileHeader->Attributes & FFS_ATTRIB_FIXED);
     pdata.offset += parentOffset;
     
 
@@ -2863,8 +2864,8 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
 
     // Get data from parsing data
     PARSING_DATA pdata = parsingDataFromUModelIndex(index);
-    pdata.section.teImage.imageBase = teHeader->ImageBase;
-    pdata.section.teImage.adjustedImageBase = teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+    pdata.section.teImage.imageBase = (UINT32)teHeader->ImageBase;
+    pdata.section.teImage.adjustedImageBase = (UINT32)(teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER));
     
     // Update parsing data
     model->setParsingData(index, parsingDataToUByteArray(pdata));
@@ -3647,7 +3648,7 @@ USTATUS FfsParser::getStoreSize(const UByteArray & data, const UINT32 storeOffse
         }
         else { //  Header with 64 bit WriteQueueSize
             const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)signature;
-            storeSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + ftw64Header->WriteQueueSize;
+            storeSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + (UINT32)ftw64Header->WriteQueueSize;
         }
     }
     else if (*signature == NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1) { // Phoenix SCT flash map
@@ -3743,7 +3744,7 @@ USTATUS FfsParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 pa
         has32bitHeader = true;
     }
     else { // Header with 64 bit WriteQueueSize
-        ftwBlockSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + ftw64BlockHeader->WriteQueueSize;
+        ftwBlockSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64) + (UINT32)ftw64BlockHeader->WriteQueueSize;
         has32bitHeader = false;
     }
     if (dataSize < ftwBlockSize) {
