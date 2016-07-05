@@ -365,9 +365,9 @@ struct CBString : public tagbstring {
     CBString toLocal8Bit() { return *this; }
     bool isEmpty() const { return slen == 0; }
     void clear() { *this = ""; }
-    CBString left(int len) { return midstr(0, len); }
-    CBString mid(int pos, int len) { return midstr(pos, len); }
-    static CBString fromUtf16(const ushort* str) { // Naive implementation assuming that only ASCII part of UCS2 is used
+    CBString left(int len) const { return midstr(0, len); }
+    CBString mid(int pos, int len) const { return midstr(pos, len); }
+    static CBString fromUtf16(const unsigned short* str) { // Naive implementation assuming that only ASCII part of UCS2 is used
         CBString msg; while (*str) { msg += *(char*)str; str++; } return msg;
     }
     CBString leftJustified(int length) { if (length > slen) { return *this + CBString(' ', length - slen); } return *this; }

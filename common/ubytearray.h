@@ -13,7 +13,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UBYTEARRAY_H
 #define UBYTEARRAY_H
 
-#ifdef QT_CORE_LIB
+//#define U_USE_QBYTEARRAY
+
+#if defined(QT_CORE_LIB) && defined(U_USE_QBYTEARRAY)
 // Use Qt class, if Qt is available
 #include <QByteArray>
 #define UByteArray QByteArray
@@ -54,14 +56,33 @@ public:
     UByteArray right(int32_t len) const { return d.substr(d.size() - 1 - len, len); };
     UByteArray mid(int32_t pos, int32_t len = -1) const { return d.substr(pos, len); };
 
-    UByteArray &operator=(const UByteArray & ba) { d = ba.d; return *this; }
+    UByteArray & operator=(const UByteArray & ba) { d = ba.d; return *this; }
+    UByteArray & operator+=(const UByteArray & ba) { d += ba.d; return *this; }
     bool operator== (const UByteArray & ba) const { return d == ba.d; }
     bool operator!= (const UByteArray & ba) const { return d != ba.d; }
     inline void swap(UByteArray &other) { std::swap(d, other.d); }
+    UByteArray toHex() {
+        std::basic_string<char> hex(size() * 2, '\x00');
+        for (int32_t i = 0; i < size(); ++i) {
+            uint8_t low  = d[i] & 0x0F;
+            uint8_t high = (d[i] & 0xF0) >> 4;
+            low += (low < 10 ? 'a' : '0');
+            high += (high < 10 ? 'a' : '0');
+            hex[i] = low;
+            hex[i + 1] = high;
+        }
+        std::reverse(hex.begin(), hex.end());
+        return UByteArray(hex);
+    }
 
 private:
     std::basic_string<char> d;
 };
+
+inline const UByteArray operator+(const UByteArray &a1, const UByteArray &a2)
+{
+    return UByteArray(a1) += a2;
+}
 
 #endif // QT_CORE_LIB
 #endif // UBYTEARRAY_H

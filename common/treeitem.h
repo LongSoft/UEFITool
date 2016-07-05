@@ -25,7 +25,7 @@ class TreeItem
 public:
     TreeItem(const UINT8 type, const UINT8 subtype, const UString &name, const UString &text, const UString &info,
         const UByteArray & header, const UByteArray & body, const UByteArray & tail,
-        const BOOLEAN fixed, const BOOLEAN compressed, const UByteArray & parsingData,
+        const bool fixed, const bool compressed, const UByteArray & parsingData,
         TreeItem *parent = 0);
     ~TreeItem();                                                               // Non-trivial implementation in CPP file
 
@@ -70,16 +70,16 @@ public:
     void setParsingData(const UByteArray & data) { itemParsingData = data; }
 
     UString info() const { return itemInfo; }
-    void addInfo(const UString &info, const BOOLEAN append) { if (append) itemInfo += info; else itemInfo = info + itemInfo; }
+    void addInfo(const UString &info, const bool append) { if (append) itemInfo += info; else itemInfo = info + itemInfo; }
     void setInfo(const UString &info) { itemInfo = info; }
     
     UINT8 action() const {return itemAction; }
     void setAction(const UINT8 action) { itemAction = action; }
 
-    BOOLEAN fixed() const { return itemFixed; }
+    bool fixed() const { return itemFixed; }
     void setFixed(const bool fixed) { itemFixed = fixed; }
 
-    BOOLEAN compressed() const { return itemCompressed; }
+    bool compressed() const { return itemCompressed; }
     void setCompressed(const bool compressed) { itemCompressed = compressed; }
 
 private:

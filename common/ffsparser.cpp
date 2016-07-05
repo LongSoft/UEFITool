@@ -112,7 +112,7 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
 
         capsuleHeaderSize = capsuleHeader->HeaderSize;
         UByteArray header = buffer.left(capsuleHeaderSize);
-        UByteArray body = buffer.right(buffer.size() - capsuleHeaderSize);
+        UByteArray body = buffer.mid(capsuleHeaderSize);
         UString name("Toshiba capsule");
         UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid) + 
             usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
@@ -669,7 +669,7 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 parentOffse
     bool versionFound = true;
     bool emptyRegion = false;
     // Check for empty region
-    if (me.count() == me.count('\xFF') || me.count() == me.count('\x00')) {
+    if (me.size() == me.count('\xFF') || me.size() == me.count('\x00')) {
         // Further parsing not needed
         emptyRegion = true;
         info += ("\nState: empty");
@@ -791,9 +791,9 @@ USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 parentO
 
 UINT8 FfsParser::getPaddingType(const UByteArray & padding)
 {
-    if (padding.count('\x00') == padding.count())
+    if (padding.count('\x00') == padding.size())
         return Subtypes::ZeroPadding;
-    if (padding.count('\xFF') == padding.count())
+    if (padding.count('\xFF') == padding.size())
         return Subtypes::OnePadding;
     return Subtypes::DataPadding;
 }
@@ -1339,7 +1339,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             if (header.count(pdata.emptyByte) == header.size()) { //Empty space
                 // Check free space to be actually free
                 UByteArray freeSpace = volumeBody.mid(fileOffset);
-                if (freeSpace.count(pdata.emptyByte) != freeSpace.count()) {
+                if (freeSpace.count(pdata.emptyByte) != freeSpace.size()) {
                     // Search for the first non-empty byte
                     UINT32 i;
                     UINT32 size = freeSpace.size();
@@ -2481,7 +2481,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         }
         
         info += UString("\nCompression algorithm: ") + compressionTypeToUString(algorithm);
-        info += usprintf("\nDecompressed size: %Xh (%u)", processed.length(), processed.length());
+        info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
     }
     // LZMA compressed section
     else if (UByteArray((const char*)&guid, sizeof(EFI_GUID)) == EFI_GUIDED_SECTION_LZMA) {
@@ -2495,7 +2495,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
 
         if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
             info += UString("\nCompression algorithm: LZMA");
-            info += usprintf("\nDecompressed size: %Xh (%u)", processed.length(), processed.length());
+            info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
         }
         else {
             info += UString("\nCompression algorithm: unknown");
@@ -3276,7 +3276,7 @@ parsing_done:
             // Authentication data
             if (hasTimestampAndHash) {
                 info += usprintf("\nTimestamp: %"PRIX64"h\nHash: ",
-                    timestamp) + UString(hash.toHex().toUpper());
+                    timestamp) + UString(hash.toHex().constData());
             }
         }
         
@@ -3890,7 +3890,7 @@ USTATUS FfsParser::parseFsysStoreHeader(const UByteArray & store, const UINT32 p
     UByteArray body = store.mid(sizeof(APPLE_FSYS_STORE_HEADER), fsysStoreHeader->Size - sizeof(APPLE_FSYS_STORE_HEADER) - sizeof(UINT32));
 
     // Check store checksum
-    UINT32 storedCrc = *(UINT32*)store.right(sizeof(UINT32)).constBegin();
+    UINT32 storedCrc = *(UINT32*)store.right(sizeof(UINT32)).constData();
     UINT32 calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
 
     // Add info
@@ -4488,7 +4488,7 @@ USTATUS FfsParser::parseFsysStoreBody(const UModelIndex & index)
                 pdata.offset = parentOffset + offset;
                 
                 // Add EOF tree item
-                model->addItem(Types::FsysEntry, 0, UString(name), UString(), info, header, UByteArray(), UByteArray(), false, parsingDataToUByteArray(pdata), index);
+                model->addItem(Types::FsysEntry, 0, UString("EOF"), UString(), info, header, UByteArray(), UByteArray(), false, parsingDataToUByteArray(pdata), index);
 
                 // Add free space
                 offset += header.size();
@@ -4542,7 +4542,7 @@ USTATUS FfsParser::parseFsysStoreBody(const UModelIndex & index)
         pdata.offset = parentOffset + offset;
 
         // Add tree item
-        model->addItem(Types::FsysEntry, 0, UString(name), UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), index);
+        model->addItem(Types::FsysEntry, 0, UString(name.constData(), name.size()), UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), index);
 
         // Move to next variable
         offset += variableSize;

@@ -13,8 +13,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef FIT_H
 #define FIT_H
 
-#include <QByteArray>
 #include "basetypes.h"
+#include "ubytearray.h"
 
 // Make sure we use right packing rules
 #pragma pack(push, 1)
@@ -37,7 +37,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define FIT_HEADER_VERSION         0x0100
 #define FIT_MICROCODE_VERSION      0x0100
 
-const QByteArray FIT_SIGNATURE
+const UByteArray FIT_SIGNATURE
 ("\x5F\x46\x49\x54\x5F\x20\x20\x20", 8); 
 
 typedef struct FIT_ENTRY_ {

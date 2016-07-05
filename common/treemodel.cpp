@@ -349,7 +349,7 @@ void TreeModel::addInfo(const UModelIndex &index, const UString &data, const boo
         return;
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    item->addInfo(data, (BOOLEAN)append);
+    item->addInfo(data, append);
     emit dataChanged(index, index);
 }
 

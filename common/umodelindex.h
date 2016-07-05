@@ -13,11 +13,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UMODELINDEX_H
 #define UMODELINDEX_H
 
-#ifdef QT_CORE_LIB
+#if defined(QT_CORE_LIB)
 // Use Qt class, if Qt is available
 #include <QModelIndex>
 #define UModelIndex QModelIndex
 #else
 // Use own implementation
+
+
 #endif // QT_CORE_LIB
 #endif // UMODELINDEX_H
+

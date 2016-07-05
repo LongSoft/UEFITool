@@ -56,7 +56,8 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 if (!file.open(QFile::WriteOnly))
                     return U_FILE_OPEN;
 
-                file.write(model->header(index));
+                QByteArray ba(model->header(index).constData(), model->header(index).size());
+                file.write(ba);
                 file.close();
             }
 
@@ -65,7 +66,8 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 if (!file.open(QFile::WriteOnly))
                     return U_FILE_OPEN;
 
-                file.write(model->body(index));
+                QByteArray ba(model->body(index).constData(), model->body(index).size());
+                file.write(ba);
                 file.close();
             }
         }

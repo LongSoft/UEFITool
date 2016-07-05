@@ -48,8 +48,10 @@ int main(int argc, char *argv[])
             return U_FILE_OPEN;
         
         // Read and close the file
-        UByteArray buffer = inputFile.readAll();
+        QByteArray b = inputFile.readAll();
         inputFile.close();
+
+        UByteArray buffer(b.constData(), b.size());
 
         // Create model and ffsParser
         TreeModel model;
