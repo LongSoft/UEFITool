@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define UTILITY_H
 
 #include "ustring.h"
+#include "treemodel.h"
 #include "basetypes.h"
 #include "parsingdata.h"
 

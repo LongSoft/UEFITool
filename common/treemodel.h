@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef TREEMODEL_H
 #define TREEMODEL_H
 
-#if defined(QT_CORE_LIB) && defined(U_USE_QITEMMODEL)
+#if defined(QT_CORE_LIB)
 // Use Qt classes
 #include <QAbstractItemModel>
 #include <QModelIndex>
@@ -73,7 +73,7 @@ private:
 };
 #endif
 
-#if defined(QT_CORE_LIB) && defined(U_USE_QITEMMODEL)
+#if defined(QT_CORE_LIB)
 class TreeModel : public QAbstractItemModel
 {
     Q_OBJECT
@@ -165,7 +165,7 @@ public:
     UModelIndex findParentOfType(const UModelIndex & index, UINT8 type) const;
 };
 
-#if defined(QT_CORE_LIB) && defined(U_USE_QITEMMODEL)
+#if defined(QT_CORE_LIB)
 // Nothing required here
 #else
 inline UModelIndex UModelIndex::parent() const { return m ? m->parent(*this) : UModelIndex(); }

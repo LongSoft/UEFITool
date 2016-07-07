@@ -15,13 +15,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define FFSFINDER_H
 
 #include <vector>
-
-#include <QObject>
-#include <QByteArray>
-#include <QString>
-#include <QModelIndex>
 #include <QRegExp>
 
+#include "../common/ubytearray.h"
+#include "../common/ustring.h"
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
 
@@ -31,19 +28,19 @@ public:
     FfsFinder(const TreeModel * treeModel) : model(treeModel) {}
     ~FfsFinder() {}
 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
     void clearMessages() { messagesVector.clear(); }
 
-    STATUS findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode);
-    STATUS findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode);
-    STATUS findTextPattern(const QModelIndex & index, const QString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive);
+    USTATUS findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode);
+    USTATUS findGuidPattern(const UModelIndex & index, const UByteArray & guidPattern, const UINT8 mode);
+    USTATUS findTextPattern(const UModelIndex & index, const UString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 
 private:
     const TreeModel* model;
-    std::vector<std::pair<QString, QModelIndex> > messagesVector;
+    std::vector<std::pair<UString, UModelIndex> > messagesVector;
 
-    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
-        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
+        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     }
 };
 

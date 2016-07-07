@@ -13,24 +13,24 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsfinder.h"
 
-STATUS FfsFinder::findHexPattern(const QModelIndex & index, const QByteArray & hexPattern, const UINT8 mode)
+USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode)
 {
     if (!index.isValid())
-        return ERR_SUCCESS;
+        return U_SUCCESS;
 
     if (hexPattern.isEmpty())
-        return ERR_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
 
     // Check for "all substrings" pattern
     if (hexPattern.count('.') == hexPattern.length())
-        return ERR_SUCCESS;
+        return U_SUCCESS;
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
         findHexPattern(index.child(i, index.column()), hexPattern, mode);
     }
 
-    QByteArray data;
+    UByteArray data;
     if (hasChildren) {
         if (mode != SEARCH_MODE_BODY)
             data = model->header(index);
@@ -44,39 +44,37 @@ STATUS FfsFinder::findHexPattern(const QModelIndex & index, const QByteArray & h
             data.append(model->header(index)).append(model->body(index));
     }
 
-    QString hexBody = QString(data.toHex());
-    QRegExp regexp = QRegExp(QString(hexPattern), Qt::CaseInsensitive);
+    UString hexBody = UString(data.toHex());
+    QRegExp regexp = QRegExp(UString(hexPattern), Qt::CaseInsensitive);
     INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {
-            msg(QObject::tr("Hex pattern \"%1\" found as \"%2\" in %3 at %4-offset %5h")
-                .arg(QString(hexPattern))
-                .arg(hexBody.mid(offset, hexPattern.length()).toUpper())
-                .arg(model->name(index))
-                .arg(mode == SEARCH_MODE_BODY ? QObject::tr("body") : QObject::tr("header"))
-                .hexarg(offset / 2),
+            msg(UString("Hex pattern \"") + UString(hexPattern) 
+                + UString("\" found as \"") + hexBody.mid(offset, hexPattern.length()).toUpper() 
+                + UString("\" in ") + model->name(index) 
+                + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                 index);
         }
         offset = regexp.indexIn(hexBody, offset + 1);
     }
 
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }
 
-STATUS FfsFinder::findGuidPattern(const QModelIndex & index, const QByteArray & guidPattern, const UINT8 mode)
+USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray & guidPattern, const UINT8 mode)
 {
     if (guidPattern.isEmpty())
-        return ERR_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
 
     if (!index.isValid())
-        return ERR_SUCCESS;
+        return U_SUCCESS;
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
         findGuidPattern(index.child(i, index.column()), guidPattern, mode);
     }
 
-    QByteArray data;
+    UByteArray data;
     if (hasChildren) {
         if (mode != SEARCH_MODE_BODY)
             data = model->header(index);
@@ -90,12 +88,12 @@ STATUS FfsFinder::findGuidPattern(const QModelIndex & index, const QByteArray & 
             data.append(model->header(index)).append(model->body(index));
     }
 
-    QString hexBody = QString(data.toHex());
-    QList<QByteArray> list = guidPattern.split('-');
+    UString hexBody = UString(data.toHex());
+    QList<UByteArray> list = guidPattern.split('-');
     if (list.count() != 5)
-        return ERR_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
 
-    QByteArray hexPattern;
+    UByteArray hexPattern;
     // Reverse first GUID block
     hexPattern.append(list.at(0).mid(6, 2));
     hexPattern.append(list.at(0).mid(4, 2));
@@ -112,40 +110,38 @@ STATUS FfsFinder::findGuidPattern(const QModelIndex & index, const QByteArray & 
 
     // Check for "all substrings" pattern
     if (hexPattern.count('.') == hexPattern.length())
-        return ERR_SUCCESS;
+        return U_SUCCESS;
 
-    QRegExp regexp(QString(hexPattern), Qt::CaseInsensitive);
+    QRegExp regexp(UString(hexPattern), Qt::CaseInsensitive);
     INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {
-            msg(QObject::tr("GUID pattern \"%1\" found as \"%2\" in %3 at %4-offset %5h")
-                .arg(QString(guidPattern))
-                .arg(hexBody.mid(offset, hexPattern.length()).toUpper())
-                .arg(model->name(index))
-                .arg(mode == SEARCH_MODE_BODY ? QObject::tr("body") : QObject::tr("header"))
-                .hexarg(offset / 2),
+            msg(UString("GUID pattern \"") + UString(guidPattern)
+                + UString("\" found as \"") + hexBody.mid(offset, hexPattern.length()).toUpper()
+                + UString("\" in ") + model->name(index)
+                + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                 index);
         }
         offset = regexp.indexIn(hexBody, offset + 1);
     }
 
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }
 
-STATUS FfsFinder::findTextPattern(const QModelIndex & index, const QString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive)
+USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive)
 {
     if (pattern.isEmpty())
-        return ERR_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
 
     if (!index.isValid())
-        return ERR_SUCCESS;
+        return U_SUCCESS;
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
         findTextPattern(index.child(i, index.column()), pattern, mode, unicode, caseSensitive);
     }
 
-    QByteArray body;
+    UByteArray body;
     if (hasChildren) {
         if (mode != SEARCH_MODE_BODY)
             body = model->header(index);
@@ -159,22 +155,20 @@ STATUS FfsFinder::findTextPattern(const QModelIndex & index, const QString & pat
             body.append(model->header(index)).append(model->body(index));
     }
 
-    QString data;
+    UString data;
     if (unicode)
-        data = QString::fromUtf16((const ushort*)body.constData(), body.length() / 2);
+        data = UString::fromUtf16((const ushort*)body.constData(), body.length() / 2);
     else
-        data = QString::fromLatin1((const char*)body.constData(), body.length());
+        data = UString::fromLatin1((const char*)body.constData(), body.length());
 
     int offset = -1;
     while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
-        msg(QObject::tr("%1 text \"%2\" found in %3 at %4-offset %5h")
-            .arg(unicode ? "Unicode" : "ASCII")
-            .arg(pattern)
-            .arg(model->name(index))
-            .arg(mode == SEARCH_MODE_BODY ? QObject::tr("body") : QObject::tr("header"))
-            .hexarg(unicode ? offset * 2 : offset),
+
+        msg((unicode ? UString("Unicode") : UString("ASCII")) + UString(" text \"") + UString(pattern)
+            + UString("\" found in ") + model->name(index)
+            + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", (unicode ? offset * 2 : offset)),
             index);
     }
 
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }

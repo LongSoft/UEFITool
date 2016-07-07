@@ -16,11 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include <QObject>
-#include <QByteArray>
-#include <QString>
-#include <QModelIndex>
-
+#include "ubytearray.h"
+#include "ustring.h"
 #include "basetypes.h"
 #include "treemodel.h"
 #include "ffs.h"
@@ -33,21 +30,21 @@ public:
     FfsOperations(TreeModel * treeModel) : model(treeModel) {}
     ~FfsOperations() {};
 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
     void clearMessages() { messagesVector.clear(); }
 
-    STATUS extract(const QModelIndex & index, QString & name, QByteArray & extracted, const UINT8 mode);
-    STATUS replace(const QModelIndex & index, const QString & data, const UINT8 mode);
+    USTATUS extract(const UModelIndex & index, UString & name, UByteArray & extracted, const UINT8 mode);
+    USTATUS replace(const UModelIndex & index, const UString & data, const UINT8 mode);
     
-    STATUS remove(const QModelIndex & index);
-    STATUS rebuild(const QModelIndex & index);
+    USTATUS remove(const UModelIndex & index);
+    USTATUS rebuild(const UModelIndex & index);
 
 private:
     TreeModel* model;
-    std::vector<std::pair<QString, QModelIndex> > messagesVector;
+    std::vector<std::pair<UString, UModelIndex> > messagesVector;
 
-    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
-        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
+        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     }
 };
 

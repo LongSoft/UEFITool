@@ -13,9 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ustring.h"
 #include <stdarg.h>
 
-//TODO: modify properly
-
-#if defined(QT_CORE_LIB) && defined (U_USE_QSTRING)
+#if defined(QT_CORE_LIB)
 UString usprintf(const char* fmt, ...) 
 {
     UString msg;

@@ -16,11 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include <QObject>
-#include <QByteArray>
-#include <QString>
-#include <QModelIndex>
-
+#include "ubytearray.h"
+#include "ustring.h"
 #include "basetypes.h"
 #include "treemodel.h"
 #include "descriptor.h"
@@ -33,31 +30,31 @@ public:
     FfsBuilder(const TreeModel * treeModel) : model(treeModel) {}
     ~FfsBuilder() {}
 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
     void clearMessages() { messagesVector.clear(); }
 
-    STATUS build(const QModelIndex & root, QByteArray & image);
+    USTATUS build(const UModelIndex & root, UByteArray & image);
 
 private:
     const TreeModel* model;
-    std::vector<std::pair<QString, QModelIndex> > messagesVector;
-    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
-        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    std::vector<std::pair<UString, UModelIndex> > messagesVector;
+    void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
+        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     }
 
-    STATUS buildCapsule(const QModelIndex & index, QByteArray & capsule);
-    STATUS buildIntelImage(const QModelIndex & index, QByteArray & intelImage);
-    STATUS buildRawArea(const QModelIndex & index, QByteArray & rawArea, bool addHeader = true);
-    STATUS buildPadding(const QModelIndex & index, QByteArray & padding);
-    STATUS buildVolume(const QModelIndex & index, QByteArray & volume);
-    STATUS buildNonUefiData(const QModelIndex & index, QByteArray & data);
-    STATUS buildFreeSpace(const QModelIndex & index, QByteArray & freeSpace);
-    STATUS buildPadFile(const QModelIndex & index, QByteArray & padFile);
-    STATUS buildFile(const QModelIndex & index, QByteArray & file);
-    STATUS buildSection(const QModelIndex & index, QByteArray & section);
+    USTATUS buildCapsule(const UModelIndex & index, UByteArray & capsule);
+    USTATUS buildIntelImage(const UModelIndex & index, UByteArray & intelImage);
+    USTATUS buildRawArea(const UModelIndex & index, UByteArray & rawArea, bool addHeader = true);
+    USTATUS buildPadding(const UModelIndex & index, UByteArray & padding);
+    USTATUS buildVolume(const UModelIndex & index, UByteArray & volume);
+    USTATUS buildNonUefiData(const UModelIndex & index, UByteArray & data);
+    USTATUS buildFreeSpace(const UModelIndex & index, UByteArray & freeSpace);
+    USTATUS buildPadFile(const UModelIndex & index, UByteArray & padFile);
+    USTATUS buildFile(const UModelIndex & index, UByteArray & file);
+    USTATUS buildSection(const UModelIndex & index, UByteArray & section);
     
     // Utility functions
-    STATUS erase(const QModelIndex & index, QByteArray & erased);
+    USTATUS erase(const UModelIndex & index, UByteArray & erased);
 };
 
 #endif // FFSBUILDER_H

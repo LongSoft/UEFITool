@@ -23,9 +23,7 @@ SOURCES += \
  ../common/LZMA/LzmaDecompress.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/Tiano/EfiTianoDecompress.c \
- ../common/ustring.cpp \
- ../bstrlib/bstrlib.c \
- ../bstrlib/bstrwrap.cpp
+ ../common/ustring.cpp
 
 HEADERS += \
  ffsdumper.h \
@@ -46,7 +44,5 @@ HEADERS += \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/ubytearray.h \
- ../common/ustring.h \
- ../bstrlib/bstrlib.h \
- ../bstrlib/bstrwrap.h
+ ../common/ustring.h
  

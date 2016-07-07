@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "treemodel.h"
 
-#if defined(QT_CORE_LIB) && defined(U_USE_QITEMMODEL)
+#if defined(QT_CORE_LIB)
 QVariant TreeModel::data(const UModelIndex &index, int role) const
 {
     if (!index.isValid())

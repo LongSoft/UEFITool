@@ -1605,7 +1605,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 parentO
     }
 
     // Construct parsing data
-    bool fixed(fileHeader->Attributes & FFS_ATTRIB_FIXED);
+    bool fixed = (fileHeader->Attributes & FFS_ATTRIB_FIXED) != 0;
     pdata.offset += parentOffset;
     
 
@@ -4543,7 +4543,7 @@ USTATUS FfsParser::parseFsysStoreBody(const UModelIndex & index)
         pdata.offset = parentOffset + offset;
 
         // Add tree item
-        model->addItem(Types::FsysEntry, 0, UString(name.constData(), name.size()), UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), index);
+        model->addItem(Types::FsysEntry, 0, UString(name.constData()), UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), index);
 
         // Move to next variable
         offset += variableSize;
