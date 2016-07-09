@@ -36,6 +36,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "types.h"
 #include "treeitem.h"
 
+class TreeModel;
+
 class UModelIndex
 {
     friend class TreeModel;

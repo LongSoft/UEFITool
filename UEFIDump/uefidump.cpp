@@ -17,11 +17,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <sys/stat.h>
 
 #ifdef WIN32
 #include <direct.h>
-#include <sys/stat.h>
-
 bool isExistOnFs(const UString & path) {
     struct _stat buf;
     return (_stat((const char*)path.toLocal8Bit(), &buf) == 0);
@@ -35,6 +34,19 @@ bool changeDirectory(const UString & dir) {
     return (_chdir((const char*)dir.toLocal8Bit()) == 0);
 }
 #else
+#include <unistd.h>
+bool isExistOnFs(const UString & path) {
+    struct stat buf;
+    return (stat((const char*)path.toLocal8Bit(), &buf) == 0);
+}
+
+bool makeDirectory(const UString & dir) {
+    return (mkdir((const char*)dir.toLocal8Bit(), ACCESSPERMS) == 0);
+}
+
+bool changeDirectory(const UString & dir) {
+    return (chdir((const char*)dir.toLocal8Bit()) == 0);
+}
 #endif
 
 USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, const UString & guid)
