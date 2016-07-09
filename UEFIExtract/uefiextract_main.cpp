@@ -136,12 +136,12 @@ int main(int argc, char *argv[])
         return 0;
     }
     else { // Show version and usage information
-        std::cout << "UEFIExtract 0.12.0" << std::endl << std::endl
+        std::cout << "UEFIExtract 0.12.1" << std::endl << std::endl
             << "Usage: UEFIExtract imagefile      - generate report and dump only leaf tree items into .dump folder" << std::endl
             << "       UEFIExtract imagefile all  - generate report and dump all tree items" << std::endl
             << "       UEFIExtract imagefile none - only generate report, no dump needed" << std::endl
             << "       UIFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dump only FFS file(s) with specific GUID(s)" << std::endl
-            << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
+            << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl << std::endl;
         return 1;
     }
 

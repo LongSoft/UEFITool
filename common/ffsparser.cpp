@@ -1028,9 +1028,9 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 par
     UINT32 alignment = 65536; // Default volume alignment is 64K
     if (volumeHeader->Revision == 1) {
         // Acquire alignment capability bit
-        BOOLEAN alignmentCap = volumeHeader->Attributes & EFI_FVB_ALIGNMENT_CAP;
+        bool alignmentCap = (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_CAP) != 0;
         if (!alignmentCap) {
-            if ((volumeHeader->Attributes & 0xFFFF0000))
+            if (volumeHeader->Attributes & 0xFFFF0000)
                 msgAlignmentBitsSet = true;
         }
         // Do not check for volume alignment on revision 1 volumes
