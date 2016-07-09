@@ -53,9 +53,10 @@ typedef uint8_t USTATUS;
 #define U_UNKNOWN_RELOCATION_TYPE         32
 #define U_DIR_ALREADY_EXIST               33
 #define U_DIR_CREATE                      34
-#define U_TRUNCATED_IMAGE                 35
-#define U_INVALID_CAPSULE                 36
-#define U_STORES_NOT_FOUND                37
+#define U_DIR_CHANGE                      35
+#define U_TRUNCATED_IMAGE                 36
+#define U_INVALID_CAPSULE                 37
+#define U_STORES_NOT_FOUND                38
 #define U_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions

@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "uefidump.h"
 
-int wmain(int argc, wchar_t *argv[])
+int main(int argc, char *argv[])
 {
     if (argc > 32) {
         std::cout << "Too many arguments" << std::endl;
@@ -30,12 +30,11 @@ int wmain(int argc, wchar_t *argv[])
         inputFile.close();
         
         UEFIDumper uefidumper;
-        return (uefidumper.dump(buffer, std::wstring(argv[1])) != U_SUCCESS);
+        return (uefidumper.dump(buffer, UString(argv[1])) != U_SUCCESS);
     }
     else {
         std::cout << "UEFIDump 0.1.0" << std::endl << std::endl
-                  << "Usage: UEFIExtract imagefile " << std::endl
-                  << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
+                  << "Usage: UEFIDump imagefile" << std::endl;
         return 1;
     }
 

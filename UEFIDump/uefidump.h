@@ -14,8 +14,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UEFIDUMP_H
 #define UEFIDUMP_H
 
-#include <string>
-
 #include "../common/basetypes.h"
 #include "../common/ustring.h"
 #include "../common/treemodel.h"
@@ -30,12 +28,10 @@ public:
     explicit UEFIDumper() : model(), ffsParser(&model), ffsReport(&model), fitParser(&model), currentBuffer(), initialized(false), dumped(false) {}
     ~UEFIDumper() {}
 
-    USTATUS dump(const UByteArray & buffer, const std::wstring & path, const std::wstring & guid = std::wstring());
+    USTATUS dump(const UByteArray & buffer, const UString & path, const UString & guid = UString());
 
 private:
-    USTATUS recursiveDump(const UModelIndex & root, const std::wstring & path, const std::wstring & guid);
-    std::wstring guidToWstring(const EFI_GUID & guid);
-    bool createFullPath(const std::wstring & path);
+    USTATUS recursiveDump(const UModelIndex & root);
 
     TreeModel model;
     FfsParser ffsParser;

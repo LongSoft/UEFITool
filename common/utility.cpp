@@ -44,6 +44,54 @@ UByteArray parsingDataToUByteArray(const PARSING_DATA & pdata)
     return UByteArray((const char*)&pdata, sizeof(PARSING_DATA));
 }
 
+// Returns unique name string based for tree item
+UString uniqueItemName(const UModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return UString("Invalid index");
+
+    // Get model from index
+    const TreeModel* model = index.model();
+
+    // Get data from parsing data
+    PARSING_DATA pdata = parsingDataFromUModelIndex(index);
+    
+    // Construct the name
+    UString itemName = model->name(index);
+    UString itemText = model->text(index);
+
+    // Default name
+    UString name = itemName;
+    switch (model->type(index)) {
+    case Types::Volume:        
+        if (pdata.volume.hasExtendedHeader) name = guidToUString(pdata.volume.extendedHeaderGuid); 
+        break;
+    case Types::NvarEntry:
+    case Types::VssEntry:
+    case Types::FsysEntry:
+    case Types::EvsaEntry:
+    case Types::FlashMapEntry:
+    case Types::File:          
+        name = itemText.isEmpty() ? itemName : itemText; 
+        break;
+    case Types::Section: {
+        // Get parent file name
+        UModelIndex fileIndex = model->findParentOfType(index, Types::File);
+        UString fileText = model->text(fileIndex);
+        name = fileText.isEmpty() ? model->name(fileIndex) : fileText;
+        // Append section subtype name
+        name += '_' + itemName;
+        } break;
+    }
+
+    name.findreplace(' ', '_');
+    name.findreplace('/', '_');
+    name.findreplace('-', '_');
+
+    return name;
+}
+
 // Returns text representation of error code
 UString errorCodeToUString(UINT8 errorCode)
 {
@@ -88,6 +136,7 @@ UString errorCodeToUString(UINT8 errorCode)
     case U_COMPLEX_BLOCK_MAP:               return UString("Block map structure too complex for correct analysis");
     case U_DIR_ALREADY_EXIST:               return UString("Directory already exists");
     case U_DIR_CREATE:                      return UString("Directory can't be created");
+    case U_DIR_CHANGE:                      return UString("Change directory failed");
     //case U_UNKNOWN_PATCH_TYPE:              return UString("Unknown patch type");
     //case U_PATCH_OFFSET_OUT_OF_BOUNDS:      return UString("Patch offset out of bounds");
     //case U_INVALID_SYMBOL:                  return UString("Invalid symbol");

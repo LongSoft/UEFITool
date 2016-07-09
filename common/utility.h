@@ -25,22 +25,25 @@ PARSING_DATA parsingDataFromUModelIndex(const UModelIndex & index);
 // Converts parsing data to byte array
 UByteArray parsingDataToUByteArray(const PARSING_DATA & pdata);
 
+// Returns unique name string based for tree item
+UString uniqueItemName(const UModelIndex & index);
+
 // Converts error code to UString
-extern UString errorCodeToUString(UINT8 errorCode);
+UString errorCodeToUString(UINT8 errorCode);
 
 // Decompression routine
-extern USTATUS decompress(const UByteArray & compressed, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
+USTATUS decompress(const UByteArray & compressed, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
 
 // Compression routine
 //USTATUS compress(const UByteArray & decompressed, UByteArray & compressed, const UINT8 & algorithm);
 
 // CRC32 calculation routine
-extern UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
+UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
 
 // 8bit checksum calculation routine
-extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
+UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 
 // 16bit checksum calculation routine
-extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
+UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
 #endif // UTILITY_H

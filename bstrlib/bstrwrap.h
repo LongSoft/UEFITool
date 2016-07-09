@@ -362,7 +362,7 @@ struct CBString : public tagbstring {
 	int read (bNread readPtr, void * parm);
 
     // QString compatibility methods
-    CBString toLocal8Bit() { return *this; }
+    CBString toLocal8Bit() const { return *this; }
     bool isEmpty() const { return slen == 0; }
     void clear() { *this = ""; }
     CBString left(int len) const { return midstr(0, len); }
