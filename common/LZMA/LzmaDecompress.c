@@ -100,7 +100,7 @@ UINT32      *DestinationSize
     DecodedSize = GetDecodedSizeOfBuf((UINT8*)Source);
 
     *DestinationSize = (UINT32)DecodedSize;
-    return ERR_SUCCESS;
+    return U_SUCCESS;
 }
 
 /*
@@ -151,9 +151,9 @@ VOID    *Destination
         );
 
     if (LzmaResult == SZ_OK) {
-        return ERR_SUCCESS;
+        return U_SUCCESS;
     }
     else {
-        return ERR_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
     }
 }

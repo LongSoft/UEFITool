@@ -16,11 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include <QObject>
-#include <QByteArray>
-#include <QString>
-#include <QModelIndex>
-
+#include "../common/ubytearray.h"
+#include "../common/ustring.h"
 #include "basetypes.h"
 #include "treemodel.h"
 #include "ffs.h"
@@ -33,12 +30,12 @@ public:
     FfsReport(TreeModel * treeModel) : model(treeModel) {}
     ~FfsReport() {};
 
-    std::vector<QString> generate();
+    std::vector<UString> generate();
 
 private:
     TreeModel* model;
     
-    STATUS generateRecursive(std::vector<QString> & report, QModelIndex index, UINT32 level = 0);
+    USTATUS generateRecursive(std::vector<UString> & report, UModelIndex index, UINT32 level = 0);
     
 };
 

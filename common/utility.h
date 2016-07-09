@@ -14,33 +14,36 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UTILITY_H
 #define UTILITY_H
 
-#include <QString>
-#include <QModelIndex>
+#include "ustring.h"
+#include "treemodel.h"
 #include "basetypes.h"
 #include "parsingdata.h"
 
 // Returns either new parsing data instance or obtains it from index
-PARSING_DATA parsingDataFromQModelIndex(const QModelIndex & index);
+PARSING_DATA parsingDataFromUModelIndex(const UModelIndex & index);
 
 // Converts parsing data to byte array
-QByteArray parsingDataToQByteArray(const PARSING_DATA & pdata);
+UByteArray parsingDataToUByteArray(const PARSING_DATA & pdata);
 
-// Converts error code to QString
-extern QString errorCodeToQString(UINT8 errorCode);
+// Returns unique name string based for tree item
+UString uniqueItemName(const UModelIndex & index);
+
+// Converts error code to UString
+UString errorCodeToUString(UINT8 errorCode);
 
 // Decompression routine
-extern STATUS decompress(const QByteArray & compressed, UINT8 & algorithm, QByteArray & decompressed, QByteArray & efiDecompressed);
+USTATUS decompress(const UByteArray & compressed, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
 
 // Compression routine
-//STATUS compress(const QByteArray & decompressed, QByteArray & compressed, const UINT8 & algorithm);
+//USTATUS compress(const UByteArray & decompressed, UByteArray & compressed, const UINT8 & algorithm);
 
 // CRC32 calculation routine
-extern UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
+UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
 
 // 8bit checksum calculation routine
-extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
+UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 
 // 16bit checksum calculation routine
-extern UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
+UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
 #endif // UTILITY_H

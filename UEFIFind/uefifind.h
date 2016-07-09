@@ -34,11 +34,11 @@ public:
     explicit UEFIFind();
     ~UEFIFind();
 
-    STATUS init(const QString & path);
-    STATUS find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result);
+    USTATUS init(const QString & path);
+    USTATUS find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result);
 
 private:
-    STATUS findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files);
+    USTATUS findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files);
     QString guidToQString(const UINT8* guid);
 
     FfsParser* ffsParser;

@@ -20,6 +20,7 @@ SOURCES  += uefifind_main.cpp \
  ../common/LZMA/LzmaDecompress.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/Tiano/EfiTianoDecompress.c \
+ ../common/ustring.cpp
 
 HEADERS  += uefifind.h \
  ../common/basetypes.h \
@@ -35,5 +36,7 @@ HEADERS  += uefifind.h \
  ../common/treemodel.h \
  ../common/utility.h \
  ../common/LZMA/LzmaDecompress.h \
- ../common/Tiano/EfiTianoDecompress.h
+ ../common/Tiano/EfiTianoDecompress.h \
+ ../common/ustring.h \
+ ../common/ubytearray.h
  

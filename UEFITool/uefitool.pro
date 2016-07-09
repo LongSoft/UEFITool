@@ -29,7 +29,8 @@ SOURCES += uefitool_main.cpp \
  ../common/LZMA/SDK/C/LzmaEnc.c \
  ../common/Tiano/EfiTianoDecompress.c \
  ../common/Tiano/EfiTianoCompress.c \
- ../common/Tiano/EfiTianoCompressLegacy.c
+ ../common/Tiano/EfiTianoCompressLegacy.c \
+ ../common/ustring.cpp \
 
 HEADERS += uefitool.h \
  searchdialog.h \
@@ -56,7 +57,9 @@ HEADERS += uefitool.h \
  ../common/LZMA/LzmaCompress.h \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
- ../common/Tiano/EfiTianoCompress.h
+ ../common/Tiano/EfiTianoCompress.h \
+ ../common/ustring.h \
+ ../common/ubytearray.h \
 
 FORMS += uefitool.ui \
  searchdialog.ui

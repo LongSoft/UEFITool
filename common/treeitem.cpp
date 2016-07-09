@@ -11,14 +11,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include <QObject>
 #include "treeitem.h"
 #include "types.h"
 
 TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, 
-    const QString & name, const QString & text, const QString & info,
-    const QByteArray & header, const QByteArray & body, const QByteArray & tail,
-    const BOOLEAN fixed, const BOOLEAN compressed, const QByteArray & parsingData,
+    const UString & name, const UString & text, const UString & info,
+    const UByteArray & header, const UByteArray & body, const UByteArray & tail,
+    const bool fixed, const bool compressed, const UByteArray & parsingData,
     TreeItem *parent) : 
     itemAction(Actions::NoAction),
     itemType(type),
@@ -34,50 +33,61 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype,
     itemCompressed(compressed),
     parentItem(parent)
 {
-    setFixed(fixed);
+}
+
+TreeItem::~TreeItem() {
+    std::list<TreeItem*>::iterator begin = childItems.begin();
+    while (begin != childItems.end()) {
+        delete *begin;
+        ++begin;
+    }
 }
 
 UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 {
-    int index = childItems.indexOf(item);
-    if (index == -1)
-        return ERR_ITEM_NOT_FOUND;
-    childItems.insert(index, newItem);
-    return ERR_SUCCESS;
+    std::list<TreeItem*>::iterator found = std::find(std::begin(childItems), std::end(childItems), item);
+    if (found == std::end(childItems))
+        return U_ITEM_NOT_FOUND;
+    childItems.insert(found, newItem);
+    return U_SUCCESS;
 }
 
 UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
 {
-    int index = childItems.indexOf(item);
-    if (index == -1)
-        return ERR_ITEM_NOT_FOUND;
-    childItems.insert(index + 1, newItem);
-    return ERR_SUCCESS;
+    std::list<TreeItem*>::iterator found = std::find(std::begin(childItems), std::end(childItems), item);
+    if (found == std::end(childItems))
+        return U_ITEM_NOT_FOUND;
+    childItems.insert(++found, newItem);
+    return U_SUCCESS;
 }
 
-QVariant TreeItem::data(int column) const
+UString TreeItem::data(int column) const
 {
     switch (column)
     {
     case 0: // Name
         return itemName;
     case 1: // Action
-        return actionTypeToQString(itemAction);
+        return actionTypeToUString(itemAction);
     case 2: // Type
-        return itemTypeToQString(itemType);
+        return itemTypeToUString(itemType);
     case 3: // Subtype
-        return itemSubtypeToQString(itemType, itemSubtype);
+        return itemSubtypeToUString(itemType, itemSubtype);
     case 4: // Text
         return itemText;
     default:
-        return QVariant();
+        return UString();
     }
 }
 
 int TreeItem::row() const
 {
-    if (parentItem)
-        return parentItem->childItems.indexOf(const_cast<TreeItem*>(this));
-
+    if (parentItem) {
+        std::list<TreeItem*>::const_iterator iter = parentItem->childItems.cbegin();
+        for (int i = 0; i < (int)parentItem->childItems.size(); ++i, ++iter) {
+            if (const_cast<TreeItem*>(this) == *iter)
+                return i;
+        }
+    }
     return 0;
 }

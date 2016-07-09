@@ -15,10 +15,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include <QObject>
-#include <QModelIndex>
-#include <QByteArray>
-
+#include "ustring.h"
+#include "ubytearray.h"
 #include "basetypes.h"
 #include "treemodel.h"
 #include "utility.h"
@@ -43,95 +41,95 @@ public:
     ~FfsParser() {}
 
     // Returns messages 
-    std::vector<std::pair<QString, QModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
     // Clears messages
     void clearMessages() { messagesVector.clear(); }
 
     // Firmware image parsing
-    STATUS parse(const QByteArray &buffer);
+    USTATUS parse(const UByteArray &buffer);
     
     // Retuns index of the last VTF after parsing is done
-    const QModelIndex getLastVtf() {return lastVtf;};
+    const UModelIndex getLastVtf() {return lastVtf;};
 
 private:
     TreeModel *model;
-    std::vector<std::pair<QString, QModelIndex> > messagesVector;
-    void msg(const QString & message, const QModelIndex &index = QModelIndex()) {
-        messagesVector.push_back(std::pair<QString, QModelIndex>(message, index));
+    std::vector<std::pair<UString, UModelIndex> > messagesVector;
+    void msg(const UString message, const UModelIndex index = UModelIndex()) {
+        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 
-    QModelIndex lastVtf;
+    UModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
 
-    STATUS parseRawArea(const QModelIndex & index);
-    STATUS parseVolumeHeader(const QByteArray & volume, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseVolumeBody(const QModelIndex & index);
-    STATUS parseFileHeader(const QByteArray & file, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseFileBody(const QModelIndex & index);
-    STATUS parseSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse = false);
-    STATUS parseSectionBody(const QModelIndex & index);
+    USTATUS parseRawArea(const UModelIndex & index);
+    USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseVolumeBody(const UModelIndex & index);
+    USTATUS parseFileHeader(const UByteArray & file, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFileBody(const UModelIndex & index);
+    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse = false);
+    USTATUS parseSectionBody(const UModelIndex & index);
 
-    STATUS parseIntelImage(const QByteArray & intelImage, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & root);
-    STATUS parseGbeRegion(const QByteArray & gbe, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseMeRegion(const QByteArray & me, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseBiosRegion(const QByteArray & bios, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parsePdrRegion(const QByteArray & pdr, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseGeneralRegion(const UINT8 subtype, const QByteArray & region, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & root);
+    USTATUS parseGbeRegion(const UByteArray & gbe, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseMeRegion(const UByteArray & me, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parsePdrRegion(const UByteArray & pdr, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseGeneralRegion(const UINT8 subtype, const UByteArray & region, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
 
-    STATUS parsePadFileBody(const QModelIndex & index);
-    STATUS parseVolumeNonUefiData(const QByteArray & data, const UINT32 parentOffset, const QModelIndex & index);
+    USTATUS parsePadFileBody(const UModelIndex & index);
+    USTATUS parseVolumeNonUefiData(const UByteArray & data, const UINT32 parentOffset, const UModelIndex & index);
 
-    STATUS parseSections(const QByteArray & sections, const QModelIndex & index, const bool preparse = false);
-    STATUS parseCommonSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
-    STATUS parseCompressedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
-    STATUS parseGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
-    STATUS parseFreeformGuidedSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
-    STATUS parseVersionSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
-    STATUS parsePostcodeSectionHeader(const QByteArray & section, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index, const bool preparse);
+    USTATUS parseSections(const UByteArray & sections, const UModelIndex & index, const bool preparse = false);
+    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
+    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
+    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
+    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
+    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
+    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
 
-    STATUS parseCompressedSectionBody(const QModelIndex & index);
-    STATUS parseGuidedSectionBody(const QModelIndex & index);
-    STATUS parseVersionSectionBody(const QModelIndex & index);
-    STATUS parseDepexSectionBody(const QModelIndex & index);
-    STATUS parseUiSectionBody(const QModelIndex & index);
-    STATUS parseRawSectionBody(const QModelIndex & index);
-    STATUS parsePeImageSectionBody(const QModelIndex & index);
-    STATUS parseTeImageSectionBody(const QModelIndex & index);
+    USTATUS parseCompressedSectionBody(const UModelIndex & index);
+    USTATUS parseGuidedSectionBody(const UModelIndex & index);
+    USTATUS parseVersionSectionBody(const UModelIndex & index);
+    USTATUS parseDepexSectionBody(const UModelIndex & index);
+    USTATUS parseUiSectionBody(const UModelIndex & index);
+    USTATUS parseRawSectionBody(const UModelIndex & index);
+    USTATUS parsePeImageSectionBody(const UModelIndex & index);
+    USTATUS parseTeImageSectionBody(const UModelIndex & index);
 
-    UINT8  getPaddingType(const QByteArray & padding);
-    STATUS parseAprioriRawSection(const QByteArray & body, QString & parsed);
-    STATUS findNextVolume(const QModelIndex & index, const QByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
-    STATUS getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
-    UINT32 getFileSize(const QByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
-    UINT32 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
+    UINT8  getPaddingType(const UByteArray & padding);
+    USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
+    USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
+    USTATUS getVolumeSize(const UByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
+    UINT32 getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
+    UINT32 getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
-    STATUS performFirstPass(const QByteArray & imageFile, QModelIndex & index);
-    STATUS performSecondPass(const QModelIndex & index);
-    STATUS addOffsetsRecursive(const QModelIndex & index);
-    STATUS addMemoryAddressesRecursive(const QModelIndex & index, const UINT32 diff);
+    USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
+    USTATUS performSecondPass(const UModelIndex & index);
+    USTATUS addOffsetsRecursive(const UModelIndex & index);
+    USTATUS addMemoryAddressesRecursive(const UModelIndex & index, const UINT32 diff);
 
     // NVRAM parsing
-    STATUS parseNvramVolumeBody(const QModelIndex & index);
-    STATUS findNextStore(const QModelIndex & index, const QByteArray & volume, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
-    STATUS getStoreSize(const QByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
-    STATUS parseStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    USTATUS parseNvramVolumeBody(const UModelIndex & index);
+    USTATUS findNextStore(const UModelIndex & index, const UByteArray & volume, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
+    USTATUS getStoreSize(const UByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
+    USTATUS parseStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
     
-    STATUS parseNvarStore(const QModelIndex & index);
-    STATUS parseVssStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseFtwStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseFdcStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseFsysStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseEvsaStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseFlashMapStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseCmdbStoreHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseSlicPubkeyHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseSlicMarkerHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
-    STATUS parseIntelMicrocodeHeader(const QByteArray & store, const UINT32 parentOffset, const QModelIndex & parent, QModelIndex & index);
+    USTATUS parseNvarStore(const UModelIndex & index);
+    USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFtwStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFdcStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFsysStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseEvsaStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFlashMapStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseCmdbStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseSlicPubkeyHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
     
-    STATUS parseVssStoreBody(const QModelIndex & index);
-    STATUS parseFsysStoreBody(const QModelIndex & index);
-    STATUS parseEvsaStoreBody(const QModelIndex & index);
-    STATUS parseFlashMapBody(const QModelIndex & index);
+    USTATUS parseVssStoreBody(const UModelIndex & index);
+    USTATUS parseFsysStoreBody(const UModelIndex & index);
+    USTATUS parseEvsaStoreBody(const UModelIndex & index);
+    USTATUS parseFlashMapBody(const UModelIndex & index);
 };
 
 #endif // FFSPARSER_H

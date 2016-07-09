@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("0.30.0_alpha28"))
+version(tr("0.30.0_alpha29"))
 {
     clipboard = QApplication::clipboard();
 
@@ -211,7 +211,7 @@ bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
     if (current.isValid() && model->type(current) == Types::Section &&
        (model->subtype(current) == EFI_SECTION_COMPRESSION || model->subtype(current) == EFI_SECTION_GUID_DEFINED)) {
         // Get parsing data
-        PARSING_DATA pdata = parsingDataFromQModelIndex(current);
+        PARSING_DATA pdata = parsingDataFromUModelIndex(current);
 
         if (model->subtype(current) == EFI_SECTION_COMPRESSION && 
             pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_NONE &&
@@ -297,7 +297,7 @@ void UEFITool::goToData()
     QModelIndex parent = model->parent(index);
     
     for (int i = index.row(); i < model->rowCount(parent); i++) {
-        PARSING_DATA pdata = parsingDataFromQModelIndex(index);
+        PARSING_DATA pdata = parsingDataFromUModelIndex(index);
         UINT32 lastVariableFlag = pdata.emptyByte ? 0xFFFFFF : 0;
         if (pdata.nvar.next == lastVariableFlag) {
             ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
@@ -306,7 +306,7 @@ void UEFITool::goToData()
         
         for (int j = i + 1; j < model->rowCount(parent); j++) {
             QModelIndex currentIndex = parent.child(j, 0);
-            PARSING_DATA currentPdata = parsingDataFromQModelIndex(currentIndex);
+            PARSING_DATA currentPdata = parsingDataFromUModelIndex(currentIndex);
             if (currentPdata.offset == pdata.offset + pdata.nvar.next) {
                 index = currentIndex;
                 break;
@@ -481,7 +481,7 @@ void UEFITool::replace(const UINT8 mode)
 
     UINT8 result = ffsOps->replace(index, buffer, mode);
     if (result) {
-        QMessageBox::critical(this, tr("Replacing failed"), errorCodeToQString(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Replacing failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
     }
     ui->actionSaveImageFile->setEnabled(true);
@@ -512,7 +512,7 @@ void UEFITool::extract(const UINT8 mode)
     QString name;
     UINT8 result = ffsOps->extract(index, name, extracted, mode);
     if (result) {
-        QMessageBox::critical(this, tr("Extraction failed"), errorCodeToQString(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Extraction failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
     }
     
@@ -609,21 +609,21 @@ void UEFITool::extract(const UINT8 mode)
 
 void UEFITool::rebuild()
 {
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    UModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
-    if (ERR_SUCCESS == ffsOps->rebuild(index))
+    if (U_SUCCESS == ffsOps->rebuild(index))
         ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::remove()
 {
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    UModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
-    if (ERR_SUCCESS == ffsOps->remove(index))
+    if (U_SUCCESS == ffsOps->remove(index))
         ui->actionSaveImageFile->setEnabled(true);
 }
 
@@ -661,10 +661,10 @@ void UEFITool::saveImageFile()
     // Create ffsBuilder
     delete ffsBuilder;
     ffsBuilder = new FfsBuilder(model);
-    STATUS result = ffsBuilder->build(model->index(0,0), reconstructed);
+    USTATUS result = ffsBuilder->build(model->index(0,0), reconstructed);
     showBuilderMessages();
     if (result) {
-        QMessageBox::critical(this, tr("Image build failed"), errorCodeToQString(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Image build failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
     }
 
@@ -725,7 +725,7 @@ void UEFITool::openImageFile(QString path)
     UINT8 result = ffsParser->parse(buffer);
     showParserMessages();
     if (result) {
-        QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToQString(result), QMessageBox::Ok);
+        QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
     }
     else
