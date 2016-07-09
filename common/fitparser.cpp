@@ -35,7 +35,8 @@ USTATUS FitParser::parse(const UModelIndex & index, const UModelIndex & lastVtfI
     model->setFixed(index, true);
 
     // Special case of FIT header
-    const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(model->body(fitIndex).constData() + fitOffset);
+    UByteArray fitBody = model->body(fitIndex);
+    const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(fitBody.constData() + fitOffset);
     
     // Check FIT checksum, if present
     UINT32 fitSize = (fitHeader->Size & 0xFFFFFF) << 4;
