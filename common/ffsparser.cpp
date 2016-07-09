@@ -1,4 +1,4 @@
-﻿/* ffsparser.cpp
+/* ffsparser.cpp
 
 Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
@@ -1179,7 +1179,7 @@ USTATUS FfsParser::findNextVolume(const UModelIndex & index, const UByteArray & 
     for (; nextIndex > 0; nextIndex = bios.indexOf(EFI_FV_SIGNATURE, nextIndex + 1)) {
         const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(bios.constData() + nextIndex - EFI_FV_SIGNATURE_OFFSET);
         if (volumeHeader->FvLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY) || volumeHeader->FvLength >= 0xFFFFFFFFUL) {
-            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid FvLength %"PRIX64"h", 
+            msg(usprintf("findNextVolume: volume candidate at offset %Xh skipped, has invalid FvLength %" PRIX64 "h", 
                 parentOffset + (nextIndex - EFI_FV_SIGNATURE_OFFSET), 
                 volumeHeader->FvLength), index);
             continue;
@@ -2812,7 +2812,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
             optionalHeader.H32->ImageBase);
     }
     else if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
-        info += usprintf("\nOptional header signature: %04Xh\nSubsystem: %04Xh\nAddress of entry point: %Xh\nBase of code: %Xh\nImage base: %"PRIX64"h",
+        info += usprintf("\nOptional header signature: %04Xh\nSubsystem: %04Xh\nAddress of entry point: %Xh\nBase of code: %Xh\nImage base: %" PRIX64 "h",
             optionalHeader.H64->Magic, 
             optionalHeader.H64->Subsystem, 
             optionalHeader.H64->AddressOfEntryPoint,
@@ -2852,7 +2852,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
         info += usprintf("\nSignature: %04Xh", teHeader->Signature) +
             UString("\nMachine type: ") + machineTypeToUString(teHeader->Machine) +
             usprintf("\nNumber of sections: %u\nSubsystem: %02Xh\nStripped size: %Xh (%u)\n"
-            "Base of code: %Xh\nAddress of entry point: %Xh\nImage base: %"PRIX64"h\nAdjusted image base: %"PRIX64"h",
+            "Base of code: %Xh\nAddress of entry point: %Xh\nImage base: %" PRIX64 "h\nAdjusted image base: %" PRIX64 "h",
             teHeader->NumberOfSections,
             teHeader->Subsystem, 
             teHeader->StrippedSize, teHeader->StrippedSize,
@@ -3276,7 +3276,7 @@ parsing_done:
                     (calculatedChecksum ? usprintf(", invalid, should be %02Xh", 0x100 - calculatedChecksum) : UString(", valid"));
             // Authentication data
             if (hasTimestampAndHash) {
-                info += usprintf("\nTimestamp: %"PRIX64"h\nHash: ",
+                info += usprintf("\nTimestamp: %" PRIX64 "h\nHash: ",
                     timestamp) + UString(hash.toHex().constData());
             }
         }
@@ -4425,7 +4425,7 @@ USTATUS FfsParser::parseVssStoreBody(const UModelIndex & index)
             subtype = Subtypes::InvalidVssEntry;
         else if (isAuthenticated) {
             subtype = Subtypes::AuthVssEntry;
-            info += usprintf("\nMonotonic counter: %"PRIX64"h\nTimestamp: ", monotonicCounter) + efiTimeToUString(timestamp)
+            info += usprintf("\nMonotonic counter: %" PRIX64 "h\nTimestamp: ", monotonicCounter) + efiTimeToUString(timestamp)
                 + usprintf("\nPubKey index: %u", pubKeyIndex);
         }
         else if (isAppleCrc32) {
