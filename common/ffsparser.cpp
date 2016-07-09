@@ -4086,7 +4086,7 @@ USTATUS FfsParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT32 
     // Add info
     UString name("SLIC pubkey");
     UString info = usprintf("Type: 0h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
-        "Key type :%02Xh\nVersion: %02Xh\nAlgorithm: %08Xh\nMagic: RSA1\nBit length: %08Xh\nExponent: %08Xh",
+        "Key type: %02Xh\nVersion: %02Xh\nAlgorithm: %08Xh\nMagic: RSA1\nBit length: %08Xh\nExponent: %08Xh",
         pubkeyHeader->Size, pubkeyHeader->Size,
         header.size(), header.size(),
         pubkeyHeader->KeyType,
@@ -4134,7 +4134,7 @@ USTATUS FfsParser::parseSlicMarkerHeader(const UByteArray & store, const UINT32 
     // Add info
     UString name("SLIC marker");
     UString info = usprintf("Type: 1h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
-        "Version :%08Xh\nOEM ID: %s\nOEM table ID: %s\nWindows flag: WINDOWS\nSLIC version: %08Xh",
+        "Version: %08Xh\nOEM ID: %s\nOEM table ID: %s\nWindows flag: WINDOWS\nSLIC version: %08Xh",
         markerHeader->Size, markerHeader->Size,
         header.size(), header.size(),
         markerHeader->Version, 

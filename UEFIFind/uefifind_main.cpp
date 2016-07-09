@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
         else if (a.arguments().at(1) == QString("all"))
             mode = SEARCH_MODE_ALL;
         else
-            return ERR_INVALID_PARAMETER;
+            return U_INVALID_PARAMETER;
 
         // Get result type
         bool count;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
         else if (a.arguments().at(2) == QString("count"))
             count = true;
         else
-            return ERR_INVALID_PARAMETER;
+            return U_INVALID_PARAMETER;
 
         // Parse input file
         result = w.init(a.arguments().at(4));
@@ -58,26 +58,26 @@ int main(int argc, char *argv[])
 
         // Nothing is found
         if (found.isEmpty())
-            return ERR_ITEM_NOT_FOUND;
+            return U_ITEM_NOT_FOUND;
 
         // Print result
         std::cout << found.toStdString();
-        return ERR_SUCCESS;
+        return U_SUCCESS;
     }
     else if (a.arguments().length() == 4) {
         // Get search mode
         if (a.arguments().at(1) != QString("file"))
-            return ERR_INVALID_PARAMETER;
+            return U_INVALID_PARAMETER;
 
         // Open patterns file
         QFileInfo fileInfo(a.arguments().at(2));
         if (!fileInfo.exists())
-            return ERR_FILE_OPEN;
+            return U_FILE_OPEN;
 
         QFile patternsFile;
         patternsFile.setFileName(a.arguments().at(2));
         if (!patternsFile.open(QFile::ReadOnly))
-            return ERR_FILE_OPEN;
+            return U_FILE_OPEN;
 
         // Parse input file
         result = w.init(a.arguments().at(3));
@@ -143,15 +143,15 @@ int main(int argc, char *argv[])
 
         // Nothing is found
         if (!somethingFound)
-            return ERR_ITEM_NOT_FOUND;
+            return U_ITEM_NOT_FOUND;
 
-        return ERR_SUCCESS;
+        return U_SUCCESS;
     }
     else {
         std::cout << "UEFIFind 0.10.6" << std::endl << std::endl <<
             "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
             "    or UEFIFind file patternsfile imagefile" << std::endl;
-        return ERR_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
     }
 }
 

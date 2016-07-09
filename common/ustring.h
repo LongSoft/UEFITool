@@ -17,6 +17,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Use Qt class, if Qt is available
 #include <QString>
 #define UString QString
+#define findreplace replace
 #else
 // Use Bstrlib
 #define BSTRLIB_DOESNT_THROW_EXCEPTIONS

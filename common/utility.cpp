@@ -52,7 +52,7 @@ UString uniqueItemName(const UModelIndex & index)
         return UString("Invalid index");
 
     // Get model from index
-    const TreeModel* model = index.model();
+    const TreeModel* model = (const TreeModel*)index.model();
 
     // Get data from parsing data
     PARSING_DATA pdata = parsingDataFromUModelIndex(index);
@@ -64,7 +64,7 @@ UString uniqueItemName(const UModelIndex & index)
     // Default name
     UString name = itemName;
     switch (model->type(index)) {
-    case Types::Volume:        
+    case Types::Volume:
         if (pdata.volume.hasExtendedHeader) name = guidToUString(pdata.volume.extendedHeaderGuid); 
         break;
     case Types::NvarEntry:
@@ -72,18 +72,21 @@ UString uniqueItemName(const UModelIndex & index)
     case Types::FsysEntry:
     case Types::EvsaEntry:
     case Types::FlashMapEntry:
-    case Types::File:          
-        name = itemText.isEmpty() ? itemName : itemText; 
+    case Types::File:
+        name = itemText.isEmpty() ? itemName : itemName + '_' + itemText;
         break;
     case Types::Section: {
         // Get parent file name
         UModelIndex fileIndex = model->findParentOfType(index, Types::File);
         UString fileText = model->text(fileIndex);
-        name = fileText.isEmpty() ? model->name(fileIndex) : fileText;
-        // Append section subtype name
-        name += '_' + itemName;
+        name = fileText.isEmpty() ? model->name(fileIndex) : model->name(fileIndex) + '_' + fileText;
         } break;
     }
+
+    UString subtypeString = itemSubtypeToUString(model->type(index), model->subtype(index));
+    name = itemTypeToUString(model->type(index))
+        + (subtypeString.length() ? ('_' + subtypeString) : UString())
+        + '_' + name;
 
     name.findreplace(' ', '_');
     name.findreplace('/', '_');

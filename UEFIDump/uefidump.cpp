@@ -159,15 +159,14 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
         UString orgName = uniqueItemName(index);
         UString name = orgName;
         bool nameFound = false;
-        for (int i = 0; i < 0x10000; ++i) {
-            if (isExistOnFs(name)) {
-                name = orgName + UString("_") + usprintf("%04X", i);
-            }
-            else {
+        for (int i = 1; i < 1000; ++i) {
+            if (!isExistOnFs(name + UString("_info.txt"))) {
                 nameFound = true;
                 break;
             }
+            name = orgName + UString("_") + usprintf("%03d", i);
         }
+
         if (!nameFound)
             return U_INVALID_PARAMETER; //TODO: replace with proper errorCode
 
