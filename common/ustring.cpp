@@ -23,6 +23,11 @@ UString usprintf(const char* fmt, ...)
     va_end(vl);
     return msg;
 };
+
+UString urepeated(char c, int len)
+{
+    return UString(len, c);
+}
 #else
 /* Give WATCOM C/C++, MSVC some latitude for their non-support of vsnprintf */
 #if defined(__WATCOMC__) || defined(_MSC_VER)
@@ -90,5 +95,10 @@ UString usprintf(const char* fmt, ...)
     }
 
     return msg;
+}
+
+UString urepeated(char c, int len)
+{
+    return UString(c, len);
 }
 #endif

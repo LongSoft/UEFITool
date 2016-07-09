@@ -14,10 +14,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef FFSDUMPER_H
 #define FFSDUMPER_H
 
-
+#include <QObject>
 #include <QDir>
-#include "../common/ubytearray.h"
-#include "../common/ustring.h"
+#include <QByteArray>
+#include <QString>
+#include <QModelIndex>
+
 #include "../common/basetypes.h"
 #include "../common/treemodel.h"
 #include "../common/ffs.h"
@@ -25,15 +27,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class FfsDumper
 {
 public:
-    explicit FfsDumper(TreeModel * treeModel);
-    ~FfsDumper();
+    explicit FfsDumper(TreeModel * treeModel) : model(treeModel), dumped(false) {}
+    ~FfsDumper() {};
 
-    USTATUS dump(const UModelIndex & root, const UString & path, const bool dumpAll = false, const UString & guid = UString());
+    USTATUS dump(const QModelIndex & root, const QString & path, const bool dumpAll = false, const QString & guid = QString());
 
 private:
-    USTATUS recursiveDump(const UModelIndex & root, const UString & path, const bool dumpAll, const UString & guid);
+    USTATUS recursiveDump(const QModelIndex & root, const QString & path, const bool dumpAll, const QString & guid);
     TreeModel* model;
     bool dumped;
 };
-
 #endif // FFSDUMPER_H

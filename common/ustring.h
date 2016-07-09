@@ -26,5 +26,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #endif // QT_CORE_LIB
 
 UString usprintf(const char* fmt, ...);
+UString urepeated(char c, int len);
 
 #endif // USTRING_H

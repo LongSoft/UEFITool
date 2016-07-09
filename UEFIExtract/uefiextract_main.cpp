@@ -1,21 +1,18 @@
 /* uefiextract_main.cpp
-
 Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
 http://opensource.org/licenses/bsd-license.php
-
 THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-
 */
 #include <QCoreApplication>
+#include <QString>
 #include <QFileInfo>
-#include <iostream>
-#include <fstream>
 
-#include <../common/ustring.h>
+#include <iostream>
+
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
 #include "../common/fitparser.h"
@@ -35,23 +32,20 @@ int main(int argc, char *argv[])
 
     if (a.arguments().length() > 1) {
         // Check that input file exists
-        UString path(a.arguments().at(1).toLatin1());
-        QString qpath = QString(path);
-        QFileInfo fileInfo(qpath);
+        QString path = a.arguments().at(1);
+        QFileInfo fileInfo(path);
         if (!fileInfo.exists())
             return U_FILE_OPEN;
 
         // Open the input file
         QFile inputFile;
-        inputFile.setFileName(qpath);
+        inputFile.setFileName(path);
         if (!inputFile.open(QFile::ReadOnly))
             return U_FILE_OPEN;
-        
-        // Read and close the file
-        QByteArray b = inputFile.readAll();
-        inputFile.close();
 
-        UByteArray buffer(b.constData(), b.size());
+        // Read and close the file
+        QByteArray buffer = inputFile.readAll();
+        inputFile.close();
 
         // Create model and ffsParser
         TreeModel model;
@@ -62,13 +56,13 @@ int main(int argc, char *argv[])
             return result;
 
         // Show ffsParser's messages
-        std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
+        std::vector<std::pair<QString, QModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << (const char*)messages[i].first.toLocal8Bit() << std::endl;
+            std::cout << messages[i].first.toLatin1().constData() << std::endl;
         }
 
         // Get last VTF
-        UModelIndex lastVtf = ffsParser.getLastVtf();
+        QModelIndex lastVtf = ffsParser.getLastVtf();
         if (lastVtf.isValid()) {
             // Create fitParser
             FitParser fitParser(&model);
@@ -76,57 +70,59 @@ int main(int argc, char *argv[])
             result = fitParser.parse(model.index(0, 0), lastVtf);
             if (U_SUCCESS == result) {
                 // Show fitParser's messages
-                std::vector<std::pair<UString, UModelIndex> > fitMessages = fitParser.getMessages();
+                std::vector<std::pair<QString, QModelIndex> > fitMessages = fitParser.getMessages();
                 for (size_t i = 0; i < fitMessages.size(); i++) {
-                    std::cout << (const char*)fitMessages[i].first.toLocal8Bit() << std::endl;
+                    std::cout << fitMessages[i].first.toLatin1().constData() << std::endl;
                 }
 
                 // Show FIT table
-                std::vector<std::vector<UString> > fitTable = fitParser.getFitTable();
+                std::vector<std::vector<QString> > fitTable = fitParser.getFitTable();
                 if (fitTable.size()) {
                     std::cout << "-------------------------------------------------------------------" << std::endl;
                     std::cout << "     Address     |   Size   | Ver  |           Type           | CS " << std::endl;
                     std::cout << "-------------------------------------------------------------------" << std::endl;
                     for (size_t i = 0; i < fitTable.size(); i++) {
-                        std::cout << (const char*)fitTable[i][0].toLocal8Bit() << " | "
-                            << (const char*)fitTable[i][1].toLocal8Bit() << " | "
-                            << (const char*)fitTable[i][2].toLocal8Bit() << " | "
-                            << (const char*)fitTable[i][3].toLocal8Bit() << " | "
-                            << (const char*)fitTable[i][4].toLocal8Bit() << std::endl;
+                        std::cout << fitTable[i][0].toLatin1().constData() << " | "
+                            << fitTable[i][1].toLatin1().constData() << " | "
+                            << fitTable[i][2].toLatin1().constData() << " | "
+                            << fitTable[i][3].toLatin1().constData() << " | "
+                            << fitTable[i][4].toLatin1().constData() << std::endl;
                     }
                 }
             }
         }
-        
+
         // Create ffsReport
         FfsReport ffsReport(&model);
-        std::vector<UString> report = ffsReport.generate();
+        std::vector<QString> report = ffsReport.generate();
         if (report.size()) {
-            std::ofstream ofs;
-            ofs.open("report.txt", std::ofstream::out);
-            for (size_t i = 0; i < report.size(); i++) {
-                ofs << (const char*)report[i].toLocal8Bit() << std::endl;
+            QFile file;
+            file.setFileName(fileInfo.fileName().append(".report.txt"));
+            if (file.open(QFile::Text | QFile::WriteOnly)) {
+                for (size_t i = 0; i < report.size(); i++) {
+                    file.write(report[i].toLatin1().append('\n'));
+                }
+                file.close();
             }
-            ofs.close();
         }
-                
+
         // Create ffsDumper
         FfsDumper ffsDumper(&model);
 
         // Dump all non-leaf elements
         if (a.arguments().length() == 2) {
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump2").toLatin1().constData()) != U_SUCCESS);
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == UString("all")) { // Dump everything
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump2").toLatin1().constData(), true) != U_SUCCESS);
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump everything
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == UString("none")) { // Skip dumping
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("none")) { // Skip dumping
             return 0;
         }
         else { // Dump specific files
             UINT32 returned = 0;
             for (int i = 2; i < a.arguments().length(); i++) {
-                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump2").toLatin1().constData(), true, a.arguments().at(i).toLatin1().constData());
+                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true, a.arguments().at(i));
                 if (result)
                     returned |= (1 << (i - 1));
             }
@@ -136,14 +132,12 @@ int main(int argc, char *argv[])
         return 0;
     }
     else { // Show version and usage information
-        std::cout << "UEFIExtract 0.12.1" << std::endl << std::endl
+        std::cout << "UEFIExtract 0.12.2" << std::endl << std::endl
             << "Usage: UEFIExtract imagefile      - generate report and dump only leaf tree items into .dump folder" << std::endl
             << "       UEFIExtract imagefile all  - generate report and dump all tree items" << std::endl
             << "       UEFIExtract imagefile none - only generate report, no dump needed" << std::endl
             << "       UIFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dump only FFS file(s) with specific GUID(s)" << std::endl
-            << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl << std::endl;
+            << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
         return 1;
     }
-
-return 0;
 }
