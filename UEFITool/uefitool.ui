@@ -716,7 +716,7 @@
     <string>Hex &amp;view...</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Q</string>
+    <string>Ctrl+D</string>
    </property>
   </action>
  </widget>
