@@ -43,6 +43,7 @@
 #include "../common/ffsbuilder.h"
 
 #include "searchdialog.h"
+#include "hexviewdialog.h"
 #include "messagelistitem.h"
 #include "ffsfinder.h"
 
@@ -71,7 +72,10 @@ private slots:
     void saveImageFile();
     void search();
 
+    void hexView();
+
     void goToData();
+    
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
@@ -110,6 +114,7 @@ private:
     FfsOperations* ffsOps;
     FfsBuilder* ffsBuilder;
     SearchDialog* searchDialog;
+    HexViewDialog* hexViewDialog;
     QClipboard* clipboard;
     QString currentDir;
     QString currentProgramPath;

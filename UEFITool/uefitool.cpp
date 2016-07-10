@@ -17,13 +17,14 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("NE Alpha30"))
+version(tr("NE Alpha31"))
 {
     clipboard = QApplication::clipboard();
 
     // Create UI
     ui->setupUi(this);
     searchDialog = new SearchDialog(this);
+    hexViewDialog = new HexViewDialog(this);
     model = NULL;
     ffsParser = NULL;
     fitParser = NULL;
@@ -36,6 +37,7 @@ version(tr("NE Alpha30"))
     connect(ui->actionOpenImageFileInNewWindow, SIGNAL(triggered()), this, SLOT(openImageFileInNewWindow()));
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
     connect(ui->actionSearch, SIGNAL(triggered()), this, SLOT(search()));
+    connect(ui->actionHexView, SIGNAL(triggered()), this, SLOT(hexView()));
     connect(ui->actionExtract, SIGNAL(triggered()), this, SLOT(extractAsIs()));
     connect(ui->actionExtractBody, SIGNAL(triggered()), this, SLOT(extractBody()));
     connect(ui->actionExtractBodyUncompressed, SIGNAL(triggered()), this, SLOT(extractBodyUncompressed()));
@@ -77,6 +79,7 @@ version(tr("NE Alpha30"))
     ui->structureTreeView->setFont(font);
     searchDialog->ui->guidEdit->setFont(font);
     searchDialog->ui->hexEdit->setFont(font);
+    hexViewDialog->setFont(font);
 
     // Initialize non-persistent data
     init();
@@ -93,6 +96,7 @@ UEFITool::~UEFITool()
     delete fitParser;
     delete ffsParser;
     delete model;
+    delete hexViewDialog;
     delete searchDialog;
     delete ui;
 }
@@ -185,7 +189,8 @@ void UEFITool::populateUi(const QModelIndex &current)
         || type == Types::SlicData);
     
     // Enable actions
-    ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current));
+    ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
+    ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
     ui->actionGoToData->setEnabled(type == Types::NvarEntry && subtype == Subtypes::LinkNvarEntry);
 
     // Disable rebuild for now
@@ -285,6 +290,16 @@ void UEFITool::search()
             (Qt::CaseSensitivity) searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
         showFinderMessages();
     }
+}
+
+void UEFITool::hexView()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+
+    hexViewDialog->setItem(index);
+    hexViewDialog->exec();
 }
 
 void UEFITool::goToData()
@@ -631,7 +646,9 @@ void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
         "Copyright (c) 2016, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
-        "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
+        "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br>"
+        "The program uses QHexEdit2 library made by <a href=https://github.com/Simsys/>Simsys</a>.<br>"
+        "Qt-less engine is using Bstrlib made by <a href=https://github.com/websnarf/>Paul Hsieh</a>.<br><br>"
         "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
         "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
         "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"

@@ -308,6 +308,8 @@
      <property name="title">
       <string>&amp;Capsule</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
     </widget>
@@ -315,12 +317,16 @@
      <property name="title">
       <string>&amp;Image</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
     </widget>
     <widget class="QMenu" name="menuRegionActions">
      <property name="title">
       <string>&amp;Region</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="separator"/>
      <addaction name="actionRebuild"/>
@@ -331,12 +337,16 @@
      <property name="title">
       <string>&amp;Padding</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
     </widget>
     <widget class="QMenu" name="menuVolumeActions">
      <property name="title">
       <string>&amp;Volume</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
      <addaction name="separator"/>
@@ -351,6 +361,8 @@
      <property name="title">
       <string>&amp;File</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
      <addaction name="separator"/>
@@ -369,6 +381,8 @@
      <property name="title">
       <string>&amp;Section</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
      <addaction name="actionExtractBodyUncompressed"/>
@@ -383,7 +397,6 @@
      <addaction name="actionReplaceBody"/>
      <addaction name="separator"/>
      <addaction name="actionRemove"/>
-     <addaction name="separator"/>
     </widget>
     <widget class="QMenu" name="menuMessages">
      <property name="title">
@@ -398,6 +411,8 @@
      <property name="title">
       <string>Variable</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionGoToData"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
@@ -417,6 +432,8 @@
      <property name="title">
       <string>S&amp;tore</string>
      </property>
+     <addaction name="actionHexView"/>
+     <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
      <addaction name="separator"/>
@@ -622,7 +639,7 @@
   </action>
   <action name="actionMessagesClear">
    <property name="text">
-    <string>Cl&amp;ear</string>
+    <string>Clea&amp;r</string>
    </property>
    <property name="toolTip">
     <string>Clear messages</string>
@@ -655,7 +672,7 @@
   </action>
   <action name="actionMessagesCopyAll">
    <property name="text">
-    <string>C&amp;opy all</string>
+    <string>Copy &amp;all</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+C</string>
@@ -674,7 +691,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Extract &amp;body uncompressed...</string>
+    <string>Extract body &amp;uncompressed...</string>
    </property>
    <property name="toolTip">
     <string>Uncompress and extract body of selected object to file</string>
@@ -684,8 +701,22 @@
    </property>
   </action>
   <action name="actionGoToData">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Go to &amp;data</string>
+   </property>
+  </action>
+  <action name="actionHexView">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Hex &amp;view...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>
