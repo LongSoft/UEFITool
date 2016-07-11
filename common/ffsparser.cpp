@@ -1906,7 +1906,7 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
 
     // Add tree item
     if (!preparse) {
-        index = model->addItem(Types::Section, type, name, UString(), info, header, body, UByteArray(), true, parsingDataToUByteArray(pdata), parent);
+        index = model->addItem(Types::Section, type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
     } 
     return U_SUCCESS;
 }
@@ -1973,7 +1973,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
 
     // Add tree item
     if (!preparse) {
-        index = model->addItem(Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), true, parsingDataToUByteArray(pdata), parent);
+        index = model->addItem(Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
     }
     return U_SUCCESS;
 }
@@ -2341,7 +2341,6 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
     }
     return U_SUCCESS;
 }
-
 
 USTATUS FfsParser::parseSectionBody(const UModelIndex & index)
 {
