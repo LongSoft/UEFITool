@@ -144,5 +144,6 @@ extern UString itemTypeToUString(const UINT8 type);
 extern UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype);
 extern UString compressionTypeToUString(const UINT8 algorithm);
 extern UString regionTypeToUString(const UINT8 type);
+extern UString fitEntryTypeToUString(const UINT8 type);
 
 #endif // TYPES_H

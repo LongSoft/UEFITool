@@ -199,11 +199,6 @@
             <enum>Qt::Horizontal</enum>
            </property>
            <widget class="QTableWidget" name="fitTableWidget"/>
-           <widget class="QListWidget" name="fitMessagesListWidget">
-            <property name="mouseTracking">
-             <bool>true</bool>
-            </property>
-           </widget>
           </widget>
          </item>
         </layout>

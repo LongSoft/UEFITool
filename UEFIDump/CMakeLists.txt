@@ -9,7 +9,6 @@ SET(PROJECT_SOURCES
  ../common/nvram.cpp 
  ../common/ffsparser.cpp 
  ../common/ffsreport.cpp 
- ../common/fitparser.cpp 
  ../common/peimage.cpp 
  ../common/treeitem.cpp 
  ../common/treemodel.cpp 
@@ -32,7 +31,6 @@ SET(PROJECT_HEADERS
  ../common/nvram.h 
  ../common/ffsparser.h 
  ../common/ffsreport.h 
- ../common/fitparser.h 
  ../common/peimage.h 
  ../common/types.h 
  ../common/treeitem.h 

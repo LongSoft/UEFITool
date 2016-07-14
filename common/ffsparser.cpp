@@ -2853,7 +2853,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
             usprintf("\nNumber of sections: %u\nSubsystem: %02Xh\nStripped size: %Xh (%u)\n"
             "Base of code: %Xh\nAddress of entry point: %Xh\nImage base: %" PRIX64 "h\nAdjusted image base: %" PRIX64 "h",
             teHeader->NumberOfSections,
-            teHeader->Subsystem, 
+            teHeader->Subsystem,
             teHeader->StrippedSize, teHeader->StrippedSize,
             teHeader->BaseOfCode,
             teHeader->AddressOfEntryPoint,
@@ -2887,7 +2887,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
         msg(UString("performSecondPass: the last VTF appears inside compressed item, the image may be damaged"), lastVtf);
         return U_SUCCESS;
     }
-
+    
     // Get parsing data for the last VTF
     PARSING_DATA pdata = parsingDataFromUModelIndex(lastVtf);
 
@@ -2895,8 +2895,167 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size();
     const UINT32 diff = 0xFFFFFFFFUL - pdata.offset - vtfSize + 1;
 
+    // Find and parse FIT
+    parseFit(index, diff);
+    
     // Apply address information to index and all it's child items
     addMemoryAddressesRecursive(index, diff);
+
+    // Add fixed and compressed
+    addFixedAndCompressedRecursive(index);
+
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::addFixedAndCompressedRecursive(const UModelIndex & index) {
+    // Sanity check
+    if (!index.isValid())
+        return U_INVALID_PARAMETER;
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromUModelIndex(index);
+
+    // Add fixed and compressed info
+    model->addInfo(index, usprintf("\nCompressed: %s", model->compressed(index) ? "Yes" : "No"));
+    model->addInfo(index, usprintf("\nFixed: %s", model->fixed(index) ? "Yes" : "No"));
+
+    // Process child items
+    for (int i = 0; i < model->rowCount(index); i++) {
+        addFixedAndCompressedRecursive(index.child(i, 0));
+    }
+
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
+{
+    // Check sanity
+    if (!index.isValid())
+        return EFI_INVALID_PARAMETER;
+
+    // Search for FIT
+    UModelIndex fitIndex;
+    UINT32 fitOffset;
+    USTATUS result = findFitRecursive(index, diff, fitIndex, fitOffset);
+    if (result)
+        return result;
+
+    // FIT not found
+    if (!fitIndex.isValid())
+        return U_SUCCESS;
+
+    // Explicitly set the item as fixed
+    model->setFixed(fitIndex, true);
+
+    // Special case of FIT header
+    UByteArray fitBody = model->body(fitIndex);
+    const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(fitBody.constData() + fitOffset);
+
+    // Check FIT checksum, if present
+    UINT32 fitSize = (fitHeader->Size & 0xFFFFFF) << 4;
+    if (fitHeader->Type & 0x80) {
+        // Calculate FIT entry checksum
+        UByteArray tempFIT = model->body(fitIndex).mid(fitOffset, fitSize);
+        FIT_ENTRY* tempFitHeader = (FIT_ENTRY*)tempFIT.data();
+        tempFitHeader->Checksum = 0;
+        UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
+        if (calculated != fitHeader->Checksum) {
+            msg(usprintf("Invalid FIT table checksum %02Xh, should be %02Xh", fitHeader->Checksum, calculated), fitIndex);
+        }
+    }
+
+    // Check fit header type
+    if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER) {
+        msg(("Invalid FIT header type"), fitIndex);
+    }
+
+    // Add FIT header to fitTable
+    std::vector<UString> currentStrings;
+    currentStrings.push_back(UString("_FIT_           "));
+    currentStrings.push_back(usprintf("%08Xh", fitSize));
+    currentStrings.push_back(usprintf("%04Xh", fitHeader->Version));
+    currentStrings.push_back(usprintf("%02Xh", fitHeader->Checksum));
+    currentStrings.push_back(fitEntryTypeToUString(fitHeader->Type));
+    fitTable.push_back(currentStrings);
+
+    // Process all other entries
+    bool msgModifiedImageMayNotWork = false;
+    for (UINT32 i = 1; i < fitHeader->Size; i++) {
+        currentStrings.clear();
+        const FIT_ENTRY* currentEntry = fitHeader + i;
+
+        // Check entry type
+        switch (currentEntry->Type & 0x7F) {
+        case FIT_TYPE_HEADER:
+            msg(UString("Second FIT header found, the table is damaged"), fitIndex);
+            break;
+
+        case FIT_TYPE_EMPTY:
+        case FIT_TYPE_MICROCODE:
+            break;
+
+        case FIT_TYPE_BIOS_AC_MODULE:
+        case FIT_TYPE_BIOS_INIT_MODULE:
+        case FIT_TYPE_TPM_POLICY:
+        case FIT_TYPE_BIOS_POLICY_DATA:
+        case FIT_TYPE_TXT_CONF_POLICY:
+        case FIT_TYPE_AC_KEY_MANIFEST:
+        case FIT_TYPE_AC_BOOT_POLICY:
+        default:
+            msgModifiedImageMayNotWork = true;
+            break;
+        }
+
+        // Add entry to fitTable
+        currentStrings.push_back(usprintf("%016" PRIX64, currentEntry->Address));
+        currentStrings.push_back(usprintf("%08Xh", currentEntry->Size, currentEntry->Size));
+        currentStrings.push_back(usprintf("%04Xh", currentEntry->Version));
+        currentStrings.push_back(usprintf("%02Xh", currentEntry->Checksum));
+        currentStrings.push_back(fitEntryTypeToUString(currentEntry->Type));
+        fitTable.push_back(currentStrings);
+    }
+
+    if (msgModifiedImageMayNotWork)
+        msg(UString("Opened image may not work after any modification"), fitIndex);
+
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::findFitRecursive(const UModelIndex & index, const UINT32 diff, UModelIndex & found, UINT32 & fitOffset)
+{
+    // Sanity check
+    if (!index.isValid())
+        return U_SUCCESS;
+
+    // Process child items
+    for (int i = 0; i < model->rowCount(index); i++) {
+        findFitRecursive(index.child(i, 0), diff, found, fitOffset);
+        if (found.isValid())
+            return U_SUCCESS;
+    }
+
+    // Get parsing data for the current item
+    PARSING_DATA pdata = parsingDataFromUModelIndex(index);
+
+    // Check for all FIT signatures in item's body
+    UByteArray lastVtfBody = model->body(lastVtf);
+    UINT32 storedFitAddress = *(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET);
+    for (INT32 offset = model->body(index).indexOf(FIT_SIGNATURE);
+        offset >= 0;
+        offset = model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
+        // FIT candidate found, calculate it's physical address
+        UINT32 fitAddress = pdata.offset + diff + model->header(index).size() + (UINT32)offset;
+
+        // Check FIT address to be stored in the last VTF
+        if (fitAddress == storedFitAddress) {
+            found = index;
+            fitOffset = offset;
+            msg(usprintf("Real FIT table found at physical address %08Xh", fitAddress), found);
+            return U_SUCCESS;
+        }
+        else if (model->rowCount(index) == 0) // Show messages only to leaf items
+            msg(UString("FIT table candidate found, but not referenced from the last VTF"), index);
+    }
 
     return U_SUCCESS;
 }
@@ -2967,10 +3126,6 @@ USTATUS FfsParser::addOffsetsRecursive(const UModelIndex & index)
     if ((!model->compressed(index)) || (index.parent().isValid() && !model->compressed(index.parent()))) {
         model->addInfo(index, usprintf("Offset: %Xh\n", pdata.offset), false);
     }
-
-    //TODO: show FIT file fixed attribute correctly
-    model->addInfo(index, usprintf("\nCompressed: %s", model->compressed(index) ? "Yes" : "No"));
-    model->addInfo(index, usprintf("\nFixed: %s", model->fixed(index) ? "Yes" : "No"));
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {

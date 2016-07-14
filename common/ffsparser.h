@@ -48,8 +48,8 @@ public:
     // Firmware image parsing
     USTATUS parse(const UByteArray &buffer);
     
-    // Retuns index of the last VTF after parsing is done
-    const UModelIndex getLastVtf() {return lastVtf;};
+    // Obtain parsed FIT table
+    std::vector<std::vector<UString> > getFitTable() const { return fitTable; }
 
 private:
     TreeModel *model;
@@ -60,6 +60,10 @@ private:
 
     UModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
+    std::vector<std::vector<UString> > fitTable;
+
+    // First pass
+    USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
@@ -103,11 +107,6 @@ private:
     UINT32 getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32 getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
-    USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
-    USTATUS performSecondPass(const UModelIndex & index);
-    USTATUS addOffsetsRecursive(const UModelIndex & index);
-    USTATUS addMemoryAddressesRecursive(const UModelIndex & index, const UINT32 diff);
-
     // NVRAM parsing
     USTATUS parseNvramVolumeBody(const UModelIndex & index);
     USTATUS findNextStore(const UModelIndex & index, const UByteArray & volume, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
@@ -130,6 +129,14 @@ private:
     USTATUS parseFsysStoreBody(const UModelIndex & index);
     USTATUS parseEvsaStoreBody(const UModelIndex & index);
     USTATUS parseFlashMapBody(const UModelIndex & index);
+
+    // Second pass
+    USTATUS performSecondPass(const UModelIndex & index);
+    USTATUS addOffsetsRecursive(const UModelIndex & index);
+    USTATUS addMemoryAddressesRecursive(const UModelIndex & index, const UINT32 diff);
+    USTATUS addFixedAndCompressedRecursive(const UModelIndex & index);
+    USTATUS parseFit(const UModelIndex & index, const UINT32 diff);
+    USTATUS findFitRecursive(const UModelIndex & index, const UINT32 diff, UModelIndex & found, UINT32 & fitOffset);
 };
 
 #endif // FFSPARSER_H

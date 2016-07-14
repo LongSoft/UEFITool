@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
-#include "../common/fitparser.h"
 #include "ffsdumper.h"
 
 int main(int argc, char *argv[])
@@ -62,36 +61,39 @@ int main(int argc, char *argv[])
         }
 
         // Get last VTF
-        QModelIndex lastVtf = ffsParser.getLastVtf();
-        if (lastVtf.isValid()) {
-            // Create fitParser
-            FitParser fitParser(&model);
-            // Find and parse FIT table
-            result = fitParser.parse(model.index(0, 0), lastVtf);
-            if (U_SUCCESS == result) {
-                // Show fitParser's messages
-                std::vector<std::pair<QString, QModelIndex> > fitMessages = fitParser.getMessages();
-                for (size_t i = 0; i < fitMessages.size(); i++) {
-                    std::cout << fitMessages[i].first.toLatin1().constData() << std::endl;
-                }
-
-                // Show FIT table
-                std::vector<std::vector<QString> > fitTable = fitParser.getFitTable();
-                if (fitTable.size()) {
-                    std::cout << "-------------------------------------------------------------------" << std::endl;
-                    std::cout << "     Address     |   Size   | Ver  |           Type           | CS " << std::endl;
-                    std::cout << "-------------------------------------------------------------------" << std::endl;
-                    for (size_t i = 0; i < fitTable.size(); i++) {
-                        std::cout << fitTable[i][0].toLatin1().constData() << " | "
+        std::vector<std::vector<QString> > fitTable = ffsParser.getFitTable();
+        if (fitTable.size()) {
+             std::cout << "-------------------------------------------------------------------" << std::endl;
+             std::cout << "     Address     |   Size    |  Ver  | CS |           Type           " << std::endl;
+             std::cout << "-------------------------------------------------------------------" << std::endl;
+             for (size_t i = 0; i < fitTable.size(); i++) {
+                  std::cout << fitTable[i][0].toLatin1().constData() << " | "
                             << fitTable[i][1].toLatin1().constData() << " | "
                             << fitTable[i][2].toLatin1().constData() << " | "
                             << fitTable[i][3].toLatin1().constData() << " | "
                             << fitTable[i][4].toLatin1().constData() << std::endl;
-                    }
-                }
-            }
+             }
         }
 
+
+        // Create ffsDumper
+        FfsDumper ffsDumper(&model);
+
+        // Dump only leaf elements, no report
+        if (a.arguments().length() == 3 && a.arguments().at(2) == QString("dump")) {
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
+        }
+        else if (a.arguments().length() > 3 || 
+            (a.arguments().length() == 3 && a.arguments().at(2) != QString("all") && a.arguments().at(2) != QString("report"))) { // Dump specific files, without report
+            UINT32 returned = 0;
+            for (int i = 2; i < a.arguments().length(); i++) {
+                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true, a.arguments().at(i));
+                if (result)
+                    returned |= (1 << (i - 1));
+            }
+            return returned;
+        }
+                
         // Create ffsReport
         FfsReport ffsReport(&model);
         std::vector<QString> report = ffsReport.generate();
@@ -105,39 +107,25 @@ int main(int argc, char *argv[])
                 file.close();
             }
         }
-
-        // Create ffsDumper
-        FfsDumper ffsDumper(&model);
-
-        // Dump all non-leaf elements
+        
+        // Dump all non-leaf elements, with report, default
         if (a.arguments().length() == 2) {
             return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump everything
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump every elementm with report
             return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("none")) { // Skip dumping
+        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("report")) { // Skip dumping
             return 0;
         }
-        else { // Dump specific files
-            UINT32 returned = 0;
-            for (int i = 2; i < a.arguments().length(); i++) {
-                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true, a.arguments().at(i));
-                if (result)
-                    returned |= (1 << (i - 1));
-            }
-            return returned;
-        }
-
-        return 0;
     }
-    else { // Show version and usage information
-        std::cout << "UEFIExtract 0.12.2" << std::endl << std::endl
-            << "Usage: UEFIExtract imagefile      - generate report and dump only leaf tree items into .dump folder" << std::endl
-            << "       UEFIExtract imagefile all  - generate report and dump all tree items" << std::endl
-            << "       UEFIExtract imagefile none - only generate report, no dump needed" << std::endl
-            << "       UIFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dump only FFS file(s) with specific GUID(s)" << std::endl
-            << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise" << std::endl;
-        return 1;
-    }
+    // If parameters are different, show version and usage information
+    std::cout << "UEFIExtract 0.13.0" << std::endl << std::endl
+              << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
+              << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
+              << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl
+              << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
+              << "       UEFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dump only FFS file(s) with specific GUID(s), without report." << std::endl
+              << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise." << std::endl;
+    return 1;
 }

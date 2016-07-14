@@ -13,6 +13,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ustring.h"
 #include "types.h"
 #include "ffs.h"
+#include "fit.h"
 
 UString regionTypeToUString(const UINT8 type)
 {
@@ -161,4 +162,21 @@ UString actionTypeToUString(const UINT8 action)
     }
 
     return UString("Unknown");
+}
+
+UString fitEntryTypeToUString(const UINT8 type)
+{
+    switch (type & 0x7F) {
+    case FIT_TYPE_HEADER:           return ("FIT Header              ");
+    case FIT_TYPE_MICROCODE:        return ("Microcode               ");
+    case FIT_TYPE_BIOS_AC_MODULE:   return ("BIOS ACM                ");
+    case FIT_TYPE_BIOS_INIT_MODULE: return ("BIOS Init               ");
+    case FIT_TYPE_TPM_POLICY:       return ("TPM Policy              ");
+    case FIT_TYPE_BIOS_POLICY_DATA: return ("BIOS Policy Data        ");
+    case FIT_TYPE_TXT_CONF_POLICY:  return ("TXT Configuration Policy");
+    case FIT_TYPE_AC_KEY_MANIFEST:  return ("BootGuard Key Manifest  ");
+    case FIT_TYPE_AC_BOOT_POLICY:   return ("BootGuard Boot Policy   ");
+    case FIT_TYPE_EMPTY:            return ("Empty                   ");
+    default:                        return ("Unknown                 ");
+    }
 }

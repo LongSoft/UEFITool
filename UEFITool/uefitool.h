@@ -38,7 +38,6 @@
 #include "../common/utility.h"
 #include "../common/ffs.h"
 #include "../common/ffsparser.h"
-#include "../common/fitparser.h"
 #include "../common/ffsops.h"
 #include "../common/ffsbuilder.h"
 
@@ -109,7 +108,6 @@ private:
     Ui::UEFITool* ui;
     TreeModel* model;
     FfsParser* ffsParser;
-    FitParser* fitParser;
     FfsFinder* ffsFinder;
     FfsOperations* ffsOps;
     FfsBuilder* ffsBuilder;
@@ -128,7 +126,6 @@ private:
     void readSettings();
     void showParserMessages();
     void showFinderMessages();
-    void showFitMessages();
     void showFitTable();
     void showBuilderMessages();
 };

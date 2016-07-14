@@ -113,14 +113,14 @@ class QHexEdit : public QAbstractScrollArea
     */
     Q_PROPERTY(QColor selectionColor READ selectionColor WRITE setSelectionColor)
 
-    /*! Porperty readOnly sets (setReadOnly()) or gets (isReadOnly) the mode
+    /*! Property readOnly sets (setReadOnly()) or gets (isReadOnly) the mode
     in which the editor works. In readonly mode the the user can only navigate
     through the data and select data; modifying is not possible. This
     property's default is false.
     */
     Q_PROPERTY(bool readOnly READ isReadOnly WRITE setReadOnly)
 
-    /*! Porperty upperCase sets (setUpperCase()) or gets (isUpperCase) the case of hex
+    /*! Property upperCase sets (setUpperCase()) or gets (isUpperCase) the case of hex
     data. Default is lowercase.
     */
     Q_PROPERTY(bool upperCase READ isUpperCase WRITE setUpperCase)
