@@ -3010,7 +3010,8 @@ USTATUS FfsParser::parseNvarStore(const UModelIndex & index)
         bool isDataOnly = false;
         bool hasExtendedHeader = false;
         bool hasChecksum = false;
-        bool hasTimestampAndHash = false;
+        bool hasTimestamp = false;
+        bool hasHash = false;
         bool hasGuidIndex = false;
 
         UINT32 guidIndex = 0;
@@ -3149,17 +3150,32 @@ USTATUS FfsParser::parseNvarStore(const UModelIndex & index)
 
             // Entry with authenticated write (for SecureBoot)
             if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_AUTH_WRITE) {
-                if ((UINT32)tail.size() < sizeof(UINT64) + SHA256_HASH_SIZE) {
-                    msgExtDataTooShort = true;
-                    isInvalid = true;
-                    // Do not parse further
-                    goto parsing_done;
-                }
+                if ((entryHeader->Attributes & NVRAM_NVAR_ENTRY_DATA_ONLY)) {// Data only auth. variables has no hash
+                    if ((UINT32)tail.size() < sizeof(UINT64)) {
+                        msgExtDataTooShort = true;
+                        isInvalid = true;
+                        // Do not parse further
+                        goto parsing_done;
+                    }
 
-                timestamp = *(UINT64*)(tail.constData() + sizeof(UINT8));
-                hash = tail.mid(sizeof(UINT64) + sizeof(UINT8), SHA256_HASH_SIZE);
-                hasTimestampAndHash = true;
-                msgUnknownExtDataFormat = false;
+                    timestamp = *(UINT64*)(tail.constData() + sizeof(UINT8));
+                    hasTimestamp = true;
+                    msgUnknownExtDataFormat = false;
+                }
+                else { // Full or link variable have hash
+                    if ((UINT32)tail.size() < sizeof(UINT64) + SHA256_HASH_SIZE) { 
+                        msgExtDataTooShort = true;
+                        isInvalid = true;
+                        // Do not parse further
+                        goto parsing_done;
+                    }
+
+                    timestamp = *(UINT64*)(tail.constData() + sizeof(UINT8));
+                    hash = tail.mid(sizeof(UINT64) + sizeof(UINT8), SHA256_HASH_SIZE);
+                    hasTimestamp = true;
+                    hasHash = true;
+                    msgUnknownExtDataFormat = false;
+                }
             }
         }
 
@@ -3167,7 +3183,7 @@ USTATUS FfsParser::parseNvarStore(const UModelIndex & index)
         if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_DATA_ONLY) { // Data-only attribute is set
             isInvalidLink = true;
             UModelIndex nvarIndex;
-            // Search prevously added entries for a link to this variable //TODO:replace with linked lists
+            // Search prevously added entries for a link to this variable
             for (int i = 0; i < model->rowCount(index); i++) {
                 nvarIndex = index.child(i, 0);
                 PARSING_DATA nvarPdata = parsingDataFromUModelIndex(nvarIndex);
@@ -3269,15 +3285,18 @@ parsing_done:
                 extendedHeaderSize, extendedHeaderSize,
                 extendedAttributes) + nvarExtendedAttributesToUString(extendedAttributes) + UString(")");
 
-            // Checksum
+            // Add checksum
             if (hasChecksum)
                 info += usprintf("\nChecksum: %02Xh", storedChecksum) +
                     (calculatedChecksum ? usprintf(", invalid, should be %02Xh", 0x100 - calculatedChecksum) : UString(", valid"));
-            // Authentication data
-            if (hasTimestampAndHash) {
-                info += usprintf("\nTimestamp: %" PRIX64 "h\nHash: ",
-                    timestamp) + UString(hash.toHex().constData());
-            }
+            
+            // Add timestamp
+            if (hasTimestamp) 
+                info += usprintf("\nTimestamp: %" PRIX64 "h", timestamp);
+            
+            // Add hash
+            if (hasHash) 
+                info += UString("\nHash: ") + UString(hash.toHex().constData());
         }
         
         // Add correct offset to parsing data
