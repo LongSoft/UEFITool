@@ -91,3 +91,10 @@ int TreeItem::row() const
     }
     return 0;
 }
+
+TreeItem* TreeItem::child(int row)
+{ 
+    std::list<TreeItem*>::iterator child = childItems.begin();  
+    std::advance(child, row); 
+    return *child; 
+}
