@@ -22,6 +22,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 class UByteArray
 {
