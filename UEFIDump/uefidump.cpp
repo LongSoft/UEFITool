@@ -96,7 +96,7 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
         std::vector<UString> report = ffsReport.generate();
         if (report.size()) {
             std::ofstream ofs;
-            ofs.open(reportPath, std::ofstream::out);
+            ofs.open((const char*)reportPath, std::ofstream::out);
             for (size_t i = 0; i < report.size(); i++) {
                 ofs << (const char*)report[i].toLocal8Bit() << std::endl;
             }
@@ -160,8 +160,8 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             UByteArray data = model.header(index);
             if (!data.isEmpty()) {
                 std::ofstream file;
-                std::string str = std::string((const char*)name) + std::string("_header.bin");
-                file.open(str, std::ios::out | std::ios::binary);
+                UString str = name + UString("_header.bin");
+                file.open((const char*)str, std::ios::out | std::ios::binary);
                 file.write(data.constData(), data.size());
                 file.close();
             }
@@ -170,8 +170,8 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             data = model.body(index);
             if (!data.isEmpty()) {
                 std::ofstream file;
-                std::string str = std::string((const char*)name) + std::string("_body.bin");
-                file.open(str, std::ios::out | std::ios::binary);
+                UString str = name + UString("_body.bin");
+                file.open((const char*)str, std::ios::out | std::ios::binary);
                 file.write(data.constData(), data.size());
                 file.close();
             }
@@ -184,8 +184,8 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
         info += model.info(index) + "\n";
 
         std::ofstream file;
-        std::string str = std::string((const char*)name) + std::string("_info.txt");
-        file.open(str, std::ios::out);
+        UString str = name + UString("_info.txt");
+        file.open((const char*)str, std::ios::out);
         file.write((const char*)info, info.length());
         file.close();
 

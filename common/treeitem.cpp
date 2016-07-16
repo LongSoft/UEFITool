@@ -45,8 +45,8 @@ TreeItem::~TreeItem() {
 
 UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 {
-    std::list<TreeItem*>::iterator found = std::find(std::begin(childItems), std::end(childItems), item);
-    if (found == std::end(childItems))
+    std::list<TreeItem*>::iterator found = std::find(childItems.begin(), childItems.end(), item);
+    if (found == childItems.end())
         return U_ITEM_NOT_FOUND;
     childItems.insert(found, newItem);
     return U_SUCCESS;
@@ -54,8 +54,8 @@ UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 
 UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
 {
-    std::list<TreeItem*>::iterator found = std::find(std::begin(childItems), std::end(childItems), item);
-    if (found == std::end(childItems))
+    std::list<TreeItem*>::iterator found = std::find(childItems.begin(), childItems.end(), item);
+    if (found == childItems.end())
         return U_ITEM_NOT_FOUND;
     childItems.insert(++found, newItem);
     return U_SUCCESS;
@@ -83,7 +83,7 @@ UString TreeItem::data(int column) const
 int TreeItem::row() const
 {
     if (parentItem) {
-        std::list<TreeItem*>::const_iterator iter = parentItem->childItems.cbegin();
+        std::list<TreeItem*>::const_iterator iter = parentItem->childItems.begin();
         for (int i = 0; i < (int)parentItem->childItems.size(); ++i, ++iter) {
             if (const_cast<TreeItem*>(this) == *iter)
                 return i;

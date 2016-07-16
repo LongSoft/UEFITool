@@ -15,10 +15,21 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define TREEITEM_H
 
 #include <list>
+#include <iterator>
 
 #include "ubytearray.h"
 #include "ustring.h"
 #include "basetypes.h"
+
+template <typename ForwardIt>
+ForwardIt u_std_next(
+    ForwardIt it, 
+    typename std::iterator_traits<ForwardIt>::difference_type n = 1
+)
+{
+    std::advance(it, n);
+    return it;
+}
 
 class TreeItem
 {
@@ -36,7 +47,7 @@ public:
     UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);                 // Non-trivial implementation in CPP file
 
     // Model support operations
-    TreeItem *child(int row) { return *std::next(childItems.begin(), row); }
+    TreeItem *child(int row) { return *u_std_next(childItems.begin(), row); }
     int childCount() const {return childItems.size(); }
     int columnCount() const { return 5; }
     UString data(int column) const;                                            // Non-trivial implementation in CPP file

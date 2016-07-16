@@ -36,13 +36,13 @@ public:
 
     bool isEmpty() const { return d.length() == 0; }
        
-    char* data() { return &(d.front()); /* Feels dirty, but works for all basic_string implementations I know, is fully OK in C++11 and later*/ }
+    char* data() { return d.length() == 0 ? NULL : &(d.at(0)); /* Feels dirty, but works for all basic_string implementations I know, is fully OK in C++11 and later*/ }
     const char* data() const { return d.c_str(); }
     const char* constData() const { return d.c_str(); }
     void clear() { d.clear(); }
 
     int32_t size() const { return d.size();  }
-    int32_t count(char ch) const { return std::count(d.cbegin(), d.cend(), ch); }
+    int32_t count(char ch) const { return std::count(d.begin(), d.end(), ch); }
     char at(uint32_t i) const { return d.at(i); }
     char operator[](uint32_t i) const { return d[i]; }
     char& operator[](uint32_t i) { return d[i]; }
@@ -61,7 +61,7 @@ public:
     bool operator!= (const UByteArray & ba) const { return d != ba.d; }
     inline void swap(UByteArray &other) { std::swap(d, other.d); }
     UByteArray toHex() {
-         std::basic_string<char> hex(size() * 2, '\x00');
+        std::basic_string<char> hex(size() * 2, '\x00');
         for (int32_t i = 0; i < size(); i++) {
             uint8_t low  = d[i] & 0x0F;
             uint8_t high = (d[i] & 0xF0) >> 4;
