@@ -1034,25 +1034,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 par
                 msgAlignmentBitsSet = true;
         }
         // Do not check for volume alignment on revision 1 volumes
-        // No one gives a single crap about setting it correctly
-        /*else {
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_2) alignment = 2;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_4) alignment = 4;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_8) alignment = 8;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_16) alignment = 16;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_32) alignment = 32;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_64) alignment = 64;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_128) alignment = 128;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_256) alignment = 256;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_512) alignment = 512;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_1K) alignment = 1024;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_2K) alignment = 2048;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_4K) alignment = 4096;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_8K) alignment = 8192;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_16K) alignment = 16384;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_32K) alignment = 32768;
-            if (volumeHeader->Attributes & EFI_FVB_ALIGNMENT_64K) alignment = 65536;
-        }*/
+        // No one gives a single damn about setting it correctly
     }
     else if (volumeHeader->Revision == 2) {
         // Acquire alignment
@@ -1249,61 +1231,18 @@ USTATUS FfsParser::parseVolumeNonUefiData(const UByteArray & data, const UINT32 
     // Get parsing data
     PARSING_DATA pdata = parsingDataFromUModelIndex(index);
 
-    // Modify it
+    // Add parent offset
     pdata.offset += parentOffset;
 
-    // Search for VTF GUID backwards in received data
-    UByteArray padding = data;
-    UByteArray vtf;
-    INT32 vtfIndex = data.lastIndexOf(EFI_FFS_VOLUME_TOP_FILE_GUID);
-    if (vtfIndex >= 0) { // VTF candidate found inside non-UEFI data
-        padding = data.left(vtfIndex);
-        vtf = data.mid(vtfIndex);
-        const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)vtf.constData();
-        if ((UINT32)vtf.size() < sizeof(EFI_FFS_FILE_HEADER) // VTF candidate is too small to be a real VTF in FFSv1/v2 volume
-            || (pdata.ffsVersion == 3
-                && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)
-                && (UINT32)vtf.size() < sizeof(EFI_FFS_FILE_HEADER2))) { // VTF candidate is too small to be a real VTF in FFSv3 volume
-            vtfIndex = -1;
-            padding = data;
-            vtf.clear();
-        }
-    }
-
-    // Add non-UEFI data first
     // Get info
-    UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+    UString info = usprintf("Full size: %Xh (%u)", data.size(), data.size());
 
     // Add padding tree item
-    UModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), "", info, UByteArray(), padding, UByteArray(), true, parsingDataToUByteArray(pdata), index);
+    UModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), data, UByteArray(), true, parsingDataToUByteArray(pdata), index);
     msg(UString("parseVolumeNonUefiData: non-UEFI data found in volume's free space"), paddingIndex);
 
-    if (vtfIndex >= 0) {
-        // Get VTF file header
-        UByteArray header = vtf.left(sizeof(EFI_FFS_FILE_HEADER));
-        const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)header.constData();
-        if (pdata.ffsVersion == 3 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
-            header = vtf.left(sizeof(EFI_FFS_FILE_HEADER2));
-        }
-
-        //Parse VTF file header
-        UModelIndex fileIndex;
-        USTATUS result = parseFileHeader(vtf, parentOffset + vtfIndex, index, fileIndex);
-        if (result) {
-            msg(UString("parseVolumeNonUefiData: VTF file header parsing failed with error ") + errorCodeToUString(result), index);
-            
-            // Add the rest as non-UEFI data too
-            pdata.offset += vtfIndex;
-            // Get info
-            UString info = usprintf("Full size: %Xh (%u)", vtf.size(), vtf.size());
-
-            // Add padding tree item
-            UModelIndex paddingIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), "", info, UByteArray(), vtf, UByteArray(), true, parsingDataToUByteArray(pdata), index);
-            msg(("parseVolumeNonUefiData: non-UEFI data found in volume's free space"), paddingIndex);
-        }
-    }
-
-    return U_SUCCESS;
+    // Parse contents as RAW area
+    return parseRawArea(paddingIndex);
 }
 
 USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
@@ -1366,7 +1305,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
                         UString info = usprintf("Full size: %Xh (%u)", free.size(), free.size());
 
                         // Add free space item
-                        model->addItem(Types::FreeSpace, 0, UString("Volume free space"), "", info, UByteArray(), free, UByteArray(), false, parsingDataToUByteArray(pdata), index);
+                        model->addItem(Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), free, UByteArray(), false, parsingDataToUByteArray(pdata), index);
                     }
 
                     // Parse non-UEFI data 
@@ -1380,7 +1319,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
                     UString info = usprintf("Full size: %Xh (%u)", freeSpace.size(), freeSpace.size());
 
                     // Add free space item
-                    model->addItem(Types::FreeSpace, 0, UString("Volume free space"), "", info, UByteArray(), freeSpace, UByteArray(), false, parsingDataToUByteArray(pdata), index);
+                    model->addItem(Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), false, parsingDataToUByteArray(pdata), index);
                 }
                 break; // Exit from parsing loop
             }
@@ -1683,7 +1622,7 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
     }
 
     // Parse sections
-    return parseSections(model->body(index), index);
+    return parseSections(model->body(index), index, true);
 }
 
 USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
@@ -1739,7 +1678,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     pdata.offset += i;
 
     // Add tree item
-    UModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), "", info, UByteArray(), padding, UByteArray(), true, parsingDataToUByteArray(pdata), index);
+    UModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), true, parsingDataToUByteArray(pdata), index);
 
     // Show message
     msg(UString("parsePadFileBody: non-UEFI data found in pad-file"), dataIndex);
@@ -1750,7 +1689,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex & index, const bool insertIntoTree)
 {
     // Sanity check
     if (!index.isValid())
@@ -1771,34 +1710,35 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
 
         // Check section size
         if (sectionSize < sizeof(EFI_COMMON_SECTION_HEADER) || sectionSize > (bodySize - sectionOffset)) {
-            // Add padding to fill the rest of sections
-            UByteArray padding = sections.mid(sectionOffset);
-            // Get info
-            UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
-
-            // Constuct parsing data
-            pdata.offset += headerSize + sectionOffset;
-
             // Final parsing
-            if (!preparse) {
+            if (insertIntoTree) {
+                // Add padding to fill the rest of sections
+                UByteArray padding = sections.mid(sectionOffset);
+                // Get info
+                UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+
+                // Constuct parsing data
+                pdata.offset += headerSize + sectionOffset;
+                           
                 // Add tree item
-                UModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), "", info, UByteArray(), padding, UByteArray(), true, parsingDataToUByteArray(pdata), index);
+                UModelIndex dataIndex = model->addItem(Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), true, parsingDataToUByteArray(pdata), index);
 
                 // Show message
                 msg(UString("parseSections: non-UEFI data found in sections area"), dataIndex);
+
+                // Exit from parsing loop
+                break; 
             }
             // Preparsing
-            else {
+            else 
                 return U_INVALID_SECTION;
-            }
-            break; // Exit from parsing loop
         }
 
         // Parse section header
         UModelIndex sectionIndex;
-        result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex, preparse);
+        result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex, insertIntoTree);
         if (result) {
-            if (!preparse)
+            if (insertIntoTree)
                 msg(UString("parseSections: section header parsing failed with error ") + errorCodeToUString(result), index);
             else
                 return U_INVALID_SECTION;
@@ -1808,7 +1748,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
         sectionOffset = ALIGN4(sectionOffset);
     }
 
-    //Parse bodies, will be skipped on preparse phase
+    // Parse bodies, will be skipped if insertIntoTree is not required
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
@@ -1826,7 +1766,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -1835,12 +1775,12 @@ USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 p
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     switch (sectionHeader->Type) {
     // Special
-    case EFI_SECTION_COMPRESSION:           return parseCompressedSectionHeader(section, parentOffset, parent, index, preparse);
-    case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, parentOffset, parent, index, preparse);
-    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, parentOffset, parent, index, preparse);
-    case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, parentOffset, parent, index, preparse);
+    case EFI_SECTION_COMPRESSION:           return parseCompressedSectionHeader(section, parentOffset, parent, index, insertIntoTree);
+    case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, parentOffset, parent, index, insertIntoTree);
+    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, parentOffset, parent, index, insertIntoTree);
+    case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, parentOffset, parent, index, insertIntoTree);
     case PHOENIX_SECTION_POSTCODE:
-    case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, parentOffset, parent, index, preparse);
+    case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, parentOffset, parent, index, insertIntoTree);
     // Common
     case EFI_SECTION_DISPOSABLE:
     case EFI_SECTION_DXE_DEPEX:
@@ -1852,16 +1792,16 @@ USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 p
     case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_USER_INTERFACE:
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
-    case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, parentOffset, parent, index, preparse);
+    case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, parentOffset, parent, index, insertIntoTree);
     // Unknown
     default: 
-        USTATUS result = parseCommonSectionHeader(section, parentOffset, parent, index, preparse);
+        USTATUS result = parseCommonSectionHeader(section, parentOffset, parent, index, insertIntoTree);
         msg(usprintf("parseSectionHeader: section with unknown type %02Xh", sectionHeader->Type), index);
         return result;
     }
 }
 
-USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -1905,13 +1845,13 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
     pdata.offset += parentOffset;
 
     // Add tree item
-    if (!preparse) {
+    if (insertIntoTree) {
         index = model->addItem(Types::Section, type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
     } 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -1972,13 +1912,13 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
     pdata.section.compressed.uncompressedSize = uncompressedLength;
 
     // Add tree item
-    if (!preparse) {
+    if (insertIntoTree) {
         index = model->addItem(Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
     }
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2127,7 +2067,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     pdata.section.guidDefined.guid = guid;
 
     // Add tree item
-    if (!preparse) {
+    if (insertIntoTree) {
         index = model->addItem(Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
 
         // Show messages
@@ -2150,7 +2090,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2209,7 +2149,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
     pdata.section.freeformSubtypeGuid.guid = guid;
 
     // Add tree item
-    if (!preparse) {
+    if (insertIntoTree) {
         index = model->addItem(Types::Section, type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
 
         // Rename section
@@ -2218,7 +2158,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2274,13 +2214,13 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
     pdata.offset += parentOffset;
 
     // Add tree item
-    if (!preparse) {
+    if (insertIntoTree) {
         index = model->addItem(Types::Section, type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
     }
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse)
+USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2336,7 +2276,7 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
     pdata.offset += parentOffset;
 
     // Add tree item
-    if (!preparse) {
+    if (insertIntoTree) {
         index = model->addItem(Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), false, parsingDataToUByteArray(pdata), parent);
     }
     return U_SUCCESS;
@@ -2357,7 +2297,7 @@ USTATUS FfsParser::parseSectionBody(const UModelIndex & index)
     // Encapsulation
     case EFI_SECTION_COMPRESSION:           return parseCompressedSectionBody(index);
     case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionBody(index);
-    case EFI_SECTION_DISPOSABLE:            return parseSections(model->body(index), index);
+    case EFI_SECTION_DISPOSABLE:            return parseSections(model->body(index), index, true);
     // Leaf
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseRawArea(index);
     case EFI_SECTION_VERSION:               return parseVersionSectionBody(index);
@@ -2411,11 +2351,11 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     // Check for undecided compression algorithm, this is a special case
     if (algorithm == COMPRESSION_ALGORITHM_UNDECIDED) {
         // Try preparse of sections decompressed with Tiano algorithm
-        if (U_SUCCESS == parseSections(decompressed, index, true)) {
+        if (U_SUCCESS == parseSections(decompressed, index, false)) {
             algorithm = COMPRESSION_ALGORITHM_TIANO;
         }
         // Try preparse of sections decompressed with EFI 1.1 algorithm
-        else if (U_SUCCESS == parseSections(efiDecompressed, index, true)) {
+        else if (U_SUCCESS == parseSections(efiDecompressed, index, false)) {
             algorithm = COMPRESSION_ALGORITHM_EFI11;
             decompressed = efiDecompressed;
         }
@@ -2434,7 +2374,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     model->setParsingData(index, parsingDataToUByteArray(pdata));
     
     // Parse decompressed data
-    return parseSections(decompressed, index);
+    return parseSections(decompressed, index, true);
 }
 
 USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
@@ -2466,11 +2406,11 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         // Check for undecided compression algorithm, this is a special case
         if (algorithm == COMPRESSION_ALGORITHM_UNDECIDED) {
             // Try preparse of sections decompressed with Tiano algorithm
-            if (U_SUCCESS == parseSections(processed, index, true)) {
+            if (U_SUCCESS == parseSections(processed, index, false)) {
                 algorithm = COMPRESSION_ALGORITHM_TIANO;
             }
             // Try preparse of sections decompressed with EFI 1.1 algorithm
-            else if (U_SUCCESS == parseSections(efiDecompressed, index, true)) {
+            else if (U_SUCCESS == parseSections(efiDecompressed, index, false)) {
                 algorithm = COMPRESSION_ALGORITHM_EFI11;
                 processed = efiDecompressed;
             }
@@ -2516,7 +2456,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         return U_SUCCESS;
     }
 
-    return parseSections(processed, index);
+    return parseSections(processed, index, true);
 }
 
 USTATUS FfsParser::parseVersionSectionBody(const UModelIndex & index)
@@ -2912,9 +2852,6 @@ USTATUS FfsParser::addFixedAndCompressedRecursive(const UModelIndex & index) {
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
-    // Get parsing data for the current item
-    PARSING_DATA pdata = parsingDataFromUModelIndex(index);
-
     // Add fixed and compressed info
     model->addInfo(index, usprintf("\nCompressed: %s", model->compressed(index) ? "Yes" : "No"));
     model->addInfo(index, usprintf("\nFixed: %s", model->fixed(index) ? "Yes" : "No"));
@@ -2959,8 +2896,9 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         FIT_ENTRY* tempFitHeader = (FIT_ENTRY*)tempFIT.data();
         tempFitHeader->Checksum = 0;
         UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
+        calculated |= 0x80; // Set checksum flag on calculated checksum
         if (calculated != fitHeader->Checksum) {
-            msg(usprintf("Invalid FIT table checksum %02Xh, should be %02Xh", fitHeader->Checksum, calculated), fitIndex);
+            msg(usprintf("parseFit: invalid FIT table checksum %02Xh, should be %02Xh", fitHeader->Checksum, calculated), fitIndex);
         }
     }
 
@@ -2987,7 +2925,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         // Check entry type
         switch (currentEntry->Type & 0x7F) {
         case FIT_TYPE_HEADER:
-            msg(UString("Second FIT header found, the table is damaged"), fitIndex);
+            msg(UString("parseFit: second FIT header found, the table is damaged"), fitIndex);
             break;
 
         case FIT_TYPE_EMPTY:
@@ -3016,7 +2954,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
     }
 
     if (msgModifiedImageMayNotWork)
-        msg(UString("Opened image may not work after any modification"), fitIndex);
+        msg(UString("parseFit: opened image may not work after any modification"), fitIndex);
 
     return U_SUCCESS;
 }
@@ -3050,11 +2988,11 @@ USTATUS FfsParser::findFitRecursive(const UModelIndex & index, const UINT32 diff
         if (fitAddress == storedFitAddress) {
             found = index;
             fitOffset = offset;
-            msg(usprintf("Real FIT table found at physical address %08Xh", fitAddress), found);
+            msg(usprintf("findFitRecursive: real FIT table found at physical address %08Xh", fitAddress), found);
             return U_SUCCESS;
         }
         else if (model->rowCount(index) == 0) // Show messages only to leaf items
-            msg(UString("FIT table candidate found, but not referenced from the last VTF"), index);
+            msg(UString("findFitRecursive: FIT table candidate found, but not referenced from the last VTF"), index);
     }
 
     return U_SUCCESS;
@@ -3087,16 +3025,32 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index, const 
             // Special case of uncompressed TE image sections
             if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_TE) {
                 // Check data memory address to be equal to either ImageBase or AdjustedImageBase
-                if (pdata.section.teImage.imageBase == pdata.address + headerSize) {
-                    pdata.section.teImage.revision = 1;
+                UINT32 base = pdata.address + headerSize;
+                pdata.section.teImage.imageBaseType = EFI_IMAGE_TE_BASE_OTHER;
+                
+                if (pdata.section.teImage.imageBase == base) {
+                    pdata.section.teImage.imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
                 }
-                else if (pdata.section.teImage.adjustedImageBase == pdata.address + headerSize) {
-                    pdata.section.teImage.revision = 2;
+                else if (pdata.section.teImage.adjustedImageBase == base) {
+                    pdata.section.teImage.imageBaseType = EFI_IMAGE_TE_BASE_ADJUSTED;
                 }
-                else {
-                    msg(UString("addMemoryAddressesRecursive: image base is neither original nor adjusted, it's likely a part of backup PEI volume or DXE volume, but can also be damaged"), index);
-                    pdata.section.teImage.revision = 0;
+                else { 
+                    // Check for one-bit difference
+                    UINT32 xored = base ^ pdata.section.teImage.imageBase; // XOR result can't be zero
+                    if ((xored & (xored - 1)) == 0) { // Check that XOR result is a power of 2, i.e. has exactly one bit set
+                        pdata.section.teImage.imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
+                    }
+                    else { // The same check for adjustedImageBase
+                        xored = base ^ pdata.section.teImage.adjustedImageBase;
+                        if ((xored & (xored - 1)) == 0) {
+                            pdata.section.teImage.imageBaseType = EFI_IMAGE_TE_BASE_ADJUSTED;
+                        }
+                    }
                 }
+
+                // Show message if imageBaseType is still unknown
+                if (pdata.section.teImage.imageBase != 0 && pdata.section.teImage.imageBaseType == EFI_IMAGE_TE_BASE_OTHER)
+                    msg(UString("addMemoryAddressesRecursive: TE image base is neither zero, nor original, nor adjusted, nor top-swapped"), index);
             }
 
             // Set modified parsing data

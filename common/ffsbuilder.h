@@ -22,6 +22,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treemodel.h"
 #include "descriptor.h"
 #include "ffs.h"
+#include "peimage.h"
 #include "utility.h"
 
 class FfsBuilder

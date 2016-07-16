@@ -70,7 +70,7 @@ private:
     USTATUS parseVolumeBody(const UModelIndex & index);
     USTATUS parseFileHeader(const UByteArray & file, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFileBody(const UModelIndex & index);
-    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse = false);
+    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
     USTATUS parseSectionBody(const UModelIndex & index);
 
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & root);
@@ -83,13 +83,13 @@ private:
     USTATUS parsePadFileBody(const UModelIndex & index);
     USTATUS parseVolumeNonUefiData(const UByteArray & data, const UINT32 parentOffset, const UModelIndex & index);
 
-    USTATUS parseSections(const UByteArray & sections, const UModelIndex & index, const bool preparse = false);
-    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
-    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
-    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
-    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
-    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
-    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool preparse);
+    USTATUS parseSections(const UByteArray & sections, const UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
 
     USTATUS parseCompressedSectionBody(const UModelIndex & index);
     USTATUS parseGuidedSectionBody(const UModelIndex & index);
@@ -100,12 +100,12 @@ private:
     USTATUS parsePeImageSectionBody(const UModelIndex & index);
     USTATUS parseTeImageSectionBody(const UModelIndex & index);
 
-    UINT8  getPaddingType(const UByteArray & padding);
+    UINT8   getPaddingType(const UByteArray & padding);
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
     USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     USTATUS getVolumeSize(const UByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
-    UINT32 getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
-    UINT32 getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
+    UINT32  getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
+    UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
     // NVRAM parsing
     USTATUS parseNvramVolumeBody(const UModelIndex & index);

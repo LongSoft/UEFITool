@@ -728,6 +728,11 @@ typedef struct {
 
 #define EFI_IMAGE_TE_SIGNATURE  0x5A56 // VZ
 
+// Image base types
+#define EFI_IMAGE_TE_BASE_OTHER    0
+#define EFI_IMAGE_TE_BASE_ORIGINAL 1
+#define EFI_IMAGE_TE_BASE_ADJUSTED 2
+
 //
 // Data directory indexes in our TE image header
 //

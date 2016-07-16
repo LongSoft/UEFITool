@@ -50,7 +50,7 @@ typedef struct FREEFORM_GUIDED_SECTION_PARSING_DATA_ {
 typedef struct TE_IMAGE_SECTION_PARSING_DATA_ {
     UINT32  imageBase;
     UINT32  adjustedImageBase;
-    UINT8   revision;
+    UINT8   imageBaseType;
 } TE_IMAGE_SECTION_PARSING_DATA;
 
 typedef struct SECTION_PARSING_DATA_ {
