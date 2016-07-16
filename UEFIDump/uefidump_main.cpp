@@ -17,12 +17,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 int main(int argc, char *argv[])
 {
-    if (argc > 32) {
-        std::cout << "Too many arguments" << std::endl;
-        return 1;
-    }
-
-    if (argc > 1) {
+    
+    if (argc > 1) { 
         std::ifstream inputFile;
         inputFile.open(argv[1], std::ios::in | std::ios::binary);
         std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
@@ -32,11 +28,8 @@ int main(int argc, char *argv[])
         UEFIDumper uefidumper;
         return (uefidumper.dump(buffer, UString(argv[1])) != U_SUCCESS);
     }
-    else {
-        std::cout << "UEFIDump 0.1.0" << std::endl << std::endl
-                  << "Usage: UEFIDump imagefile" << std::endl;
-        return 1;
-    }
 
-    return 1;
+    std::cout << "UEFIDump 0.1.1" << std::endl << std::endl
+              << "Usage: UEFIDump imagefile" << std::endl;
+    return 0;
 }

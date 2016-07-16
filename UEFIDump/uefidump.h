@@ -19,13 +19,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "../common/treemodel.h"
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
-#include "../common/fitparser.h"
-
 
 class UEFIDumper
 {
 public:
-    explicit UEFIDumper() : model(), ffsParser(&model), ffsReport(&model), fitParser(&model), currentBuffer(), initialized(false), dumped(false) {}
+    explicit UEFIDumper() : model(), ffsParser(&model), ffsReport(&model), currentBuffer(), initialized(false), dumped(false) {}
     ~UEFIDumper() {}
 
     USTATUS dump(const UByteArray & buffer, const UString & path, const UString & guid = UString());
@@ -36,7 +34,6 @@ private:
     TreeModel model;
     FfsParser ffsParser;
     FfsReport ffsReport;
-    FitParser fitParser;
     
     UByteArray currentBuffer;
     bool initialized;

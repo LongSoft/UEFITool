@@ -27,7 +27,8 @@ SET(PROJECT_HEADERS
  ../common/descriptor.h 
  ../common/gbe.h 
  ../common/me.h 
- ../common/ffs.h 
+ ../common/ffs.h
+ ../common/fit.h  
  ../common/nvram.h 
  ../common/ffsparser.h 
  ../common/ffsreport.h 
