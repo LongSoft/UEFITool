@@ -3115,7 +3115,7 @@ USTATUS FfsParser::parseNvarStore(const UModelIndex & index)
 
         bool isInvalid = false;
         bool isInvalidLink = false;
-        bool isDataOnly = false;
+        //bool isDataOnly = false;
         bool hasExtendedHeader = false;
         bool hasChecksum = false;
         bool hasTimestamp = false;
@@ -3310,7 +3310,7 @@ USTATUS FfsParser::parseNvarStore(const UModelIndex & index)
                     subtype = Subtypes::DataNvarEntry;
             }
 
-            isDataOnly = true;
+            //isDataOnly = true;
             // Do not parse further
             goto parsing_done;
         }
@@ -4412,7 +4412,7 @@ USTATUS FfsParser::parseVssStoreBody(const UModelIndex & index)
         UString name;
         UString text;
         EFI_GUID* variableGuid;
-        CHAR16*   variableName;
+        CHAR16*   variableName = (CHAR16*)L"";
         UByteArray header;
         UByteArray body;
 
