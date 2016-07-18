@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
         std::vector<std::vector<QString> > fitTable = ffsParser.getFitTable();
         if (fitTable.size()) {
              std::cout << "-------------------------------------------------------------------" << std::endl;
-             std::cout << "     Address     |   Size    |  Ver  | CS |           Type           " << std::endl;
+             std::cout << "     Address     |   Size    |  Ver  | CS  |         Type          " << std::endl;
              std::cout << "-------------------------------------------------------------------" << std::endl;
              for (size_t i = 0; i < fitTable.size(); i++) {
                   std::cout << fitTable[i][0].toLatin1().constData() << " | "

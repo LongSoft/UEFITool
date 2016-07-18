@@ -2896,16 +2896,15 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         FIT_ENTRY* tempFitHeader = (FIT_ENTRY*)tempFIT.data();
         tempFitHeader->Checksum = 0;
         UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
-        calculated |= 0x80; // Set checksum flag on calculated checksum
         if (calculated != fitHeader->Checksum) {
             msg(usprintf("parseFit: invalid FIT table checksum %02Xh, should be %02Xh", fitHeader->Checksum, calculated), fitIndex);
         }
     }
 
     // Check fit header type
-    if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER) {
+    if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER)
         msg(("Invalid FIT header type"), fitIndex);
-    }
+    
 
     // Add FIT header to fitTable
     std::vector<UString> currentStrings;
