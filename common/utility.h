@@ -14,9 +14,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include "basetypes.h"
 #include "ustring.h"
 #include "treemodel.h"
-#include "basetypes.h"
 #include "parsingdata.h"
 
 // Returns either new parsing data instance or obtains it from index
@@ -45,5 +45,8 @@ UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 
 // 16bit checksum calculation routine
 UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
+
+// Return padding type from it's contents
+UINT8 getPaddingType(const UByteArray & padding);
 
 #endif // UTILITY_H

@@ -15,33 +15,27 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
+#include "basetypes.h"
 #include "ustring.h"
 #include "ubytearray.h"
-#include "basetypes.h"
 #include "treemodel.h"
-#include "utility.h"
-#include "peimage.h"
-#include "parsingdata.h"
-#include "types.h"
-#include "treemodel.h"
-#include "descriptor.h"
-#include "ffs.h"
-#include "gbe.h"
-#include "me.h"
-#include "fit.h"
-#include "nvram.h"
-
-class TreeModel;
+#include "nvramparser.h"
 
 class FfsParser
 {
 public:
     // Default constructor and destructor
-    FfsParser(TreeModel* treeModel) : model(treeModel), capsuleOffsetFixup(0) {}
+    FfsParser(TreeModel* treeModel) : model(treeModel), nvramParser(treeModel), capsuleOffsetFixup(0) {}
     ~FfsParser() {}
 
     // Returns messages 
-    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { 
+        std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser.getMessages();
+        std::vector<std::pair<UString, UModelIndex> > resultVector = messagesVector;
+        resultVector.insert(std::end(resultVector), std::begin(nvramVector), std::end(nvramVector));
+        return resultVector;
+    }
+
     // Clears messages
     void clearMessages() { messagesVector.clear(); }
 
@@ -61,6 +55,8 @@ private:
     UModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
     std::vector<std::vector<UString> > fitTable;
+
+    NvramParser nvramParser;
 
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
@@ -100,35 +96,11 @@ private:
     USTATUS parsePeImageSectionBody(const UModelIndex & index);
     USTATUS parseTeImageSectionBody(const UModelIndex & index);
 
-    UINT8   getPaddingType(const UByteArray & padding);
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
     USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 parentOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     USTATUS getVolumeSize(const UByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT32  getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
-
-    // NVRAM parsing
-    USTATUS parseNvramVolumeBody(const UModelIndex & index);
-    USTATUS findNextStore(const UModelIndex & index, const UByteArray & volume, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
-    USTATUS getStoreSize(const UByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
-    USTATUS parseStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    
-    USTATUS parseNvarStore(const UModelIndex & index);
-    USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFtwStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFdcStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFsysStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseEvsaStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFlashMapStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseCmdbStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseSlicPubkeyHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    
-    USTATUS parseVssStoreBody(const UModelIndex & index);
-    USTATUS parseFsysStoreBody(const UModelIndex & index);
-    USTATUS parseEvsaStoreBody(const UModelIndex & index);
-    USTATUS parseFlashMapBody(const UModelIndex & index);
 
     // Second pass
     USTATUS performSecondPass(const UModelIndex & index);

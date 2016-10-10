@@ -12,6 +12,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 #include "ffsbuilder.h"
 
+#include "descriptor.h"
+#include "ffs.h"
+#include "peimage.h"
+#include "utility.h"
+
 USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
 {
     // Sanity check

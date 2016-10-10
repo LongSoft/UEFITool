@@ -676,8 +676,10 @@ void QHexEdit::keyPressEvent(QKeyEvent *event)
     if (event->matches(QKeySequence::Copy))
     {
         QByteArray ba = _chunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
-        for (qint64 idx = 32; idx < ba.size(); idx +=33)
+        for (qint64 idx = 32; idx < ba.size(); idx += 33)
             ba.insert(idx, "\n");
+		if(_upperCase)
+			ba = ba.toUpper();
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setText(ba);
     }

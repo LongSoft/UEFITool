@@ -19,7 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define UByteArray QByteArray
 #else
 // Use own implementation
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -32,6 +32,7 @@ public:
     UByteArray(const std::basic_string<char> & bs) : d(bs) {}
     UByteArray(const std::vector<char> & bc) : d(bc.data(), bc.size()) {}
     UByteArray(const char* bytes, int32_t size) : d(bytes, size) {}
+    UByteArray(const size_t n, char c) : d(n, c) {}
     ~UByteArray() {}
 
     bool isEmpty() const { return d.length() == 0; }
@@ -41,6 +42,9 @@ public:
     const char* constData() const { return d.c_str(); }
     void clear() { d.clear(); }
 
+    UByteArray toUpper() { std::basic_string<char> s = d; std::transform(s.begin(), s.end(), s.begin(), ::toupper); return UByteArray(s); }
+    uint32_t toUInt(bool* ok = NULL, const uint8_t base = 10) { return (uint32_t)std::strtoul(d.c_str(), NULL, base); }
+
     int32_t size() const { return d.size();  }
     int32_t count(char ch) const { return std::count(d.begin(), d.end(), ch); }
     char at(uint32_t i) const { return d.at(i); }
@@ -49,11 +53,19 @@ public:
 
     bool startsWith(const UByteArray & ba) const { return 0 == d.find(ba.d, 0); }
     int indexOf(const UByteArray & ba, int from = 0) const { return d.find(ba.d, from); }
-    int lastIndexOf(const UByteArray & ba, int from = 0) const { return d.rfind(ba.d, from); }
+    int lastIndexOf(const UByteArray & ba, int from = 0) const {
+        size_t old_index = d.npos;
+        size_t index = d.find(ba.d, from);
+        while (index != d.npos) {
+            old_index = index;
+            index = d.find(ba.d, index + 1);
+        }
+        return old_index;
+    }
 
     UByteArray left(int32_t len) const { return d.substr(0, len); }
-    UByteArray right(int32_t len) const { return d.substr(d.size() - 1 - len, len); };
-    UByteArray mid(int32_t pos, int32_t len = -1) const { return d.substr(pos, len); };
+    UByteArray right(int32_t len) const { return d.substr(d.size() - 1 - len, len); }
+    UByteArray mid(int32_t pos, int32_t len = -1) const { return d.substr(pos, len); }
 
     UByteArray & operator=(const UByteArray & ba) { d = ba.d; return *this; }
     UByteArray & operator+=(const UByteArray & ba) { d += ba.d; return *this; }

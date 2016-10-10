@@ -16,8 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef PEIMAGE_H
 #define PEIMAGE_H
 
-#include "ustring.h"
 #include "basetypes.h"
+#include "ustring.h"
 
 extern UString machineTypeToUString(UINT16 machineType);
 

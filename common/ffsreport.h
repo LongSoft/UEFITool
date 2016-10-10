@@ -16,12 +16,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#include "../common/ubytearray.h"
-#include "../common/ustring.h"
 #include "basetypes.h"
+#include "ubytearray.h"
+#include "ustring.h"
 #include "treemodel.h"
-#include "ffs.h"
-#include "utility.h"
+
 
 class FfsReport
 {
@@ -36,7 +35,7 @@ private:
     TreeModel* model;
     
     USTATUS generateRecursive(std::vector<UString> & report, UModelIndex index, UINT32 level = 0);
-    
 };
 
 #endif // FFSREPORT_H
+

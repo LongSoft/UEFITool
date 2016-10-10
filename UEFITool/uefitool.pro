@@ -3,6 +3,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = UEFITool
 TEMPLATE = app
+DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
 
 HEADERS += uefitool.h \
  searchdialog.h \
@@ -11,6 +12,7 @@ HEADERS += uefitool.h \
  guidlineedit.h \
  ffsfinder.h \
  ../common/nvram.h \
+ ../common/nvramparser.h \
  ../common/ffsops.h \
  ../common/basetypes.h \
  ../common/descriptor.h \
@@ -44,6 +46,7 @@ SOURCES += uefitool_main.cpp \
  guidlineedit.cpp \
  ffsfinder.cpp \
  ../common/nvram.cpp \
+ ../common/nvramparser.cpp \
  ../common/ffsops.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \

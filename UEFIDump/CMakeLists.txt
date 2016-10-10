@@ -7,6 +7,7 @@ SET(PROJECT_SOURCES
  ../common/descriptor.cpp 
  ../common/ffs.cpp 
  ../common/nvram.cpp 
+ ../common/nvramparser.cpp 
  ../common/ffsparser.cpp 
  ../common/ffsreport.cpp 
  ../common/peimage.cpp 
@@ -16,7 +17,7 @@ SET(PROJECT_SOURCES
  ../common/LZMA/LzmaDecompress.c 
  ../common/LZMA/SDK/C/LzmaDec.c 
  ../common/Tiano/EfiTianoDecompress.c 
-  ../common/ustring.cpp 
+ ../common/ustring.cpp 
  ../bstrlib/bstrlib.c 
  ../bstrlib/bstrwrap.cpp
 )
@@ -29,7 +30,8 @@ SET(PROJECT_HEADERS
  ../common/me.h 
  ../common/ffs.h
  ../common/fit.h  
- ../common/nvram.h 
+ ../common/nvram.h
+ ../common/nvramparser.h 
  ../common/ffsparser.h 
  ../common/ffsreport.h 
  ../common/peimage.h 
@@ -44,5 +46,7 @@ SET(PROJECT_HEADERS
  ../bstrlib/bstrlib.h 
  ../bstrlib/bstrwrap.h
 )
+
+ADD_DEFINITIONS(-DU_ENABLE_NVRAM_PARSING_SUPPORT)
 
 ADD_EXECUTABLE(UEFIDump ${PROJECT_SOURCES} ${PROJECT_HEADERS})

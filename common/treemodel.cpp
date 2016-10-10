@@ -11,7 +11,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include "treeitem.h"
 #include "treemodel.h"
 
 #if defined(QT_CORE_LIB)

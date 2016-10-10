@@ -243,9 +243,9 @@ USTATUS decompress(const UByteArray & compressedData, UINT8 & algorithm, UByteAr
         efiDecompressed = (UINT8*)malloc(decompressedSize);
         scratch = (UINT8*)malloc(scratchSize);
         if (!decompressed || !efiDecompressed || !scratch) {
-            if (decompressed) free(decompressed);
-            if (efiDecompressed) free(efiDecompressed);
-            if (scratch) free(scratch);
+            free(decompressed);
+            free(efiDecompressed);
+            free(scratch);
             return U_STANDARD_DECOMPRESSION_FAILED;
         }
 
@@ -361,4 +361,13 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
     }
 
     return (UINT16)(0x10000 - counter);
+}
+
+UINT8 getPaddingType(const UByteArray & padding)
+{
+    if (padding.count('\x00') == padding.size())
+        return Subtypes::ZeroPadding;
+    if (padding.count('\xFF') == padding.size())
+        return Subtypes::OnePadding;
+    return Subtypes::DataPadding;
 }

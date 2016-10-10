@@ -14,6 +14,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define DESCRIPTOR_H
 
 #include "basetypes.h"
+#include "ustring.h"
 
 // Make sure we use right packing rules
 #pragma pack(push,1)
@@ -200,5 +201,8 @@ extern const UINT8* calculateAddress16(const UINT8* baseAddress, const UINT16 ba
 extern UINT32 calculateRegionOffset(const UINT16 base);
 // Calculate size of region using it's base and limit
 extern UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit);
+
+// Return human-readable chip name for given JEDEC ID
+extern UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1);
 
 #endif // DESCRIPTOR_H

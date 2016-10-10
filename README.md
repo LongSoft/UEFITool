@@ -53,4 +53,4 @@ You can either use [pre-built binaries for Windows and OSX](https://github.com/L
 
 * Some vendor-specific firmware update files can be opened incorrectly or can't be opened at all. This includes encrypted HP update files, Dell HDR and EXE files, some InsydeFlash FD files and so on. Enabling support for such files will require massive amount of reverse-engineering which is almost pointless because the updated image can be obtained from BIOS chip where it's already decrypted and unpacked.
 * Intel Firmware Interface Table (FIT) editing is not supported right now. FIT contains pointers to various image components that must be loaded before executing the first CPU instruction from the BIOS chip. Those components include CPU microcode updates, binaries and settings used by BIOS Guard and Boot Guard technologies and some other stuff. More information on FIT can be obtained [here](http://downloadmirror.intel.com/18931/eng/Intel%20TXT%20LAB%20Handout.pdf).
-* Builder code is still not ready, but I'm working hard on it.
+* Builder code is still not ready.

@@ -11,7 +11,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "ustring.h"
-#include <stdarg.h>
+#include <cstdarg>
 
 #if defined(QT_CORE_LIB)
 UString usprintf(const char* fmt, ...) 

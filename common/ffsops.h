@@ -16,12 +16,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
+#include "basetypes.h"
 #include "ubytearray.h"
 #include "ustring.h"
-#include "basetypes.h"
 #include "treemodel.h"
-#include "ffs.h"
-#include "utility.h"
 
 class FfsOperations
 {

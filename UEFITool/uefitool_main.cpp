@@ -18,8 +18,8 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    a.setOrganizationName("CodeRush");
-    a.setOrganizationDomain("coderush.me");
+    a.setOrganizationName("LongSoft");
+    a.setOrganizationDomain("longsoft.org");
     a.setApplicationName("UEFITool");
 
     UEFITool w;

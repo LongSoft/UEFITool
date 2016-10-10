@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         }
     }
     // If parameters are different, show version and usage information
-    std::cout << "UEFIExtract 0.13.0" << std::endl << std::endl
+    std::cout << "UEFIExtract 0.13.1" << std::endl << std::endl
               << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
               << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
               << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl

@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define TYPES_H
 
 #include "basetypes.h"
+#include "ustring.h"
 
 // Actions
 namespace Actions
@@ -136,7 +137,7 @@ namespace Subtypes {
         PubkeySlicData = 180,
         MarkerSlicData
     };
-};
+}
 
 // *ToUString conversion routines
 extern UString actionTypeToUString(const UINT8 action);

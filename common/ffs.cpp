@@ -10,7 +10,6 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#include "ustring.h"
 #include "ffs.h"
 
 // This is a workaround for the lack of static std::vector initializer before C++11

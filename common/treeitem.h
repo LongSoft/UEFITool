@@ -17,9 +17,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <list>
 #include <iterator>
 
+#include "basetypes.h"
 #include "ubytearray.h"
 #include "ustring.h"
-#include "basetypes.h"
 
 class TreeItem
 {
@@ -38,7 +38,7 @@ public:
 
     // Model support operations
     TreeItem *child(int row);                                                  // Non-trivial implementation in CPP file
-    int childCount() const {return childItems.size(); }
+    int childCount() const {return (int)childItems.size(); }
     int columnCount() const { return 5; }
     UString data(int column) const;                                            // Non-trivial implementation in CPP file
     int row() const;                                                           // Non-trivial implementation in CPP file

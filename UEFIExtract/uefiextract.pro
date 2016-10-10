@@ -5,6 +5,7 @@ TARGET   = UEFIExtract
 TEMPLATE = app
 CONFIG  += console
 CONFIG  -= app_bundle
+DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
 
 SOURCES += \
  uefiextract_main.cpp \
@@ -13,6 +14,7 @@ SOURCES += \
  ../common/descriptor.cpp \
  ../common/ffs.cpp \
  ../common/nvram.cpp \
+ ../common/nvramparser.cpp \
  ../common/ffsparser.cpp \
  ../common/ffsreport.cpp \
  ../common/peimage.cpp \
@@ -32,6 +34,7 @@ HEADERS += \
  ../common/me.h \
  ../common/ffs.h \
  ../common/nvram.h \
+ ../common/nvramparser.h \
  ../common/ffsparser.h \
  ../common/ffsreport.h \
  ../common/peimage.h \

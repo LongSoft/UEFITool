@@ -15,9 +15,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef NVRAM_H
 #define NVRAM_H
 
+#include "basetypes.h"
 #include "ubytearray.h"
 #include "ustring.h"
-#include "basetypes.h"
 
 // Make sure we use right packing rules
 #pragma pack(push, 1)

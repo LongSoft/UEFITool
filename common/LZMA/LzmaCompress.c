@@ -74,7 +74,7 @@ UINT32   *DestinationSize
 
     if (*DestinationSize < destLen)
     {
-        *DestinationSize = destLen;
+        *DestinationSize = (UINT32)destLen;
         return EFI_BUFFER_TOO_SMALL;
     }
 
@@ -96,7 +96,7 @@ UINT32   *DestinationSize
         &SzAllocForLzma,
         &SzAllocForLzma);
 
-    *DestinationSize = destLen + LZMA_HEADER_SIZE;
+    *DestinationSize = (UINT32)(destLen + LZMA_HEADER_SIZE);
 
     SetEncodedSizeOfBuf((UINT64)SourceSize, Destination);
 
