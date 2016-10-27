@@ -19,12 +19,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treemodel.h"
 #include "parsingdata.h"
 
-// Returns either new parsing data instance or obtains it from index
-PARSING_DATA parsingDataFromUModelIndex(const UModelIndex & index);
-
-// Converts parsing data to byte array
-UByteArray parsingDataToUByteArray(const PARSING_DATA & pdata);
-
 // Returns unique name string based for tree item
 UString uniqueItemName(const UModelIndex & index);
 
@@ -32,7 +26,7 @@ UString uniqueItemName(const UModelIndex & index);
 UString errorCodeToUString(UINT8 errorCode);
 
 // Decompression routine
-USTATUS decompress(const UByteArray & compressed, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
+USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
 
 // Compression routine
 //USTATUS compress(const UByteArray & decompressed, UByteArray & compressed, const UINT8 & algorithm);

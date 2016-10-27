@@ -157,6 +157,14 @@ int TreeModel::rowCount(const UModelIndex &parent) const
     return parentItem->childCount();
 }
 
+UINT32 TreeModel::offset(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return 0;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->offset();
+}
+
 UINT8 TreeModel::type(const UModelIndex &index) const
 {
     if (!index.isValid())
@@ -219,22 +227,6 @@ bool TreeModel::hasEmptyTail(const UModelIndex &index) const
         return true;
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     return item->hasEmptyTail();
-}
-
-UByteArray TreeModel::parsingData(const UModelIndex &index) const
-{
-    if (!index.isValid())
-        return UByteArray();
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    return item->parsingData();
-}
-
-bool TreeModel::hasEmptyParsingData(const UModelIndex &index) const
-{
-    if (!index.isValid())
-        return true;
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    return item->hasEmptyParsingData();
 }
 
 UString TreeModel::name(const UModelIndex &index) const
@@ -320,6 +312,25 @@ void TreeModel::setCompressed(const UModelIndex &index, const bool compressed)
     emit dataChanged(index, index);
 }
 
+void TreeModel::setOffset(const UModelIndex &index, const UINT32 offset)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setOffset(offset);
+    emit dataChanged(index, index);
+}
+
+void TreeModel::setType(const UModelIndex &index, const UINT8 data)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setType(data);
+    emit dataChanged(index, index);
+}
 
 void TreeModel::setSubtype(const UModelIndex & index, const UINT8 subtype)
 {
@@ -338,16 +349,6 @@ void TreeModel::setName(const UModelIndex &index, const UString &data)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setName(data);
-    emit dataChanged(index, index);
-}
-
-void TreeModel::setType(const UModelIndex &index, const UINT8 data)
-{
-    if (!index.isValid())
-        return;
-
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    item->setType(data);
     emit dataChanged(index, index);
 }
 
@@ -391,6 +392,24 @@ void TreeModel::setAction(const UModelIndex &index, const UINT8 action)
     emit dataChanged(index, index);
 }
 
+UByteArray TreeModel::parsingData(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return UByteArray();
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->parsingData();
+}
+
+bool TreeModel::hasEmptyParsingData(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return true;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->hasEmptyParsingData();
+}
+
 void TreeModel::setParsingData(const UModelIndex &index, const UByteArray &data)
 {
     if (!index.isValid())
@@ -401,10 +420,10 @@ void TreeModel::setParsingData(const UModelIndex &index, const UByteArray &data)
     emit dataChanged(this->index(0, 0), index);
 }
 
-UModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype,
+UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
     const UString & name, const UString & text, const UString & info,
     const UByteArray & header, const UByteArray & body, const UByteArray & tail,
-    const bool fixed, const UByteArray & parsingData,
+    const ItemFixedState fixed,
     const UModelIndex & parent, const UINT8 mode)
 {
     TreeItem *item = 0;
@@ -426,7 +445,7 @@ UModelIndex TreeModel::addItem(const UINT8 type, const UINT8 subtype,
         }
     }
 
-    TreeItem *newItem = new TreeItem(type, subtype, name, text, info, header, body, tail, fixed, this->compressed(parent), parsingData, parentItem);
+    TreeItem *newItem = new TreeItem(offset, type, subtype, name, text, info, header, body, tail, Movable, this->compressed(parent), parentItem);
      
     if (mode == CREATE_MODE_APPEND) {
         emit layoutAboutToBeChanged();

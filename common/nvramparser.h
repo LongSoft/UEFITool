@@ -46,20 +46,20 @@ private:
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 
-    USTATUS findNextStore(const UModelIndex & index, const UByteArray & volume, const UINT32 parentOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
+    USTATUS findNextStore(const UModelIndex & index, const UByteArray & volume, const UINT32 localOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset);
     USTATUS getStoreSize(const UByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
-    USTATUS parseStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
-    USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFtwStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFdcStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFsysStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseEvsaStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseFlashMapStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseCmdbStoreHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseSlicPubkeyHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 parentOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFtwStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFdcStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFsysStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseEvsaStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFlashMapStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseCmdbStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseSlicPubkeyHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parseVssStoreBody(const UModelIndex & index);
     USTATUS parseFsysStoreBody(const UModelIndex & index);
@@ -71,20 +71,17 @@ class NvramParser
 {
 public:
     // Default constructor and destructor
-    NvramParser(TreeModel* treeModel) : model(treeModel) {}
+    NvramParser(TreeModel* treeModel) { U_UNUSED_PARAMETER(treeModel); }
     ~NvramParser() {}
 
     // Returns messages 
-    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const { return std::vector<std::pair<UString, UModelIndex> >(); }
     // Clears messages
-    void clearMessages() { messagesVector.clear(); }
+    void clearMessages() {}
 
     // NVRAM parsing
     USTATUS parseNvramVolumeBody(const UModelIndex &) { return U_SUCCESS; }
     USTATUS parseNvarStore(const UModelIndex &)  { return U_SUCCESS; }
-private:
-    TreeModel *model;
-    std::vector<std::pair<UString, UModelIndex> > messagesVector;
 };
 #endif // U_ENABLE_NVRAM_PARSING_SUPPORT
 #endif // NVRAMPARSER_H

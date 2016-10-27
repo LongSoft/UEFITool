@@ -139,7 +139,10 @@ typedef unsigned int UINTN;
 
 // EFI GUID
 typedef struct EFI_GUID_ {
-    UINT8 Data[16];
+    UINT32 Data1;
+    UINT16 Data2;
+    UINT16 Data3;
+    UINT8  Data4[8];
 } EFI_GUID;
 
 // EFI Time
@@ -157,9 +160,14 @@ typedef struct EFI_TIME_ {
     UINT8   : 8;
 } EFI_TIME;
 
+// Aling to 4 or 8 bytes
 #define ALIGN4(Value) (((Value)+3) & ~3)
 #define ALIGN8(Value) (((Value)+7) & ~7)
 
+// Unused parameter declaration
+#define U_UNUSED_PARAMETER(x) ((void)x)
+
+// Assert macro
 #include <assert.h>
 #define ASSERT(x) assert(x)
 

@@ -306,10 +306,12 @@ UINT32                  ExtendedSize;
 #define EFI_FV_FILETYPE_DRIVER                  0x07
 #define EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER    0x08
 #define EFI_FV_FILETYPE_APPLICATION             0x09
-#define EFI_FV_FILETYPE_SMM                     0x0A
+#define EFI_FV_FILETYPE_MM                      0x0A
 #define EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE   0x0B
-#define EFI_FV_FILETYPE_COMBINED_SMM_DXE        0x0C
-#define EFI_FV_FILETYPE_SMM_CORE                0x0D
+#define EFI_FV_FILETYPE_COMBINED_MM_DXE         0x0C
+#define EFI_FV_FILETYPE_MM_CORE                 0x0D
+#define EFI_FV_FILETYPE_MM_STANDALONE           0x0E
+#define EFI_FV_FILETYPE_MM_CORE_STANDALONE      0x0F
 #define EFI_FV_FILETYPE_OEM_MIN                 0xC0
 #define EFI_FV_FILETYPE_OEM_MAX                 0xDF
 #define EFI_FV_FILETYPE_DEBUG_MIN               0xE0
@@ -336,7 +338,7 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_MARKED_FOR_UPDATE      0x08
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
-
+#define EFI_FILE_ERASE_POLARITY         0x80 // Defined as "all other bits must be set to ERASE_POLARITY" in UEFI PI Vol3
 // PEI apriori file
 const UByteArray EFI_PEI_APRIORI_FILE_GUID
 ("\x0A\xCC\x45\x1B\x6A\x15\x8A\x42\xAF\x62\x49\x86\x4D\xA0\xE6\xE6", 16);
@@ -406,7 +408,7 @@ typedef struct EFI_COMMON_SECTION_HEADER_APPLE {
 #define EFI_SECTION_FREEFORM_SUBTYPE_GUID   0x18
 #define EFI_SECTION_RAW                     0x19
 #define EFI_SECTION_PEI_DEPEX               0x1B
-#define EFI_SECTION_SMM_DEPEX               0x1C
+#define EFI_SECTION_MM_DEPEX                0x1C
 #define PHOENIX_SECTION_POSTCODE            0xF0 // Specific to Phoenix SCT images
 #define INSYDE_SECTION_POSTCODE             0x20 // Specific to Insyde H2O images
 

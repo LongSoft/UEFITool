@@ -23,9 +23,7 @@ USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
-    PARSING_DATA pdata = parsingDataFromUModelIndex(index);
-    erased.fill(pdata.emptyByte);
-    return U_SUCCESS;
+    return U_NOT_IMPLEMENTED;
 }
 
 USTATUS FfsBuilder::build(const UModelIndex & root, UByteArray & image)

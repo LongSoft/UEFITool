@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool), 
-version(tr("NE Alpha33"))
+version(tr("NE Alpha34"))
 {
     clipboard = QApplication::clipboard();
 
@@ -205,7 +205,9 @@ void UEFITool::populateUi(const QModelIndex &current)
 
 bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
 {
-    if (current.isValid() && model->type(current) == Types::Section &&
+    // TODO: rewrite based on model->compressed()
+    U_UNUSED_PARAMETER(current);
+    /*if (current.isValid() && model->type(current) == Types::Section &&
        (model->subtype(current) == EFI_SECTION_COMPRESSION || model->subtype(current) == EFI_SECTION_GUID_DEFINED)) {
         // Get parsing data
         PARSING_DATA pdata = parsingDataFromUModelIndex(current);
@@ -222,7 +224,7 @@ bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
                 return true;
             }
         }
-    }
+    }*/
         
     return false;
 }
@@ -304,17 +306,24 @@ void UEFITool::goToData()
     QModelIndex parent = model->parent(index);
     
     for (int i = index.row(); i < model->rowCount(parent); i++) {
-        PARSING_DATA pdata = parsingDataFromUModelIndex(index);
-        UINT32 lastVariableFlag = pdata.emptyByte ? 0xFFFFFF : 0;
-        if (pdata.nvar.next == lastVariableFlag) {
+        if (model->hasEmptyParsingData(index))
+            continue;
+
+        UByteArray data = model->parsingData(index);
+        const NVAR_ENTRY_PARSING_DATA* pdata = (const NVAR_ENTRY_PARSING_DATA*)data.constData();
+        UINT32 lastVariableFlag = pdata->emptyByte ? 0xFFFFFF : 0;
+        UINT32 offset = model->offset(index);
+        if (pdata->next == lastVariableFlag) {
             ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
             ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
         }
         
         for (int j = i + 1; j < model->rowCount(parent); j++) {
             QModelIndex currentIndex = parent.child(j, 0);
-            PARSING_DATA currentPdata = parsingDataFromUModelIndex(currentIndex);
-            if (currentPdata.offset == pdata.offset + pdata.nvar.next) {
+            if (model->hasEmptyParsingData(currentIndex))
+                continue;
+
+            if (model->offset(currentIndex) == offset + pdata->next) {
                 index = currentIndex;
                 break;
             }
@@ -324,6 +333,7 @@ void UEFITool::goToData()
 
 void UEFITool::insert(const UINT8 mode)
 {
+    U_UNUSED_PARAMETER(mode);
     /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;

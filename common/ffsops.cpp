@@ -21,33 +21,12 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
-    // Get data from parsing data
-    PARSING_DATA pdata = parsingDataFromUModelIndex(index);
-
     // Construct a name for extracted data
     UString itemName = model->name(index);
     UString itemText = model->text(index);
 
     // Default name
-    name = itemName.replace(' ', '_').replace('/', '_').replace('-', '_');
-
-    switch (model->type(index)) {
-    case Types::Volume:        if (pdata.volume.hasExtendedHeader) name = guidToUString(pdata.volume.extendedHeaderGuid).replace('-', '_'); break;
-    case Types::NvarEntry:
-    case Types::VssEntry:
-    case Types::FsysEntry:
-    case Types::EvsaEntry:
-    case Types::FlashMapEntry:
-    case Types::File:          name = itemText.isEmpty() ? itemName : itemText.replace(' ', '_').replace('-', '_'); break;
-    case Types::Section: {
-        // Get parent file name
-        UModelIndex fileIndex = model->findParentOfType(index, Types::File);
-        UString fileText = model->text(fileIndex);
-        name = fileText.isEmpty() ? model->name(fileIndex) : fileText.replace(' ', '_').replace('-', '_');
-        // Append section subtype name
-        name += '_' + itemName.replace(' ', '_');
-        } break;
-    }
+    name = uniqueItemName(index);
 
     // Get extracted data
     if (mode == EXTRACT_MODE_AS_IS) {
@@ -89,9 +68,6 @@ USTATUS FfsOperations::replace(const UModelIndex & index, const UString & data, 
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
-
-    // Get data from parsing data
-    //PARSING_DATA pdata = parsingDataFromQModelIndex(index);
 
     if (mode == REPLACE_MODE_AS_IS) {
         return U_NOT_IMPLEMENTED;

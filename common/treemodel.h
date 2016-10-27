@@ -14,6 +14,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef TREEMODEL_H
 #define TREEMODEL_H
 
+enum ItemFixedState {
+    Movable,
+    Fixed
+};
+
 #if defined(QT_CORE_LIB)
 // Use Qt classes
 #include <QAbstractItemModel>
@@ -88,7 +93,7 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation,
         int role = Qt::DisplayRole) const;
     TreeModel(QObject *parent = 0) : QAbstractItemModel(parent) {
-        rootItem = new TreeItem(Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE, UByteArray());
+        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE);
     }
 
 #else
@@ -107,7 +112,7 @@ public:
     UString headerData(int section, int orientation, int role = 0) const;
 
     TreeModel() {
-        rootItem = new TreeItem(Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE, UByteArray());
+        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE);
     }
 
     bool hasIndex(int row, int column, const UModelIndex &parent = UModelIndex()) const {
@@ -131,37 +136,41 @@ public:
     int columnCount(const UModelIndex &parent = UModelIndex()) const;
 
     void setAction(const UModelIndex &index, const UINT8 action);
+    void setOffset(const UModelIndex &index, const UINT32 offset);
     void setType(const UModelIndex &index, const UINT8 type);
     void setSubtype(const UModelIndex &index, const UINT8 subtype);
     void setName(const UModelIndex &index, const UString &name);
     void setText(const UModelIndex &index, const UString &text);
     void setInfo(const UModelIndex &index, const UString &info);
     void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
-    void setParsingData(const UModelIndex &index, const UByteArray &data);
     void setFixed(const UModelIndex &index, const bool fixed);
     void setCompressed(const UModelIndex &index, const bool compressed);
     
+    UINT32 offset(const UModelIndex &index) const;
+    UINT8 type(const UModelIndex &index) const;
+    UINT8 subtype(const UModelIndex &index) const;
     UString name(const UModelIndex &index) const;
     UString text(const UModelIndex &index) const;
     UString info(const UModelIndex &index) const;
-    UINT8 type(const UModelIndex &index) const;
-    UINT8 subtype(const UModelIndex &index) const;
     UByteArray header(const UModelIndex &index) const;
     bool hasEmptyHeader(const UModelIndex &index) const;
     UByteArray body(const UModelIndex &index) const;
     bool hasEmptyBody(const UModelIndex &index) const;
     UByteArray tail(const UModelIndex &index) const;
     bool hasEmptyTail(const UModelIndex &index) const;
-    UByteArray parsingData(const UModelIndex &index) const;
-    bool hasEmptyParsingData(const UModelIndex &index) const;
-    UINT8 action(const UModelIndex &index) const;
     bool fixed(const UModelIndex &index) const;
     bool compressed(const UModelIndex &index) const;
 
-    UModelIndex addItem(const UINT8 type, const UINT8 subtype,
+    UINT8 action(const UModelIndex &index) const;
+
+    UByteArray parsingData(const UModelIndex &index) const;
+    bool hasEmptyParsingData(const UModelIndex &index) const;
+    void setParsingData(const UModelIndex &index, const UByteArray &pdata);
+
+    UModelIndex addItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
         const UString & name, const UString & text, const UString & info,
         const UByteArray & header, const UByteArray & body, const UByteArray & tail,
-        const bool fixed, const UByteArray & parsingData = UByteArray(),
+        const ItemFixedState fixed,
         const UModelIndex & parent = UModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     UModelIndex findParentOfType(const UModelIndex & index, UINT8 type) const;

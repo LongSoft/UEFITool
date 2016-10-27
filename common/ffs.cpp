@@ -46,17 +46,17 @@ UINT32 uint24ToUint32(const UINT8* ffsSize)
 UString guidToUString(const EFI_GUID & guid)
 {
     return usprintf("%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-        *(const UINT32*)&guid.Data[0],
-        *(const UINT16*)&guid.Data[4],
-        *(const UINT16*)&guid.Data[6],
-        guid.Data[8],
-        guid.Data[9],
-        guid.Data[10],
-        guid.Data[11],
-        guid.Data[12],
-        guid.Data[13],
-        guid.Data[14],
-        guid.Data[15]);
+        guid.Data1,
+        guid.Data2,
+        guid.Data3,
+        guid.Data4[0],
+        guid.Data4[1],
+        guid.Data4[2],
+        guid.Data4[3],
+        guid.Data4[4],
+        guid.Data4[5],
+        guid.Data4[6],
+        guid.Data4[7]);
 }
 
 UString fileTypeToUString(const UINT8 type)
@@ -72,10 +72,12 @@ UString fileTypeToUString(const UINT8 type)
     case EFI_FV_FILETYPE_DRIVER:                return UString("DXE driver");
     case EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER:  return UString("Combined PEI/DXE");
     case EFI_FV_FILETYPE_APPLICATION:           return UString("Application");
-    case EFI_FV_FILETYPE_SMM:                   return UString("SMM module");
+    case EFI_FV_FILETYPE_MM:                    return UString("SMM module");
     case EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE: return UString("Volume image");
-    case EFI_FV_FILETYPE_COMBINED_SMM_DXE:      return UString("Combined SMM/DXE");
-    case EFI_FV_FILETYPE_SMM_CORE:              return UString("SMM core");
+    case EFI_FV_FILETYPE_COMBINED_MM_DXE:       return UString("Combined SMM/DXE");
+    case EFI_FV_FILETYPE_MM_CORE:               return UString("SMM core");
+    case EFI_FV_FILETYPE_MM_STANDALONE:         return UString("MM standalone module");
+    case EFI_FV_FILETYPE_MM_CORE_STANDALONE:    return UString("MM standalone core");
     case EFI_FV_FILETYPE_PAD:                   return UString("Pad");
     default:                                    return UString("Unknown");
     };
@@ -99,7 +101,7 @@ UString sectionTypeToUString(const UINT8 type)
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID:     return UString("Freeform subtype GUID");
     case EFI_SECTION_RAW:                       return UString("Raw");
     case EFI_SECTION_PEI_DEPEX:                 return UString("PEI dependency");
-    case EFI_SECTION_SMM_DEPEX:                 return UString("SMM dependency");
+    case EFI_SECTION_MM_DEPEX:                  return UString("MM dependency");
     case INSYDE_SECTION_POSTCODE:               return UString("Insyde postcode");
     case PHOENIX_SECTION_POSTCODE:              return UString("Phoenix postcode");
     default:                                    return UString("Unknown");

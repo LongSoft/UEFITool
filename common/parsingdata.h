@@ -20,6 +20,8 @@ routines without the need of backward traversal
 #include "basetypes.h"
 
 typedef struct VOLUME_PARSING_DATA_ {
+    UINT8    ffsVersion;
+    UINT8    emptyByte;
     EFI_GUID extendedHeaderGuid;
     UINT32   alignment;
     UINT8    revision;
@@ -30,8 +32,13 @@ typedef struct VOLUME_PARSING_DATA_ {
 } VOLUME_PARSING_DATA;
 
 typedef struct FILE_PARSING_DATA_ {
+    UINT8    emptyByte;
     EFI_GUID guid;
 } FILE_PARSING_DATA;
+
+typedef struct GUID_PARSING_DATA_ {
+    EFI_GUID guid;
+} GUIDED_SECTION_PARSING_DATA, FREEFORM_GUIDED_SECTION_PARSING_DATA;
 
 typedef struct COMPRESSED_SECTION_PARSING_DATA_ {
     UINT32 uncompressedSize;
@@ -39,45 +46,16 @@ typedef struct COMPRESSED_SECTION_PARSING_DATA_ {
     UINT8  algorithm;
 } COMPRESSED_SECTION_PARSING_DATA;
 
-typedef struct GUIDED_SECTION_PARSING_DATA_ {
-    EFI_GUID guid;
-} GUIDED_SECTION_PARSING_DATA;
-
-typedef struct FREEFORM_GUIDED_SECTION_PARSING_DATA_ {
-    EFI_GUID guid;
-} FREEFORM_GUIDED_SECTION_PARSING_DATA;
-
 typedef struct TE_IMAGE_SECTION_PARSING_DATA_ {
-    UINT32  imageBase;
-    UINT32  adjustedImageBase;
-    UINT8   imageBaseType;
+    UINT32 imageBase;
+    UINT32 adjustedImageBase;
+    UINT8  imageBaseType;
 } TE_IMAGE_SECTION_PARSING_DATA;
 
-typedef struct SECTION_PARSING_DATA_ {
-    union {
-        COMPRESSED_SECTION_PARSING_DATA      compressed;
-        GUIDED_SECTION_PARSING_DATA          guidDefined;
-        FREEFORM_GUIDED_SECTION_PARSING_DATA freeformSubtypeGuid;
-        TE_IMAGE_SECTION_PARSING_DATA        teImage;
-    };
-} SECTION_PARSING_DATA;
-
 typedef struct NVAR_ENTRY_PARSING_DATA_ {
-    UINT32  next;
+    UINT8   emptyByte;
     BOOLEAN isValid;
+    UINT32  next;
 } NVAR_ENTRY_PARSING_DATA;
 
-typedef struct PARSING_DATA_ {
-    UINT8   emptyByte;
-    UINT8   ffsVersion;
-    UINT32  offset;
-    UINT32  address;
-    union {
-        VOLUME_PARSING_DATA       volume;
-        FILE_PARSING_DATA         file;
-        SECTION_PARSING_DATA      section;
-        NVAR_ENTRY_PARSING_DATA   nvar;
-    };
-} PARSING_DATA;
-
-#endif // NVRAM_H
+#endif // PARSINGDATA_H
