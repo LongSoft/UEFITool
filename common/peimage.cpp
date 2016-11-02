@@ -20,7 +20,7 @@ UString machineTypeToUString(UINT16 machineType)
     case EFI_IMAGE_FILE_MACHINE_ARM:         return UString("ARM");
     case EFI_IMAGE_FILE_MACHINE_ARMNT:       return UString("ARMv7");
     case EFI_IMAGE_FILE_MACHINE_APPLE_ARM:   return UString("Apple ARM");
-    case EFI_IMAGE_FILE_MACHINE_AARCH64:     return UString("AARCH64");
+    case EFI_IMAGE_FILE_MACHINE_AARCH64:     return UString("AArch64");
     case EFI_IMAGE_FILE_MACHINE_EBC:         return UString("EBC");
     case EFI_IMAGE_FILE_MACHINE_I386:        return UString("x86");
     case EFI_IMAGE_FILE_MACHINE_IA64:        return UString("IA64");

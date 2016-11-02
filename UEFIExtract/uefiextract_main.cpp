@@ -61,17 +61,18 @@ int main(int argc, char *argv[])
         }
 
         // Get last VTF
-        std::vector<std::vector<QString> > fitTable = ffsParser.getFitTable();
+        std::vector<std::pair<std::vector<QString>, QModelIndex > > fitTable = ffsParser.getFitTable();
         if (fitTable.size()) {
-             std::cout << "-------------------------------------------------------------------" << std::endl;
-             std::cout << "     Address     |   Size    |  Ver  | CS  |         Type          " << std::endl;
-             std::cout << "-------------------------------------------------------------------" << std::endl;
+             std::cout << "---------------------------------------------------------------------------" << std::endl;
+             std::cout << "     Address     |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
+             std::cout << "---------------------------------------------------------------------------" << std::endl;
              for (size_t i = 0; i < fitTable.size(); i++) {
-                  std::cout << fitTable[i][0].toLatin1().constData() << " | "
-                            << fitTable[i][1].toLatin1().constData() << " | "
-                            << fitTable[i][2].toLatin1().constData() << " | "
-                            << fitTable[i][3].toLatin1().constData() << " | "
-                            << fitTable[i][4].toLatin1().constData() << std::endl;
+                  std::cout << fitTable[i].first[0].toLatin1().constData() << " | "
+                            << fitTable[i].first[1].toLatin1().constData() << " | "
+                            << fitTable[i].first[2].toLatin1().constData() << " | "
+                            << fitTable[i].first[3].toLatin1().constData() << " | "
+                            << fitTable[i].first[4].toLatin1().constData() << " | "
+                            << fitTable[i].first[5].toLatin1().constData() << std::endl;
              }
         }
 
@@ -120,7 +121,7 @@ int main(int argc, char *argv[])
         }
     }
     // If parameters are different, show version and usage information
-    std::cout << "UEFIExtract 0.13.1" << std::endl << std::endl
+    std::cout << "UEFIExtract 0.13.2" << std::endl << std::endl
               << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
               << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
               << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl

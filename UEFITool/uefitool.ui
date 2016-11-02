@@ -284,8 +284,6 @@
     <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
-    <addaction name="actionSearch"/>
-    <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -300,6 +298,9 @@
      <string>&amp;Action</string>
     </property>
     <widget class="QMenu" name="menuCapsuleActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Capsule</string>
      </property>
@@ -309,6 +310,9 @@
      <addaction name="actionExtractBody"/>
     </widget>
     <widget class="QMenu" name="menuImageActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Image</string>
      </property>
@@ -317,6 +321,9 @@
      <addaction name="actionExtract"/>
     </widget>
     <widget class="QMenu" name="menuRegionActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Region</string>
      </property>
@@ -329,6 +336,9 @@
      <addaction name="actionReplace"/>
     </widget>
     <widget class="QMenu" name="menuPaddingActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Padding</string>
      </property>
@@ -337,6 +347,9 @@
      <addaction name="actionExtract"/>
     </widget>
     <widget class="QMenu" name="menuVolumeActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Volume</string>
      </property>
@@ -353,6 +366,9 @@
      <addaction name="actionReplaceBody"/>
     </widget>
     <widget class="QMenu" name="menuFileActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;File</string>
      </property>
@@ -373,6 +389,9 @@
      <addaction name="actionRemove"/>
     </widget>
     <widget class="QMenu" name="menuSectionActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Section</string>
      </property>
@@ -393,7 +412,10 @@
      <addaction name="separator"/>
      <addaction name="actionRemove"/>
     </widget>
-    <widget class="QMenu" name="menuMessages">
+    <widget class="QMenu" name="menuMessageActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>&amp;Messages</string>
      </property>
@@ -403,6 +425,9 @@
      <addaction name="actionMessagesClear"/>
     </widget>
     <widget class="QMenu" name="menuVariableActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>Variable</string>
      </property>
@@ -424,6 +449,9 @@
      <addaction name="actionRemove"/>
     </widget>
     <widget class="QMenu" name="menuStoreActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="title">
       <string>S&amp;tore</string>
      </property>
@@ -441,6 +469,9 @@
      <addaction name="actionReplace"/>
      <addaction name="actionReplaceBody"/>
     </widget>
+    <addaction name="actionGoToOffset"/>
+    <addaction name="actionSearch"/>
+    <addaction name="separator"/>
     <addaction name="menuCapsuleActions"/>
     <addaction name="menuImageActions"/>
     <addaction name="menuRegionActions"/>
@@ -451,7 +482,7 @@
     <addaction name="menuStoreActions"/>
     <addaction name="menuVariableActions"/>
     <addaction name="separator"/>
-    <addaction name="menuMessages"/>
+    <addaction name="menuMessageActions"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAction"/>
@@ -609,6 +640,9 @@
    <property name="text">
     <string>About &amp;Qt</string>
    </property>
+   <property name="shortcut">
+    <string>Shift+F1</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::AboutQtRole</enum>
    </property>
@@ -633,6 +667,9 @@
    </property>
   </action>
   <action name="actionMessagesClear">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Clea&amp;r</string>
    </property>
@@ -658,6 +695,9 @@
    </property>
   </action>
   <action name="actionMessagesCopy">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>&amp;Copy</string>
    </property>
@@ -666,6 +706,9 @@
    </property>
   </action>
   <action name="actionMessagesCopyAll">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Copy &amp;all</string>
    </property>
@@ -700,7 +743,10 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Go to &amp;data</string>
+    <string>Go &amp;to data</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
    </property>
   </action>
   <action name="actionHexView">
@@ -712,6 +758,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+D</string>
+   </property>
+  </action>
+  <action name="actionGoToOffset">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Go to offset...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
    </property>
   </action>
  </widget>

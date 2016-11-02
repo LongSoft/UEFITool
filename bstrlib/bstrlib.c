@@ -557,7 +557,7 @@ size_t len;
 
 	a->slen = i;
 	len = strlen (str + i);
-	if (len + 1 > INT_MAX - i ||
+	if (len + 1 > (size_t)(INT_MAX - i) ||
 	    0 > balloc (a, (int) (i + len + 1))) return BSTR_ERR;
 	bBlockCopy (a->data + i, str + i, (size_t) len + 1);
 	a->slen += (int) len;

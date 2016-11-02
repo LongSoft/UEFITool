@@ -43,7 +43,7 @@ public:
     void clear() { d.clear(); }
 
     UByteArray toUpper() { std::basic_string<char> s = d; std::transform(s.begin(), s.end(), s.begin(), ::toupper); return UByteArray(s); }
-    uint32_t toUInt(bool* ok = NULL, const uint8_t base = 10) { return (uint32_t)std::strtoul(d.c_str(), NULL, base); }
+    uint32_t toUInt(bool* ok = NULL, const uint8_t base = 10) { return (uint32_t)strtoul(d.c_str(), NULL, base); }
 
     int32_t size() const { return d.size();  }
     int32_t count(char ch) const { return std::count(d.begin(), d.end(), ch); }

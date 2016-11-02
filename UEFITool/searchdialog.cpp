@@ -14,7 +14,7 @@
 #include "searchdialog.h"
 
 SearchDialog::SearchDialog(QWidget *parent) :
-QDialog(parent),
+QDialog(parent, Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint),
 ui(new Ui::SearchDialog),
 hexValidator(QRegExp("([0-9a-fA-F\\. ])*")),
 guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))

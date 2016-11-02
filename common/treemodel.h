@@ -93,7 +93,7 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation,
         int role = Qt::DisplayRole) const;
     TreeModel(QObject *parent = 0) : QAbstractItemModel(parent) {
-        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE);
+        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), true, false);
     }
 
 #else
@@ -129,8 +129,7 @@ public:
         delete rootItem;
     }
 
-    UModelIndex index(int row, int column,
-        const UModelIndex &parent = UModelIndex()) const;
+    UModelIndex index(int row, int column, const UModelIndex &parent = UModelIndex()) const;
     UModelIndex parent(const UModelIndex &index) const;
     int rowCount(const UModelIndex &parent = UModelIndex()) const;
     int columnCount(const UModelIndex &parent = UModelIndex()) const;
@@ -174,6 +173,7 @@ public:
         const UModelIndex & parent = UModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     UModelIndex findParentOfType(const UModelIndex & index, UINT8 type) const;
+    UModelIndex findByOffset(UINT32 offset) const;
 };
 
 #if defined(QT_CORE_LIB)

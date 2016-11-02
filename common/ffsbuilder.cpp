@@ -19,6 +19,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
 {
+    U_UNUSED_PARAMETER(erased);
+
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
@@ -358,21 +360,33 @@ USTATUS FfsBuilder::buildFreeSpace(const UModelIndex & index, UByteArray & freeS
 
 USTATUS FfsBuilder::buildVolume(const UModelIndex & index, UByteArray & volume)
 {
+    U_UNUSED_PARAMETER(index);
+    U_UNUSED_PARAMETER(volume);
+
     return U_NOT_IMPLEMENTED;
 }
 
 USTATUS FfsBuilder::buildPadFile(const UModelIndex & index, UByteArray & padFile)
 {
+    U_UNUSED_PARAMETER(index);
+    U_UNUSED_PARAMETER(padFile);
+
     return U_NOT_IMPLEMENTED;
 }
 
 USTATUS FfsBuilder::buildFile(const UModelIndex & index, UByteArray & file)
 {
+    U_UNUSED_PARAMETER(index);
+    U_UNUSED_PARAMETER(file);
+
     return U_NOT_IMPLEMENTED;
 }
 
 USTATUS FfsBuilder::buildSection(const UModelIndex & index, UByteArray & section)
 {
+    U_UNUSED_PARAMETER(index);
+    U_UNUSED_PARAMETER(section);
+
     return U_NOT_IMPLEMENTED;
 }
 

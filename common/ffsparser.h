@@ -32,7 +32,7 @@ public:
     std::vector<std::pair<UString, UModelIndex> > getMessages() const { 
         std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser.getMessages();
         std::vector<std::pair<UString, UModelIndex> > resultVector = messagesVector;
-        resultVector.insert(std::end(resultVector), std::begin(nvramVector), std::end(nvramVector));
+        resultVector.insert(resultVector.end(), nvramVector.begin(), nvramVector.end());
         return resultVector;
     }
 
@@ -43,7 +43,7 @@ public:
     USTATUS parse(const UByteArray &buffer);
     
     // Obtain parsed FIT table
-    std::vector<std::vector<UString> > getFitTable() const { return fitTable; }
+    std::vector<std::pair<std::vector<UString>, UModelIndex> > getFitTable() const { return fitTable; }
 
 private:
     TreeModel *model;
@@ -52,11 +52,11 @@ private:
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 
+    NvramParser nvramParser;   
+ 
     UModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
-    std::vector<std::vector<UString> > fitTable;
-
-    NvramParser nvramParser;
+    std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable;
 
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);

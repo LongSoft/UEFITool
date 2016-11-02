@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "uefidump.h"
 #include "../common/ffs.h"
+#include "../common/utility.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -77,17 +78,18 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
         }
 
         // Show FIT table
-        std::vector<std::vector<UString> > fitTable = ffsParser.getFitTable();
+        std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser.getFitTable();
         if (fitTable.size()) {
-            std::cout << "-------------------------------------------------------------------" << std::endl;
-            std::cout << "     Address     |   Size    |  Ver  | CS  |         Type          " << std::endl;
-            std::cout << "-------------------------------------------------------------------" << std::endl;
+            std::cout << "-------------------------------------------------------------------------" << std::endl;
+            std::cout << "     Address     |   Size    |  Ver  | CS  |         Type / Info         " << std::endl;
+            std::cout << "-------------------------------------------------------------------------" << std::endl;
             for (size_t i = 0; i < fitTable.size(); i++) {
-                std::cout << (const char*)fitTable[i][0].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i][1].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i][2].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i][3].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i][4].toLocal8Bit() << std::endl;
+                std::cout << (const char*)fitTable[i].first[0].toLocal8Bit() << " | "
+                    << (const char*)fitTable[i].first[1].toLocal8Bit() << " | "
+                    << (const char*)fitTable[i].first[2].toLocal8Bit() << " | "
+                    << (const char*)fitTable[i].first[3].toLocal8Bit() << " | "
+                    << (const char*)fitTable[i].first[4].toLocal8Bit() << " | "
+                    << (const char*)fitTable[i].first[5].toLocal8Bit() << std::endl;
             }
         }
 

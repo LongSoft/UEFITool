@@ -14,10 +14,11 @@
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
+
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
-ui(new Ui::UEFITool), 
-version(tr("NE Alpha34"))
+ui(new Ui::UEFITool),
+version(tr("NE Alpha35"))
 {
     clipboard = QApplication::clipboard();
 
@@ -25,6 +26,7 @@ version(tr("NE Alpha34"))
     ui->setupUi(this);
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
+    goToOffsetDialog = new GoToOffsetDialog(this);
     model = NULL;
     ffsParser = NULL;
     ffsFinder = NULL;
@@ -54,6 +56,7 @@ version(tr("NE Alpha34"))
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     connect(ui->actionGoToData, SIGNAL(triggered()), this, SLOT(goToData()));
+    connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
     // Enable Drag-and-Drop actions
@@ -78,6 +81,7 @@ version(tr("NE Alpha34"))
     searchDialog->ui->guidEdit->setFont(font);
     searchDialog->ui->hexEdit->setFont(font);
     hexViewDialog->setFont(font);
+    goToOffsetDialog->ui->hexSpinBox->setFont(font);
 
     // Initialize non-persistent data
     init();
@@ -113,18 +117,18 @@ void UEFITool::init()
     setWindowTitle(tr("UEFITool %1").arg(version));
 
     // Disable menus
-    ui->menuCapsuleActions->setDisabled(true);
-    ui->menuImageActions->setDisabled(true);
-    ui->menuRegionActions->setDisabled(true);
-    ui->menuPaddingActions->setDisabled(true);
-    ui->menuVolumeActions->setDisabled(true);
-    ui->menuFileActions->setDisabled(true);
-    ui->menuSectionActions->setDisabled(true);
-    ui->menuStoreActions->setDisabled(true);
-    ui->menuVariableActions->setDisabled(true);
-
-    ui->actionMessagesCopy->setDisabled(true);
-    ui->actionMessagesCopyAll->setDisabled(true);
+    ui->actionSearch->setEnabled(false);
+    ui->actionGoToOffset->setEnabled(false);
+    ui->menuCapsuleActions->setEnabled(false);
+    ui->menuImageActions->setEnabled(false);
+    ui->menuRegionActions->setEnabled(false);
+    ui->menuPaddingActions->setEnabled(false);
+    ui->menuVolumeActions->setEnabled(false);
+    ui->menuFileActions->setEnabled(false);
+    ui->menuSectionActions->setEnabled(false);
+    ui->menuStoreActions->setEnabled(false);
+    ui->menuVariableActions->setEnabled(false);
+    ui->menuMessageActions->setEnabled(false);
 
     // Create new model ...
     delete model;
@@ -137,12 +141,24 @@ void UEFITool::init()
     // Connect
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
+    connect(ui->structureTreeView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
+        this, SLOT(populateUi(const QItemSelection &)));
     connect(ui->parserMessagesListWidget,  SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->parserMessagesListWidget,  SIGNAL(itemEntered(QListWidgetItem*)),       this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->finderMessagesListWidget,  SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->finderMessagesListWidget,  SIGNAL(itemEntered(QListWidgetItem*)),       this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->builderMessagesListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->builderMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)),       this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
+    connect(ui->fitTableWidget, SIGNAL(itemDoubleClicked(QTableWidgetItem*)), this, SLOT(scrollTreeView(QTableWidgetItem*)));
+    connect(ui->messagesTabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentTabChanged(int)));
+}
+
+void UEFITool::populateUi(const QItemSelection &selected)
+{
+    if (selected.isEmpty())
+        return;
+
+    populateUi(selected.indexes().at(0));
 }
 
 void UEFITool::populateUi(const QModelIndex &current)
@@ -200,7 +216,8 @@ void UEFITool::populateUi(const QModelIndex &current)
     //ui->actionInsertAfter->setEnabled(type == Types::File || type == Types::Section);
     //ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion) || type == Types::Volume || type == Types::File || type == Types::Section);
     //ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
-    ui->actionMessagesCopy->setEnabled(false);
+
+    ui->menuMessageActions->setEnabled(false);
 }
 
 bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
@@ -296,6 +313,19 @@ void UEFITool::hexView()
     hexViewDialog->exec();
 }
 
+void UEFITool::goToOffset()
+{
+    if (goToOffsetDialog->exec() != QDialog::Accepted)
+        return;
+
+    UINT32 offset = (UINT32)goToOffsetDialog->ui->hexSpinBox->value();
+    QModelIndex index = model->findByOffset(offset);
+    if (index.isValid()) {
+        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    }
+}
+
 void UEFITool::goToData()
 {
     QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
@@ -334,6 +364,7 @@ void UEFITool::goToData()
 void UEFITool::insert(const UINT8 mode)
 {
     U_UNUSED_PARAMETER(mode);
+
     /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
@@ -413,6 +444,9 @@ void UEFITool::replaceBody()
 
 void UEFITool::replace(const UINT8 mode)
 {
+    U_UNUSED_PARAMETER(mode);
+
+    /*
     QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
@@ -502,6 +536,7 @@ void UEFITool::replace(const UINT8 mode)
         return;
     }
     ui->actionSaveImageFile->setEnabled(true);
+    */
 }
 
 void UEFITool::extractAsIs()
@@ -626,22 +661,26 @@ void UEFITool::extract(const UINT8 mode)
 
 void UEFITool::rebuild()
 {
+    /*
     UModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
     if (U_SUCCESS == ffsOps->rebuild(index))
         ui->actionSaveImageFile->setEnabled(true);
+    */
 }
 
 void UEFITool::remove()
 {
+    /*
     UModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
 
     if (U_SUCCESS == ffsOps->remove(index))
         ui->actionSaveImageFile->setEnabled(true);
+    */
 }
 
 void UEFITool::about()
@@ -671,7 +710,7 @@ void UEFITool::exit()
 
 void UEFITool::saveImageFile()
 {
-    QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.scap *.bio *.fd *.wph *.dec);;All files (*)");
+    /*QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.scap *.bio *.fd *.wph *.dec);;All files (*)");
 
     if (path.isEmpty())
         return;
@@ -699,6 +738,7 @@ void UEFITool::saveImageFile()
     outputFile.close();
     if (QMessageBox::Yes == QMessageBox::information(this, tr("Image build successful"), tr("Open the resulting file?"), QMessageBox::Yes, QMessageBox::No))
         openImageFile(path);
+    */
 }
 
 void UEFITool::openImageFile()
@@ -758,11 +798,24 @@ void UEFITool::openImageFile(QString path)
     delete ffsOps;
     ffsOps = new FfsOperations(model);
 
+    // Set max offset and enable goToOffset
+    // FIXME: doesn't work properly
+    //goToOffsetDialog->ui->hexSpinBox->setMaximum(buffer.size() - 1);
+    ui->actionGoToOffset->setEnabled(true);
+
     // Enable or disable FIT tab
     showFitTable();
 
     // Set current directory
     currentDir = fileInfo.absolutePath();
+}
+
+void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
+{
+    ui->menuMessageActions->setEnabled(item != NULL);
+    ui->actionMessagesCopy->setEnabled(item != NULL);
+    ui->actionMessagesCopyAll->setEnabled(item != NULL);
+    ui->actionMessagesClear->setEnabled(item != NULL);
 }
 
 void UEFITool::copyMessage()
@@ -797,12 +850,6 @@ void UEFITool::copyAllMessages()
     }
 }
 
-void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
-{
-    ui->actionMessagesCopy->setEnabled(item != NULL);
-    ui->actionMessagesCopyAll->setEnabled(item != NULL);
-}
-
 void UEFITool::clearMessages()
 {
     if (ui->messagesTabWidget->currentIndex() == 0) { // Parser tab 
@@ -818,8 +865,10 @@ void UEFITool::clearMessages()
         ui->builderMessagesListWidget->clear();
     }
     
+    ui->menuMessageActions->setEnabled(false);
     ui->actionMessagesCopy->setEnabled(false);
     ui->actionMessagesCopyAll->setEnabled(false);
+    ui->actionMessagesClear->setEnabled(false);
 }
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
@@ -843,7 +892,9 @@ void UEFITool::showParserMessages()
     std::vector<std::pair<QString, QModelIndex> > messages = ffsParser->getMessages();
     std::pair<QString, QModelIndex> msg;
     foreach (msg, messages) {
-        ui->parserMessagesListWidget->addItem(new MessageListItem(msg.first, NULL, 0, msg.second));
+        QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
+        item->setData(Qt::UserRole, msg.second);
+        ui->parserMessagesListWidget->addItem(item);
     }
 
     ui->messagesTabWidget->setCurrentIndex(0);
@@ -859,7 +910,9 @@ void UEFITool::showFinderMessages()
     std::vector<std::pair<QString, QModelIndex> > messages = ffsFinder->getMessages();
     std::pair<QString, QModelIndex> msg;
     foreach (msg, messages) {
-        ui->finderMessagesListWidget->addItem(new MessageListItem(msg.first, NULL, 0, msg.second));
+        QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
+        item->setData(Qt::UserRole, msg.second);
+        ui->finderMessagesListWidget->addItem(item);
     }
 
     ui->messagesTabWidget->setCurrentIndex(2);
@@ -875,7 +928,9 @@ void UEFITool::showBuilderMessages()
     std::vector<std::pair<QString, QModelIndex> > messages = ffsBuilder->getMessages();
     std::pair<QString, QModelIndex> msg;
     foreach (msg, messages) {
-        ui->builderMessagesListWidget->addItem(new MessageListItem(msg.first, NULL, 0, msg.second));
+        QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
+        item->setData(Qt::UserRole, msg.second);
+        ui->builderMessagesListWidget->addItem(item);
     }
 
     ui->messagesTabWidget->setCurrentIndex(3);
@@ -884,8 +939,16 @@ void UEFITool::showBuilderMessages()
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)
 {
-    MessageListItem* messageItem = static_cast<MessageListItem*>(item);
-    QModelIndex index = messageItem->index();
+    QModelIndex index = item->data(Qt::UserRole).toModelIndex();
+    if (index.isValid()) {
+        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    }
+}
+
+void UEFITool::scrollTreeView(QTableWidgetItem* item)
+{
+    QModelIndex index = item->data(Qt::UserRole).toModelIndex();
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -897,7 +960,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     if (ui->parserMessagesListWidget->underMouse() ||
         ui->finderMessagesListWidget->underMouse() ||
         ui->builderMessagesListWidget->underMouse()) {
-        ui->menuMessages->exec(event->globalPos());
+        ui->menuMessageActions->exec(event->globalPos());
         return;
     }
 
@@ -970,7 +1033,7 @@ void UEFITool::writeSettings()
 
 void UEFITool::showFitTable()
 {
-    std::vector<std::vector<QString> > fitTable = ffsParser->getFitTable();
+    std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable = ffsParser->getFitTable();
     if (fitTable.empty()) {
         // Disable FIT tab
         ui->messagesTabWidget->setTabEnabled(1, false);
@@ -983,8 +1046,8 @@ void UEFITool::showFitTable()
     // Set up the FIT table
     ui->fitTableWidget->clear();
     ui->fitTableWidget->setRowCount(fitTable.size());
-    ui->fitTableWidget->setColumnCount(5);
-    ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Checksum") << tr("Type"));
+    ui->fitTableWidget->setColumnCount(6);
+    ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Checksum") << tr("Type") << tr("Information"));
     ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
     ui->fitTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->fitTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -992,12 +1055,24 @@ void UEFITool::showFitTable()
 
     // Add all data to the table widget
     for (size_t i = 0; i < fitTable.size(); i++) {
-        for (UINT8 j = 0; j < 5; j++) {
-            ui->fitTableWidget->setItem(i, j, new QTableWidgetItem(fitTable[i][j]));
+        for (UINT8 j = 0; j < 6; j++) {
+            QTableWidgetItem* item = new QTableWidgetItem(fitTable[i].first[j]);
+            item->setData(Qt::UserRole, fitTable[i].second);
+            ui->fitTableWidget->setItem(i, j, item);
         }
     }
 
     ui->fitTableWidget->resizeColumnsToContents();
     ui->fitTableWidget->resizeRowsToContents();
     ui->messagesTabWidget->setCurrentIndex(1);
+}
+
+void UEFITool::currentTabChanged(int index)
+{
+    U_UNUSED_PARAMETER(index);
+
+    ui->menuMessageActions->setEnabled(false);
+    ui->actionMessagesCopy->setEnabled(false);
+    ui->actionMessagesCopyAll->setEnabled(false);
+    ui->actionMessagesClear->setEnabled(false);
 }

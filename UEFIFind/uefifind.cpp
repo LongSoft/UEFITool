@@ -70,7 +70,7 @@ USTATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPa
         return U_SUCCESS;
     }
 
-    for (std::set<std::pair<QModelIndex, QModelIndex> >::const_iterator citer = files.cbegin(); citer != files.cend(); ++citer) {
+    for (std::set<std::pair<QModelIndex, QModelIndex> >::const_iterator citer = files.begin(); citer != files.end(); ++citer) {
         QByteArray data(16, '\x00');
         std::pair<QModelIndex, QModelIndex> indexes = *citer;
         if (!model->hasEmptyHeader(indexes.first))

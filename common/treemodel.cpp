@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "treemodel.h"
 
+#include "stack"
+
 #if defined(QT_CORE_LIB)
 QVariant TreeModel::data(const UModelIndex &index, int role) const
 {
@@ -491,4 +493,25 @@ UModelIndex TreeModel::findParentOfType(const UModelIndex& index, UINT8 type) co
         return parent;
 
     return UModelIndex();
+}
+
+UModelIndex TreeModel::findByOffset(UINT32 offset) const
+{
+    UModelIndex parentIndex = index(0,0);
+
+goDeeper:
+    int n = rowCount(parentIndex);
+    for (int i = 0; i < n; i++) {
+        UModelIndex currentIndex = parentIndex.child(i, 0);
+        UINTN currentOffset = this->offset(currentIndex);
+        UINTN fullSize = header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size();
+        if ((compressed(currentIndex) == false || (compressed(currentIndex) == true && compressed(currentIndex.parent()) == false)) // Offset is meaningful only for uncompressed items
+            && currentOffset <= offset && offset < currentOffset + fullSize) { // Offset must be in range [currentOffset, currentOffset + fullSize)
+            // Found a better candidate
+            parentIndex = currentIndex;
+            goto goDeeper;
+        }
+    }
+
+    return (parentIndex == index(0, 0) ? UModelIndex() : parentIndex);
 }

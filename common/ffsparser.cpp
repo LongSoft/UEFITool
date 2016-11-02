@@ -15,7 +15,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <map>
 #include <algorithm>
 #include <cmath>
-#include <cinttypes>
+#include <inttypes.h>
 
 #include "descriptor.h"
 #include "ffs.h"
@@ -477,9 +477,6 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         descriptorMap->NumberOfMasters + 1,    //
         descriptorMap->NumberOfPchStraps,
         descriptorMap->NumberOfProcStraps);
-
-    // Construct parsing data
-    //pdata.offset = localOffset;
 
     // Add Intel image tree item
     index = model->addItem(localOffset, Types::Image, Subtypes::IntelImage, name, UString(), info, UByteArray(), intelImage, UByteArray(), Fixed, parent);
@@ -2866,6 +2863,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         return U_SUCCESS;
 
     // Explicitly set the item as fixed
+    // TODO: update info 
     model->setFixed(fitIndex, true);
 
     // Special case of FIT header
@@ -2890,20 +2888,24 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         msg(("Invalid FIT header type"), fitIndex);
     
 
-    // Add FIT header to fitTable
+    // Add FIT header
     std::vector<UString> currentStrings;
     currentStrings.push_back(UString("_FIT_           "));
     currentStrings.push_back(usprintf("%08Xh", fitSize));
     currentStrings.push_back(usprintf("%04Xh", fitHeader->Version));
     currentStrings.push_back(usprintf("%02Xh", fitHeader->Checksum));
     currentStrings.push_back(fitEntryTypeToUString(fitHeader->Type));
-    fitTable.push_back(currentStrings);
+    currentStrings.push_back(UString("")); // Empty info for FIT header
+    fitTable.push_back(std::pair<std::vector<UString>, UModelIndex>(currentStrings, fitIndex));
 
     // Process all other entries
     bool msgModifiedImageMayNotWork = false;
+    UModelIndex itemIndex;
+    UString info;
     for (UINT32 i = 1; i < fitHeader->Size; i++) {
         currentStrings.clear();
         const FIT_ENTRY* currentEntry = fitHeader + i;
+        UINT32 currentEntrySize = currentEntry->Size;
 
         // Check entry type
         switch (currentEntry->Type & 0x7F) {
@@ -2912,7 +2914,40 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
             break;
 
         case FIT_TYPE_EMPTY:
+            break;
+
         case FIT_TYPE_MICROCODE:
+            //TODO: refactor into function with error reporting
+            if (currentEntry->Address > diff && currentEntry->Address < 0xFFFFFFFFUL) {
+                UINT32 offset = currentEntry->Address - diff;
+                UModelIndex mcIndex = model->findByOffset(offset);
+                UByteArray mcFile = model->header(mcIndex) + model->body(mcIndex) + model->tail(mcIndex);
+                
+                UINT32 mcOffset = offset - model->offset(mcIndex);
+                if (mcOffset + sizeof(INTEL_MICROCODE_HEADER) <= (UINT32)mcFile.size()) {
+                    const INTEL_MICROCODE_HEADER* header = (const INTEL_MICROCODE_HEADER*)(mcFile.constData() + mcOffset);
+                    if (header->Version == INTEL_MICROCODE_HEADER_VERSION) {
+                        bool reservedBytesValid = true;
+                        for (UINT8 i = 0; i < sizeof(header->Reserved); i++)
+                            if (header->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
+                                reservedBytesValid = false;
+                                break;
+                            }
+                        if (reservedBytesValid) {
+                            UINT32 mcSize = header->TotalSize;
+                            if (mcOffset + mcSize <= (UINT32)mcFile.size()) {
+                                info = usprintf("LocalOffset %08Xh, CPUID %Xh, Revision %Xh, Date %08Xh",
+                                    mcOffset,
+                                    header->CpuSignature,
+                                    header->Revision,
+                                    header->Date);
+                                currentEntrySize = header->TotalSize;
+                                itemIndex = mcIndex;
+                            }
+                        }
+                    }
+                }
+            }
             break;
 
         case FIT_TYPE_BIOS_AC_MODULE:
@@ -2929,11 +2964,12 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
 
         // Add entry to fitTable
         currentStrings.push_back(usprintf("%016" PRIX64, currentEntry->Address));
-        currentStrings.push_back(usprintf("%08Xh", currentEntry->Size, currentEntry->Size));
+        currentStrings.push_back(usprintf("%08Xh", currentEntrySize, currentEntrySize));
         currentStrings.push_back(usprintf("%04Xh", currentEntry->Version));
         currentStrings.push_back(usprintf("%02Xh", currentEntry->Checksum));
         currentStrings.push_back(fitEntryTypeToUString(currentEntry->Type));
-        fitTable.push_back(currentStrings);
+        currentStrings.push_back(info);
+        fitTable.push_back(std::pair<std::vector<UString>, UModelIndex>(currentStrings, itemIndex));
     }
 
     if (msgModifiedImageMayNotWork)

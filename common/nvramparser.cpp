@@ -12,7 +12,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include <cinttypes>
+#include <inttypes.h>
+#include <map>
 
 #include "nvramparser.h"
 #include "parsingdata.h"
@@ -1184,13 +1185,14 @@ USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const U
 
     // Add info
     UString name("Intel microcode");
-    UString info = usprintf("Revision: 1h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
-        "Date: %08Xh\nCPU signature: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
+    UString info = usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
+        "Date: %08Xh\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
         ucodeHeader->TotalSize, ucodeHeader->TotalSize,
         header.size(), header.size(),
         body.size(), body.size(),
         ucodeHeader->Date, 
         ucodeHeader->CpuSignature, 
+        ucodeHeader->Revision,
         ucodeHeader->Checksum, 
         ucodeHeader->LoaderRevision, 
         ucodeHeader->CpuFlags);
@@ -1588,14 +1590,13 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
-                UModelIndex itemIndex = model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
             }
             else {
                 // Add padding tree item
                 UModelIndex itemIndex = model->addItem(localOffset + offset, Types::Padding, getPaddingType(body), UString("Padding"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
                 // Show message
-                
                 msg(UString("parseEvsaStoreBody: variable parsing failed, the rest of unparsed store added as padding"), itemIndex);
             }
             break;
@@ -1681,7 +1682,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
-                UModelIndex itemIndex = model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
             }
             else {
                 // Add padding tree item

@@ -65,6 +65,8 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
 
 USTATUS FfsOperations::replace(const UModelIndex & index, const UString & data, const UINT8 mode)
 {
+    U_UNUSED_PARAMETER(data);
+
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;

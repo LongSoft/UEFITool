@@ -31,6 +31,7 @@
 #include <QSettings>
 #include <QSplitter>
 #include <QString>
+#include <QTableWidget>
 #include <QTreeView>
 #include <QUrl>
 
@@ -42,8 +43,8 @@
 #include "../common/ffsbuilder.h"
 
 #include "searchdialog.h"
+#include "gotooffsetdialog.h"
 #include "hexviewdialog.h"
-#include "messagelistitem.h"
 #include "ffsfinder.h"
 
 namespace Ui {
@@ -63,16 +64,20 @@ public:
 
 private slots:
     void init();
+    void populateUi(const QItemSelection &selected);
     void populateUi(const QModelIndex &current);
-    void scrollTreeView(QListWidgetItem* item);
+    void scrollTreeView(QListWidgetItem* item); // For messages
+    void scrollTreeView(QTableWidgetItem* item); // For FIT table entries
 
     void openImageFile();
     void openImageFileInNewWindow();
     void saveImageFile();
+    
+
     void search();
+    void goToOffset();
 
     void hexView();
-
     void goToData();
     
     void extract(const UINT8 mode);
@@ -104,6 +109,8 @@ private slots:
     void exit();
     void writeSettings();
 
+    void currentTabChanged(int index);
+
 private:
     Ui::UEFITool* ui;
     TreeModel* model;
@@ -113,6 +120,7 @@ private:
     FfsBuilder* ffsBuilder;
     SearchDialog* searchDialog;
     HexViewDialog* hexViewDialog;
+    GoToOffsetDialog* goToOffsetDialog;
     QClipboard* clipboard;
     QString currentDir;
     QString currentProgramPath;
@@ -128,6 +136,7 @@ private:
     void showFinderMessages();
     void showFitTable();
     void showBuilderMessages();
+    
 };
 
 #endif // UEFITOOL_H

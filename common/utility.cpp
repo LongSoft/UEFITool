@@ -47,7 +47,8 @@ UString uniqueItemName(const UModelIndex & index)
         }
 
         if (hasExtendedHeader)
-            name = guidToUString(extendedHeaderGuid).replace('-', '_');
+            name = guidToUString(extendedHeaderGuid);
+        name.findreplace('-', '_');
     } break;
     case Types::NvarEntry:
     case Types::VssEntry:

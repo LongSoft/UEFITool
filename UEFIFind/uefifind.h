@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UEFIFIND_H
 #define UEFIFIND_H
 
+#include <iterator>
 #include <set>
 
 #include <QObject>
