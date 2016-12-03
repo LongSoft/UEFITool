@@ -57,7 +57,6 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         bool isInvalid = false;
         bool isInvalidLink = false;
-        //bool isDataOnly = false;
         bool hasExtendedHeader = false;
         bool hasChecksum = false;
         bool hasTimestamp = false;
@@ -113,7 +112,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             // Add GUID store area
             UByteArray guidArea = data.right(guidAreaSize);
             // Get info
-            name = UString("GUID store area");
+            name = UString("GUID store");
             info = usprintf("Full size: %Xh (%u)\nGUIDs in store: %u",
                 guidArea.size(), guidArea.size(),
                 guidsInStore);
@@ -412,8 +411,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
     UINT32 storeOffset = prevStoreOffset;
     UINT32 prevStoreSize = 0;
 
-    while (!result)
-    {
+    while (!result) {
         // Padding between stores
         if (storeOffset > prevStoreOffset + prevStoreSize) {
             UINT32 paddingOffset = prevStoreOffset + prevStoreSize;
@@ -476,7 +474,6 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
         if (padding.count(emptyByte) == padding.size()) { // Free space
-
             // Add tree item
             model->addItem(localOffset + storeOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Movable, index);
         }
@@ -781,7 +778,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
-        emptyByte = pdata->ffsVersion;
+        emptyByte = pdata->emptyByte;
     }
 
     // Get FTW block headers
@@ -1185,7 +1182,7 @@ USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const U
 
     // Add info
     UString name("Intel microcode");
-    UString info = usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
         "Date: %08Xh\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
         ucodeHeader->TotalSize, ucodeHeader->TotalSize,
         header.size(), header.size(),
@@ -1262,7 +1259,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index)
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
-        emptyByte = pdata->ffsVersion;
+        emptyByte = pdata->emptyByte;
     }
 
     // Get local offset
@@ -1553,7 +1550,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
-        emptyByte = pdata->ffsVersion;
+        emptyByte = pdata->emptyByte;
     }
 
     // Get local offset

@@ -28,7 +28,7 @@ public:
     ~HexViewDialog();
     Ui::HexViewDialog* ui;
 
-    void setItem(const UModelIndex & index);
+    void setItem(const UModelIndex & index, bool bodyOnly);
     void setFont(const QFont &font);
 
 private:

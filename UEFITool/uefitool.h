@@ -78,6 +78,7 @@ private slots:
     void goToOffset();
 
     void hexView();
+    void bodyHexView();
     void goToData();
     
     void extract(const UINT8 mode);

@@ -1063,7 +1063,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     }
     index = model->addItem(model->offset(parent) + localOffset, Types::Volume, subtype, name, text, info, header, body, UByteArray(), Fixed, parent);
 
-    // Set parsing data for created item
+    // Set parsing data for created volume
     VOLUME_PARSING_DATA pdata;
     pdata.emptyByte = emptyByte;
     pdata.ffsVersion = ffsVersion;
@@ -1488,6 +1488,8 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     FILE_PARSING_DATA pdata;
     pdata.emptyByte = (fileHeader->State & EFI_FILE_ERASE_POLARITY) ? 0xFF : 0x00;
     pdata.guid = fileHeader->Name;
+    model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
+
 
     // Override lastVtf index, if needed
     if (isVtf) {
@@ -2904,6 +2906,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
     UString info;
     for (UINT32 i = 1; i < fitHeader->Size; i++) {
         currentStrings.clear();
+        info.clear();
         const FIT_ENTRY* currentEntry = fitHeader + i;
         UINT32 currentEntrySize = currentEntry->Size;
 
@@ -2916,13 +2919,13 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         case FIT_TYPE_EMPTY:
             break;
 
-        case FIT_TYPE_MICROCODE:
+        case FIT_TYPE_MICROCODE: {
             //TODO: refactor into function with error reporting
             if (currentEntry->Address > diff && currentEntry->Address < 0xFFFFFFFFUL) {
                 UINT32 offset = currentEntry->Address - diff;
                 UModelIndex mcIndex = model->findByOffset(offset);
                 UByteArray mcFile = model->header(mcIndex) + model->body(mcIndex) + model->tail(mcIndex);
-                
+
                 UINT32 mcOffset = offset - model->offset(mcIndex);
                 if (mcOffset + sizeof(INTEL_MICROCODE_HEADER) <= (UINT32)mcFile.size()) {
                     const INTEL_MICROCODE_HEADER* header = (const INTEL_MICROCODE_HEADER*)(mcFile.constData() + mcOffset);
@@ -2936,7 +2939,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
                         if (reservedBytesValid) {
                             UINT32 mcSize = header->TotalSize;
                             if (mcOffset + mcSize <= (UINT32)mcFile.size()) {
-                                info = usprintf("LocalOffset %08Xh, CPUID %Xh, Revision %Xh, Date %08Xh",
+                                info = usprintf("LocalOffset %08Xh, CPUID %08Xh, Revision %08Xh, Date %08Xh",
                                     mcOffset,
                                     header->CpuSignature,
                                     header->Revision,
@@ -2948,7 +2951,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
                     }
                 }
             }
-            break;
+        } break;
 
         case FIT_TYPE_BIOS_AC_MODULE:
         case FIT_TYPE_BIOS_INIT_MODULE:

@@ -305,6 +305,7 @@
       <string>&amp;Capsule</string>
      </property>
      <addaction name="actionHexView"/>
+     <addaction name="actionBodyHexView"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -354,6 +355,7 @@
       <string>&amp;Volume</string>
      </property>
      <addaction name="actionHexView"/>
+     <addaction name="actionBodyHexView"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -373,6 +375,7 @@
       <string>&amp;File</string>
      </property>
      <addaction name="actionHexView"/>
+     <addaction name="actionBodyHexView"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -396,6 +399,7 @@
       <string>&amp;Section</string>
      </property>
      <addaction name="actionHexView"/>
+     <addaction name="actionBodyHexView"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -432,6 +436,7 @@
       <string>Variable</string>
      </property>
      <addaction name="actionHexView"/>
+     <addaction name="actionBodyHexView"/>
      <addaction name="separator"/>
      <addaction name="actionGoToData"/>
      <addaction name="separator"/>
@@ -456,6 +461,7 @@
       <string>S&amp;tore</string>
      </property>
      <addaction name="actionHexView"/>
+     <addaction name="actionBodyHexView"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -769,6 +775,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+G</string>
+   </property>
+  </action>
+  <action name="actionBodyHexView">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Body hex vie&amp;w...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
    </property>
   </action>
  </widget>

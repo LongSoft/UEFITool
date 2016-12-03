@@ -18,7 +18,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE Alpha35"))
+version(tr("NE Alpha36"))
 {
     clipboard = QApplication::clipboard();
 
@@ -39,6 +39,7 @@ version(tr("NE Alpha35"))
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
     connect(ui->actionSearch, SIGNAL(triggered()), this, SLOT(search()));
     connect(ui->actionHexView, SIGNAL(triggered()), this, SLOT(hexView()));
+    connect(ui->actionBodyHexView, SIGNAL(triggered()), this, SLOT(bodyHexView()));
     connect(ui->actionExtract, SIGNAL(triggered()), this, SLOT(extractAsIs()));
     connect(ui->actionExtractBody, SIGNAL(triggered()), this, SLOT(extractBody()));
     connect(ui->actionExtractBodyUncompressed, SIGNAL(triggered()), this, SLOT(extractBodyUncompressed()));
@@ -198,6 +199,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     
     // Enable actions
     ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
+    ui->actionBodyHexView->setDisabled(model->hasEmptyBody(current));
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
     ui->actionGoToData->setEnabled(type == Types::NvarEntry && subtype == Subtypes::LinkNvarEntry);
 
@@ -309,7 +311,17 @@ void UEFITool::hexView()
     if (!index.isValid())
         return;
 
-    hexViewDialog->setItem(index);
+    hexViewDialog->setItem(index, false);
+    hexViewDialog->exec();
+}
+
+void UEFITool::bodyHexView()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+
+    hexViewDialog->setItem(index, true);
     hexViewDialog->exec();
 }
 
@@ -364,7 +376,7 @@ void UEFITool::goToData()
 void UEFITool::insert(const UINT8 mode)
 {
     U_UNUSED_PARAMETER(mode);
-
+    
     /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
     if (!index.isValid())
         return;
