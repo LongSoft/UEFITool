@@ -18,7 +18,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE Alpha36"))
+version(tr("NE Alpha 37"))
 {
     clipboard = QApplication::clipboard();
 
@@ -128,7 +128,7 @@ void UEFITool::init()
     ui->menuFileActions->setEnabled(false);
     ui->menuSectionActions->setEnabled(false);
     ui->menuStoreActions->setEnabled(false);
-    ui->menuVariableActions->setEnabled(false);
+    ui->menuEntryActions->setEnabled(false);
     ui->menuMessageActions->setEnabled(false);
 
     // Create new model ...
@@ -182,7 +182,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
-    ui->menuVariableActions->setEnabled(type == Types::NvarEntry 
+    ui->menuEntryActions->setEnabled(type == Types::NvarEntry 
         || type == Types::VssEntry 
         || type == Types::FsysEntry
         || type == Types::EvsaEntry 
@@ -997,7 +997,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::VssEntry:
     case Types::FsysEntry:
     case Types::EvsaEntry:
-    case Types::FlashMapEntry:  ui->menuVariableActions->exec(event->globalPos());        break;
+    case Types::FlashMapEntry:  ui->menuEntryActions->exec(event->globalPos());        break;
     case Types::VssStore:
     case Types::FdcStore:
     case Types::FsysStore:
@@ -1057,7 +1057,7 @@ void UEFITool::showFitTable()
 
     // Set up the FIT table
     ui->fitTableWidget->clear();
-    ui->fitTableWidget->setRowCount(fitTable.size());
+    ui->fitTableWidget->setRowCount((int)fitTable.size());
     ui->fitTableWidget->setColumnCount(6);
     ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Checksum") << tr("Type") << tr("Information"));
     ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -1070,7 +1070,7 @@ void UEFITool::showFitTable()
         for (UINT8 j = 0; j < 6; j++) {
             QTableWidgetItem* item = new QTableWidgetItem(fitTable[i].first[j]);
             item->setData(Qt::UserRole, fitTable[i].second);
-            ui->fitTableWidget->setItem(i, j, item);
+            ui->fitTableWidget->setItem((int)i, j, item);
         }
     }
 

@@ -10,6 +10,7 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
+#include "ustring.h"
 #include "types.h"
 #include "ffs.h"
 #include "fit.h"
@@ -75,7 +76,6 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
     case Types::FtwStore:
     case Types::FlashMapStore:
     case Types::CmdbStore:
-    case Types::FsysEntry:
     case Types::SlicData:                                  return UString();
     case Types::Image:
         if (subtype == Subtypes::IntelImage)               return UString("Intel");
@@ -113,6 +113,10 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::StandardVssEntry)         return UString("Standard");
         if (subtype == Subtypes::AppleVssEntry)            return UString("Apple");
         if (subtype == Subtypes::AuthVssEntry)             return UString("Auth");
+        break;
+    case Types::FsysEntry:
+        if (subtype == Subtypes::InvalidFsysEntry)              return UString("Invalid");
+        if (subtype == Subtypes::NormalFsysEntry)               return UString("Normal");
         break;
     case Types::EvsaEntry:
         if (subtype == Subtypes::InvalidEvsaEntry)         return UString("Invalid");

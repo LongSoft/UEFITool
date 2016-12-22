@@ -8,10 +8,12 @@ DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
 HEADERS += uefitool.h \
  searchdialog.h \
  hexviewdialog.h \
+ gotooffsetdialog.h \
  guidlineedit.h \
  ffsfinder.h \
  ../common/nvram.h \
  ../common/nvramparser.h \
+ ../common/meparser.h \
  ../common/ffsops.h \
  ../common/basetypes.h \
  ../common/descriptor.h \
@@ -35,8 +37,7 @@ HEADERS += uefitool.h \
  ../common/ubytearray.h \
  ../qhexedit2/qhexedit.h \
  ../qhexedit2/chunks.h \
- ../qhexedit2/commands.h \ 
-    gotooffsetdialog.h
+ ../qhexedit2/commands.h
 
 SOURCES += uefitool_main.cpp \
  uefitool.cpp \

@@ -14,7 +14,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <map>
 #include <algorithm>
-#include <cmath>
+#include <math.h>
 #include <inttypes.h>
 
 #include "descriptor.h"
@@ -49,7 +49,7 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
     if (lastVtf.isValid()) 
         result = performSecondPass(root);
     else 
-        msg(("parse: not a single Volume Top File is found, the image may be corrupted"));
+        msg(UString("parse: not a single Volume Top File is found, the image may be corrupted"));
 
     return result;
 }
@@ -298,7 +298,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         // Check for Gigabyte specific descriptor map
         if (bios.length == (UINT32)intelImage.size()) {
             if (!me.offset) {
-                msg(("parseIntelImage: can't determine BIOS region start from Gigabyte-specific descriptor"));
+                msg(UString("parseIntelImage: can't determine BIOS region start from Gigabyte-specific descriptor"));
                 return U_INVALID_FLASH_DESCRIPTOR;
             }
             // Use ME region end as BIOS region offset
@@ -314,7 +314,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         regions.push_back(bios);
     }
     else {
-        msg(("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
+        msg(UString("parseIntelImage: descriptor parsing failed, BIOS region not found in descriptor"));
         return U_INVALID_FLASH_DESCRIPTOR;
     }
 
@@ -432,9 +432,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     for (size_t i = 1; i < regions.size(); i++) {
         UINT32 previousRegionEnd = regions[i-1].offset + regions[i-1].length;
         // Check that current region is fully present in the image
-        if (regions[i].offset + regions[i].length > (UINT32)intelImage.size()) {
+        if ((UINT64)regions[i].offset + (UINT64)regions[i].length > (UINT64)intelImage.size()) {
             msg(UString("parseIntelImage: ") + itemSubtypeToUString(Types::Region, regions[i].type) 
-                + UString(" region is located outside of opened image, if your system uses dual-chip storage, please append another part to the opened image"),
+                + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
                 index);
             return U_TRUNCATED_IMAGE;
         }
@@ -453,12 +453,12 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             region.data = intelImage.mid(region.offset, region.length);
             region.type = getPaddingType(region.data);
             std::vector<REGION_INFO>::iterator iter = regions.begin();
-            std::advance(iter, i - 1);
+            std::advance(iter, i);
             regions.insert(iter, region);
         }
     }
     // Check for padding after the last region
-    if (regions.back().offset + regions.back().length < (UINT32)intelImage.size()) {
+    if ((UINT64)regions.back().offset + (UINT64)regions.back().length < (UINT64)intelImage.size()) {
         region.offset = regions.back().offset + regions.back().length;
         region.length = intelImage.size() - region.offset;
         region.data = intelImage.mid(region.offset, region.length);
@@ -609,7 +609,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             result = U_SUCCESS;
             } break;
         default:
-            msg(("parseIntelImage: region of unknown type found"), index);
+            msg(UString("parseIntelImage: region of unknown type found"), index);
             result = U_INVALID_FLASH_DESCRIPTOR;
         }
         // Store the first failed result as a final result
@@ -701,6 +701,9 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     }
     else if (!versionFound) {
         msg(UString("parseMeRegion: ME version is unknown, it can be damaged"), index);
+    }
+    else {
+        meParser.parseMeRegionBody(index);
     }
 
     return U_SUCCESS;
@@ -1020,8 +1023,8 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     UByteArray header = volume.left(headerSize);
     UByteArray body = volume.mid(headerSize);
     UString name = guidToUString(volumeHeader->FileSystemGuid);
-    UString info = usprintf("Signature: _FVH\nZeroVector:\n%02X %02X %02X %02X %02X %02X %02X %02X\n"
-        "%02X %02X %02X %02X %02X %02X %02X %02X\nFileSystem GUID: ", 
+    UString info = usprintf("ZeroVector:\n%02X %02X %02X %02X %02X %02X %02X %02X\n"
+        "%02X %02X %02X %02X %02X %02X %02X %02X\nSignature: _FVH\nFileSystem GUID: ", 
         volumeHeader->ZeroVector[0], volumeHeader->ZeroVector[1], volumeHeader->ZeroVector[2], volumeHeader->ZeroVector[3],
         volumeHeader->ZeroVector[4], volumeHeader->ZeroVector[5], volumeHeader->ZeroVector[6], volumeHeader->ZeroVector[7],
         volumeHeader->ZeroVector[8], volumeHeader->ZeroVector[9], volumeHeader->ZeroVector[10], volumeHeader->ZeroVector[11],
@@ -1618,7 +1621,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
     // Add tree item
-    UModelIndex dataIndex = model->addItem(model->offset(index) + nonEmptyByteOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+    UModelIndex dataIndex = model->addItem(model->offset(index) + model->header(index).size() + nonEmptyByteOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
 
     // Show message
     msg(UString("parsePadFileBody: non-UEFI data found in pad-file"), dataIndex);
@@ -2387,7 +2390,6 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     if (baGuid == EFI_GUIDED_SECTION_TIANO) {
         USTATUS result = decompress(model->body(index), EFI_STANDARD_COMPRESSION, algorithm, processed, efiDecompressed);
         if (result) {
-            parseCurrentSection = false;
             msg(UString("parseGuidedSectionBody: decompression failed with error ") + errorCodeToUString(result), index);
             return U_SUCCESS;
         }
@@ -2416,7 +2418,6 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMAF86) {
         USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION, algorithm, processed, efiDecompressed);
         if (result) {
-            parseCurrentSection = false;
             msg(UString("parseGuidedSectionBody: decompression failed with error ") + errorCodeToUString(result), index);
             return U_SUCCESS;
         }
@@ -2764,7 +2765,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
     // Get section body
     UByteArray body = model->body(index);
     if ((UINT32)body.size() < sizeof(EFI_IMAGE_TE_HEADER)) {
-        msg(("parsePeImageSectionBody: section body size is smaller than TE header size"), index);
+        msg(UString("parsePeImageSectionBody: section body size is smaller than TE header size"), index);
         return U_SUCCESS;
     }
 
@@ -2878,6 +2879,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         // Calculate FIT entry checksum
         UByteArray tempFIT = model->body(fitIndex).mid(fitOffset, fitSize);
         FIT_ENTRY* tempFitHeader = (FIT_ENTRY*)tempFIT.data();
+        tempFitHeader->Type &= 0x7F; // Remove ChecksumValid bit before calculating the checksum
         tempFitHeader->Checksum = 0;
         UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
         if (calculated != fitHeader->Checksum) {
@@ -2887,9 +2889,8 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
 
     // Check fit header type
     if ((fitHeader->Type & 0x7F) != FIT_TYPE_HEADER)
-        msg(("Invalid FIT header type"), fitIndex);
+        msg(UString("Invalid FIT header type"), fitIndex);
     
-
     // Add FIT header
     std::vector<UString> currentStrings;
     currentStrings.push_back(UString("_FIT_           "));
@@ -2902,11 +2903,10 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
 
     // Process all other entries
     bool msgModifiedImageMayNotWork = false;
-    UModelIndex itemIndex;
-    UString info;
     for (UINT32 i = 1; i < fitHeader->Size; i++) {
         currentStrings.clear();
-        info.clear();
+        UString info;
+        UModelIndex itemIndex;
         const FIT_ENTRY* currentEntry = fitHeader + i;
         UINT32 currentEntrySize = currentEntry->Size;
 
@@ -2922,7 +2922,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         case FIT_TYPE_MICROCODE: {
             //TODO: refactor into function with error reporting
             if (currentEntry->Address > diff && currentEntry->Address < 0xFFFFFFFFUL) {
-                UINT32 offset = currentEntry->Address - diff;
+                UINT32 offset = (UINT32)currentEntry->Address - diff;
                 UModelIndex mcIndex = model->findByOffset(offset);
                 UByteArray mcFile = model->header(mcIndex) + model->body(mcIndex) + model->tail(mcIndex);
 
@@ -2961,6 +2961,11 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         case FIT_TYPE_AC_KEY_MANIFEST:
         case FIT_TYPE_AC_BOOT_POLICY:
         default:
+            if (currentEntry->Address > diff && currentEntry->Address < 0xFFFFFFFFUL) {
+                UINT32 offset = (UINT32)currentEntry->Address - diff;
+                itemIndex = model->findByOffset(offset);
+            }
+
             msgModifiedImageMayNotWork = true;
             break;
         }

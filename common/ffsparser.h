@@ -20,18 +20,21 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "treemodel.h"
 #include "nvramparser.h"
+#include "meparser.h"
 
 class FfsParser
 {
 public:
     // Default constructor and destructor
-    FfsParser(TreeModel* treeModel) : model(treeModel), nvramParser(treeModel), capsuleOffsetFixup(0) {}
+    FfsParser(TreeModel* treeModel) : model(treeModel), nvramParser(treeModel), meParser(treeModel), capsuleOffsetFixup(0) {}
     ~FfsParser() {}
 
     // Returns messages 
     std::vector<std::pair<UString, UModelIndex> > getMessages() const { 
+        std::vector<std::pair<UString, UModelIndex> > meVector = meParser.getMessages();
         std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser.getMessages();
         std::vector<std::pair<UString, UModelIndex> > resultVector = messagesVector;
+        resultVector.insert(resultVector.end(), meVector.begin(), meVector.end());
         resultVector.insert(resultVector.end(), nvramVector.begin(), nvramVector.end());
         return resultVector;
     }
@@ -52,7 +55,8 @@ private:
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 
-    NvramParser nvramParser;   
+    NvramParser nvramParser;
+    MeParser meParser;
  
     UModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;

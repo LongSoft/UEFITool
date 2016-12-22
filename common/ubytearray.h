@@ -19,7 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define UByteArray QByteArray
 #else
 // Use own implementation
-#include <cstdint>
+#include <stdint.h>
 #include <string>
 #include <vector>
 #include <algorithm>

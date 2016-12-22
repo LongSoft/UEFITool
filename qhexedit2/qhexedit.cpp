@@ -519,7 +519,7 @@ void QHexEdit::keyPressEvent(QKeyEvent *event)
         {
             /* Hex input */
             int key = int(event->text()[0].toLatin1());
-            if ((key>='0' && key<='9') || (key>='a' && key <= 'f'))
+            if ((key >= '0' && key <= '9') || (key >= 'a' && key <= 'f') || (key >= 'A' && key <= 'F'))
             {
                 if (getSelectionBegin() != getSelectionEnd())
                 {
@@ -828,10 +828,15 @@ void QHexEdit::paintEvent(QPaintEvent *event)
     }
 
     // paint cursor
-    if (_blink && !_readOnly && hasFocus())
+    if (_blink && !_readOnly && hasFocus()) {
         painter.fillRect(_cursorRect, this->palette().color(QPalette::WindowText));
-    else
-        painter.drawText(_pxCursorX, _pxCursorY, _hexDataShown.mid(_cursorPosition - _bPosFirst * 2, 1));
+    }
+    else {
+        QByteArray dataShown = _hexDataShown.mid(_cursorPosition - _bPosFirst * 2, 1);
+        if (_upperCase)
+            dataShown = dataShown.toUpper();
+        painter.drawText(_pxCursorX, _pxCursorY, dataShown);
+    }
 
     // emit event, if size has changed
     if (_lastEventSize != _chunks->size())

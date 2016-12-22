@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define TYPES_H
 
 #include "basetypes.h"
-#include "ustring.h"
 
 // Actions
 namespace Actions
@@ -115,8 +114,13 @@ namespace Subtypes {
         AuthVssEntry
     };
 
+    enum FsysEntrySubtypes {
+        InvalidFsysEntry = 150,
+        NormalFsysEntry
+    };
+    
     enum EvsaEntrySubtypes {
-        InvalidEvsaEntry = 150,
+        InvalidEvsaEntry = 160,
         UnknownEvsaEntry,
         GuidEvsaEntry,
         NameEvsaEntry,
@@ -124,17 +128,17 @@ namespace Subtypes {
     };
 
     enum FlashMapEntrySubtypes {
-        VolumeFlashMapEntry = 160,
+        VolumeFlashMapEntry = 170,
         DataFlashMapEntry
     };
 
     enum MicrocodeSubtypes {
-        IntelMicrocode = 170,
+        IntelMicrocode = 180,
         AmdMicrocode
     };
 
     enum SlicDataSubtypes {
-        PubkeySlicData = 180,
+        PubkeySlicData = 190,
         MarkerSlicData
     };
 }

@@ -1468,7 +1468,10 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
         UINT32 variableSize = 0;
 
         // Get nameSize and name of the variable
-        const UINT8 nameSize = *(UINT8*)(data.constData() + offset);
+        UINT8 nameSize = *(UINT8*)(data.constData() + offset);
+        bool valid = !(nameSize & 0x80); // Last bit is a validity bit, 0 means valid
+        nameSize &= 0x7F;
+        
         // Check sanity
         if (unparsedSize >= nameSize + sizeof(UINT8)) {
             variableSize = nameSize + sizeof(UINT8);
@@ -1484,11 +1487,10 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
                 UString info = usprintf("Full size: %Xh (%u)", header.size(), header.size());
                                 
                 // Add EOF tree item
-                model->addItem(localOffset + offset, Types::FsysEntry, 0, UString("EOF"), UString(), info, header, UByteArray(), UByteArray(), Fixed, index);
+                model->addItem(localOffset + offset, Types::FsysEntry, Subtypes::NormalFsysEntry, UString("EOF"), UString(), info, header, UByteArray(), UByteArray(), Fixed, index);
 
                 // Add free space
                 offset += header.size();
-                unparsedSize = dataSize - offset;
                 UByteArray body = data.mid(offset);
                 info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
 
@@ -1529,7 +1531,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
             body.size(), body.size());
 
         // Add tree item
-        model->addItem(localOffset + offset, Types::FsysEntry, 0, UString(name.constData()), UString(), info, header, body, UByteArray(), Movable, index);
+        model->addItem(localOffset + offset, Types::FsysEntry, valid ? Subtypes::NormalFsysEntry : Subtypes::InvalidFsysEntry, UString(name.constData()), UString(), info, header, body, UByteArray(), Movable, index);
 
         // Move to next variable
         offset += variableSize;
