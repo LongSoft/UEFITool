@@ -18,7 +18,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE Alpha 37"))
+version(tr("NE Alpha 38"))
 {
     clipboard = QApplication::clipboard();
 
@@ -327,6 +327,8 @@ void UEFITool::bodyHexView()
 
 void UEFITool::goToOffset()
 {
+    goToOffsetDialog->ui->hexSpinBox->setFocus();
+    goToOffsetDialog->ui->hexSpinBox->selectAll();
     if (goToOffsetDialog->exec() != QDialog::Accepted)
         return;
 
@@ -810,9 +812,7 @@ void UEFITool::openImageFile(QString path)
     delete ffsOps;
     ffsOps = new FfsOperations(model);
 
-    // Set max offset and enable goToOffset
-    // FIXME: doesn't work properly
-    //goToOffsetDialog->ui->hexSpinBox->setMaximum(buffer.size() - 1);
+    // Enable goToOffset
     ui->actionGoToOffset->setEnabled(true);
 
     // Enable or disable FIT tab
@@ -905,7 +905,7 @@ void UEFITool::showParserMessages()
     std::pair<QString, QModelIndex> msg;
     foreach (msg, messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
-        item->setData(Qt::UserRole, msg.second);
+        item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
         ui->parserMessagesListWidget->addItem(item);
     }
 
@@ -923,7 +923,7 @@ void UEFITool::showFinderMessages()
     std::pair<QString, QModelIndex> msg;
     foreach (msg, messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
-        item->setData(Qt::UserRole, msg.second);
+        item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));;
         ui->finderMessagesListWidget->addItem(item);
     }
 
@@ -941,7 +941,7 @@ void UEFITool::showBuilderMessages()
     std::pair<QString, QModelIndex> msg;
     foreach (msg, messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
-        item->setData(Qt::UserRole, msg.second);
+        item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
         ui->builderMessagesListWidget->addItem(item);
     }
 
@@ -951,19 +951,21 @@ void UEFITool::showBuilderMessages()
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)
 {
-    QModelIndex index = item->data(Qt::UserRole).toModelIndex();
-    if (index.isValid()) {
-        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
-        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    QByteArray second = item->data(Qt::UserRole).toByteArray();
+    QModelIndex *index = (QModelIndex *)second.data();
+    if (index && index->isValid()) {
+        ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
     }
 }
 
 void UEFITool::scrollTreeView(QTableWidgetItem* item)
 {
-    QModelIndex index = item->data(Qt::UserRole).toModelIndex();
-    if (index.isValid()) {
-        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
-        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    QByteArray second = item->data(Qt::UserRole).toByteArray();
+    QModelIndex *index = (QModelIndex *)second.data();
+    if (index && index->isValid()) {
+        ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
     }
 }
 
@@ -1069,7 +1071,7 @@ void UEFITool::showFitTable()
     for (size_t i = 0; i < fitTable.size(); i++) {
         for (UINT8 j = 0; j < 6; j++) {
             QTableWidgetItem* item = new QTableWidgetItem(fitTable[i].first[j]);
-            item->setData(Qt::UserRole, fitTable[i].second);
+            item->setData(Qt::UserRole, QByteArray((const char*)&fitTable[i].second, sizeof(fitTable[i].second)));
             ui->fitTableWidget->setItem((int)i, j, item);
         }
     }

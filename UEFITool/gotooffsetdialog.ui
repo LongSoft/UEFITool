@@ -61,24 +61,12 @@
        </widget>
       </item>
       <item>
-       <widget class="QSpinBox" name="hexSpinBox">
+       <widget class="HexSpinBox" name="hexSpinBox">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-        <property name="suffix">
-         <string/>
-        </property>
-        <property name="prefix">
-         <string>0x</string>
-        </property>
-        <property name="maximum">
-         <number>1000000000</number>
-        </property>
-        <property name="displayIntegerBase">
-         <number>16</number>
         </property>
        </widget>
       </item>
@@ -97,6 +85,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>HexSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header>hexspinbox.h</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>buttonBox</tabstop>
  </tabstops>

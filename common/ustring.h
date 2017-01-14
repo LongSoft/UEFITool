@@ -21,7 +21,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #else
 // Use Bstrlib
 #define BSTRLIB_DOESNT_THROW_EXCEPTIONS
-#include "../bstrlib/bstrwrap.h"
+#include "bstrlib/bstrwrap.h"
 #define UString CBString
 #endif // QT_CORE_LIB
 

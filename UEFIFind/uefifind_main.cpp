@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
         return U_SUCCESS;
     }
     else {
-        std::cout << "UEFIFind 0.10.6" << std::endl << std::endl <<
+        std::cout << "UEFIFind 0.10.7" << std::endl << std::endl <<
             "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
             "    or UEFIFind file patternsfile imagefile" << std::endl;
         return U_INVALID_PARAMETER;

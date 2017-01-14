@@ -18,8 +18,8 @@ SET(PROJECT_SOURCES
  ../common/LZMA/SDK/C/LzmaDec.c 
  ../common/Tiano/EfiTianoDecompress.c 
  ../common/ustring.cpp 
- ../bstrlib/bstrlib.c 
- ../bstrlib/bstrwrap.cpp
+ ../common/bstrlib/bstrlib.c 
+ ../common/bstrlib/bstrwrap.cpp
 )
 
 SET(PROJECT_HEADERS 
@@ -43,8 +43,8 @@ SET(PROJECT_HEADERS
  ../common/Tiano/EfiTianoDecompress.h 
  ../common/ubytearray.h 
  ../common/ustring.h 
- ../bstrlib/bstrlib.h 
- ../bstrlib/bstrwrap.h
+ ../common/bstrlib/bstrlib.h 
+ ../common/bstrlib/bstrwrap.h
 )
 
 ADD_DEFINITIONS(-DU_ENABLE_NVRAM_PARSING_SUPPORT)

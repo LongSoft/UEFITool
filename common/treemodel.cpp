@@ -473,7 +473,7 @@ UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT
     emit layoutChanged();
 
     UModelIndex created = createIndex(newItem->row(), parentColumn, newItem);
-    setFixed(created, fixed); // Non-trivial logic requires additional call
+    setFixed(created, (bool)fixed); // Non-trivial logic requires additional call
     return created;
 }
 

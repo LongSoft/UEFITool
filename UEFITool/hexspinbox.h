@@ -1,4 +1,4 @@
-/* hexviewdialog.h
+/* hexspinbox.h
 
   Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
@@ -11,28 +11,26 @@
 
   */
 
-#ifndef HEXVIEWDIALOG_H
-#define HEXVIEWDIALOG_H
+#ifndef HEXSPINBOX_H
+#define HEXSPINBOX_H
 
-#include <QDialog>
-#include "../common/treemodel.h"
-#include "qhexedit2/qhexedit.h"
-#include "ui_hexviewdialog.h"
+#include <QSpinBox>
+#include <QRegExpValidator>
 
-class HexViewDialog : public QDialog
+class HexSpinBox : public QSpinBox
 {
     Q_OBJECT
 
 public:
-    HexViewDialog(QWidget *parent = 0);
-    ~HexViewDialog();
-    Ui::HexViewDialog* ui;
+    HexSpinBox(QWidget *parent = 0);
 
-    void setItem(const UModelIndex & index, bool bodyOnly);
-    void setFont(const QFont &font);
+protected:
+    QValidator::State validate(QString &text, int &pos) const;
+    int valueFromText(const QString &text) const;
+    QString textFromValue(int value) const;
 
 private:
-    QHexEdit * hexView;
+    QRegExpValidator validator;
 };
 
-#endif // HEXVIEWDIALOG_H
+#endif // HEXSPINBOX_H

@@ -11,6 +11,7 @@ HEADERS += uefitool.h \
  gotooffsetdialog.h \
  guidlineedit.h \
  ffsfinder.h \
+ hexspinbox.h \
  ../common/nvram.h \
  ../common/nvramparser.h \
  ../common/meparser.h \
@@ -35,9 +36,9 @@ HEADERS += uefitool.h \
  ../common/Tiano/EfiTianoCompress.h \
  ../common/ustring.h \
  ../common/ubytearray.h \
- ../qhexedit2/qhexedit.h \
- ../qhexedit2/chunks.h \
- ../qhexedit2/commands.h
+ qhexedit2/qhexedit.h \
+ qhexedit2/chunks.h \
+ qhexedit2/commands.h
 
 SOURCES += uefitool_main.cpp \
  uefitool.cpp \
@@ -45,6 +46,7 @@ SOURCES += uefitool_main.cpp \
  hexviewdialog.cpp \
  guidlineedit.cpp \
  ffsfinder.cpp \
+ hexspinbox.cpp \
  ../common/nvram.cpp \
  ../common/nvramparser.cpp \
  ../common/ffsops.cpp \
@@ -66,9 +68,9 @@ SOURCES += uefitool_main.cpp \
  ../common/Tiano/EfiTianoCompress.c \
  ../common/Tiano/EfiTianoCompressLegacy.c \
  ../common/ustring.cpp \
- ../qhexedit2/qhexedit.cpp \
- ../qhexedit2/chunks.cpp \
- ../qhexedit2/commands.cpp
+ qhexedit2/qhexedit.cpp \
+ qhexedit2/chunks.cpp \
+ qhexedit2/commands.cpp
 
 FORMS += uefitool.ui \
  searchdialog.ui \
