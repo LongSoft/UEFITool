@@ -33,7 +33,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
     UINT8 emptyByte = 0xFF;
     UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
     if (parentFileIndex.isValid() && model->hasEmptyParsingData(parentFileIndex) == false) {
-        UByteArray data = model->parsingData(index);
+        UByteArray data = model->parsingData(parentFileIndex);
         const FILE_PARSING_DATA* pdata = (const FILE_PARSING_DATA*)data.constData();
         emptyByte = pdata->emptyByte;
     }
