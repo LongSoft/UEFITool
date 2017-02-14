@@ -14,11 +14,10 @@
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
-
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE Alpha 38"))
+version(tr("NE alpha 40"))
 {
     clipboard = QApplication::clipboard();
 
@@ -58,6 +57,8 @@ version(tr("NE Alpha 38"))
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     connect(ui->actionGoToData, SIGNAL(triggered()), this, SLOT(goToData()));
     connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
+    connect(ui->actionLoadGuidDatabase, SIGNAL(triggered()), this, SLOT(loadGuidDatabase()));
+    connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
     // Enable Drag-and-Drop actions
@@ -83,6 +84,9 @@ version(tr("NE Alpha 38"))
     searchDialog->ui->hexEdit->setFont(font);
     hexViewDialog->setFont(font);
     goToOffsetDialog->ui->hexSpinBox->setFont(font);
+
+    // Load built-in GUID database
+    initGuidDatabase(":/guids.csv");
 
     // Initialize non-persistent data
     init();
@@ -795,6 +799,7 @@ void UEFITool::openImageFile(QString path)
     init();
     setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
 
+    // Parse the image
     UINT8 result = ffsParser->parse(buffer);
     showParserMessages();
     if (result) {
@@ -803,6 +808,9 @@ void UEFITool::openImageFile(QString path)
     }
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
+
+    // Enable or disable FIT tab
+    showFitTable();
 
     // Enable search ...
     delete ffsFinder;
@@ -815,11 +823,11 @@ void UEFITool::openImageFile(QString path)
     // Enable goToOffset
     ui->actionGoToOffset->setEnabled(true);
 
-    // Enable or disable FIT tab
-    showFitTable();
-
     // Set current directory
     currentDir = fileInfo.absolutePath();
+
+    // Set current path
+    currentPath = path;
 }
 
 void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
@@ -1089,4 +1097,14 @@ void UEFITool::currentTabChanged(int index)
     ui->actionMessagesCopy->setEnabled(false);
     ui->actionMessagesCopyAll->setEnabled(false);
     ui->actionMessagesClear->setEnabled(false);
+}
+
+void UEFITool::loadGuidDatabase()
+{
+    QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), currentDir, "GUID database files (*.gdb);;All files (*)");
+    if (!path.isEmpty()) {
+        initGuidDatabase(path);
+        if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("New GUID database loaded"), tr("Apply new GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
+            openImageFile(currentPath);
+    }
 }

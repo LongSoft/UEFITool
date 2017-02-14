@@ -846,7 +846,7 @@ void QHexEdit::paintEvent(QPaintEvent *event)
             QByteArray hex;
             int pxPosX = _pxPosHexX  - pxOfsX;
             int pxPosAsciiX2 = _pxPosAsciiX  - pxOfsX;
-            qint64 bPosLine = row * _bytesPerLine;
+            qint64 bPosLine = (qint64)row * _bytesPerLine;
             for (int colIdx = 0; ((bPosLine + colIdx) < _dataShown.size() && (colIdx < _bytesPerLine)); colIdx++)
             {
                 QColor c = viewport()->palette().color(QPalette::Base);
@@ -1024,7 +1024,7 @@ void QHexEdit::adjust()
 
     int value = verticalScrollBar()->value();
     _bPosFirst = (qint64)value * _bytesPerLine;
-    _bPosLast = _bPosFirst + (qint64)(_rowsShown * _bytesPerLine) - 1;
+    _bPosLast = _bPosFirst + ((qint64)_rowsShown * _bytesPerLine) - 1;
     if (_bPosLast >= _chunks->size())
         _bPosLast = _chunks->size() - 1;
     readBuffers();

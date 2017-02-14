@@ -41,7 +41,7 @@ private:
 
     USTATUS buildCapsule(const UModelIndex & index, UByteArray & capsule);
     USTATUS buildIntelImage(const UModelIndex & index, UByteArray & intelImage);
-    USTATUS buildRawArea(const UModelIndex & index, UByteArray & rawArea, bool addHeader = true);
+    USTATUS buildRawArea(const UModelIndex & index, UByteArray & rawArea);
     USTATUS buildPadding(const UModelIndex & index, UByteArray & padding);
     USTATUS buildVolume(const UModelIndex & index, UByteArray & volume);
     USTATUS buildNonUefiData(const UModelIndex & index, UByteArray & data);

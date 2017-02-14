@@ -4,6 +4,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = UEFITool
 TEMPLATE = app
 DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
+DEFINES += "U_ENABLE_GUID_DATABASE_SUPPORT"
 
 HEADERS += uefitool.h \
  searchdialog.h \
@@ -12,6 +13,7 @@ HEADERS += uefitool.h \
  guidlineedit.h \
  ffsfinder.h \
  hexspinbox.h \
+ ../common/guiddatabase.h \
  ../common/nvram.h \
  ../common/nvramparser.h \
  ../common/meparser.h \
@@ -47,6 +49,7 @@ SOURCES += uefitool_main.cpp \
  guidlineedit.cpp \
  ffsfinder.cpp \
  hexspinbox.cpp \
+ ../common/guiddatabase.cpp \
  ../common/nvram.cpp \
  ../common/nvramparser.cpp \
  ../common/ffsops.cpp \
@@ -77,7 +80,7 @@ FORMS += uefitool.ui \
  hexviewdialog.ui \
  gotooffsetdialog.ui
 
+RESOURCES += uefitool.qrc
 RC_FILE = uefitool.rc
-
 ICON = icons/uefitool.icns
 

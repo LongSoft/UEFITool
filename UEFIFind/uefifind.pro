@@ -8,6 +8,7 @@ CONFIG   -= app_bundle
 
 SOURCES  += uefifind_main.cpp \
  uefifind.cpp \
+ ../common/guiddatabase.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \
  ../common/ffs.cpp \
@@ -23,6 +24,7 @@ SOURCES  += uefifind_main.cpp \
  ../common/ustring.cpp
 
 HEADERS  += uefifind.h \
+ ../common/guiddatabase.h \
  ../common/basetypes.h \
  ../common/descriptor.h \
  ../common/gbe.h \

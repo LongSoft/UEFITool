@@ -32,6 +32,8 @@ CharCommand::CharCommand(Chunks * chunks, CCmd cmd, qint64 charPos, char newChar
     _charPos = charPos;
     _newChar = newChar;
     _cmd = cmd;
+	_wasChanged = false;
+	_oldChar = ' ';
 }
 
 bool CharCommand::mergeWith(const QUndoCommand *command)

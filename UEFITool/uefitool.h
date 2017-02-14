@@ -41,6 +41,7 @@
 #include "../common/ffsparser.h"
 #include "../common/ffsops.h"
 #include "../common/ffsbuilder.h"
+#include "../common/guiddatabase.h"
 
 #include "searchdialog.h"
 #include "gotooffsetdialog.h"
@@ -110,6 +111,8 @@ private slots:
     void exit();
     void writeSettings();
 
+    void loadGuidDatabase();
+
     void currentTabChanged(int index);
 
 private:
@@ -124,6 +127,7 @@ private:
     GoToOffsetDialog* goToOffsetDialog;
     QClipboard* clipboard;
     QString currentDir;
+    QString currentPath;
     QString currentProgramPath;
     const QString version;
 

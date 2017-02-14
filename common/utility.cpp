@@ -36,20 +36,6 @@ UString uniqueItemName(const UModelIndex & index)
     // Default name
     UString name = itemName;
     switch (model->type(index)) {
-    case Types::Volume: {
-        UINT8 hasExtendedHeader = FALSE;
-        EFI_GUID extendedHeaderGuid = { 0, 0, 0, { 0, 0, 0, 0, 0, 0, 0, 0 } };
-        if (model->hasEmptyParsingData(index) == false) {
-            UByteArray data = model->parsingData(index);
-            const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
-            hasExtendedHeader = pdata->hasExtendedHeader;
-            extendedHeaderGuid = pdata->extendedHeaderGuid;
-        }
-
-        if (hasExtendedHeader)
-            name = guidToUString(extendedHeaderGuid);
-        name.findreplace('-', '_');
-    } break;
     case Types::NvarEntry:
     case Types::VssEntry:
     case Types::FsysEntry:

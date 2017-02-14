@@ -57,6 +57,8 @@ typedef uint8_t USTATUS;
 #define U_TRUNCATED_IMAGE                 36
 #define U_INVALID_CAPSULE                 37
 #define U_STORES_NOT_FOUND                38
+#define U_INVALID_IMAGE                   39
+#define U_INVALID_RAW_AREA                40
 #define U_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions

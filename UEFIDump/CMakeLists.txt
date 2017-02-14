@@ -3,6 +3,7 @@ PROJECT(UEFIDump)
 SET(PROJECT_SOURCES 
  uefidump_main.cpp 
  uefidump.cpp 
+ ../common/guiddatabase.cpp 
  ../common/types.cpp 
  ../common/descriptor.cpp 
  ../common/ffs.cpp 
@@ -24,6 +25,7 @@ SET(PROJECT_SOURCES
 
 SET(PROJECT_HEADERS 
  uefidump.h 
+ ../common/guiddatabase.h 
  ../common/basetypes.h 
  ../common/descriptor.h 
  ../common/gbe.h 

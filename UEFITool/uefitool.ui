@@ -284,6 +284,8 @@
     <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
+    <addaction name="actionLoadGuidDatabase"/>
+    <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -787,6 +789,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+D</string>
+   </property>
+  </action>
+  <action name="actionLoadGuidDatabase">
+   <property name="text">
+    <string>Load &amp;GUID database...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+G</string>
    </property>
   </action>
  </widget>

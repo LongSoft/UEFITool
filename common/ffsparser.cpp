@@ -41,6 +41,7 @@ struct REGION_INFO {
 USTATUS FfsParser::parse(const UByteArray & buffer) 
 {
     UModelIndex root;
+
     USTATUS result = performFirstPass(buffer, root);
     addOffsetsRecursive(root);
     if (result)
@@ -92,7 +93,7 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
         UByteArray header = buffer.left(capsuleHeaderSize);
         UByteArray body = buffer.mid(capsuleHeaderSize);
         UString name("UEFI capsule");
-        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid) + 
+        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid, false) + 
             usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
             buffer.size(), buffer.size(),
             capsuleHeaderSize, capsuleHeaderSize,
@@ -126,7 +127,7 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
         UByteArray header = buffer.left(capsuleHeaderSize);
         UByteArray body = buffer.mid(capsuleHeaderSize);
         UString name("Toshiba capsule");
-        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid) + 
+        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid, false) + 
             usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
             buffer.size(), buffer.size(),
             capsuleHeaderSize, capsuleHeaderSize,
@@ -168,7 +169,7 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
         UByteArray header = buffer.left(capsuleHeaderSize);
         UByteArray body = buffer.mid(capsuleHeaderSize);
         UString name("AMI Aptio capsule");
-        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleHeader.CapsuleGuid) +
+        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleHeader.CapsuleGuid, false) +
             usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
             buffer.size(), buffer.size(),
             capsuleHeaderSize, capsuleHeaderSize,
@@ -1029,7 +1030,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         volumeHeader->ZeroVector[4], volumeHeader->ZeroVector[5], volumeHeader->ZeroVector[6], volumeHeader->ZeroVector[7],
         volumeHeader->ZeroVector[8], volumeHeader->ZeroVector[9], volumeHeader->ZeroVector[10], volumeHeader->ZeroVector[11],
         volumeHeader->ZeroVector[12], volumeHeader->ZeroVector[13], volumeHeader->ZeroVector[14], volumeHeader->ZeroVector[15])
-        + guidToUString(volumeHeader->FileSystemGuid) \
+        + guidToUString(volumeHeader->FileSystemGuid, false) \
         + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nRevision: %u\nAttributes: %08Xh\nErase polarity: %u\nChecksum: %04Xh",
         volumeSize, volumeSize,
         headerSize, headerSize,
@@ -1044,7 +1045,8 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         const EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (const EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
         info += usprintf("\nExtended header size: %Xh (%u)\nVolume GUID: ",
-            extendedHeader->ExtHeaderSize, extendedHeader->ExtHeaderSize) + guidToUString(extendedHeader->FvName);
+            extendedHeader->ExtHeaderSize, extendedHeader->ExtHeaderSize) + guidToUString(extendedHeader->FvName, false);
+        name = guidToUString(extendedHeader->FvName); // Replace FFS GUID with volume GUID
     }
 
     // Add text
@@ -1458,7 +1460,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     else
         name = UString("Pad-file");
 
-    info = UString("File GUID: ") + guidToUString(fileHeader->Name) +
+    info = UString("File GUID: ") + guidToUString(fileHeader->Name, false) +
         usprintf("\nType: %02Xh\nAttributes: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\nState: %02Xh",
         fileHeader->Type, 
         fileHeader->Attributes, 
@@ -1492,7 +1494,6 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     pdata.emptyByte = (fileHeader->State & EFI_FILE_ERASE_POLARITY) ? 0xFF : 0x00;
     pdata.guid = fileHeader->Name;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
-
 
     // Override lastVtf index, if needed
     if (isVtf) {
@@ -2014,7 +2015,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
 
     // Get info
     UString name = guidToUString(guid);
-    UString info = UString("Section GUID: ") + name +
+    UString info = UString("Section GUID: ") + guidToUString(guid, false) +
         usprintf("\nType: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nData offset: %Xh\nAttributes: %04Xh",
         sectionHeader->Type, 
         section.size(), section.size(),
@@ -2113,7 +2114,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
         section.size(), section.size(),
         header.size(), header.size(),
         body.size(), body.size())
-        + guidToUString(guid);
+        + guidToUString(guid, false);
 
     // Add tree item
     if (insertIntoTree) {
@@ -2655,7 +2656,7 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
 
         return U_SUCCESS;
     }
-    else if (parentFileGuid == NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID) {
+    else if (parentFileGuid == NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID) { // AMI NVRAM external defaults
         // Parse NVAR area
         nvramParser.parseNvarStore(index);
 

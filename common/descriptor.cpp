@@ -57,10 +57,10 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0xEF4017: return UString("Winbond W25Q64");
     case 0xEF4018: return UString("Winbond W25Q128");
     case 0xEF4019: return UString("Winbond W25Q256");
-    case 0xEF6015: return UString("Winbond W25Q16 1.8v");
-    case 0xEF6016: return UString("Winbond W25Q32 1.8v");
-    case 0xEF6017: return UString("Winbond W25Q64 1.8v");
-    case 0xEF6018: return UString("Winbond W25Q128 1.8v");
+    case 0xEF6015: return UString("Winbond W25Q16");
+    case 0xEF6016: return UString("Winbond W25Q32");
+    case 0xEF6017: return UString("Winbond W25Q64");
+    case 0xEF6018: return UString("Winbond W25Q128");
 
     // Macronix
     case 0xC22013: return UString("Macronix MX25L40");
@@ -107,12 +107,12 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0x20BA19: return UString("Micron N25Q256");
     case 0x20BA20: return UString("Micron N25Q512");
     case 0x20BA21: return UString("Micron N25Q00A");
-    case 0x20BB15: return UString("Micron N25Q016 1.8v");
-    case 0x20BB16: return UString("Micron N25Q032 1.8v");
-    case 0x20BB17: return UString("Micron N25Q064 1.8v");
-    case 0x20BB18: return UString("Micron MT25Q128 1.8v");
-    case 0x20BB19: return UString("Micron MT25Q256 1.8v");
-    case 0x20BB20: return UString("Micron MT25Q512 1.8v");
+    case 0x20BB15: return UString("Micron N25Q016");
+    case 0x20BB16: return UString("Micron N25Q032");
+    case 0x20BB17: return UString("Micron N25Q064");
+    case 0x20BB18: return UString("Micron MT25Q128");
+    case 0x20BB19: return UString("Micron MT25Q256");
+    case 0x20BB20: return UString("Micron MT25Q512");
 
     // Atmel
     case 0x1F4500: return UString("Atmel AT26DF081");

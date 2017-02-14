@@ -11,6 +11,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "ffs.h"
+#include "guiddatabase.h"
 
 // This is a workaround for the lack of static std::vector initializer before C++11
 const UByteArray FFSv2VolumesInt[] = {
@@ -43,8 +44,14 @@ UINT32 uint24ToUint32(const UINT8* ffsSize)
     return *(UINT32*)ffsSize & 0x00FFFFFF;
 }
 
-UString guidToUString(const EFI_GUID & guid)
+UString guidToUString(const EFI_GUID & guid, bool convertToString)
 {
+    if (convertToString) {
+        UString readableName = guidDatabaseLookup(guid);
+        if (!readableName.isEmpty())
+            return readableName;
+    }
+
     return usprintf("%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
         guid.Data1,
         guid.Data2,

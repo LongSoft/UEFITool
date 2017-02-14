@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         return (uefidumper.dump(buffer, UString(argv[1])) != U_SUCCESS);
     }
 
-    std::cout << "UEFIDump 0.1.4" << std::endl << std::endl
+    std::cout << "UEFIDump 0.1.5" << std::endl << std::endl
               << "Usage: UEFIDump imagefile" << std::endl;
     return 0;
 }

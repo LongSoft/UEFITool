@@ -10,6 +10,7 @@ DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
 SOURCES += \
  uefiextract_main.cpp \
  ffsdumper.cpp \
+ ../common/guiddatabase.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \
  ../common/ffs.cpp \
@@ -28,6 +29,7 @@ SOURCES += \
 
 HEADERS += \
  ffsdumper.h \
+ ../common/guiddatabase.h \
  ../common/basetypes.h \
  ../common/descriptor.h \
  ../common/gbe.h \

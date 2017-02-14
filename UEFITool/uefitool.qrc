@@ -1,0 +1,5 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="guids.csv">../common/guids.csv</file>
+</qresource>
+</RCC>

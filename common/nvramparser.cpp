@@ -73,6 +73,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         UINT8 subtype = Subtypes::FullNvarEntry;
         UString name;
+        UString guid;
         UString text;
         UByteArray header;
         UByteArray body;
@@ -267,6 +268,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             // Get entry GUID
             if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_GUID) { // GUID is strored in the variable itself
                 name = guidToUString(*(EFI_GUID*)(entryHeader + 1));
+                guid = guidToUString(*(EFI_GUID*)(entryHeader + 1), false);
             }
             // GUID is stored in GUID list at the end of the store
             else {
@@ -277,6 +279,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 // The list begins at the end of the store and goes backwards
                 const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
                 name = guidToUString(*guidPtr);
+                guid = guidToUString(*guidPtr, false);
                 hasGuidIndex = true;
             }
 
@@ -300,7 +303,7 @@ parsing_done:
             pdata.isValid = FALSE;
         }
         else // Add GUID info for valid entries
-            info += UString("Variable GUID: ") + name + UString("\n");
+            info += UString("Variable GUID: ") + guid + UString("\n");
         
         // Add GUID index information
         if (hasGuidIndex)
@@ -817,7 +820,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
 
     // Add info
     UString name("FTW store");
-    UString info = UString("Signature: ") + guidToUString(ftw32BlockHeader->Signature) +
+    UString info = UString("Signature: ") + guidToUString(ftw32BlockHeader->Signature, false) +
         usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nHeader CRC32: %08Xh",
         ftwBlockSize, ftwBlockSize,
         headerSize, headerSize,
@@ -1408,7 +1411,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index)
         }
         else { // Add GUID and text for valid variables
             name = guidToUString(*variableGuid);
-            info += UString("Variable GUID: ") + name + UString("\n");
+            info += UString("Variable GUID: ") + guidToUString(*variableGuid, false) + UString("\n");
             text = UString::fromUtf16(variableName);
         }
 
@@ -1613,7 +1616,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             body = data.mid(offset + sizeof(EVSA_GUID_ENTRY), guidHeader->Header.Size - sizeof(EVSA_GUID_ENTRY));
             EFI_GUID guid = *(EFI_GUID*)body.constData();
             name = guidToUString(guid);
-            info = UString("GUID: ") + name + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+            info = UString("GUID: ") + guidToUString(guid, false) + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
                 variableSize, variableSize,
                 header.size(), header.size(),
                 body.size(), body.size(),
@@ -1631,7 +1634,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             header = data.mid(offset, sizeof(EVSA_NAME_ENTRY));
             body = data.mid(offset + sizeof(EVSA_NAME_ENTRY), nameHeader->Header.Size - sizeof(EVSA_NAME_ENTRY));
             name = UString::fromUtf16((const CHAR16*)body.constData());
-            info = UString("GUID: ") + name + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+            info = UString("Name: ") + name + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
                 variableSize, variableSize,
                 header.size(), header.size(),
                 body.size(), body.size(),
@@ -1709,7 +1712,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             const EVSA_DATA_ENTRY* dataHeader = (const EVSA_DATA_ENTRY*)header.constData();
             UString guid;
             if (guidMap.count(dataHeader->GuidId)) 
-                guid = guidToUString(guidMap[dataHeader->GuidId]);
+                guid = guidToUString(guidMap[dataHeader->GuidId], false);
             UString name;
             if (nameMap.count(dataHeader->VarId))
                 name = nameMap[dataHeader->VarId];
@@ -1788,7 +1791,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         UByteArray header = data.mid(offset, sizeof(PHOENIX_FLASH_MAP_ENTRY));
 
         // Add info
-        UString info = UString("Entry GUID: ") + name + usprintf("\nFull size: 24h (36)\nHeader size: 24h (36)\nBody size: 0h (0)\n"
+        UString info = UString("Entry GUID: ") + guidToUString(entryHeader->Guid, false) + usprintf("\nFull size: 24h (36)\nHeader size: 24h (36)\nBody size: 0h (0)\n"
             "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08Xh\nSize: %08Xh\nOffset: %08Xh",
             entryHeader->EntryType,
             entryHeader->DataType, 
