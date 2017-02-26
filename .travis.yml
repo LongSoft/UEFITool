@@ -16,7 +16,7 @@ script:
   - qmake PREFIX=/usr
   - make -j4
   - mkdir -p appdir/usr/bin ; mkdir -p appdir/usr/share/{applications,icons} ; cd appdir
-  - cp ../uefitool usr/bin
+  - cp ../UEFITool usr/bin/uefitool
   - cp ../uefitool.desktop .
   - cp ../icons/uefitool_256x256.png uefitool.png
   - cd .. 
