@@ -1,0 +1,28 @@
+language: cpp
+compiler: gcc
+sudo: require
+dist: trusty
+
+before_install:
+    - sudo add-apt-repository ppa:beineri/opt-qt58-trusty -y
+    - sudo apt-get update -qq
+    
+install: 
+    - sudo apt-get -y install qt58base
+    - source /opt/qt58/bin/qt58-env.sh
+
+script:
+  - cd UEFITool
+  - qmake PREFIX=/usr
+  - make -j4
+  - mkdir -p appdir/usr/bin ; mkdir -p appdir/usr/share/{applications,icons} ; cd appdir
+  - cp ../UEFITool usr/bin/uefitool
+  - cp ../uefitool.desktop .
+  - cp ../icons/uefitool_256x256.png uefitool.png
+  - cd .. 
+  - wget -c "https://github.com/probonopd/linuxdeployqt/releases/download/3/linuxdeployqt-3-x86_64.AppImage" 
+  - chmod a+x linuxdeployqt*.AppImage
+  - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
+  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/* -bundle-non-qt-libs
+  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/* -appimage 
+  - curl --upload-file ./UEFITool-*.AppImage https://transfer.sh/UEFITool-git.$(git rev-parse --short HEAD)-x86_64.AppImage 
