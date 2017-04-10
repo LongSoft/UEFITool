@@ -1,0 +1,593 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UEFITool</class>
+ <widget class="QMainWindow" name="UEFITool">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
+  <property name="windowTitle">
+   <string>UEFITool</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background: qradialgradient(cx: 0.3, cy: -0.4, fx: 0.3, fy: -0.4, radius: 1.35, stop: 0 #fff, stop: 1 #a00);
+
+</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_7">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="QSplitter" name="messagesSplitter">
+      <property name="styleSheet">
+       <string notr="true">color:white;
+</string>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="QSplitter" name="infoSplitter">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <widget class="QGroupBox" name="structureGroupBox">
+        <property name="styleSheet">
+         <string notr="true">background-color:rgb(170, 0, 0);
+
+</string>
+        </property>
+        <property name="title">
+         <string>Structure</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QTreeView" name="structureTreeView">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color:rgb(0,0,0);
+
+
+
+</string>
+           </property>
+           <property name="indentation">
+            <number>10</number>
+           </property>
+           <property name="headerHidden">
+            <bool>false</bool>
+           </property>
+           <attribute name="headerCascadingSectionResizes">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="headerDefaultSectionSize">
+            <number>200</number>
+           </attribute>
+           <attribute name="headerStretchLastSection">
+            <bool>true</bool>
+           </attribute>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="infoGroupBox">
+        <property name="styleSheet">
+         <string notr="true">background-color:rgb(170, 0, 0)</string>
+        </property>
+        <property name="title">
+         <string>Information</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QPlainTextEdit" name="infoEdit">
+           <property name="acceptDrops">
+            <bool>false</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color:rgb(0, 0, 0);
+color:rgb(255, 255, 255);
+border-image: url(:/images/roglogo-red.png);
+</string>
+           </property>
+           <property name="undoRedoEnabled">
+            <bool>false</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="centerOnScroll">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QGroupBox" name="messageGroupBox">
+       <property name="styleSheet">
+        <string notr="true">background-color:rgb(170, 0, 0)</string>
+       </property>
+       <property name="title">
+        <string>Messages</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="leftMargin">
+         <number>5</number>
+        </property>
+        <property name="topMargin">
+         <number>5</number>
+        </property>
+        <property name="rightMargin">
+         <number>5</number>
+        </property>
+        <property name="bottomMargin">
+         <number>5</number>
+        </property>
+        <item>
+         <widget class="QListWidget" name="messageListWidget">
+          <property name="mouseTracking">
+           <bool>true</bool>
+          </property>
+          <property name="autoFillBackground">
+           <bool>false</bool>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color:rgb(0, 0, 0);
+color:rgb(255,255, 255);
+</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>19</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color:yellow;</string>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="toolTip">
+     <string/>
+    </property>
+    <property name="toolTipDuration">
+     <number>-1</number>
+    </property>
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="actionOpenImageFile"/>
+    <addaction name="actionOpenImageFileInNewWindow"/>
+    <addaction name="actionSaveImageFile"/>
+    <addaction name="separator"/>
+    <addaction name="actionSearch"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>H&amp;elp</string>
+    </property>
+    <addaction name="actionAbout"/>
+    <addaction name="actionAboutQt"/>
+   </widget>
+   <widget class="QMenu" name="menuAction">
+    <property name="title">
+     <string>&amp;Action</string>
+    </property>
+    <widget class="QMenu" name="menuCapsuleActions">
+     <property name="title">
+      <string>&amp;Capsule</string>
+     </property>
+     <addaction name="actionExtract"/>
+     <addaction name="actionExtractBody"/>
+    </widget>
+    <widget class="QMenu" name="menuImageActions">
+     <property name="title">
+      <string>&amp;Image</string>
+     </property>
+     <addaction name="actionExtract"/>
+    </widget>
+    <widget class="QMenu" name="menuRegionActions">
+     <property name="title">
+      <string>&amp;Region</string>
+     </property>
+     <addaction name="actionExtract"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+    </widget>
+    <widget class="QMenu" name="menuPaddingActions">
+     <property name="title">
+      <string>&amp;Padding</string>
+     </property>
+     <addaction name="actionExtract"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+    </widget>
+    <widget class="QMenu" name="menuVolumeActions">
+     <property name="title">
+      <string>&amp;Volume</string>
+     </property>
+     <addaction name="actionExtract"/>
+     <addaction name="actionExtractBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionRebuild"/>
+     <addaction name="separator"/>
+     <addaction name="actionInsertInto"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
+    </widget>
+    <widget class="QMenu" name="menuFileActions">
+     <property name="title">
+      <string>&amp;File</string>
+     </property>
+     <addaction name="actionExtract"/>
+     <addaction name="actionExtractBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionRebuild"/>
+     <addaction name="separator"/>
+     <addaction name="actionInsertInto"/>
+     <addaction name="actionInsertBefore"/>
+     <addaction name="actionInsertAfter"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionRemove"/>
+    </widget>
+    <widget class="QMenu" name="menuSectionActions">
+     <property name="title">
+      <string>&amp;Section</string>
+     </property>
+     <addaction name="actionExtract"/>
+     <addaction name="actionExtractBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionRebuild"/>
+     <addaction name="separator"/>
+     <addaction name="actionInsertInto"/>
+     <addaction name="actionInsertBefore"/>
+     <addaction name="actionInsertAfter"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplace"/>
+     <addaction name="actionReplaceBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionRemove"/>
+     <addaction name="separator"/>
+    </widget>
+    <widget class="QMenu" name="menuMessages">
+     <property name="title">
+      <string>&amp;Messages</string>
+     </property>
+     <addaction name="actionMessagesCopy"/>
+     <addaction name="actionMessagesCopyAll"/>
+     <addaction name="separator"/>
+     <addaction name="actionMessagesClear"/>
+    </widget>
+    <addaction name="menuCapsuleActions"/>
+    <addaction name="menuImageActions"/>
+    <addaction name="menuRegionActions"/>
+    <addaction name="menuPaddingActions"/>
+    <addaction name="menuVolumeActions"/>
+    <addaction name="menuFileActions"/>
+    <addaction name="menuSectionActions"/>
+    <addaction name="separator"/>
+    <addaction name="menuMessages"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuAction"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <action name="actionInsertAfter">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Insert &amp;after...</string>
+   </property>
+   <property name="toolTip">
+    <string>Insert an object from file after selected object</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+I</string>
+   </property>
+  </action>
+  <action name="actionInsertBefore">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Insert b&amp;efore...</string>
+   </property>
+   <property name="toolTip">
+    <string>Insert object from file before selected object</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+I</string>
+   </property>
+  </action>
+  <action name="actionReplace">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rep&amp;lace as is...</string>
+   </property>
+   <property name="toolTip">
+    <string>Replace selected object as is with an object from file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionExtract">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>E&amp;xtract as is...</string>
+   </property>
+   <property name="toolTip">
+    <string>Extract selected object as is to file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
+  </action>
+  <action name="actionExtractBody">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Extract &amp;body...</string>
+   </property>
+   <property name="toolTip">
+    <string>Extract body of selected object to file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+E</string>
+   </property>
+  </action>
+  <action name="actionRemove">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Re&amp;move</string>
+   </property>
+   <property name="toolTip">
+    <string>Remove selected object</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Del</string>
+   </property>
+  </action>
+  <action name="actionOpenImageFile">
+   <property name="text">
+    <string>&amp;Open image file...</string>
+   </property>
+   <property name="toolTip">
+    <string>Open image file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionInsertInto">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Insert &amp;into...</string>
+   </property>
+   <property name="toolTip">
+    <string>Insert object from file into selected object</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionSaveImageFile">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Save image file...</string>
+   </property>
+   <property name="toolTip">
+    <string>Save modified image file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionRebuild">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Rebuild</string>
+   </property>
+   <property name="toolTip">
+    <string>Rebuild selected object</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Space</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>&amp;About UEFITool</string>
+   </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionAboutQt">
+   <property name="text">
+    <string>About &amp;Qt</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionSearch">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Sear&amp;ch...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionMessagesClear">
+   <property name="text">
+    <string>Cl&amp;ear</string>
+   </property>
+   <property name="toolTip">
+    <string>Clear messages</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Backspace</string>
+   </property>
+  </action>
+  <action name="actionReplaceBody">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Replace b&amp;ody...</string>
+   </property>
+   <property name="toolTip">
+    <string>Replace body of selected object with a data from file</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+R</string>
+   </property>
+  </action>
+  <action name="actionMessagesCopy">
+   <property name="text">
+    <string>&amp;Copy</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="actionMessagesCopyAll">
+   <property name="text">
+    <string>C&amp;opy all</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+C</string>
+   </property>
+  </action>
+  <action name="actionOpenImageFileInNewWindow">
+   <property name="text">
+    <string>&amp;Open image file in new window...</string>
+   </property>
+   <property name="toolTip">
+    <string>Open image file in new window</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+O</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>
