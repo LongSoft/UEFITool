@@ -13,9 +13,19 @@
 
 #include "uefitool.h"
 #include "ui_uefitool.h"
+#include <QPainter>
+#include <QDebug>
+#include <QBitmap>
+#include <QWindow>
+#include <QScreen>
+#include <QStandardPaths>
+#include <QImageWriter>
+
+
+
 
 UEFITool::UEFITool(QWidget *parent) :
-QMainWindow(parent),
+QMainWindow(parent, Qt::FramelessWindowHint),
 ui(new Ui::UEFITool),
 version(tr("0.21.5"))
 {
@@ -23,6 +33,9 @@ version(tr("0.21.5"))
 
     // Create UI
     ui->setupUi(this);
+
+
+
     searchDialog = new SearchDialog(this);
     ffsEngine = NULL;
 
@@ -51,30 +64,301 @@ version(tr("0.21.5"))
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
+    connect(ui->actionZoom_in, SIGNAL(triggered()), this, SLOT(setZoomFactor()));
+    connect(ui->actionZoom_out, SIGNAL(triggered()), this, SLOT(setZoomFactor()));
+    connect(ui->actionNormal, SIGNAL(triggered()), this, SLOT(setZoomFactor()));
+    connect(ui->actionMessagebox, SIGNAL(triggered()), this, SLOT(hideWindowPanes()));
+    connect(ui->actionInfobox, SIGNAL(triggered()), this, SLOT(hideWindowPanes()));
+
+
+    connect(ui->closeButton, SIGNAL(clicked()),this, SLOT(exit()));
+    connect(ui->minButton, SIGNAL(clicked()),this, SLOT(showMinimized()));
+    connect(ui->maxButton, SIGNAL(clicked()),this, SLOT(setMaxView()));
+    connect(ui->screenShotButton, SIGNAL(clicked()),this, SLOT(saveScreenshot()));
+    connect(ui->titleBar, SIGNAL(toggleViewSignal()), this, SLOT(toggleViews()));
+
+
+
     // Enable Drag-and-Drop actions
     this->setAcceptDrops(true);
 
     // Set current directory
     currentDir = ".";
-
+    zoomFactor = 9;
     // Set monospace font for some controls
     QFont font("Courier New", 10);
 #if defined Q_OS_OSX
-    font = QFont("Menlo", 10);
+    font = QFont("Menlo", zoomFactor+1);
 #elif defined Q_OS_WIN
-    font = QFont("Consolas", 9);
+    font = QFont("Consolas",zoomFactor);
 #endif
     ui->infoEdit->setFont(font);
     ui->messageListWidget->setFont(font);
     ui->structureTreeView->setFont(font);
+    ui->structureTreeView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->structureTreeView->header()->setStretchLastSection(true);
+    //ui->structureTreeView->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    ui->structureTreeView->header()->setSectionResizeMode(QHeaderView::Stretch);
     searchDialog->ui->guidEdit->setFont(font);
     searchDialog->ui->hexEdit->setFont(font);
+
+    this->setWindowFlags(Qt::FramelessWindowHint); //Set a frameless window
+
+    ui->structureTreeView->setAnimated(true);
+    ui->structureTreeView->setUniformRowHeights(true);
+    ui->structureTreeView->setIndentation(25);
+    ui->verticalLayout->insertWidget(1,menuBar());
+    ui->verticalLayout->addWidget(statusBar());
+
+    QIcon icon = QIcon(":/images/uefitool.ico");
+    QPixmap pixmap = icon.pixmap(QSize(47, 47));
+    ui->iconLabel->setPixmap(pixmap);
+
+    ui->appName->setText(tr("UEFITool %1").arg(version));
 
     // Initialize non-persistent data
     init();
 
     // Read stored settings
     readSettings();
+
+    setRoundedStyle();
+    createMask();
+
+}
+
+void UEFITool::setRoundedStyle()
+{
+    ui->centralWidget->setStyleSheet("QWidget#centralWidget {  border: 14px solid black;"
+                                     "border-radius:24px;}");
+}
+
+void UEFITool::setFullView()
+{
+    if(windowState() == Qt::WindowMaximized)
+    setWindowState(Qt::WindowMaximized | Qt::WindowFullScreen);
+    else
+    setWindowState(Qt::WindowFullScreen);
+}
+
+void UEFITool::setMaxView()
+{
+    if(windowState() == Qt::WindowFullScreen)
+    setWindowState(Qt::WindowFullScreen | Qt::WindowMaximized);
+    else
+    setWindowState(Qt::WindowMaximized);
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (const QWindow *window = windowHandle())
+        screen = window->screen();
+    if (!screen)
+        return;
+    QRect screenSize = screen->geometry();
+    if ((screenSize == geometry()) & firstRun)
+    {
+        firstRun = false;
+        setWindowState(0);
+        screenSize = QRect(x()+50, y()+50, abs(width()/2), abs(height()/2));
+        qDebug() << "screen size = geometry";
+    }
+    setGeometry(screenSize);
+}
+
+void UEFITool::toggleViews()
+{
+
+ qDebug("About to toggle window state. Current state: %i",windowState());
+
+ if (windowState()==0)
+   {
+    qDebug() << "About to call Maxview";
+    setMaxView();
+    } else {
+    qDebug() << "About to show normal";
+    showNormal();
+    setWindowState(0);
+    }
+ qDebug("Toggling window state complete. New state: %i",windowState());
+}
+
+
+
+void UEFITool::moveEvent(QMoveEvent *event)
+{
+
+    qDebug() << "Move event happening";
+    //if on first run old and new pos the same
+    if ((event->pos() == QPoint(0,0)) & (event->oldPos() == QPoint(0,0)))
+    {
+        ui->centralWidget->setStyleSheet("QWidget#centralWidget {border: 12px solid black;}");
+        return;
+    }
+    //
+    if (event->oldPos() == QPoint(0,0))
+    {
+        setRoundedStyle();
+        createMask();
+        event->accept();
+    }
+    if (event->pos() == QPoint(0,0))
+    {
+      ui->centralWidget->setStyleSheet("QWidget#centralWidget {border: 12px solid black;}");
+      qDebug("Right at Zero pos. Windows state: %i",windowState());
+      qDebug() << "x y settings" << x() << y();
+      createMask();
+      event->accept();
+    }
+}
+
+void UEFITool::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        dragPosition = event->globalPos() - frameGeometry().topLeft();
+       event->accept();
+    }
+}
+
+void UEFITool::mouseMoveEvent(QMouseEvent *event)
+{
+    if (event->buttons() & Qt::LeftButton) {
+        move(event->globalPos() - dragPosition);
+        event->accept();
+    }
+}
+
+void UEFITool::createMask()
+{
+    QPoint P;
+   if ((x()==0)&(y()==0))
+   {
+       P = QPoint(0,0);
+   }
+   else
+   {
+       P = QPoint(2.5, 5.0);
+   }
+   QPixmap pixmap(size());
+   QPainter painter(&pixmap);
+   painter.fillRect(pixmap.rect(), Qt::white);
+   painter.setBrush(Qt::black);
+   painter.drawRoundRect(pixmap.rect(),P.rx(),P.ry());
+   setMask(pixmap.createMaskFromColor(Qt::white));
+
+}
+void UEFITool::resizeEvent(QResizeEvent * )
+{
+       qDebug() << "Resize event happening";
+       createMask();
+}
+
+
+
+void UEFITool::saveScreenshot()
+{
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (const QWindow *window = windowHandle())
+        screen = window->screen();
+    if (!screen)
+        return;
+
+    originalPixmap = screen->grabWindow(0,x(),y(),width(),height());
+
+    const QString format = "png";
+    QString initialPath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    if (initialPath.isEmpty())
+        initialPath = QDir::currentPath();
+    initialPath += tr("/untitled.") + format;
+
+    QFileDialog fileDialog(this, tr("Save As"), initialPath);
+    fileDialog.setAcceptMode(QFileDialog::AcceptSave);
+    fileDialog.setFileMode(QFileDialog::AnyFile);
+    fileDialog.setDirectory(initialPath);
+    QStringList mimeTypes;
+    foreach (const QByteArray &bf, QImageWriter::supportedMimeTypes())
+        mimeTypes.append(QLatin1String(bf));
+    fileDialog.setMimeTypeFilters(mimeTypes);
+    fileDialog.selectMimeTypeFilter("image/" + format);
+    fileDialog.setDefaultSuffix(format);
+    if (fileDialog.exec() != QDialog::Accepted)
+        return;
+    const QString fileName = fileDialog.selectedFiles().first();
+    if (!originalPixmap.save(fileName)) {
+        QMessageBox::warning(this, tr("Save Error"), tr("The image could not be saved to \"%1\".")
+                             .arg(QDir::toNativeSeparators(fileName)));
+    }
+}
+
+void UEFITool::setZoomFactor()
+{
+    QAction* zoomAction = qobject_cast<QAction*>(sender());
+    if (zoomAction != NULL)
+    {
+    qDebug() << "Zoom factor action pressed" << zoomAction->objectName();
+    QString zoomString = zoomAction->objectName();
+    if (zoomString.endsWith("in")) zoomFactor*=1.2; else zoomFactor/=1.2;
+    if (zoomString.endsWith("Normal")) zoomFactor=9;
+   qDebug() << zoomFactor;
+
+   QFont font = QFont("Consolas",zoomFactor);
+   ui->infoEdit->setFont(font);
+   ui->messageListWidget->setFont(font);
+   ui->structureTreeView->setFont(font);
+
+    }
+}
+
+void UEFITool::hideWindowPanes()
+{
+    QAction* splitAction = qobject_cast<QAction*>(sender());
+    if (splitAction != NULL)
+    {
+    qDebug() << "Hide splitter action pressed" << splitAction->objectName();
+    QString boxString = splitAction->objectName();
+    if (boxString.endsWith("Messagebox"))
+    {
+        bool checked = splitAction->isChecked();
+        QList<int> iSize = ui->messagesSplitter->sizes();
+        //boxHeight = iSize[1];
+        if (!checked) {
+           qDebug("Not checked");
+        ui->messagesSplitter->setCollapsible(1,!checked);
+         iSize[1]=0;
+
+        } else {
+            qDebug()<<"Is checked" << boxHeight;
+            ui->messagesSplitter->setCollapsible(1,checked);
+            iSize[1]=boxHeight;
+        }
+       ui->messagesSplitter->setSizes(iSize);
+    } else if (boxString.endsWith("Infobox")) {
+        bool checked = splitAction->isChecked();
+        QList<int> iSize = ui->infoSplitter->sizes();
+        //boxHeight = iSize[1];
+        if (!checked) {
+           qDebug("Not checked");
+       ui->infoSplitter->setCollapsible(1,!checked);
+         iSize[1]=0;
+
+        } else {
+            qDebug()<<"Is checked" << boxWidth;
+           ui->infoSplitter->setCollapsible(1,checked);
+            iSize[1]=boxWidth;
+        }
+       ui->infoSplitter->setSizes(iSize);
+    }
+  }
+}
+
+void UEFITool::updateSplitValues()
+{
+    qDebug() << "updating split values" << boxHeight;
+    QList<int> iSize = ui->messagesSplitter->sizes();
+    boxHeight = iSize[1];
+    iSize = ui->infoSplitter->sizes();
+    boxWidth = iSize[1];
+
+    ui->messagesSplitter->setCollapsible(1,false);
+    ui->infoSplitter->setCollapsible(1,false);
 }
 
 UEFITool::~UEFITool()
@@ -94,6 +378,9 @@ void UEFITool::init()
     // Clear components
     ui->messageListWidget->clear();
     ui->infoEdit->clear();
+
+    ui->messagesSplitter->setCollapsible(1,false);
+    ui->infoSplitter->setCollapsible(1,false);
 
     // Set window title
     this->setWindowTitle(tr("UEFITool %1").arg(version));
@@ -120,6 +407,8 @@ void UEFITool::init()
         this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->messageListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->messageListWidget, SIGNAL(itemEntered(QListWidgetItem*)), this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
+    connect(ui->messagesSplitter, SIGNAL(splitterMoved(int,int)), this, SLOT(updateSplitValues()));
+     connect(ui->infoSplitter, SIGNAL(splitterMoved(int,int)), this, SLOT(updateSplitValues()));
 }
 
 void UEFITool::populateUi(const QModelIndex &current)
@@ -514,19 +803,21 @@ void UEFITool::extract(const UINT8 mode)
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2015, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
+        "<font color=white>Copyright (c) 2015, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
         "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
         "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
         "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
         "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
         "<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
         "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
-        "EITHER EXPRESS OR IMPLIED.</b>"));
+        "EITHER EXPRESS OR IMPLIED.</b></font>"));
 }
 
 void UEFITool::aboutQt()
 {
-    QMessageBox::aboutQt(this, tr("About Qt"));
+
+
+     QMessageBox::aboutQt(this, tr("Testing Qt") );
 }
 
 void UEFITool::exit()
@@ -567,7 +858,7 @@ void UEFITool::saveImageFile()
 
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.bio *.fd *.wph *.dec *.F10);;All files (*)");
     openImageFile(path);
 }
 
@@ -732,13 +1023,23 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 
 void UEFITool::readSettings()
 {
+    firstRun = true;
     QSettings settings(this);
+    QPoint initP = settings.value("mainWindow/position", QPoint(0,0)).toPoint();
+    if (initP == QPoint(0,0))
+    {
+        qDebug() << "Initial value at 0";
+        qDebug("First Run. Current state: %i",windowState());
+    }
+
     resize(settings.value("mainWindow/size", QSize(800, 600)).toSize());
     move(settings.value("mainWindow/position", QPoint(0, 0)).toPoint());
     QList<int> horList, vertList;
     horList.append(settings.value("mainWindow/treeWidth", 600).toInt());
+    boxWidth = settings.value("mainWindow/infoWidth", 180).toInt();
     horList.append(settings.value("mainWindow/infoWidth", 180).toInt());
     vertList.append(settings.value("mainWindow/treeHeight", 400).toInt());
+    boxHeight = settings.value("mainWindow/messageHeight", 180).toInt();
     vertList.append(settings.value("mainWindow/messageHeight", 180).toInt());
     ui->infoSplitter->setSizes(horList);
     ui->messagesSplitter->setSizes(vertList);

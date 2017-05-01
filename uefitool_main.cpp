@@ -22,6 +22,13 @@ int main(int argc, char *argv[])
     a.setOrganizationDomain("coderush.me");
     a.setApplicationName("UEFITool");
 
+    QFile styleFile(":/qss/stylesheet.qss");
+    styleFile.open(QFile::ReadOnly);
+    QString style(styleFile.readAll());
+    a.setStyleSheet(style);
+
+
+
     UEFITool w;
     w.setProgramPath(a.arguments().at(0));
     if (a.arguments().length() > 1)

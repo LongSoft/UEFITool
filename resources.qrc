@@ -1,0 +1,25 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>roglogo-red.png</file>
+        <file>branch-open.png</file>
+        <file>branch-closed.png</file>
+        <file>uefitool.ico</file>
+        <file>min_norm.png</file>
+        <file>min_hov.png</file>
+        <file>min_clicked.png</file>
+        <file>max_norm.png</file>
+        <file>max_hov.png</file>
+        <file>max_clicked.png</file>
+        <file>close_norm.png</file>
+        <file>close_hov.png</file>
+        <file>close_clicked.png</file>
+        <file>cam-norm.png</file>
+        <file>cam-hov.png</file>
+        <file>cam-clicked.png</file>
+        <file>checkmark.png</file>
+        <file>unchecked.png</file>
+    </qresource>
+    <qresource prefix="/qss">
+        <file>stylesheet.qss</file>
+    </qresource>
+</RCC>
