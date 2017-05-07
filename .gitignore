@@ -233,4 +233,5 @@ Makefile
 UEFIExtract/UEFIExtract
 UEFIFind/UEFIFind
 UEFIPatch/UEFIPatch
+UEFIReplace/UEFIReplace
 UEFITool
