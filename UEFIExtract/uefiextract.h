@@ -32,7 +32,7 @@ public:
     ~UEFIExtract();
 
 	UINT8 init(const QString & path);
-    UINT8 extract(QString guid = QString());
+    UINT8 extract(QString path, QString guid = QString());
 
 private:
     FfsEngine* ffsEngine;
