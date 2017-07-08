@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE alpha 40"))
+version(tr("NE alpha 41"))
 {
     clipboard = QApplication::clipboard();
 
@@ -26,6 +26,7 @@ version(tr("NE alpha 40"))
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
     goToOffsetDialog = new GoToOffsetDialog(this);
+    goToAddressDialog = new GoToAddressDialog(this);
     model = NULL;
     ffsParser = NULL;
     ffsFinder = NULL;
@@ -57,8 +58,8 @@ version(tr("NE alpha 40"))
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     connect(ui->actionGoToData, SIGNAL(triggered()), this, SLOT(goToData()));
     connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
+    connect(ui->actionGoToAddress, SIGNAL(triggered()), this, SLOT(goToAddress()));
     connect(ui->actionLoadGuidDatabase, SIGNAL(triggered()), this, SLOT(loadGuidDatabase()));
-    connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
     // Enable Drag-and-Drop actions
@@ -84,6 +85,7 @@ version(tr("NE alpha 40"))
     searchDialog->ui->hexEdit->setFont(font);
     hexViewDialog->setFont(font);
     goToOffsetDialog->ui->hexSpinBox->setFont(font);
+    goToAddressDialog->ui->hexSpinBox->setFont(font);
 
     // Load built-in GUID database
     initGuidDatabase(":/guids.csv");
@@ -124,6 +126,7 @@ void UEFITool::init()
     // Disable menus
     ui->actionSearch->setEnabled(false);
     ui->actionGoToOffset->setEnabled(false);
+    ui->actionGoToAddress->setEnabled(false);
     ui->menuCapsuleActions->setEnabled(false);
     ui->menuImageActions->setEnabled(false);
     ui->menuRegionActions->setEnabled(false);
@@ -338,6 +341,21 @@ void UEFITool::goToOffset()
 
     UINT32 offset = (UINT32)goToOffsetDialog->ui->hexSpinBox->value();
     QModelIndex index = model->findByOffset(offset);
+    if (index.isValid()) {
+        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    }
+}
+
+void UEFITool::goToAddress()
+{
+    goToAddressDialog->ui->hexSpinBox->setFocus();
+    goToAddressDialog->ui->hexSpinBox->selectAll();
+    if (goToAddressDialog->exec() != QDialog::Accepted)
+        return;
+
+    UINT32 address = (UINT32)goToAddressDialog->ui->hexSpinBox->value();
+    QModelIndex index = model->findByOffset(address - ffsParser->getAddressDiff());
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -820,8 +838,10 @@ void UEFITool::openImageFile(QString path)
     delete ffsOps;
     ffsOps = new FfsOperations(model);
 
-    // Enable goToOffset
+    // Enable goToOffset and goToAddress
     ui->actionGoToOffset->setEnabled(true);
+    if (ffsParser->getAddressDiff() < 0xFFFFFFFFUL)
+        ui->actionGoToAddress->setEnabled(true);
 
     // Set current directory
     currentDir = fileInfo.absolutePath();

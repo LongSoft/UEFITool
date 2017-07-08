@@ -124,7 +124,6 @@ public:
     UModelIndex createIndex(int row, int column, void *data) const { return UModelIndex(row, column, data, this); }
 #endif
 
-    
     ~TreeModel() {
         delete rootItem;
     }

@@ -45,6 +45,7 @@
 
 #include "searchdialog.h"
 #include "gotooffsetdialog.h"
+#include "gotoaddressdialog.h"
 #include "hexviewdialog.h"
 #include "ffsfinder.h"
 
@@ -74,9 +75,9 @@ private slots:
     void openImageFileInNewWindow();
     void saveImageFile();
     
-
     void search();
     void goToOffset();
+    void goToAddress();
 
     void hexView();
     void bodyHexView();
@@ -125,6 +126,7 @@ private:
     SearchDialog* searchDialog;
     HexViewDialog* hexViewDialog;
     GoToOffsetDialog* goToOffsetDialog;
+    GoToAddressDialog* goToAddressDialog;
     QClipboard* clipboard;
     QString currentDir;
     QString currentPath;
@@ -141,7 +143,6 @@ private:
     void showFinderMessages();
     void showFitTable();
     void showBuilderMessages();
-    
 };
 
 #endif // UEFITOOL_H

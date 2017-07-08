@@ -2818,13 +2818,13 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     
     // Calculate address difference
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size();
-    const UINT32 diff = 0xFFFFFFFFUL - model->offset(lastVtf) - vtfSize + 1;
+    addressDiff = 0xFFFFFFFFUL - model->offset(lastVtf) - vtfSize + 1;
 
     // Find and parse FIT
-    parseFit(index, diff);
+    parseFit(index);
     
     // Apply address information to index and all it's child items
-    addMemoryAddressesRecursive(index, diff);
+    addMemoryAddressesRecursive(index);
 
     // Add fixed and compressed
     addFixedAndCompressedRecursive(index);
@@ -2849,7 +2849,7 @@ USTATUS FfsParser::addFixedAndCompressedRecursive(const UModelIndex & index) {
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
+USTATUS FfsParser::parseFit(const UModelIndex & index)
 {
     // Check sanity
     if (!index.isValid())
@@ -2858,7 +2858,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
     // Search for FIT
     UModelIndex fitIndex;
     UINT32 fitOffset;
-    USTATUS result = findFitRecursive(index, diff, fitIndex, fitOffset);
+    USTATUS result = findFitRecursive(index, fitIndex, fitOffset);
     if (result)
         return result;
 
@@ -2922,8 +2922,8 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
 
         case FIT_TYPE_MICROCODE: {
             //TODO: refactor into function with error reporting
-            if (currentEntry->Address > diff && currentEntry->Address < 0xFFFFFFFFUL) {
-                UINT32 offset = (UINT32)currentEntry->Address - diff;
+            if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) {
+                UINT32 offset = (UINT32)currentEntry->Address - addressDiff;
                 UModelIndex mcIndex = model->findByOffset(offset);
                 UByteArray mcFile = model->header(mcIndex) + model->body(mcIndex) + model->tail(mcIndex);
 
@@ -2962,8 +2962,8 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
         case FIT_TYPE_AC_KEY_MANIFEST:
         case FIT_TYPE_AC_BOOT_POLICY:
         default:
-            if (currentEntry->Address > diff && currentEntry->Address < 0xFFFFFFFFUL) {
-                UINT32 offset = (UINT32)currentEntry->Address - diff;
+            if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) {
+                UINT32 offset = (UINT32)currentEntry->Address - addressDiff;
                 itemIndex = model->findByOffset(offset);
             }
 
@@ -2987,7 +2987,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index, const UINT32 diff)
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::findFitRecursive(const UModelIndex & index, const UINT32 diff, UModelIndex & found, UINT32 & fitOffset)
+USTATUS FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset)
 {
     // Sanity check
     if (!index.isValid())
@@ -2995,7 +2995,7 @@ USTATUS FfsParser::findFitRecursive(const UModelIndex & index, const UINT32 diff
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-        findFitRecursive(index.child(i, 0), diff, found, fitOffset);
+        findFitRecursive(index.child(i, 0), found, fitOffset);
         if (found.isValid())
             return U_SUCCESS;
     }
@@ -3007,7 +3007,7 @@ USTATUS FfsParser::findFitRecursive(const UModelIndex & index, const UINT32 diff
         offset >= 0;
         offset = model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
         // FIT candidate found, calculate it's physical address
-        UINT32 fitAddress = model->offset(index) + diff + model->header(index).size() + (UINT32)offset;
+        UINT32 fitAddress = model->offset(index) + addressDiff + model->header(index).size() + (UINT32)offset;
 
         // Check FIT address to be stored in the last VTF
         if (fitAddress == storedFitAddress) {
@@ -3023,7 +3023,7 @@ USTATUS FfsParser::findFitRecursive(const UModelIndex & index, const UINT32 diff
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index, const UINT32 diff)
+USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
@@ -3032,7 +3032,7 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index, const 
     // Set address value for non-compressed data
     if (!model->compressed(index)) {
         // Check address sanity
-        UINT64 address = (const UINT64)diff + model->offset(index);
+        UINT64 address = (const UINT64)addressDiff + model->offset(index);
         if (address <= 0xFFFFFFFFUL)  {
             // Update info
             UINT32 headerSize = model->header(index).size();
@@ -3098,7 +3098,7 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index, const 
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-        addMemoryAddressesRecursive(index.child(i, 0), diff);
+        addMemoryAddressesRecursive(index.child(i, 0));
     }
 
     return U_SUCCESS;

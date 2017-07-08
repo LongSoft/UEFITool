@@ -10,6 +10,7 @@ HEADERS += uefitool.h \
  searchdialog.h \
  hexviewdialog.h \
  gotooffsetdialog.h \
+ gotoaddressdialog.h \
  guidlineedit.h \
  ffsfinder.h \
  hexspinbox.h \
@@ -78,7 +79,8 @@ SOURCES += uefitool_main.cpp \
 FORMS += uefitool.ui \
  searchdialog.ui \
  hexviewdialog.ui \
- gotooffsetdialog.ui
+ gotooffsetdialog.ui \
+ gotoaddressdialog.ui
 
 RESOURCES += uefitool.qrc
 RC_FILE = uefitool.rc

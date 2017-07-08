@@ -17,7 +17,7 @@
 HexSpinBox::HexSpinBox(QWidget *parent) :
 QSpinBox(parent), validator(QRegExp("0x([0-9a-fA-F]){1,8}"))
 {
-    this->setRange(0, INT_MAX);
+    this->setRange(INT_MIN, INT_MAX);
     this->setPrefix("0x");
 }
 
@@ -28,10 +28,10 @@ QValidator::State HexSpinBox::validate(QString &text, int &pos) const
 
 QString HexSpinBox::textFromValue(int val) const
 {
-    return QString::number(val, 16).toUpper();
+    return QString::number((uint)val, 16).toUpper();
 }
 
 int HexSpinBox::valueFromText(const QString &text) const
 {
-    return text.toInt(NULL, 16);
+    return (int)text.toUInt(NULL, 16);
 }

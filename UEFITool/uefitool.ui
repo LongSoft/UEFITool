@@ -272,8 +272,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>850</width>
-     <height>22</height>
+     <width>851</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -478,6 +478,7 @@
      <addaction name="actionReplaceBody"/>
     </widget>
     <addaction name="actionGoToOffset"/>
+    <addaction name="actionGoToAddress"/>
     <addaction name="actionSearch"/>
     <addaction name="separator"/>
     <addaction name="menuCapsuleActions"/>
@@ -797,6 +798,17 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+G</string>
+   </property>
+  </action>
+  <action name="actionGoToAddress">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Go to &amp;address...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+G</string>
    </property>
   </action>
  </widget>
