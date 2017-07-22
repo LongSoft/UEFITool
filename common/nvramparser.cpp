@@ -1374,7 +1374,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index)
 
             // Check variable size
             if (variableSize > unparsedSize) {
-                unparsedSize = 0;
+                variableSize = 0;
             }
         }
 

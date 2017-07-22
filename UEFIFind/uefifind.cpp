@@ -79,7 +79,7 @@ USTATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPa
 
         // Special case of freeform subtype GUID files
         if (indexes.second.isValid() && model->subtype(indexes.second) == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
-            data = model->header(indexes.second).left(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
+            data = model->header(indexes.second);
             result.append(" ").append(guidToUString(*(const EFI_GUID*)(data.constData() + sizeof(EFI_COMMON_SECTION_HEADER))));
         }
         
