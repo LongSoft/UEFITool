@@ -36,29 +36,30 @@ UString regionTypeToUString(const UINT8 type)
 UString itemTypeToUString(const UINT8 type)
 {
     switch (type) {
-    case Types::Root:          return UString("Root");
-    case Types::Image:         return UString("Image");
-    case Types::Capsule:       return UString("Capsule");
-    case Types::Region:        return UString("Region");
-    case Types::Volume:        return UString("Volume");
-    case Types::Padding:       return UString("Padding");
-    case Types::File:          return UString("File");
-    case Types::Section:       return UString("Section");
-    case Types::FreeSpace:     return UString("Free space");
-    case Types::VssStore:      return UString("VSS store");
-    case Types::FtwStore:      return UString("FTW store");
-    case Types::FdcStore:      return UString("FDC store");
-    case Types::FsysStore:     return UString("Fsys store");
-    case Types::EvsaStore:     return UString("EVSA store");
-    case Types::CmdbStore:     return UString("CMDB store");
-    case Types::FlashMapStore: return UString("FlashMap store");
-    case Types::NvarEntry:     return UString("NVAR entry");
-    case Types::VssEntry:      return UString("VSS entry");
-    case Types::FsysEntry:     return UString("Fsys entry");
-    case Types::EvsaEntry:     return UString("EVSA entry");
-    case Types::FlashMapEntry: return UString("FlashMap entry");
-    case Types::Microcode:     return UString("Microcode");
-    case Types::SlicData:      return UString("SLIC data");
+    case Types::Root:           return UString("Root");
+    case Types::Image:          return UString("Image");
+    case Types::Capsule:        return UString("Capsule");
+    case Types::Region:         return UString("Region");
+    case Types::Volume:         return UString("Volume");
+    case Types::Padding:        return UString("Padding");
+    case Types::File:           return UString("File");
+    case Types::Section:        return UString("Section");
+    case Types::FreeSpace:      return UString("Free space");
+    case Types::VssStore:       return UString("VSS store");
+    case Types::LenovoVssStore: return UString("Lenovo VSS store");
+    case Types::FtwStore:       return UString("FTW store");
+    case Types::FdcStore:       return UString("FDC store");
+    case Types::FsysStore:      return UString("Fsys store");
+    case Types::EvsaStore:      return UString("EVSA store");
+    case Types::CmdbStore:      return UString("CMDB store");
+    case Types::FlashMapStore:  return UString("FlashMap store");
+    case Types::NvarEntry:      return UString("NVAR entry");
+    case Types::VssEntry:       return UString("VSS entry");
+    case Types::FsysEntry:      return UString("Fsys entry");
+    case Types::EvsaEntry:      return UString("EVSA entry");
+    case Types::FlashMapEntry:  return UString("FlashMap entry");
+    case Types::Microcode:      return UString("Microcode");
+    case Types::SlicData:       return UString("SLIC data");
     }
 
     return  UString("Unknown");
@@ -70,6 +71,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
     case Types::Root:
     case Types::FreeSpace:
     case Types::VssStore:
+    case Types::LenovoVssStore:
     case Types::FdcStore:
     case Types::FsysStore:
     case Types::EvsaStore:
@@ -115,8 +117,8 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::AuthVssEntry)             return UString("Auth");
         break;
     case Types::FsysEntry:
-        if (subtype == Subtypes::InvalidFsysEntry)              return UString("Invalid");
-        if (subtype == Subtypes::NormalFsysEntry)               return UString("Normal");
+        if (subtype == Subtypes::InvalidFsysEntry)         return UString("Invalid");
+        if (subtype == Subtypes::NormalFsysEntry)          return UString("Normal");
         break;
     case Types::EvsaEntry:
         if (subtype == Subtypes::InvalidEvsaEntry)         return UString("Invalid");

@@ -63,6 +63,7 @@ typedef struct NVAR_ENTRY_HEADER_ {
 #define NVRAM_NVAR_ENTRY_EXT_AUTH_WRITE    0x10
 #define NVRAM_NVAR_ENTRY_EXT_TIME_BASED    0x20
 #define NVRAM_NVAR_ENTRY_EXT_UNKNOWN_MASK  0xCE
+
 //
 // TianoCore VSS store and variables
 //
@@ -159,6 +160,31 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 extern UString vssAttributesToUString(const UINT32 attributes);
 
 //
+// Lenovo VSS variables
+//
+
+//aaf32c78-947b-439a-a180-2e144ec37792
+#define LENOVO_AUTH_VAR_KEY_DATABASE_GUID_PART1 0xaaf32c78
+const UByteArray LENOVO_AUTH_VAR_KEY_DATABASE_GUID
+("\x78\x2C\xF3\xAA\x7B\x94\x9A\x43\xA1\x80\x2E\x14\x4E\xC3\x77\x92");
+
+#define LENOVO_VSS_STORE_GUID_PART1 0xddcf3617
+const UByteArray LENOVO_VSS_STORE_GUID
+("\x17\x36\xCF\xDD\x75\x32\x64\x41\x98\xB6\xFE\x85\x70\x7F\xFE\x7D");
+
+// Variable store header
+typedef struct LENOVO_VSS_VARIABLE_STORE_HEADER_ {
+    EFI_GUID Signature;
+    UINT32  Size;      // Size of variable store, including store header
+    UINT8   Format;    // Store format state
+    UINT8   State;     // Store health state
+    UINT16  Unknown;
+    UINT32  : 32;
+} LENOVO_VSS_VARIABLE_STORE_HEADER;
+
+// VSS entries are 4-bytes aligned in Lenovo stores
+
+//
 // _FDC region
 //
 
@@ -181,6 +207,10 @@ typedef struct FDC_VOLUME_HEADER_ {
 // 9E58292B-7C68-497D-0ACE6500FD9F1B95
 const UByteArray EDKII_WORKING_BLOCK_SIGNATURE_GUID
 ("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\x0A\xCE\x65\x00\xFD\x9F\x1B\x95", 16);
+
+// 9E58292B-7C68-497D-A0CE6500FD9F1B95
+const UByteArray LENOVO_WORKING_BLOCK_SIGNATURE_GUID
+("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\xA0\xCE\x65\x00\xFD\x9F\x1B\x95", 16);
 
 #define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1   0xFFF12B8D
 #define EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1 0x9E58292B

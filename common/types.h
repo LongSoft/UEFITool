@@ -44,6 +44,7 @@ namespace Types {
         Section,
         FreeSpace,
         VssStore,
+        LenovoVssStore,
         FtwStore,
         FdcStore,
         FsysStore,

@@ -2867,7 +2867,6 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
         return U_SUCCESS;
 
     // Explicitly set the item as fixed
-    // TODO: update info 
     model->setFixed(fitIndex, true);
 
     // Special case of FIT header
@@ -2923,30 +2922,32 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
         case FIT_TYPE_MICROCODE: {
             //TODO: refactor into function with error reporting
             if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) {
-                UINT32 offset = (UINT32)currentEntry->Address - addressDiff;
+                UINT32 offset = (UINT32)(currentEntry->Address - addressDiff);
                 UModelIndex mcIndex = model->findByOffset(offset);
-                UByteArray mcFile = model->header(mcIndex) + model->body(mcIndex) + model->tail(mcIndex);
-
-                UINT32 mcOffset = offset - model->offset(mcIndex);
-                if (mcOffset + sizeof(INTEL_MICROCODE_HEADER) <= (UINT32)mcFile.size()) {
-                    const INTEL_MICROCODE_HEADER* header = (const INTEL_MICROCODE_HEADER*)(mcFile.constData() + mcOffset);
-                    if (header->Version == INTEL_MICROCODE_HEADER_VERSION) {
-                        bool reservedBytesValid = true;
-                        for (UINT8 i = 0; i < sizeof(header->Reserved); i++)
-                            if (header->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
-                                reservedBytesValid = false;
-                                break;
-                            }
-                        if (reservedBytesValid) {
-                            UINT32 mcSize = header->TotalSize;
-                            if (mcOffset + mcSize <= (UINT32)mcFile.size()) {
-                                info = usprintf("LocalOffset %08Xh, CPUID %08Xh, Revision %08Xh, Date %08Xh",
-                                    mcOffset,
-                                    header->CpuSignature,
-                                    header->Revision,
-                                    header->Date);
-                                currentEntrySize = header->TotalSize;
-                                itemIndex = mcIndex;
+                if (mcIndex.isValid()) {
+                    UByteArray mcFile = model->header(mcIndex) + model->body(mcIndex) + model->tail(mcIndex);
+                    UINT32 mcOffset = offset - model->offset(mcIndex);
+                    if (mcOffset + sizeof(INTEL_MICROCODE_HEADER) <= (UINT32)mcFile.size()) {
+                        const INTEL_MICROCODE_HEADER* header = (const INTEL_MICROCODE_HEADER*)(mcFile.constData() + mcOffset);
+                        if (header->Version == INTEL_MICROCODE_HEADER_VERSION) {
+                            bool reservedBytesValid = true;
+                            for (UINT8 i = 0; i < sizeof(header->Reserved); i++)
+                                if (header->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
+                                    reservedBytesValid = false;
+                                    break;
+                                }
+                            if (reservedBytesValid) {
+                                UINT32 mcSize = header->TotalSize;
+                                if (mcOffset + mcSize <= (UINT32)mcFile.size()) {
+                                    // Valid microcode found
+                                    info = usprintf("LocalOffset %08Xh, CPUID %08Xh, Revision %08Xh, Date %08Xh",
+                                        mcOffset,
+                                        header->CpuSignature,
+                                        header->Revision,
+                                        header->Date);
+                                    currentEntrySize = header->TotalSize;
+                                    itemIndex = mcIndex;
+                                }
                             }
                         }
                     }
@@ -2963,8 +2964,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
         case FIT_TYPE_AC_BOOT_POLICY:
         default:
             if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) {
-                UINT32 offset = (UINT32)currentEntry->Address - addressDiff;
-                itemIndex = model->findByOffset(offset);
+                itemIndex = model->findByOffset((UINT32)(currentEntry->Address - addressDiff));
             }
 
             msgModifiedImageMayNotWork = true;
@@ -3032,7 +3032,7 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
     // Set address value for non-compressed data
     if (!model->compressed(index)) {
         // Check address sanity
-        UINT64 address = (const UINT64)addressDiff + model->offset(index);
+        UINT64 address = addressDiff + model->offset(index);
         if (address <= 0xFFFFFFFFUL)  {
             // Update info
             UINT32 headerSize = model->header(index).size();

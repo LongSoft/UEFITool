@@ -51,6 +51,7 @@ private:
     USTATUS parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseLenovoVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFtwStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFdcStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFsysStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
@@ -61,7 +62,7 @@ private:
     USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
-    USTATUS parseVssStoreBody(const UModelIndex & index);
+    USTATUS parseVssStoreBody(const UModelIndex & index, const UINT8 alignment);
     USTATUS parseFsysStoreBody(const UModelIndex & index);
     USTATUS parseEvsaStoreBody(const UModelIndex & index);
     USTATUS parseFlashMapBody(const UModelIndex & index);

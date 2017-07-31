@@ -162,7 +162,7 @@ typedef struct EFI_TIME_ {
     UINT8   : 8;
 } EFI_TIME;
 
-// Aling to 4 or 8 bytes
+// Align to 4 or 8 bytes
 #define ALIGN4(Value) (((Value)+3) & ~3)
 #define ALIGN8(Value) (((Value)+7) & ~7)
 

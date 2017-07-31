@@ -497,10 +497,11 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         UModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
         case Types::VssStore:
-        case Types::FdcStore:       parseVssStoreBody(current);  break;
-        case Types::FsysStore:      parseFsysStoreBody(current); break;
-        case Types::EvsaStore:      parseEvsaStoreBody(current); break;
-        case Types::FlashMapStore:  parseFlashMapBody(current);  break;
+        case Types::FdcStore:       parseVssStoreBody(current, 0);  break;
+        case Types::LenovoVssStore: parseVssStoreBody(current, 4);  break;
+        case Types::FsysStore:      parseFsysStoreBody(current);    break;
+        case Types::EvsaStore:      parseEvsaStoreBody(current);    break;
+        case Types::FlashMapStore:  parseFlashMapBody(current);     break;
         }
     }
     
@@ -525,6 +526,23 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             }
             if (vssHeader->Size == 0 || vssHeader->Size == 0xFFFFFFFF) {
                 msg(usprintf("findNextStore: VSS store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, vssHeader->Size), index);
+                continue;
+            }
+            // All checks passed, store found
+            break;
+        }
+        else if (*currentPos == LENOVO_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *currentPos == LENOVO_VSS_STORE_GUID_PART1) { //Lenovo VSS store signatures found, perform checks
+            UByteArray guid = UByteArray(volume.constData() + offset, sizeof(EFI_GUID));
+            if (guid != LENOVO_AUTH_VAR_KEY_DATABASE_GUID && guid != LENOVO_VSS_STORE_GUID) // Check the whole signature
+                continue;
+
+            const LENOVO_VSS_VARIABLE_STORE_HEADER* vssHeader = (const LENOVO_VSS_VARIABLE_STORE_HEADER*)currentPos;
+            if (vssHeader->Format != NVRAM_VSS_VARIABLE_STORE_FORMATTED) {
+                msg(usprintf("findNextStore: Lenovo VSS store candidate at offset %Xh skipped, has invalid format %02Xh", localOffset + offset, vssHeader->Format), index);
+                continue;
+            }
+            if (vssHeader->Size == 0 || vssHeader->Size == 0xFFFFFFFF) {
+                msg(usprintf("findNextStore: Lenovo VSS store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, vssHeader->Size), index);
                 continue;
             }
             // All checks passed, store found
@@ -567,7 +585,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
         }
         else if (*currentPos == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *currentPos == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) { //Possible FTW block signature found
             UByteArray guid = UByteArray(volume.constData() + offset, sizeof(EFI_GUID));
-            if (guid != NVRAM_MAIN_STORE_VOLUME_GUID && guid != EDKII_WORKING_BLOCK_SIGNATURE_GUID) // Check the whole signature
+            if (guid != NVRAM_MAIN_STORE_VOLUME_GUID && guid != EDKII_WORKING_BLOCK_SIGNATURE_GUID && guid != LENOVO_WORKING_BLOCK_SIGNATURE_GUID) // Check the whole signature
                 continue;
 
             // Detect header variant based on WriteQueueSize
@@ -678,6 +696,10 @@ USTATUS NvramParser::getStoreSize(const UByteArray & data, const UINT32 storeOff
         const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)signature;
         storeSize = vssHeader->Size;
     }
+    else if (*signature == LENOVO_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *signature == LENOVO_VSS_STORE_GUID_PART1) {
+        const LENOVO_VSS_VARIABLE_STORE_HEADER* vssHeader = (const LENOVO_VSS_VARIABLE_STORE_HEADER*)signature;
+        storeSize = vssHeader->Size;
+    }
     else if (*signature == NVRAM_FDC_VOLUME_SIGNATURE) {
         const FDC_VOLUME_HEADER* fdcHeader = (const FDC_VOLUME_HEADER*)signature;
         storeSize = fdcHeader->Size;
@@ -761,6 +783,48 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
 
     // Add tree item
     index = model->addItem(localOffset, Types::VssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+
+    return U_SUCCESS;
+}
+
+USTATUS NvramParser::parseLenovoVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+{
+    const UINT32 dataSize = (const UINT32)store.size();
+
+    // Check store size
+    if (dataSize < sizeof(LENOVO_VSS_VARIABLE_STORE_HEADER)) {
+        msg(UString("parseLenovoVssStoreHeader: volume body is too small even for VSS store header"), parent);
+        return U_SUCCESS;
+    }
+
+    // Get VSS store header
+    const LENOVO_VSS_VARIABLE_STORE_HEADER* vssStoreHeader = (const LENOVO_VSS_VARIABLE_STORE_HEADER*)store.constData();
+
+    // Check store size
+    if (dataSize < vssStoreHeader->Size) {
+        msg(usprintf("parseLenovoVssStoreHeader: VSS store size %Xh (%u) is greater than volume body size %Xh (%u)",
+            vssStoreHeader->Size, vssStoreHeader->Size,
+            dataSize, dataSize), parent);
+        return U_SUCCESS;
+    }
+
+    // Construct header and body
+    UByteArray header = store.left(sizeof(LENOVO_VSS_VARIABLE_STORE_HEADER));
+    UByteArray body = store.mid(sizeof(LENOVO_VSS_VARIABLE_STORE_HEADER), vssStoreHeader->Size - sizeof(LENOVO_VSS_VARIABLE_STORE_HEADER));
+
+    // Add info
+    UString name = UString("Lenovo VSS store");
+    UString info = UString("Signature: ") + guidToUString(vssStoreHeader->Signature, false) +
+        usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
+        vssStoreHeader->Size, vssStoreHeader->Size,
+        header.size(), header.size(),
+        body.size(), body.size(),
+        vssStoreHeader->Format,
+        vssStoreHeader->State,
+        vssStoreHeader->Unknown);
+
+    // Add tree item
+    index = model->addItem(localOffset, Types::LenovoVssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
 
     return U_SUCCESS;
 }
@@ -1217,6 +1281,9 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     // VSS/SVS store
     if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) 
         return parseVssStoreHeader(store, localOffset, parent, index);
+    // Lenovo VSS store
+    if (*signature == LENOVO_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *signature == LENOVO_VSS_STORE_GUID_PART1)
+        return parseLenovoVssStoreHeader(store, localOffset, parent, index);
     // FTW store
     else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *signature == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) 
         return parseFtwStoreHeader(store, localOffset, parent, index);
@@ -1250,7 +1317,7 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index)
+USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignment)
 {
     // Sanity check
     if (!index.isValid())
@@ -1365,8 +1432,6 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index)
                 body = data.mid(offset + header.size(), variableHeader->DataSize);
             }
 
-			// There is also a case of authenticated Apple variables, but I haven't seen one yet
-
             // Check variable state
             if (variableHeader->State != NVRAM_VSS_VARIABLE_ADDED && variableHeader->State != NVRAM_VSS_VARIABLE_HEADER_VALID) {
                 isInvalid = true;
@@ -1441,6 +1506,11 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index)
 
         // Add tree item
         model->addItem(localOffset + offset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Movable, index);
+
+        // Apply alignment, if needed
+        if (alignment) {
+            variableSize = ((variableSize + alignment - 1) & (~(alignment - 1)));
+        }
 
         // Move to next variable
         offset += variableSize;
