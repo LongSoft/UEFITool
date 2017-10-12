@@ -112,7 +112,8 @@ namespace Subtypes {
         InvalidVssEntry = 140,
         StandardVssEntry,
         AppleVssEntry,
-        AuthVssEntry
+        AuthVssEntry,
+        IntelVssEntry
     };
 
     enum FsysEntrySubtypes {

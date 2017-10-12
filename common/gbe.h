@@ -26,7 +26,7 @@ typedef struct GBE_MAC_ADDRESS_ {
 #define GBE_VERSION_OFFSET 10
 
 typedef struct GBE_VERSION_ {
-    UINT8 id : 4;
+    UINT8 id    : 4;
     UINT8 minor : 4;
     UINT8 major;
 } GBE_VERSION;

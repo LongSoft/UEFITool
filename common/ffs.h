@@ -149,17 +149,17 @@ const UByteArray EFI_FV_SIGNATURE("_FVH", 4);
 
 // Firmware volume attributes
 // Revision 1
-#define EFI_FVB_READ_DISABLED_CAP  0x00000001
-#define EFI_FVB_READ_ENABLED_CAP   0x00000002
-#define EFI_FVB_READ_STATUS        0x00000004
-#define EFI_FVB_WRITE_DISABLED_CAP 0x00000008
-#define EFI_FVB_WRITE_ENABLED_CAP  0x00000010
-#define EFI_FVB_WRITE_STATUS       0x00000020
-#define EFI_FVB_LOCK_CAP           0x00000040
-#define EFI_FVB_LOCK_STATUS        0x00000080
-#define EFI_FVB_STICKY_WRITE       0x00000200
-#define EFI_FVB_MEMORY_MAPPED      0x00000400
-#define EFI_FVB_ERASE_POLARITY     0x00000800
+#define EFI_FVB_READ_DISABLED_CAP   0x00000001
+#define EFI_FVB_READ_ENABLED_CAP    0x00000002
+#define EFI_FVB_READ_STATUS         0x00000004
+#define EFI_FVB_WRITE_DISABLED_CAP  0x00000008
+#define EFI_FVB_WRITE_ENABLED_CAP   0x00000010
+#define EFI_FVB_WRITE_STATUS        0x00000020
+#define EFI_FVB_LOCK_CAP            0x00000040
+#define EFI_FVB_LOCK_STATUS         0x00000080
+#define EFI_FVB_STICKY_WRITE        0x00000200
+#define EFI_FVB_MEMORY_MAPPED       0x00000400
+#define EFI_FVB_ERASE_POLARITY      0x00000800
 #define EFI_FVB_ALIGNMENT_CAP       0x00008000
 #define EFI_FVB_ALIGNMENT_2         0x00010000
 #define EFI_FVB_ALIGNMENT_4         0x00020000
@@ -248,7 +248,7 @@ typedef struct EFI_FIRMWARE_VOLUME_EXT_ENTRY_ {
 typedef struct EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE_ {
     EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
     UINT32                           TypeMask;
-    //EFI_GUID                         Types[1];
+    //EFI_GUID                       Types[];
 } EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE;
 
 #define EFI_FV_EXT_TYPE_GUID_TYPE  0x0002
@@ -339,6 +339,7 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
 #define EFI_FILE_ERASE_POLARITY         0x80 // Defined as "all other bits must be set to ERASE_POLARITY" in UEFI PI Vol3
+
 // PEI apriori file
 const UByteArray EFI_PEI_APRIORI_FILE_GUID
 ("\x0A\xCC\x45\x1B\x6A\x15\x8A\x42\xAF\x62\x49\x86\x4D\xA0\xE6\xE6", 16);
@@ -354,6 +355,10 @@ const UByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 // Pad file GUID
 const UByteArray EFI_FFS_PAD_FILE_GUID
 ("\x85\x65\x53\xE4\x09\x79\x60\x4A\xB5\xC6\xEC\xDE\xA6\xEB\xFB\x54", 16);
+
+// DXE core file
+const UByteArray EFI_DXE_CORE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
+("\x7E\xF3\xE3\x5A\xAE\x4E\xAE\x41\x82\x40\x35\x46\x5B\x5E\x81\xEB", 16);
 
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
@@ -479,15 +484,18 @@ typedef struct WIN_CERTIFICATE_UEFI_GUID_ {
 } WIN_CERTIFICATE_UEFI_GUID;
 
 // WIN_CERTIFICATE_UEFI_GUID.CertType
-const UByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID
+const UByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID // A7717414-C616-4977-9420-844712A735BF
 ("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
 
 // WIN_CERTIFICATE_UEFI_GUID.CertData
-typedef struct EFI_CERT_BLOCK_RSA_2048_SHA256_ {
-    UINT32  HashType;
-    UINT8   PublicKey[256];
-    UINT8   Signature[256];
-} EFI_CERT_BLOCK_RSA_2048_SHA256;
+typedef struct EFI_CERT_BLOCK_RSA2048_SHA256_ {
+    EFI_GUID  HashType;
+    UINT8     PublicKey[256];
+    UINT8     Signature[256];
+} EFI_CERT_BLOCK_RSA2048_SHA256;
+
+const UByteArray EFI_HASH_ALGORITHM_SHA256_GUID // 51aa59de-fdf2-4ea3-bc63-875fb7842ee9
+("\xde\x59\xAA\x51\xF2\xFD\xA3\x4E\xBC\x63\x87\x5F\xB7\x84\x2E\xE9");
 
 // Version section
 typedef struct EFI_VERSION_SECTION_ {

@@ -59,6 +59,12 @@ typedef uint8_t USTATUS;
 #define U_STORES_NOT_FOUND                38
 #define U_INVALID_IMAGE                   39
 #define U_INVALID_RAW_AREA                40
+#define U_INVALID_FIT                     41
+#define U_INVALID_MICROCODE               42
+#define U_INVALID_ACM                     43
+#define U_INVALID_BG_KEY_MANIFEST         44
+#define U_INVALID_BG_BOOT_POLICY          45
+#define U_ELEMENTS_NOT_FOUND              46
 #define U_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions

@@ -27,8 +27,9 @@ typedef struct VOLUME_PARSING_DATA_ {
     UINT8    revision;
     BOOLEAN  hasExtendedHeader;
     BOOLEAN  hasAppleCrc32;
-    BOOLEAN  hasAppleFSO;
     BOOLEAN  isWeakAligned;
+    BOOLEAN  hasValidUsedSpace;
+    UINT32   usedSpace;
 } VOLUME_PARSING_DATA;
 
 typedef struct FILE_PARSING_DATA_ {

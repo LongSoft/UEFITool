@@ -21,15 +21,21 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    if (role != Qt::DisplayRole && role != Qt::UserRole)
-        return QVariant();
-
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
-    if (role == Qt::DisplayRole)
+    if (role == Qt::DisplayRole) {
         return (const char*)item->data(index.column()).toLocal8Bit();
-    else
+    }
+    else if (role == Qt::BackgroundRole) {
+        if (marking(index) > 0) {
+            return QBrush((Qt::GlobalColor)marking(index));
+        }
+    }
+    else if (role == Qt::UserRole) {
         return (const char*)item->info().toLocal8Bit();
+    }
+
+    return QVariant();
 }
 
 Qt::ItemFlags TreeModel::flags(const UModelIndex &index) const
@@ -183,6 +189,14 @@ UINT8 TreeModel::subtype(const UModelIndex &index) const
     return item->subtype();
 }
 
+UINT8 TreeModel::marking(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return 0;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->marking();
+}
+
 UByteArray TreeModel::header(const UModelIndex &index) const
 {
     if (!index.isValid())
@@ -310,6 +324,17 @@ void TreeModel::setCompressed(const UModelIndex &index, const bool compressed)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setCompressed(compressed);
+
+    emit dataChanged(index, index);
+}
+
+void TreeModel::setMarking(const UModelIndex &index, const UINT8 marking)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setMarking(marking);
 
     emit dataChanged(index, index);
 }
@@ -479,11 +504,11 @@ UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT
 
 UModelIndex TreeModel::findParentOfType(const UModelIndex& index, UINT8 type) const
 {
-    if (!index.isValid())
+    if (!index.isValid() || !index.parent().isValid())
         return UModelIndex();
 
     TreeItem *item;
-    UModelIndex parent = index;
+    UModelIndex parent = index.parent();
 
     for (item = static_cast<TreeItem*>(parent.internalPointer());
         item != NULL && item != rootItem && item->type() != type;
@@ -493,6 +518,25 @@ UModelIndex TreeModel::findParentOfType(const UModelIndex& index, UINT8 type) co
         return parent;
 
     return UModelIndex();
+}
+
+UModelIndex TreeModel::findLastParentOfType(const UModelIndex& index, UINT8 type) const
+{
+    if (!index.isValid())
+        return UModelIndex();
+
+    UModelIndex lastParentOfType = findParentOfType(index, type);
+
+    if (!lastParentOfType.isValid())
+        return UModelIndex();
+
+    UModelIndex currentParentOfType = findParentOfType(lastParentOfType, type);
+    while (currentParentOfType.isValid()) {
+        lastParentOfType = currentParentOfType;
+        currentParentOfType = findParentOfType(lastParentOfType, type);
+    }
+
+    return lastParentOfType;
 }
 
 UModelIndex TreeModel::findByOffset(UINT32 offset) const

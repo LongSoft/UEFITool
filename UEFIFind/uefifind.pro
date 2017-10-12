@@ -40,5 +40,6 @@ HEADERS  += uefifind.h \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/ustring.h \
- ../common/ubytearray.h
- 
+ ../common/ubytearray.h \
+  ../common/bootguard.h \
+ ../common/sha256.h

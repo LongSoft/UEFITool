@@ -42,16 +42,20 @@ const UByteArray FIT_SIGNATURE
 
 typedef struct FIT_ENTRY_ {
     UINT64 Address;
-    UINT32 Size;
+    UINT32 Size : 24;
+    UINT32 : 8;
     UINT16 Version;
-    UINT8  Type;
+    UINT8  Type : 7;
+    UINT8  CsFlag : 1;
     UINT8  Checksum;
 } FIT_ENTRY;
 
 typedef struct INTEL_MICROCODE_HEADER_ {
     UINT32 Version;
     UINT32 Revision;
-    UINT32 Date;
+    UINT16 DateYear;
+    UINT8  DateDay;
+    UINT8  DateMonth;
     UINT32 CpuSignature;
     UINT32 Checksum;
     UINT32 LoaderRevision;

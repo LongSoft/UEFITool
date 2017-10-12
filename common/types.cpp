@@ -115,6 +115,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::StandardVssEntry)         return UString("Standard");
         if (subtype == Subtypes::AppleVssEntry)            return UString("Apple");
         if (subtype == Subtypes::AuthVssEntry)             return UString("Auth");
+        if (subtype == Subtypes::IntelVssEntry)            return UString("Intel");
         break;
     case Types::FsysEntry:
         if (subtype == Subtypes::InvalidFsysEntry)         return UString("Invalid");

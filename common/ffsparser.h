@@ -21,12 +21,28 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treemodel.h"
 #include "nvramparser.h"
 #include "meparser.h"
+#include "bootguard.h"
+
+typedef struct BG_PROTECTED_RANGE_
+{
+    UINT32     Offset;
+    UINT32     Size;
+    UINT8      Type;
+    UByteArray Hash;
+} BG_PROTECTED_RANGE;
+
+#define BG_PROTECTED_RANGE_INTEL_BOOT_GUARD    0x01
+#define BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX 0x02
+#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD 0x03
+#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW 0x04
 
 class FfsParser
 {
 public:
     // Default constructor and destructor
-    FfsParser(TreeModel* treeModel) : model(treeModel), nvramParser(treeModel), meParser(treeModel), capsuleOffsetFixup(0), addressDiff(0x100000000ULL) {}
+    FfsParser(TreeModel* treeModel) : model(treeModel), nvramParser(treeModel), meParser(treeModel), 
+        capsuleOffsetFixup(0), addressDiff(0x100000000ULL), 
+        bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgFirstVolumeOffset(0x100000000ULL) {}
     ~FfsParser() {}
 
     // Obtain parser messages 
@@ -48,6 +64,9 @@ public:
     // Obtain parsed FIT table
     std::vector<std::pair<std::vector<UString>, UModelIndex> > getFitTable() const { return fitTable; }
 
+    // Obtain BootGuardInfo
+    UString getBootGuardInfo() const { return bootGuardInfo; }
+
     // Obtain offset/address difference
     UINT64 getAddressDiff() { return addressDiff; }
 
@@ -61,10 +80,22 @@ private:
     NvramParser nvramParser;
     MeParser meParser;
  
+    UByteArray openedImage;
     UModelIndex lastVtf;
     UINT32 capsuleOffsetFixup;
     UINT64 addressDiff;
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable;
+    
+    UString bootGuardInfo;
+    bool bgAcmFound;
+    bool bgKeyManifestFound;
+    bool bgBootPolicyFound;
+    UByteArray bgKmHash;
+    UByteArray bgBpHash;
+    UByteArray bgBpDigest;
+    std::vector<BG_PROTECTED_RANGE> bgProtectedRanges;
+    UINT64 bgFirstVolumeOffset;
+    UModelIndex bgDxeCoreIndex;
 
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
@@ -115,8 +146,22 @@ private:
     USTATUS addOffsetsRecursive(const UModelIndex & index);
     USTATUS addMemoryAddressesRecursive(const UModelIndex & index);
     USTATUS addFixedAndCompressedRecursive(const UModelIndex & index);
+    USTATUS checkProtectedRanges(const UModelIndex & index);
+    USTATUS markProtectedRangeRecursive(const UModelIndex & index, const BG_PROTECTED_RANGE & range);
+
     USTATUS parseFit(const UModelIndex & index);
+    USTATUS parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index);
+
+#ifdef U_ENABLE_FIT_PARSING_SUPPORT
     USTATUS findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
+
+    // FIT entries
+    USTATUS parseIntelMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseIntelAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseIntelBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 localOffset, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
+#endif
 };
 
 #endif // FFSPARSER_H

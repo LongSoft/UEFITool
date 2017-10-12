@@ -45,6 +45,8 @@ SET(PROJECT_HEADERS
  ../common/Tiano/EfiTianoDecompress.h 
  ../common/ubytearray.h 
  ../common/ustring.h 
+ ../common/bootguard.h 
+ ../common/sha256.h 
  ../common/bstrlib/bstrlib.h 
  ../common/bstrlib/bstrwrap.h
 )

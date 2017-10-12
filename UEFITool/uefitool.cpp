@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE alpha 42"))
+version(tr("NE alpha 44"))
 {
     clipboard = QApplication::clipboard();
 
@@ -80,6 +80,7 @@ version(tr("NE alpha 42"))
     ui->finderMessagesListWidget->setFont(font);
     ui->builderMessagesListWidget->setFont(font);
     ui->fitTableWidget->setFont(font);
+    ui->bootGuardEdit->setFont(font);
     ui->structureTreeView->setFont(font);
     searchDialog->ui->guidEdit->setFont(font);
     searchDialog->ui->hexEdit->setFont(font);
@@ -118,7 +119,9 @@ void UEFITool::init()
     ui->fitTableWidget->setRowCount(0);
     ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
+    ui->bootGuardEdit->clear();
     ui->messagesTabWidget->setTabEnabled(1, false);
+    ui->messagesTabWidget->setTabEnabled(2, false);
 
     // Set window title
     setWindowTitle(tr("UEFITool %1").arg(version));
@@ -863,9 +866,9 @@ void UEFITool::copyMessage()
     clipboard->clear();
     if (ui->messagesTabWidget->currentIndex() == 0) // Parser tab
       clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == 2) // Search tab
+    else if (ui->messagesTabWidget->currentIndex() == 3) // Search tab
         clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == 3) // Builder tab
+    else if (ui->messagesTabWidget->currentIndex() == 4) // Builder tab
         clipboard->setText(ui->builderMessagesListWidget->currentItem()->text());
 }
 
@@ -878,12 +881,12 @@ void UEFITool::copyAllMessages()
             text.append(ui->parserMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (ui->messagesTabWidget->currentIndex() == 2) {  // Search tab
+    else if (ui->messagesTabWidget->currentIndex() == 3) {  // Search tab
         for (INT32 i = 0; i < ui->finderMessagesListWidget->count(); i++)
             text.append(ui->finderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (ui->messagesTabWidget->currentIndex() == 3) {  // Builder tab
+    else if (ui->messagesTabWidget->currentIndex() == 4) {  // Builder tab
         for (INT32 i = 0; i < ui->builderMessagesListWidget->count(); i++)
             text.append(ui->builderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
@@ -896,11 +899,11 @@ void UEFITool::clearMessages()
         if (ffsParser) ffsParser->clearMessages();
         ui->parserMessagesListWidget->clear();
     }
-    else if (ui->messagesTabWidget->currentIndex() == 2) {  // Search tab
+    else if (ui->messagesTabWidget->currentIndex() == 3) {  // Search tab
         if (ffsFinder) ffsFinder->clearMessages();
         ui->finderMessagesListWidget->clear();
     }
-    else if (ui->messagesTabWidget->currentIndex() == 3) {  // Builder tab
+    else if (ui->messagesTabWidget->currentIndex() == 4) {  // Builder tab
         if (ffsBuilder) ffsBuilder->clearMessages();
         ui->builderMessagesListWidget->clear();
     }
@@ -955,7 +958,7 @@ void UEFITool::showFinderMessages()
         ui->finderMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(2);
+    ui->messagesTabWidget->setCurrentIndex(3);
     ui->finderMessagesListWidget->scrollToBottom();
 }
 
@@ -973,7 +976,7 @@ void UEFITool::showBuilderMessages()
         ui->builderMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(3);
+    ui->messagesTabWidget->setCurrentIndex(4);
     ui->builderMessagesListWidget->scrollToBottom();
 }
 
@@ -1079,6 +1082,8 @@ void UEFITool::showFitTable()
     if (fitTable.empty()) {
         // Disable FIT tab
         ui->messagesTabWidget->setTabEnabled(1, false);
+        // Disable BootGuard tab
+        ui->messagesTabWidget->setTabEnabled(2, false);
         return;
     }
 
@@ -1107,6 +1112,18 @@ void UEFITool::showFitTable()
     ui->fitTableWidget->resizeColumnsToContents();
     ui->fitTableWidget->resizeRowsToContents();
     ui->messagesTabWidget->setCurrentIndex(1);
+
+    // Get BootGuard info
+    UString bgInfo = ffsParser->getBootGuardInfo();
+    if (bgInfo.isEmpty()) {
+        // Disable BootGuard tab
+        ui->messagesTabWidget->setTabEnabled(2, false);
+        return;
+    }
+
+    ui->messagesTabWidget->setTabEnabled(2, true);
+    ui->bootGuardEdit->setPlainText(bgInfo);
+    ui->messagesTabWidget->setCurrentIndex(2);
 }
 
 void UEFITool::currentTabChanged(int index)

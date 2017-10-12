@@ -19,7 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treemodel.h"
 #include "parsingdata.h"
 
-// Returns unique name string based for tree item
+// Returns unique name for tree item
 UString uniqueItemName(const UModelIndex & index);
 
 // Converts error code to UString

@@ -106,18 +106,28 @@ typedef struct VSS_VARIABLE_STORE_HEADER_ {
 typedef struct VSS_VARIABLE_HEADER_ {
     UINT16    StartId;    // Variable start marker AA55
     UINT8     State;      // Variable state
-    UINT8     : 8;
+    UINT8     Reserved;
     UINT32    Attributes; // Variable attributes
     UINT32    NameSize;   // Size of variable name, stored as null-terminated UCS2 string
     UINT32    DataSize;   // Size of variable data without header and name
     EFI_GUID  VendorGuid; // Variable vendor GUID
 } VSS_VARIABLE_HEADER;
 
+// Intel variable header
+typedef struct VSS_INTEL_VARIABLE_HEADER_ {
+    UINT16    StartId;    // Variable start marker AA55
+    UINT8     State;      // Variable state
+    UINT8     Reserved;
+    UINT32    Attributes; // Variable attributes
+    UINT32    TotalSize;  // Size of variable including header
+    EFI_GUID  VendorGuid; // Variable vendor GUID
+} VSS_INTEL_VARIABLE_HEADER;
+
 // Apple variation of normal variable header, with one new field
 typedef struct VSS_APPLE_VARIABLE_HEADER_ {
     UINT16    StartId;    // Variable start marker AA55
     UINT8     State;      // Variable state
-    UINT8     : 8;
+    UINT8     Reserved;
     UINT32    Attributes; // Variable attributes
     UINT32    NameSize;   // Size of variable name, stored as null-terminated UCS2 string
     UINT32    DataSize;   // Size of variable data without header and name
@@ -129,7 +139,7 @@ typedef struct VSS_APPLE_VARIABLE_HEADER_ {
 typedef struct VSS_AUTH_VARIABLE_HEADER_ {
     UINT16    StartId;          // Variable start marker AA55
     UINT8     State;            // Variable state 
-    UINT8     : 8;
+    UINT8     Reserved;
     UINT32    Attributes;       // Variable attributes
     UINT64    MonotonicCounter; // Monotonic counter against replay attack
     EFI_TIME  Timestamp;        // Time stamp against replay attack
@@ -144,7 +154,8 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 #define NVRAM_VSS_VARIABLE_DELETED                   0xfd  // Variable is obsolete
 #define NVRAM_VSS_VARIABLE_HEADER_VALID              0x7f  // Variable has valid header
 #define NVRAM_VSS_VARIABLE_ADDED                     0x3f  // Variable has been completely added
-#define NVRAM_VSS_IS_VARIABLE_STATE(_c, _Mask)  (BOOLEAN) (((~_c) & (~_Mask)) != 0)
+#define NVRAM_VSS_INTEL_VARIABLE_VALID               0xfc  // Intel special variable valid
+#define NVRAM_VSS_INTEL_VARIABLE_INVALID             0xf8  // Intel special variable invalid 
 
 // VSS variable attributes
 #define NVRAM_VSS_VARIABLE_NON_VOLATILE                          0x00000001
@@ -175,11 +186,11 @@ const UByteArray LENOVO_VSS_STORE_GUID
 // Variable store header
 typedef struct LENOVO_VSS_VARIABLE_STORE_HEADER_ {
     EFI_GUID Signature;
-    UINT32  Size;      // Size of variable store, including store header
-    UINT8   Format;    // Store format state
-    UINT8   State;     // Store health state
-    UINT16  Unknown;
-    UINT32  : 32;
+    UINT32   Size;      // Size of variable store, including store header
+    UINT8    Format;    // Store format state
+    UINT8    State;     // Store health state
+    UINT16   Unknown;
+    UINT32   : 32;
 } LENOVO_VSS_VARIABLE_STORE_HEADER;
 
 // VSS entries are 4-bytes aligned in Lenovo stores
@@ -212,7 +223,7 @@ const UByteArray EDKII_WORKING_BLOCK_SIGNATURE_GUID
 const UByteArray LENOVO_WORKING_BLOCK_SIGNATURE_GUID
 ("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\xA0\xCE\x65\x00\xFD\x9F\x1B\x95", 16);
 
-#define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1   0xFFF12B8D
+#define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1       0xFFF12B8D
 #define EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1 0x9E58292B
 
 typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32_ {
@@ -328,7 +339,7 @@ extern UString evsaAttributesToUString(const UINT32 attributes);
 // Phoenix SCT Flash Map
 //
 
-#define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1 0x414C465F
+#define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1  0x414C465F
 #define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_LENGTH 10
 
 // _FLASH_MAP

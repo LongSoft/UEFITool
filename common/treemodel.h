@@ -25,6 +25,7 @@ enum ItemFixedState {
 #include <QModelIndex>
 #include <QVariant>
 #include <QObject>
+#include <QBrush>
 
 #include "ustring.h"
 #include "ubytearray.h"
@@ -143,6 +144,7 @@ public:
     void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
     void setFixed(const UModelIndex &index, const bool fixed);
     void setCompressed(const UModelIndex &index, const bool compressed);
+    void setMarking(const UModelIndex &index, const UINT8 marking);
     
     UINT32 offset(const UModelIndex &index) const;
     UINT8 type(const UModelIndex &index) const;
@@ -158,6 +160,7 @@ public:
     bool hasEmptyTail(const UModelIndex &index) const;
     bool fixed(const UModelIndex &index) const;
     bool compressed(const UModelIndex &index) const;
+    UINT8 marking(const UModelIndex &index) const;
 
     UINT8 action(const UModelIndex &index) const;
 
@@ -172,6 +175,7 @@ public:
         const UModelIndex & parent = UModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
     UModelIndex findParentOfType(const UModelIndex & index, UINT8 type) const;
+    UModelIndex findLastParentOfType(const UModelIndex & index, UINT8 type) const;
     UModelIndex findByOffset(UINT32 offset) const;
 };
 

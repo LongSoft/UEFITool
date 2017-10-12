@@ -86,12 +86,16 @@ public:
     bool hasEmptyParsingData() const { return itemParsingData.isEmpty(); }
     void setParsingData(const UByteArray & pdata) { itemParsingData = pdata; }
 
+    UINT8 marking() const { return itemMarking; }
+    void setMarking(const UINT8 marking) { itemMarking = marking; }
+
 private:
     std::list<TreeItem*> childItems;
     UINT32     itemOffset;
     UINT8      itemAction;
     UINT8      itemType;
     UINT8      itemSubtype;
+    UINT8      itemMarking;
     UString    itemName;
     UString    itemText;
     UString    itemInfo;

@@ -63,7 +63,7 @@ typedef struct FLASH_PARAMETERS_ {
     UINT8 SecondChipDensity : 4;
     UINT8 : 8;
     UINT8 : 1;
-    UINT8 ReadClockFrequency : 3; // Hardcoded value of 20 Mhz (000b) in v1 descriptors and 17 Mhz (110b) in v2 ones
+    UINT8 ReadClockFrequency : 3; // Hardcoded value of 20 Mhz (000b) in v1 descriptors
     UINT8 FastReadEnabled : 1;
     UINT8 FastReadFrequency : 3;
     UINT8 FlashWriteFrequency : 3;

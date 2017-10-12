@@ -3,6 +3,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = UEFITool
 TEMPLATE = app
+DEFINES += "U_ENABLE_FIT_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_GUID_DATABASE_SUPPORT"
 
@@ -39,6 +40,8 @@ HEADERS += uefitool.h \
  ../common/Tiano/EfiTianoCompress.h \
  ../common/ustring.h \
  ../common/ubytearray.h \
+ ../common/bootguard.h \
+ ../common/sha256.h \
  qhexedit2/qhexedit.h \
  qhexedit2/chunks.h \
  qhexedit2/commands.h
@@ -72,6 +75,7 @@ SOURCES += uefitool_main.cpp \
  ../common/Tiano/EfiTianoCompress.c \
  ../common/Tiano/EfiTianoCompressLegacy.c \
  ../common/ustring.cpp \
+ ../common/sha256.c \
  qhexedit2/qhexedit.cpp \
  qhexedit2/chunks.cpp \
  qhexedit2/commands.cpp

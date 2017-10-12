@@ -1250,11 +1250,13 @@ USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const U
     // Add info
     UString name("Intel microcode");
     UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
-        "Date: %08Xh\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
+        "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
         ucodeHeader->TotalSize, ucodeHeader->TotalSize,
         header.size(), header.size(),
         body.size(), body.size(),
-        ucodeHeader->Date, 
+        ucodeHeader->DateDay,
+        ucodeHeader->DateMonth,
+        ucodeHeader->DateYear,
         ucodeHeader->CpuSignature, 
         ucodeHeader->Revision,
         ucodeHeader->Checksum, 
@@ -1352,6 +1354,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         bool isInvalid = false;
         bool isAuthenticated = false;
         bool isAppleCrc32 = false;
+        bool isIntelSpecial = false;
         
         UINT32 storedCrc32 = 0;
         UINT32 calculatedCrc32 = 0;
@@ -1374,9 +1377,8 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
 
         // Check variable header to fit in still unparsed data
         UINT32 variableSize = 0;
-        if (unparsedSize >= sizeof(VSS_VARIABLE_HEADER) 
+        if (unparsedSize >= sizeof(VSS_VARIABLE_HEADER)
             && variableHeader->StartId == NVRAM_VSS_VARIABLE_START_ID) {
-
             // Apple VSS variable with CRC32 of the data  
             if (variableHeader->Attributes & NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM) {
                 isAppleCrc32 = true;
@@ -1421,9 +1423,27 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
                     pubKeyIndex = authVariableHeader->PubKeyIndex;
                 }
             }
-            
+
+            // Intel special variable
+            else if (variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_VALID || variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_INVALID) {
+                isIntelSpecial = true;
+                const VSS_INTEL_VARIABLE_HEADER* intelVariableHeader = (const VSS_INTEL_VARIABLE_HEADER*)variableHeader;
+                variableSize = intelVariableHeader->TotalSize;
+                variableGuid = (EFI_GUID*)&intelVariableHeader->VendorGuid;
+                variableName = (CHAR16*)(intelVariableHeader + 1);
+
+                UINT32 i = 0;
+                while (variableName[i] != 0) ++i;
+
+                i = sizeof(VSS_INTEL_VARIABLE_HEADER) + 2 * (i + 1);
+                i = i < variableSize ? i : variableSize;
+
+                header = data.mid(offset, i);
+                body = data.mid(offset + header.size(), variableSize - i);
+            }
+
             // Normal VSS variable
-            if (!isAuthenticated && !isAppleCrc32) {
+            if (!isAuthenticated && !isAppleCrc32 && !isIntelSpecial) {
                 variableSize = sizeof(VSS_VARIABLE_HEADER) + variableHeader->NameSize + variableHeader->DataSize;
                 variableGuid = (EFI_GUID*)&variableHeader->VendorGuid;
                 variableName = (CHAR16*)(variableHeader + 1);
@@ -1433,7 +1453,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             }
 
             // Check variable state
-            if (variableHeader->State != NVRAM_VSS_VARIABLE_ADDED && variableHeader->State != NVRAM_VSS_VARIABLE_HEADER_VALID) {
+            if (variableHeader->State != NVRAM_VSS_INTEL_VARIABLE_VALID && variableHeader->State != NVRAM_VSS_VARIABLE_ADDED && variableHeader->State != NVRAM_VSS_VARIABLE_HEADER_VALID) {
                 isInvalid = true;
             }
 
@@ -1481,11 +1501,12 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         }
 
         // Add info
-        info += usprintf("Full size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nAttributes: %08Xh (",
+        info += usprintf("Full size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
             variableSize, variableSize,
             header.size(), header.size(),
             body.size(), body.size(), 
             variableHeader->State,
+            variableHeader->Reserved,
             variableHeader->Attributes) + vssAttributesToUString(variableHeader->Attributes) + UString(")");
 
         // Set subtype and add related info
@@ -1500,6 +1521,9 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             subtype = Subtypes::AppleVssEntry;
             info += usprintf("\nData checksum: %08Xh", storedCrc32) +
                 (storedCrc32 != calculatedCrc32 ? usprintf(", invalid, should be %08Xh", calculatedCrc32) : UString(", valid"));
+        }
+        else if (isIntelSpecial) {
+            subtype = Subtypes::IntelVssEntry;
         }
         else
             subtype = Subtypes::StandardVssEntry;

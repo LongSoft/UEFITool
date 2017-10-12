@@ -47,5 +47,7 @@ HEADERS += \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/ubytearray.h \
- ../common/ustring.h
+ ../common/ustring.h \
+ ../common/bootguard.h \
+ ../common/sha256.h
  
