@@ -76,6 +76,8 @@ QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
         }
     }
 
+
+
     return QVariant();
 }
 
