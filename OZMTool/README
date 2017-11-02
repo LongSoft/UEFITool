@@ -1,0 +1,107 @@
+OZMTool v0.3
+--------------
+
+This program was created to make the process of creating an Ozmosis patched BIOS easier
+(If you can handle some terminal commands that is!).
+It is based on UEFITool (awesome application!) by CodeRush.
+It includes the following useful tools to help you in this process:
+
+        --dsdtextract		Extracts DSDT from BIOS
+	--dsdtinject		Injects DSDT into BIOS
+        --ozmupdate		Updates clean BIOS with files from old OZM-flavoured one
+        --ozmextract		Extracts Ozmosis files (ffs) from BIOS
+        --ozmcreate		Patches Original BIOS with Ozmosis
+        --kext2ffs		Converts kext-directories to FFS
+        --dsdt2bios		Injects (bigger) DSDT into AmiBoardInfo
+	--help, -h		Print usage (append command to print cmd-usage!)
+
+* DSDTExtract
+    Extracts AmiBoardInfo.bin and DSDT.aml from supplied BIOS file
+
+* DSDTInject
+    Inject DSDT into BIOS ROM, you have to supply DSDT.aml
+
+* OZMUpdate
+    You supply an (old) ozmosis-flavoured BIOS and a recent BIOS for your motherboard and it
+    copies over the Ozmosis stuff + kexts (not DSDT because that can differ between Bios Revisions)
+    It supports --aggressivity and --compressdxe switch (see OZMCreate)
+
+* OZMExtract
+    Extracts Ozmosis files from a stock (HermitCrabLabs) Ozmosis Bios.
+
+* OZMCreate
+    Creates an Ozmosis image from supplied FFS/Kext/DSDT/Efi files (Kext, DSDT & Efi is optional).
+    If the image originally does not have enough space, use the -a, --aggressivity switch
+	Possible values for -a :
+        --aggressivity 0: Try to inject the files as-is
+	--aggressivity 1: Deletes files for BIOS Network Support (PXE etc.)
+        --aggressivity 2: Deletes non-essential Ozmosis files - keeps the Ozmosis base working tho
+            (deletes: ExtFs, HermitShellX64, OzmosisTheme, DisablerKext, InjectorKext)
+    You also have the option to compress 'CORE_DXE' by supplying -cr, --compressdxe switch!
+    There's also the possibility to inject Kexts as compressed FFS, with --compresskexts switch!
+
+    If all attempts fail, the output image wont be created (obviously)
+
+* Kext2Ffs
+    Converts files to FFS. It accepts *.kext, Defaults.plist and Theme.bin.
+    Uses UEFITool's technique to create the FFS :)
+
+* DSDT2Bios
+    Patches (bigger than original) DSDT into AmiboardInfo.
+    Based on DSDT2Bios from FredWst! Big thx!
+
+
+DISCLAIMER
+---------
+I am not responsible for any damages or problems that could occur by using this program.
+Verify every step you make (or the program) and use it at your own risk!
+Remember: Flashing the BIOS is dangerous in general.. a hacked one even more!
+
+
+USAGE
+---------
+
+./OZMTool -h
+./OZMTool --dsdtextract --out outputdir --input OZMBIOS_or_BIOS.ROM
+./OZMTool --dsdtinject --input BIOS.ROM --dsdt DSDT.aml --out outputfile
+./OZMTool --ozmupdate --aggressivity 1 --compressdxe --out RECENT_OZM_BIOS.ROM --input OLD_OZM.ROM --recent NEW_CLEAN_BIOS.ROM
+./OZMTool --ozmextract --out outputdir --input OZM.ROM
+./OZMTool --ozmcreate --aggressivity 1 --compressdxe --kext kextdir --ffs ffsdir --efi efidir --dsdt DSDT.aml --out outputfile --input BIOS.ROM
+./OZMTool --kext2ffs --out outputdir --input kextsdir
+./OZMTool --dsdt2bios --input AmiBoardInfo.bin --dsdt DSDT.aml --out patchedAmiBoardInfo.bin
+
+
+SOURCE CODE / REPORTING ISSUES
+---------
+Source Code: https://github.com/tuxuser/UEFITool / Branch: OZMTool
+Bugreports: https://github.com/tuxuser/UEFITool/issues
+
+
+CREDITS
+---------
+- The Hermit Crabs Lab -> Ozmosis
+- CodeRush -> UEFITool & help & support
+- FredWst -> Kext2FFS and DSDT2Bios
+- Gil Dabah -> distorm
+- Reilly Watson -> qtplist
+- STLVNUB -> testing
+- Thomaso66 -> teaching the basics to me & testing
+- backdash -> testing
+- smx -> help & support
+
+
+CHANGELOG
+---------
+
+13/11/2014 - v0.3
+- Adding option to replace .efi files inside FFS capsules (Drivers, Ozmosis)
+- Cleanup ffs creation
+- Adding GUIDs for Ozmosis build 1479
+- Renamed "ffsconvert" to "kext2ffs"
+- Bump custom kext start index to 0xA - so custom kext don't overwrite ozmosis stuff
+
+24/07/2014 - v0.2
+- First public release
+
+??/??/???? - v0.1
+- Internal testing release

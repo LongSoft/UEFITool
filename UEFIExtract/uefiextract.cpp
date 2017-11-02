@@ -43,7 +43,7 @@ UINT8 UEFIExtract::init(const QString & path)
 	return ffsEngine->parseImageFile(buffer);
 }
 
-UINT8 UEFIExtract::extract(QString guid)
+UINT8 UEFIExtract::extract(QString path, QString guid)
 {
-	return ffsEngine->dump(ffsEngine->treeModel()->index(0, 0), fileInfo.fileName().append(".dump"), guid);
+    return ffsEngine->dump(ffsEngine->treeModel()->index(0, 0), path, guid);
 }

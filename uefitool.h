@@ -33,11 +33,14 @@
 #include <QString>
 #include <QTreeView>
 #include <QUrl>
+#include <QPixmap>
 
 #include "basetypes.h"
 #include "ffs.h"
 #include "ffsengine.h"
 #include "searchdialog.h"
+
+
 
 namespace Ui {
     class UEFITool;
@@ -47,10 +50,13 @@ class UEFITool : public QMainWindow
 {
     Q_OBJECT
 
+
 public:
+
     explicit UEFITool(QWidget *parent = 0);
     ~UEFITool();
 
+  //  QSize sizeHint() const override;
     void openImageFile(QString path);
     void setProgramPath(QString path);
 
@@ -91,8 +97,16 @@ public:
 
     void exit();
     void writeSettings();
+    void toggleViews();
+    void setMaxView();
+    void setFullView();
+    void saveScreenshot();
+    void setZoomFactor();
+    void hideWindowPanes();
+    void updateSplitValues();
 
 private:
+    QPixmap originalPixmap;
     Ui::UEFITool* ui;
     FfsEngine* ffsEngine;
     SearchDialog* searchDialog;
@@ -101,13 +115,35 @@ private:
     QString currentProgramPath;
     QQueue<MessageListItem> messageItems;
     const QString version;
+    bool firstRun;
+    int zoomFactor;
+    int boxHeight;
+    int boxWidth;
 
+    void createMask();
     void showMessages();
+
+    void setRoundedStyle();
 
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
     void contextMenuEvent(QContextMenuEvent* event);
     void readSettings();
+
+
+
+    QPoint dragPosition;
+
+
+
+
+protected:
+        void mouseMoveEvent(QMouseEvent *event) override;
+        void mousePressEvent(QMouseEvent *event) override;
+        void moveEvent(QMoveEvent *event) override;
+        void resizeEvent(QResizeEvent *event) override;
+
+
 };
 
 #endif

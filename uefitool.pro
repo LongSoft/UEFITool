@@ -23,7 +23,9 @@ SOURCES  += uefitool_main.cpp \
  LZMA/SDK/C/LzmaEnc.c \
  Tiano/EfiTianoDecompress.c \
  Tiano/EfiTianoCompress.c \
- Tiano/EfiTianoCompressLegacy.c
+ Tiano/EfiTianoCompressLegacy.c \
+    mytitlebar.cpp
+
 
 HEADERS  += uefitool.h \
  searchdialog.h \
@@ -42,7 +44,9 @@ HEADERS  += uefitool.h \
  LZMA/LzmaCompress.h \
  LZMA/LzmaDecompress.h \
  Tiano/EfiTianoDecompress.h \
- Tiano/EfiTianoCompress.h
+ Tiano/EfiTianoCompress.h \
+    mytitlebar.h
+
 
 FORMS    += uefitool.ui \
  searchdialog.ui
@@ -50,4 +54,10 @@ FORMS    += uefitool.ui \
 RC_FILE   = uefitool.rc
 
 ICON      = uefitool.icns
+
+DISTFILES += \
+    Stylesheet.css
+
+RESOURCES += \
+    resources.qrc
 

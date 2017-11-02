@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>roglogo-red.png</file>
+        <file>branch-open.png</file>
+        <file>branch-closed.png</file>
+    </qresource>
+</RCC>
