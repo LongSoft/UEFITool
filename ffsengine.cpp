@@ -4669,4 +4669,3 @@ UINT8 FfsEngine::patchViaPattern(QByteArray & data, const QByteArray & hexFindPa
     data = body;
     return ERR_SUCCESS;
 }
-
