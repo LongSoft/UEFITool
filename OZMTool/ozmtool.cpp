@@ -459,7 +459,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     }
 
     printf("Injecting FFS into BIOS...\n");
-    QDirIterator diFFS(inputFFSdir);
+    QDirIterator diFFS(inputFFSdir, (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks | QDir::Readable), QDirIterator::NoIteratorFlags);
     QFileInfo currFFS;
 
     while (diFFS.hasNext()) {
@@ -485,7 +485,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     }
 
     if(insertKexts) {
-        QDirIterator diKext(inputKextdir);
+        QDirIterator diKext(inputKextdir, (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks | QDir::Readable), QDirIterator::NoIteratorFlags);
         QFileInfo currKext;
 
         printf("Converting Kext & injecting into BIOS...\n");
@@ -552,7 +552,7 @@ UINT8 OZMTool::OZMCreate(QString inputfile, QString outputfile, QString inputFFS
     }
 
     if (insertEfi) {
-        QDirIterator diEfi(inputEFIdir);
+        QDirIterator diEfi(inputEFIdir, (QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks | QDir::Readable), QDirIterator::NoIteratorFlags);
         QFileInfo currEfi;
 
         printf("Injecting bare (EFI) files...\n");

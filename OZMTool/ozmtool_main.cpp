@@ -26,89 +26,90 @@ void usageDsdt2Bios()
 {
     printf("dsdt2bios command\n"
             " usage:\n"
-            "\t%s --dsdt2bios -i AmiBoardInfo.bin -d DSDT.aml -o patchedAmiBoardInfo.bin\n\n"
+            "\t%s --dsdt2bios -i AmiBoardInfo.bin -d DSDT.aml -o patchedAmiBoardInfo.bin\n"
             " parameters:\n" \
-            "\t-i, --input [file]\t\tInput file (AmiBoardInfo)\n"
-            "\t-d, --dsdt [file]\t\tDSDT.aml file\n"
-            "\t-o, --out [file]\t\tOutput file (patched AmiBoardInfo)\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-i, --input [file]\tInput file (AmiBoardInfo)\n"
+            "\t-d, --dsdt [file]\tDSDT.aml file\n"
+            "\t-o, --out [file]\tOutput file (patched AmiBoardInfo)\n"
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageKext2Ffs()
 {
     printf("kext2ffs command\n"
             " usage:\n"
-            "\t%s --kext2ffs -o outputdir -i kextsdir\n\n"
+            "\t%s --kext2ffs -o outputdir -i kextsdir\n"
             " parameters:\n"
-            "\t-i, --input [dir]\t\tInput kexts directory\n"
+            "\t-i, --input [dir]\tInput kexts directory\n"
             "\t-o, --out [dir]\t\tOutput ffs directory\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageOzmUpdate()
 {
     printf("ozmupdate command\n" \
             " usage:\n"
-            "\t%s --ozmupdate -a 1 -o BIOS_RECENT.OZM -i BIOS.OZM -r BIOS.CLEAN\n\n"
+            "\t%s --ozmupdate -a 1 -cr -o BIOS_RECENT.OZM -i BIOS.OZM -r BIOS.CLEAN\n"
             " parameters:\n"
-            "\t-i, --input [file]\t\tInput \"old\" Ozmosis BIOSFile\n"
-            "\t-r, --recent [file]\t\tInput \"recent\" clean BIOSFile\n"
-            "\t-a, --aggressivity\t\tAggressivity level (see README)\n"
-            "\t-cr, --compressdxe\t\tCompress CORE_DXE\n"
-            "\t-o, --out [file]\t\tOutput BIOSFile\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-i, --input [file]\tInput \"old\" Ozmosis BIOSFile\n"
+            "\t-r, --recent [file]\tInput \"recent\" clean BIOSFile\n"
+            "\t-a, --aggressivity\tAggressivity level (see README)\n"
+            "\t-cr, --compressdxe\tCompress CORE_DXE\n"
+            "\t-o, --out [file]\tOutput BIOSFile\n"
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageOzmCreate()
 {
+    // ./OZMTool --ozmcreate -a 1 -cr -ck -f extractDir -k kextDir -o OZM1699-F3.rom -i oz5a_10.rom
     printf("ozmcreate command\n" \
             " usage:\n"
-            "\t%s --ozmcreate -a 1 -cr -ck -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n\n"
+            "\t%s --ozmcreate -a 1 -cr -ck -k kextdir -f ffsdir -d DSDT.aml -o outputfile -i BIOS.ROM\n"
             " parameters:\n"
             "\t-f, --ffs [dir]\t\tFFS directory (extracted OZM files)\n"
-            "\t-d, --dsdt [file]\t\t (optional) DSDT.aml file\n"
-            "\t-k, --kext [dir]\t\t (optional) KEXT directory\n"
-            "\t-e, --efi [dir]\t\t (optional) EFI directory\n"
-            "\t-i, --input [file]\t\tInput CLEAN Bios\n"
-            "\t-a, --aggressivity\t\t (optional) Aggressivity level (see README)\n"
-            "\t-cr,--compressdxe\t\t (optional) Compress CORE_DXE\n"
-            "\t-ck,--compresskexts\t\t (optional) Compress converted Kexts\n"
-            "\t-o, --out [file]\t\tOutput OZM Bios\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-d, --dsdt [file]\t(optional) DSDT.aml file\n"
+            "\t-k, --kext [dir]\t(optional) KEXT directory\n"
+            "\t-e, --efi [dir]\t\t(optional) EFI directory\n"
+            "\t-i, --input [file]\tInput CLEAN Bios\n"
+            "\t-a, --aggressivity\t(optional) Aggressivity level (see README)\n"
+            "\t-cr,--compressdxe\t(optional) Compress CORE_DXE\n"
+            "\t-ck,--compresskexts\t(optional) Compress converted Kexts\n"
+            "\t-o, --out [file]\tOutput OZM Bios\n"
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageOzmExtract()
 {
     printf("ozmextract command\n"
             " usage:\n"
-            "\t%s --ozmextract -o outputdir -i OZM.ROM\n\n"
+            "\t%s --ozmextract -o outputdir -i OZM.ROM\n"
             " parameters:\n"
-            "\t-i, --input [file]\t\tInput stock OZM Bios\n"
+            "\t-i, --input [file]\tInput stock OZM Bios\n"
             "\t-o, --out [dir]\t\tOutput directory\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageDSDTExtract()
 {
     printf("dsdtextract command\n"
             " usage:\n"
-            "\t%s --dsdtextract -o outputdir -i OZMBIOS_or_BIOS.ROM\n\n"
+            "\t%s --dsdtextract -o outputdir -i OZMBIOS_or_BIOS.ROM\n"
             " parameters:\n"
-            "\t-i, --input [file]\t\tBIOS file\n"
+            "\t-i, --input [file]\tBIOS file\n"
             "\t-o, --out [dir]\t\tOutput directory\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageDSDTInject()
 {
     printf("dsdtinject command\n"
             " usage:\n"
-            "\t%s --dsdtinject -i BIOS.ROM -d DSDT.aml -o outputfile\n\n"
+            "\t%s --dsdtinject -i BIOS.ROM -d DSDT.aml -o outputfile\n"
             " parameters:\n"
-            "\t-i, --input [file]\t\tBIOS file\n"
-            "\n-d, --dsdt [file]\t\tDSDT.aml\n"
+            "\t-i, --input [file]\tBIOS file\n"
+            "\t-d, --dsdt [file]\t\tDSDT.aml\n"
             "\t-o, --out [dir]\t\tOutput directory\n"
-            "\t-h, --help\t\tPrint this\n\n",qPrintable(appname));
+            "\t-h, --help\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void usageGeneral()
@@ -123,12 +124,12 @@ void usageGeneral()
             "\t--ozmcreate\t\tPatches Original BIOS with Ozmosis\n"
             "\t--kext2ffs\t\tConverts kext-directories to FFS\n"
             "\t--dsdt2bios\t\tInjects (bigger) DSDT into AmiBoardInfo\n"
-            "\t--help, -h\t\tPrint this\n\n",qPrintable(appname));
+            "\t--help, -h\t\tPrint this\n\n", qPrintable(appname));
 }
 
 void versionInfo()
 {
-    printf("%s - %s\n",qPrintable(appname), GIT_VERSION);
+    printf("%s - %s\n", qPrintable(appname), GIT_VERSION);
 }
 
 void usageAll()
