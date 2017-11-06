@@ -86,6 +86,7 @@ class TreeModel : public QAbstractItemModel
 {
     Q_OBJECT
 private:
+    bool markingEnabled;
     TreeItem *rootItem;
 
 public:
@@ -93,7 +94,7 @@ public:
     Qt::ItemFlags flags(const UModelIndex &index) const;
     QVariant headerData(int section, Qt::Orientation orientation,
         int role = Qt::DisplayRole) const;
-    TreeModel(QObject *parent = 0) : QAbstractItemModel(parent) {
+    TreeModel(QObject *parent = 0) : QAbstractItemModel(parent), markingEnabled(true) {
         rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), true, false);
     }
 
@@ -144,6 +145,7 @@ public:
     void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
     void setFixed(const UModelIndex &index, const bool fixed);
     void setCompressed(const UModelIndex &index, const bool compressed);
+    void setMarkingEnabled(const bool enabled);
     void setMarking(const UModelIndex &index, const UINT8 marking);
     
     UINT32 offset(const UModelIndex &index) const;

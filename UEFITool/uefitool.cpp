@@ -60,6 +60,7 @@ version(tr("NE alpha 44"))
     connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
     connect(ui->actionGoToAddress, SIGNAL(triggered()), this, SLOT(goToAddress()));
     connect(ui->actionLoadGuidDatabase, SIGNAL(triggered()), this, SLOT(loadGuidDatabase()));
+    connect(ui->actionToggleBootGuardMarking, SIGNAL(toggled(bool)), this, SLOT(toggleBootGuardMarking(bool)));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
     // Enable Drag-and-Drop actions
@@ -198,6 +199,7 @@ void UEFITool::populateUi(const QModelIndex &current)
         || type == Types::EvsaEntry 
         || type == Types::FlashMapEntry);
     ui->menuStoreActions->setEnabled(type == Types::VssStore 
+        || type == Types::LenovoVssStore
         || type == Types::FdcStore 
         || type == Types::FsysStore
         || type == Types::EvsaStore 
@@ -616,26 +618,27 @@ void UEFITool::extract(const UINT8 mode)
     QString path;
     if (mode == EXTRACT_MODE_AS_IS) {
         switch (type) {
-        case Types::Capsule:       path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),          name + ".cap",  "Capsule files (*.cap *.bin);;All files (*)");          break;
-        case Types::Image:         path = QFileDialog::getSaveFileName(this, tr("Save image to file"),            name + ".rom",  "Image files (*.rom *.bin);;All files (*)");            break;
-        case Types::Region:        path = QFileDialog::getSaveFileName(this, tr("Save region to file"),           name + ".rgn",  "Region files (*.rgn *.bin);;All files (*)");           break;
-        case Types::Padding:       path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),          name + ".pad",  "Padding files (*.pad *.bin);;All files (*)");          break;
-        case Types::Volume:        path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),           name + ".vol",  "Volume files (*.vol *.bin);;All files (*)");           break;
-        case Types::File:          path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),         name + ".ffs",  "FFS files (*.ffs *.bin);;All files (*)");              break;
-        case Types::Section:       path = QFileDialog::getSaveFileName(this, tr("Save section to file"),          name + ".sct",  "Section files (*.sct *.bin);;All files (*)");          break;
-        case Types::NvarEntry:     path = QFileDialog::getSaveFileName(this, tr("Save NVAR entry to file"),       name + ".nvar", "NVAR entry files (*.nvar *.bin);;All files (*)");      break;
-        case Types::VssEntry:      path = QFileDialog::getSaveFileName(this, tr("Save VSS entry to file"),        name + ".vss",  "VSS entry files (*.vss *.bin);;All files (*)");        break;
-        case Types::FsysEntry:     path = QFileDialog::getSaveFileName(this, tr("Save Fsys entry to file"),       name + ".fse",  "Fsys entry files (*.fse *.bin);;All files (*)");       break;
-        case Types::EvsaEntry:     path = QFileDialog::getSaveFileName(this, tr("Save EVSA entry to file"),       name + ".evse", "EVSA entry files (*.evse *.bin);;All files (*)");      break;
-        case Types::FlashMapEntry: path = QFileDialog::getSaveFileName(this, tr("Save FlashMap entry to file"),   name + ".fme",  "FlashMap entry files (*.fme *.bin);;All files (*)");   break;
-        case Types::VssStore:      path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  "VSS store files (*.vss *.bin);;All files (*)");        break;
-        case Types::FdcStore:      path = QFileDialog::getSaveFileName(this, tr("Save FDC store to file"),        name + ".fdc",  "FDC store files (*.fdc *.bin);;All files (*)");        break;
-        case Types::FsysStore:     path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"),       name + ".fsys", "Fsys store files (*.fsys *.bin);;All files (*)");      break;
-        case Types::EvsaStore:     path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"),       name + ".evsa", "EVSA store files (*.evsa *.bin);;All files (*)");      break;
-        case Types::FtwStore:      path = QFileDialog::getSaveFileName(this, tr("Save FTW store to file"),        name + ".ftw",  "FTW store files (*.ftw *.bin);;All files (*)");        break;
-        case Types::FlashMapStore: path = QFileDialog::getSaveFileName(this, tr("Save FlashMap store to file"),   name + ".fmap", "FlashMap store files (*.fmap *.bin);;All files (*)");  break;
-        case Types::CmdbStore:     path = QFileDialog::getSaveFileName(this, tr("Save CMDB store to file"),       name + ".cmdb", "CMDB store files (*.cmdb *.bin);;All files (*)");      break;
-        case Types::Microcode:     path = QFileDialog::getSaveFileName(this, tr("Save microcode binary to file"), name + ".ucd",  "Microcode binary files (*.ucd *.bin);;All files (*)"); break;
+        case Types::Capsule:        path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),          name + ".cap",  "Capsule files (*.cap *.bin);;All files (*)");          break;
+        case Types::Image:          path = QFileDialog::getSaveFileName(this, tr("Save image to file"),            name + ".rom",  "Image files (*.rom *.bin);;All files (*)");            break;
+        case Types::Region:         path = QFileDialog::getSaveFileName(this, tr("Save region to file"),           name + ".rgn",  "Region files (*.rgn *.bin);;All files (*)");           break;
+        case Types::Padding:        path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),          name + ".pad",  "Padding files (*.pad *.bin);;All files (*)");          break;
+        case Types::Volume:         path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),           name + ".vol",  "Volume files (*.vol *.bin);;All files (*)");           break;
+        case Types::File:           path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),         name + ".ffs",  "FFS files (*.ffs *.bin);;All files (*)");              break;
+        case Types::Section:        path = QFileDialog::getSaveFileName(this, tr("Save section to file"),          name + ".sct",  "Section files (*.sct *.bin);;All files (*)");          break;
+        case Types::NvarEntry:      path = QFileDialog::getSaveFileName(this, tr("Save NVAR entry to file"),       name + ".nvar", "NVAR entry files (*.nvar *.bin);;All files (*)");      break;
+        case Types::VssEntry:       path = QFileDialog::getSaveFileName(this, tr("Save VSS entry to file"),        name + ".vss",  "VSS entry files (*.vss *.bin);;All files (*)");        break;
+        case Types::FsysEntry:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys entry to file"),       name + ".fse",  "Fsys entry files (*.fse *.bin);;All files (*)");       break;
+        case Types::EvsaEntry:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA entry to file"),       name + ".evse", "EVSA entry files (*.evse *.bin);;All files (*)");      break;
+        case Types::FlashMapEntry:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap entry to file"),   name + ".fme",  "FlashMap entry files (*.fme *.bin);;All files (*)");   break;
+        case Types::VssStore:       path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  "VSS store files (*.vss *.bin);;All files (*)");        break;
+        case Types::LenovoVssStore: path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  "VSS store files (*.vss *.bin);;All files (*)");        break;
+        case Types::FdcStore:       path = QFileDialog::getSaveFileName(this, tr("Save FDC store to file"),        name + ".fdc",  "FDC store files (*.fdc *.bin);;All files (*)");        break;
+        case Types::FsysStore:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"),       name + ".fsys", "Fsys store files (*.fsys *.bin);;All files (*)");      break;
+        case Types::EvsaStore:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"),       name + ".evsa", "EVSA store files (*.evsa *.bin);;All files (*)");      break;
+        case Types::FtwStore:       path = QFileDialog::getSaveFileName(this, tr("Save FTW store to file"),        name + ".ftw",  "FTW store files (*.ftw *.bin);;All files (*)");        break;
+        case Types::FlashMapStore:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap store to file"),   name + ".fmap", "FlashMap store files (*.fmap *.bin);;All files (*)");  break;
+        case Types::CmdbStore:      path = QFileDialog::getSaveFileName(this, tr("Save CMDB store to file"),       name + ".cmdb", "CMDB store files (*.cmdb *.bin);;All files (*)");      break;
+        case Types::Microcode:      path = QFileDialog::getSaveFileName(this, tr("Save microcode binary to file"), name + ".ucd",  "Microcode binary files (*.ucd *.bin);;All files (*)"); break;
         case Types::SlicData:
             if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey to file"), name + ".spk", "SLIC pubkey files (*.spk *.bin);;All files (*)");
             else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker to file"), name + ".smk", "SLIC marker files (*.smk *.bin);;All files (*)");
@@ -669,6 +672,7 @@ void UEFITool::extract(const UINT8 mode)
         case Types::FlashMapEntry:
         case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", "Binary files (*.bin);;All files (*)"); break;
         case Types::VssStore:
+        case Types::LenovoVssStore:
         case Types::FtwStore:
         case Types::FdcStore:
         case Types::FsysStore:
@@ -914,6 +918,11 @@ void UEFITool::clearMessages()
     ui->actionMessagesClear->setEnabled(false);
 }
 
+void UEFITool::toggleBootGuardMarking(bool enabled)
+{
+    model->setMarkingEnabled(enabled);
+}
+
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
 {
     if (event->mimeData()->hasFormat("text/uri-list"))
@@ -1032,6 +1041,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::EvsaEntry:
     case Types::FlashMapEntry:  ui->menuEntryActions->exec(event->globalPos());        break;
     case Types::VssStore:
+    case Types::LenovoVssStore:
     case Types::FdcStore:
     case Types::FsysStore:
     case Types::EvsaStore:

@@ -556,7 +556,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const VSCC_TABLE_ENTRY* vsccTableEntry = (const VSCC_TABLE_ENTRY*)(descriptor + ((UINT16)upperMap->VsccTableBase << 4));
     info += UString("\nFlash chips in VSCC table:");
     UINT8 vsscTableSize = upperMap->VsccTableSize * sizeof(UINT32) / sizeof(VSCC_TABLE_ENTRY);
-    for (int i = 0; i < vsscTableSize; i++) {
+    for (UINT8 i = 0; i < vsscTableSize; i++) {
         info += usprintf("\n%02X%02X%02X (",
             vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1)
             + jedecIdToUString(vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1) 
@@ -982,7 +982,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     }
     else if (volumeHeader->Revision == 2) {
         // Acquire alignment
-        alignment = (UINT32)pow(2.0, (int)(volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
+        alignment = (UINT32)pow(2.0, (INT32)(volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
         // Check alignment
         if (!isUnknown && !model->compressed(parent) && ((model->offset(parent) + localOffset - capsuleOffsetFixup) % alignment))
             msgUnaligned = true;
@@ -3011,6 +3011,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
     for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
         if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD) {
             bgProtectedRangeFound = true;
+            bgProtectedRanges[i].Offset -= addressDiff;
             protectedParts += openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
         }
@@ -3081,6 +3082,21 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("checkProtectedRanges: Phoenix protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
+                    bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
+                    model->findByOffset(bgProtectedRanges[i].Offset));
+            }
+
+            markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+        }
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT) {
+            bgProtectedRanges[i].Offset -= addressDiff;
+            protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+
+            UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
+            sha256(protectedParts.constData(), protectedParts.length(), digest.data());
+
+            if (digest != bgProtectedRanges[i].Hash) {
+                msg(usprintf("checkProtectedRanges: Microsoft protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
                     bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
                     model->findByOffset(bgProtectedRanges[i].Offset));
             }
@@ -3164,7 +3180,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     for (UINT32 i = 0; i < header->NumEntries; i++) {
                         const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
                         bootGuardInfo += usprintf("\nRelativeOffset: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
-                        for (int i = 0; i < sizeof(entry->Hash); i++) {
+                        for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
                             bootGuardInfo += usprintf("%02X", entry->Hash[i]);
                         }
                     }
@@ -3203,7 +3219,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     for (UINT32 i = 0; i < NumEntries; i++) {
                         const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(model->body(index).constData()) + i;
                         bootGuardInfo += usprintf("\nAddress: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
-                        for (int i = 0; i < sizeof(entry->Hash); i++) {
+                        for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
                             bootGuardInfo += usprintf("%02X", entry->Hash[i]);
                         }
                     }
@@ -3216,7 +3232,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 bootGuardInfo += usprintf("Old AMI hash file found at offset %Xh\nProtected range:", model->offset(fileIndex));
                 const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD* entry = (const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD*)(model->body(index).constData());
                 bootGuardInfo += usprintf("\nSize: %Xh\nHash: ", entry->Size);
-                for (int i = 0; i < sizeof(entry->Hash); i++) {
+                for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
                     bootGuardInfo += usprintf("%02X", entry->Hash[i]);
                 }
                 bootGuardInfo += UString("\n------------------------------------------------------------------------\n\n");
@@ -3488,7 +3504,7 @@ USTATUS FfsParser::parseIntelAcm(const UByteArray & acm, const UINT32 localOffse
                 bootGuardInfo += usprintf(
                     "Intel ACM found at offset %Xh\n"
                     "ModuleType: %08Xh     HeaderLength: %08Xh  HeaderVersion: %08Xh\n"
-                    "ChipsetId:  %04Xh     Unknown: %04Xh       ModuleVendor: %04Xh\n"
+                    "ChipsetId:  %04Xh     Flags: %04Xh       ModuleVendor: %04Xh\n"
                     "Date: %02X.%02X.%04X  ModuleSize: %08Xh    EntryPoint: %08Xh\n"
                     "AcmSvn: %04Xh         Unknown1: %08Xh      Unknown2: %08Xh\n"
                     "GdtBase: %08Xh        GdtMax: %08Xh        SegSel: %08Xh\n"
@@ -3498,7 +3514,7 @@ USTATUS FfsParser::parseIntelAcm(const UByteArray & acm, const UINT32 localOffse
                     header->ModuleSize * sizeof(UINT32),
                     header->HeaderVersion,
                     header->ChipsetId,
-                    header->Unknown,
+                    header->Flags,
                     header->ModuleVendor,
                     header->DateDay, header->DateMonth, header->DateYear,
                     header->ModuleSize * sizeof(UINT32),
@@ -3514,14 +3530,14 @@ USTATUS FfsParser::parseIntelAcm(const UByteArray & acm, const UINT32 localOffse
                     );
                 // Add PubKey
                 bootGuardInfo += usprintf("\n\nACM RSA Public Key (Exponent: %Xh):", header->RsaPubExp);
-                for (int i = 0; i < sizeof(header->RsaPubKey); i++) {
+                for (UINT16 i = 0; i < sizeof(header->RsaPubKey); i++) {
                     if (i % 32 == 0)
                         bootGuardInfo += UString("\n");
                     bootGuardInfo += usprintf("%02X", header->RsaPubKey[i]);
                 }
                 // Add RsaSig
                 bootGuardInfo += UString("\n\nACM RSA Signature:");
-                for (int i = 0; i < sizeof(header->RsaSig); i++) {
+                for (UINT16 i = 0; i < sizeof(header->RsaSig); i++) {
                     if (i % 32 == 0)
                         bootGuardInfo += UString("\n");
                     bootGuardInfo += usprintf("%02X", header->RsaSig[i]);
@@ -3565,7 +3581,7 @@ USTATUS FfsParser::parseIntelBootGuardKeyManifest(const UByteArray & keyManifest
                     );
                 // Add BpKeyHash
                 bootGuardInfo += UString("\n\nBoot Policy RSA Public Key Hash:\n");
-                for (int i = 0; i < sizeof(header->BpKeyHash.HashBuffer); i++) {
+                for (UINT8 i = 0; i < sizeof(header->BpKeyHash.HashBuffer); i++) {
                     bootGuardInfo += usprintf("%02X", header->BpKeyHash.HashBuffer[i]);
                 }
                 bgKmHash = UByteArray((const char*)header->BpKeyHash.HashBuffer, sizeof(header->BpKeyHash.HashBuffer));
@@ -3573,14 +3589,14 @@ USTATUS FfsParser::parseIntelBootGuardKeyManifest(const UByteArray & keyManifest
                 // Add Key Manifest PubKey
                 bootGuardInfo += usprintf("\n\nKey Manifest RSA Public Key (Exponent: %Xh):",
                     header->KeyManifestSignature.PubKey.Exponent);
-                for (int i = 0; i < sizeof(header->KeyManifestSignature.PubKey.Modulus); i++) {
+                for (UINT16 i = 0; i < sizeof(header->KeyManifestSignature.PubKey.Modulus); i++) {
                     if (i % 32 == 0)
                         bootGuardInfo += UString("\n");
                     bootGuardInfo += usprintf("%02X", header->KeyManifestSignature.PubKey.Modulus[i]);
                 }
                 // Add Key Manifest Signature
                 bootGuardInfo += UString("\n\nKey Manifest RSA Signature:");
-                for (int i = 0; i < sizeof(header->KeyManifestSignature.Signature.Signature); i++) {
+                for (UINT16 i = 0; i < sizeof(header->KeyManifestSignature.Signature.Signature); i++) {
                     if (i % 32 == 0)
                         bootGuardInfo += UString("\n");
                     bootGuardInfo += usprintf("%02X", header->KeyManifestSignature.Signature.Signature[i]);
@@ -3595,7 +3611,7 @@ USTATUS FfsParser::parseIntelBootGuardKeyManifest(const UByteArray & keyManifest
     return U_INVALID_BG_KEY_MANIFEST;
 }
 
-USTATUS FfsParser::findNextElement(const UByteArray & bootPolicy, const UINT32 localOffset, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize)
+USTATUS FfsParser::findNextElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize)
 {
     UINT32 dataSize = bootPolicy.size();
 
@@ -3615,7 +3631,7 @@ USTATUS FfsParser::findNextElement(const UByteArray & bootPolicy, const UINT32 l
             }
         }
         else if (*currentPos == BG_BOOT_POLICY_MANIFEST_PLATFORM_MANUFACTURER_ELEMENT_TAG && offset + sizeof(BG_PLATFORM_MANUFACTURER_ELEMENT) < dataSize) {
-            const BG_PLATFORM_MANUFACTURER_ELEMENT* header = (const BG_PLATFORM_MANUFACTURER_ELEMENT*)(bootPolicy.constData() + localOffset + elementOffset);
+            const BG_PLATFORM_MANUFACTURER_ELEMENT* header = (const BG_PLATFORM_MANUFACTURER_ELEMENT*)currentPos;
             // Check that data is present
             if (offset + sizeof(BG_PLATFORM_MANUFACTURER_ELEMENT) + header->DataSize < dataSize) {
                 nextElementOffset = offset;
@@ -3665,7 +3681,7 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                 // Iterate over elements to get them all
                 UINT32 elementOffset = 0;
                 UINT32 elementSize = 0;
-                USTATUS status = findNextElement(bootPolicy, localOffset, localOffset + sizeof(BG_BOOT_POLICY_MANIFEST_HEADER), elementOffset, elementSize);
+                USTATUS status = findNextElement(bootPolicy, localOffset + sizeof(BG_BOOT_POLICY_MANIFEST_HEADER), elementOffset, elementSize);
                 while (status == U_SUCCESS) {
                     const UINT64* currentPos = (const UINT64*)(bootPolicy.constData() + elementOffset);
                     if (*currentPos == BG_BOOT_POLICY_MANIFEST_IBB_ELEMENT_TAG) {
@@ -3675,38 +3691,38 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                             "\nInitial Boot Block Element found at offset %Xh\n"
                             "Tag: __IBBS__       Version: %02Xh         Unknown: %02Xh\n"
                             "Flags: %08Xh    IbbMchBar: %08Xh VtdBar: %08Xh\n"
-                            "Unknown1: %08Xh Unknown2: %08Xh  EntryPoint: %08Xh",
+                            "PmrlBase: %08Xh PmrlLimit: %08Xh  EntryPoint: %08Xh",
                             model->offset(parent) + localOffset + elementOffset,
                             elementHeader->Version,
                             elementHeader->Unknown,
                             elementHeader->Flags,
                             elementHeader->IbbMchBar,
                             elementHeader->VtdBar,
-                            elementHeader->Unknown1,
-                            elementHeader->Unknown2,
+                            elementHeader->PmrlBase,
+                            elementHeader->PmrlLimit,
                             elementHeader->EntryPoint
                             );
                         // Add PostIbbHash
                         bootGuardInfo += UString("\n\nPost IBB Hash:\n");
-                        for (int i = 0; i < sizeof(elementHeader->IbbHash.HashBuffer); i++) {
+                        for (UINT8 i = 0; i < sizeof(elementHeader->IbbHash.HashBuffer); i++) {
                             bootGuardInfo += usprintf("%02X", elementHeader->IbbHash.HashBuffer[i]);
                         }
                         // Add Digest
                         bgBpDigest = UByteArray((const char*)elementHeader->Digest.HashBuffer, sizeof(elementHeader->Digest.HashBuffer));
                         bootGuardInfo += UString("\n\nIBB Digest:\n");
-                        for (int i = 0; i < bgBpDigest.size(); i++) {
+                        for (UINT8 i = 0; i < (UINT8)bgBpDigest.size(); i++) {
                             bootGuardInfo += usprintf("%02X", (UINT8)bgBpDigest.at(i));
                         }
 
                         // Add all IBB segments
                         bootGuardInfo += UString("\n\nIBB Segments:\n");
                         const BG_IBB_SEGMENT_ELEMENT* segments = (const BG_IBB_SEGMENT_ELEMENT*)(elementHeader + 1);
-                        for (int i = 0; i < elementHeader->IbbSegCount; i++) {
+                        for (UINT8 i = 0; i < elementHeader->IbbSegCount; i++) {
                             bootGuardInfo += usprintf("Flags: %04Xh Address: %08Xh Size: %08Xh\n", 
                                 segments[i].Flags, segments[i].Base, segments[i].Size);
                             if (segments[i].Flags == BG_IBB_SEGMENT_FLAG_IBB) {
                                 BG_PROTECTED_RANGE range;
-                                range.Offset = segments[i].Base - addressDiff;
+                                range.Offset = segments[i].Base;
                                 range.Size = segments[i].Size;
                                 range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD;
                                 bgProtectedRanges.push_back(range);
@@ -3717,17 +3733,44 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                         const BG_PLATFORM_MANUFACTURER_ELEMENT* elementHeader = (const BG_PLATFORM_MANUFACTURER_ELEMENT*)currentPos;
                         bootGuardInfo += usprintf(
                             "\nPlatform Manufacturer Data Element found at offset %Xh\n"
-                            "Tag: __PMDA__ Version: %02Xh DataSize: %02Xh\n",
+                            "Tag: __PMDA__ Version: %02Xh DataSize: %02Xh",
                             model->offset(parent) + localOffset + elementOffset,
                             elementHeader->Version,
                             elementHeader->DataSize
                             );
-                        // Add data
-                        UINT8* data = (UINT8*)(elementHeader + 1);
-                        for (int i = 0; i < elementHeader->DataSize; i++) {
-                            if (i % 32 == 0)
+                        // Check for Microsoft PMDA hash data
+                        const BG_MICROSOFT_PMDA_HEADER* header = (const BG_MICROSOFT_PMDA_HEADER*)(elementHeader + 1);
+                        if (header->Version == BG_MICROSOFT_PMDA_VERSION 
+                            && elementHeader->DataSize == sizeof(BG_MICROSOFT_PMDA_HEADER) + sizeof(BG_MICROSOFT_PMDA_ENTRY)*header->NumEntries) {
+                            // Add entries
+                            bootGuardInfo += UString("\nMicrosoft PMDA-based protected ranges:\n");
+                            const BG_MICROSOFT_PMDA_ENTRY* entries = (const BG_MICROSOFT_PMDA_ENTRY*)(header + 1);
+                            for (UINT32 i = 0; i < header->NumEntries; i++) {
+
+                                bootGuardInfo += usprintf("Address: %08Xh Size: %08Xh\n", entries[i].Address, entries[i].Size);
+                                bootGuardInfo += UString("Hash: ");
+                                for (UINT8 j = 0; j < sizeof(entries[i].Hash); j++) {
+                                    bootGuardInfo += usprintf("%02X", entries[i].Hash[j]);
+                                }
                                 bootGuardInfo += UString("\n");
-                            bootGuardInfo += usprintf("%02X", data[i]);
+
+                                BG_PROTECTED_RANGE range;
+                                range.Offset = entries[i].Address;
+                                range.Size = entries[i].Size;
+                                range.Hash = UByteArray((const char*)entries[i].Hash, sizeof(entries[i].Hash));
+                                range.Type = BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT;
+                                bgProtectedRanges.push_back(range);
+                            }
+                        }
+                        else {
+                            // Add raw data
+                            const UINT8* data = (const UINT8*)(elementHeader + 1);
+                            for (UINT16 i = 0; i < elementHeader->DataSize; i++) {
+                                if (i % 32 == 0)
+                                    bootGuardInfo += UString("\n");
+                                bootGuardInfo += usprintf("%02X", data[i]);
+                            }
+                            bootGuardInfo += UString("\n");
                         }
                     }
                     else if (*currentPos == BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT_TAG) {
@@ -3740,7 +3783,7 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                             );
                         // Add PubKey
                         bootGuardInfo += usprintf("\n\nBoot Policy RSA Public Key (Exponent: %Xh):", elementHeader->KeySignature.PubKey.Exponent);
-                        for (int i = 0; i < sizeof(elementHeader->KeySignature.PubKey.Modulus); i++) {
+                        for (UINT16 i = 0; i < sizeof(elementHeader->KeySignature.PubKey.Modulus); i++) {
                             if (i % 32 == 0)
                                 bootGuardInfo += UString("\n");
                             bootGuardInfo += usprintf("%02X", elementHeader->KeySignature.PubKey.Modulus[i]);
@@ -3750,7 +3793,7 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                         UINT8 hash[SHA256_DIGEST_SIZE];
                         sha256(&elementHeader->KeySignature.PubKey.Modulus, sizeof(elementHeader->KeySignature.PubKey.Modulus), hash);
                         bootGuardInfo += UString("\n\nBoot Policy RSA Public Key Hash:");
-                        for (int i = 0; i < sizeof(hash); i++) {
+                        for (UINT8 i = 0; i < sizeof(hash); i++) {
                             if (i % 32 == 0)
                                 bootGuardInfo += UString("\n");
                             bootGuardInfo += usprintf("%02X", hash[i]);
@@ -3759,13 +3802,13 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
 
                         // Add Signature
                         bootGuardInfo += UString("\n\nBoot Policy RSA Signature:");
-                        for (int i = 0; i < sizeof(elementHeader->KeySignature.Signature.Signature); i++) {
+                        for (UINT16 i = 0; i < sizeof(elementHeader->KeySignature.Signature.Signature); i++) {
                             if (i % 32 == 0)
                                 bootGuardInfo += UString("\n");
                             bootGuardInfo += usprintf("%02X", elementHeader->KeySignature.Signature.Signature[i]);
                         }
                     }
-                    status = findNextElement(bootPolicy, localOffset, elementOffset + elementSize, elementOffset, elementSize);
+                    status = findNextElement(bootPolicy, elementOffset + elementSize, elementOffset, elementSize);
                 }
 
                 bootGuardInfo += UString("\n------------------------------------------------------------------------\n\n");

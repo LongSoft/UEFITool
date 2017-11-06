@@ -53,6 +53,20 @@ typedef struct BG_VENDOR_HASH_FILE_HEADER_AMI_OLD_
     // Offset is derived from flash map, will be detected as root volume with DXE core
 } BG_VENDOR_HASH_FILE_HEADER_AMI_OLD;
 
+typedef struct BG_MICROSOFT_PMDA_HEADER_
+{
+    UINT32 Version;
+    UINT32 NumEntries;
+} BG_MICROSOFT_PMDA_HEADER;
+
+#define BG_MICROSOFT_PMDA_VERSION 0x00000001
+
+typedef struct BG_MICROSOFT_PMDA_ENTRY_
+{
+    UINT32 Address;
+    UINT32 Size;
+    UINT8  Hash[SHA256_DIGEST_SIZE];
+} BG_MICROSOFT_PMDA_ENTRY;
 
 //
 // Intel ACM
@@ -66,7 +80,7 @@ typedef struct INTEL_ACM_HEADER_ {
     UINT32 HeaderType;
     UINT32 HeaderVersion;
     UINT16 ChipsetId;
-    UINT16 Unknown;
+    UINT16 Flags;
     UINT32 ModuleVendor;
     UINT8  DateDay;
     UINT8  DateMonth;
@@ -151,8 +165,8 @@ typedef struct BG_IBB_ELEMENT_ {
     UINT32                 Flags;
     UINT64                 IbbMchBar;
     UINT64                 VtdBar;
-    UINT32                 Unknown1;
-    UINT32                 Unknown2;
+    UINT32                 PmrlBase;
+    UINT32                 PmrlLimit;
     UINT64                 Unknown3;
     UINT64                 Unknown4;
     SHA256_HASH            IbbHash;

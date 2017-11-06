@@ -31,10 +31,11 @@ typedef struct BG_PROTECTED_RANGE_
     UByteArray Hash;
 } BG_PROTECTED_RANGE;
 
-#define BG_PROTECTED_RANGE_INTEL_BOOT_GUARD    0x01
-#define BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX 0x02
-#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD 0x03
-#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW 0x04
+#define BG_PROTECTED_RANGE_INTEL_BOOT_GUARD      0x01
+#define BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX   0x02
+#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD   0x03
+#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW   0x04
+#define BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT 0x05
 
 class FfsParser
 {
@@ -160,7 +161,7 @@ private:
     USTATUS parseIntelAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseIntelBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 localOffset, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
+    USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
 #endif
 };
 

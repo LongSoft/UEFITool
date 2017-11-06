@@ -27,7 +27,7 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
         return (const char*)item->data(index.column()).toLocal8Bit();
     }
     else if (role == Qt::BackgroundRole) {
-        if (marking(index) > 0) {
+        if (markingEnabled && marking(index) > 0) {
             return QBrush((Qt::GlobalColor)marking(index));
         }
     }
@@ -326,6 +326,11 @@ void TreeModel::setCompressed(const UModelIndex &index, const bool compressed)
     item->setCompressed(compressed);
 
     emit dataChanged(index, index);
+}
+
+void TreeModel::TreeModel::setMarkingEnabled(const bool enabled) 
+{ 
+    markingEnabled = enabled; emit dataChanged(QModelIndex(), QModelIndex());
 }
 
 void TreeModel::setMarking(const UModelIndex &index, const UINT8 marking)

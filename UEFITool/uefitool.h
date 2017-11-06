@@ -106,6 +106,8 @@ private slots:
     void enableMessagesCopyActions(QListWidgetItem* item);
     void clearMessages();
 
+    void toggleBootGuardMarking(bool enabled);
+
     void about();
     void aboutQt();
 

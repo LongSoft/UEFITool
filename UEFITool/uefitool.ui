@@ -311,7 +311,7 @@
      <x>0</x>
      <y>0</y>
      <width>851</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -532,8 +532,15 @@
     <addaction name="separator"/>
     <addaction name="menuMessageActions"/>
    </widget>
+   <widget class="QMenu" name="menu_View">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <addaction name="actionToggleBootGuardMarking"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAction"/>
+   <addaction name="menu_View"/>
    <addaction name="menuHelp"/>
   </widget>
   <action name="actionInsertAfter">
@@ -699,6 +706,9 @@
    <property name="text">
     <string>&amp;Quit</string>
    </property>
+   <property name="shortcut">
+    <string>Alt+X</string>
+   </property>
    <property name="menuRole">
     <enum>QAction::QuitRole</enum>
    </property>
@@ -847,6 +857,20 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>
+   </property>
+  </action>
+  <action name="actionToggleBootGuardMarking">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;BootGuard marking</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+B</string>
    </property>
   </action>
  </widget>
