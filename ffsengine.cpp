@@ -989,8 +989,9 @@ UINT8  FfsEngine::parseVolume(const QByteArray & volume, QModelIndex & index, co
     // Check for volume structure to be known
     bool volumeIsUnknown = true;
 
-    // Check for FFS v2 volume
-    if (FFSv2Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))) {
+    // Check for FFS v2 or v3 volume
+    if (FFSv2Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))
+    ||  FFSv3Volumes.contains(QByteArray::fromRawData((const char*)volumeHeader->FileSystemGuid.Data, sizeof(EFI_GUID)))) {
         volumeIsUnknown = false;
     }
 
@@ -1384,6 +1385,12 @@ UINT8 FfsEngine::getSectionSize(const QByteArray & file, const UINT32 sectionOff
         return ERR_INVALID_FILE;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(file.constData() + sectionOffset);
     sectionSize = uint24ToUint32(sectionHeader->Size);
+    if (sectionSize != 0xFFFFFF)
+	    return ERR_SUCCESS;
+
+    // this is a header2 type
+    const EFI_COMMON_SECTION_HEADER2* sectionHeader2 = (const EFI_COMMON_SECTION_HEADER2*)(file.constData() + sectionOffset);
+    sectionSize = sectionHeader2->ExtendedSize;
     return ERR_SUCCESS;
 }
 
@@ -3577,6 +3584,11 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
         model->action(index) == Actions::Rebuild) {
         QByteArray header = model->header(index);
         EFI_FFS_FILE_HEADER* fileHeader = (EFI_FFS_FILE_HEADER*)header.data();
+	if(header.size() >= 0xFFFFFF)
+	{
+		msg(tr("reconstructFile: extended header"), index);
+		return ERR_INVALID_PARAMETER;
+	}
 
         // Check erase polarity
         if (erasePolarity == ERASE_POLARITY_UNKNOWN) {
@@ -3732,6 +3744,12 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
         model->action(index) == Actions::Rebase) {
         QByteArray header = model->header(index);
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)header.data();
+	bool extended = false;
+
+	if(uint24ToUint32(commonHeader->Size) == 0xFFFFFF)
+	{
+		extended = true;
+	}
 
         // Reconstruct section with children
         if (model->rowCount(index)) {
@@ -3832,7 +3850,15 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
             }
 
             // Correct section size
-            uint32ToUint24(header.size() + reconstructed.size(), commonHeader->Size);
+            if (extended)
+            {
+                EFI_COMMON_SECTION_HEADER2 * extHeader
+                    = (EFI_COMMON_SECTION_HEADER2*) commonHeader;;
+		extHeader->ExtendedSize = header.size() + reconstructed.size();
+                uint32ToUint24(0xFFFFFF, commonHeader->Size);
+            } else {
+                uint32ToUint24(header.size() + reconstructed.size(), commonHeader->Size);
+            }
         }
         // Leaf section
         else

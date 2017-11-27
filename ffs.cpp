@@ -155,10 +155,10 @@ UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header)
     if (!header)
         return 0;
 
-    const bool extended = false;
-    /*if (uint24ToUint32(header->Size) == EFI_SECTION2_IS_USED) {
+    bool extended = false;
+    if (uint24ToUint32(header->Size) == EFI_SECTION2_IS_USED) {
         extended = true;
-    }*/
+    }
 
     switch (header->Type)
     {
