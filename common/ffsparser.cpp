@@ -956,7 +956,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     }
     else if (volumeHeader->Revision == 2) {
         // Acquire alignment
-        alignment = (UINT32)pow(2.0, (INT32)(volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
+        alignment = (UINT32)(1UL << ((volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16));
         // Check alignment
         if (!isUnknown && !model->compressed(parent) && ((model->offset(parent) + localOffset - capsuleOffsetFixup) % alignment))
             msgUnaligned = true;
