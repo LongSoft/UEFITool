@@ -848,7 +848,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         }
         else if (volumeHeader->Revision == 2) {
             // Acquire alignment
-            alignment = (UINT32)pow(2.0, (int)(volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16);
+            alignment = (UINT32)(1UL << ((volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16));
 
             // Check alignment
             if (volumeOffset % alignment)
@@ -1391,6 +1391,9 @@ UINT8 FfsEngine::getSectionSize(const QByteArray & file, const UINT32 sectionOff
 	if (sectionSize != 0xFFFFFF)
         return ERR_SUCCESS;
  
+    if ((UINT32)file.size() < sectionOffset + sizeof(EFI_COMMON_SECTION_HEADER2))
+        return ERR_INVALID_FILE;
+
     const EFI_COMMON_SECTION_HEADER2* sectionHeader2 = (const EFI_COMMON_SECTION_HEADER2*)(file.constData() + sectionOffset);
     sectionSize = sectionHeader2->ExtendedSize;	  
     return ERR_SUCCESS;
@@ -1545,7 +1548,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     QString info;
     QByteArray header;
     QByteArray body;
-    UINT32 headerSize;
+    UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
     UINT8 result;
 
     switch (sectionHeader->Type) {
@@ -1556,8 +1559,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         QByteArray decompressed;
         UINT8 algorithm;
         const EFI_COMPRESSION_SECTION* compressedSectionHeader = (const EFI_COMPRESSION_SECTION*)sectionHeader;
-        header = section.left(sizeof(EFI_COMPRESSION_SECTION));
-        body = section.mid(sizeof(EFI_COMPRESSION_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
         // Decompress section
         result = decompress(body, compressedSectionHeader->CompressionType, decompressed, &algorithm);
@@ -1597,12 +1600,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         bool msgUnknownSignature = false;
         bool msgUnknownUefiGuidSignature = false;
 
-        const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader;
-        header = section.left(sizeof(EFI_GUID_DEFINED_SECTION));
-        guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(header.constData());
-        header = section.left(guidDefinedSectionHeader->DataOffset);
-        guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(header.constData());
-        body = section.mid(guidDefinedSectionHeader->DataOffset);
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
+ 
+        const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(header.constData());
         QByteArray processed = body;
 
         // Get info
@@ -1757,8 +1758,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_DISPOSABLE:
     {
-        header = section.left(sizeof(EFI_DISPOSABLE_SECTION));
-        body = section.mid(sizeof(EFI_DISPOSABLE_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -1781,7 +1782,6 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     case EFI_SECTION_PEI_DEPEX:
     case EFI_SECTION_SMM_DEPEX: {
         bool msgDepexParseFailed = false;
-        headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
         body = section.mid(headerSize);
 
@@ -1809,7 +1809,6 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case EFI_SECTION_TE: {
-        headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
         body = section.mid(headerSize);
 
@@ -1860,7 +1859,6 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_PE32:
     case EFI_SECTION_PIC: {
-        headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
         body = section.mid(headerSize);
 
@@ -1956,7 +1954,6 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case EFI_SECTION_COMPATIBILITY16: {
-        headerSize = sizeOfSectionHeader(sectionHeader);
         header = section.left(headerSize);
         body = section.mid(headerSize);
 
@@ -1972,8 +1969,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case EFI_SECTION_FREEFORM_SUBTYPE_GUID: {
-        header = section.left(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
-        body = section.mid(sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
 
         const EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)sectionHeader;
         // Get info
@@ -1992,8 +1989,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case EFI_SECTION_VERSION: {
-        header = section.left(sizeof(EFI_VERSION_SECTION));
-        body = section.mid(sizeof(EFI_VERSION_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
 
         const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)sectionHeader;
 
@@ -2011,8 +2008,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case EFI_SECTION_USER_INTERFACE: {
-        header = section.left(sizeof(EFI_USER_INTERFACE_SECTION));
-        body = section.mid(sizeof(EFI_USER_INTERFACE_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
         QString text = QString::fromUtf16((const ushort*)body.constData());
 
         // Get info
@@ -2031,8 +2028,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: {
-        header = section.left(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
-        body = section.mid(sizeof(EFI_FIRMWARE_VOLUME_IMAGE_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -2054,8 +2051,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case EFI_SECTION_RAW: {
         bool parsed = false;
-        header = section.left(sizeof(EFI_RAW_SECTION));
-        body = section.mid(sizeof(EFI_RAW_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
 
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
@@ -2109,8 +2106,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
     case SCT_SECTION_POSTCODE:
     case INSYDE_SECTION_POSTCODE: {
-        header = section.left(sizeof(POSTCODE_SECTION));
-        body = section.mid(sizeof(POSTCODE_SECTION));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
 
         const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)sectionHeader;
 
@@ -2127,8 +2124,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
     } break;
 
     default:
-        header = section.left(sizeof(EFI_COMMON_SECTION_HEADER));
-        body = section.mid(sizeof(EFI_COMMON_SECTION_HEADER));
+        header = section.left(headerSize);
+        body = section.mid(headerSize);
         // Get info
         info = tr("Type: %1h\nFull size: %2h (%3)\nHeader size: %4h (%5)\nBody size: %6h (%7)")
             .hexarg2(sectionHeader->Type, 2)
@@ -2234,7 +2231,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         // Determine correct file header size
         bool largeFile = false;
         UINT32 headerSize = sizeof(EFI_FFS_FILE_HEADER);
-        if (revision == 2 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
+        if (revision > 1 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
             largeFile = true;
             headerSize = sizeof(EFI_FFS_FILE_HEADER2);
         }
@@ -2310,11 +2307,16 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         if (model->type(parent) != Types::File && model->type(parent) != Types::Section)
             return ERR_INVALID_SECTION;
 
-        if (header.size() < (int) sizeof(EFI_COMMON_SECTION_HEADER))
+        if ((UINT32)header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
             return ERR_INVALID_SECTION;
 
         QByteArray newHeader = header;
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)newHeader.data();
+
+        if (uint24ToUint32(commonHeader->Size) == EFI_SECTION2_IS_USED) {
+            msg(tr("create: creation of large sections not supported yet"), index);
+            return ERR_NOT_IMPLEMENTED;
+        }
 
         switch (commonHeader->Type)
         {
@@ -2547,9 +2549,15 @@ UINT8 FfsEngine::extract(const QModelIndex & index, QByteArray & extracted, cons
         extracted.append(model->header(index));
         extracted.append(model->body(index));
         if (model->type(index) == Types::File) {
-            //!TODO: add volume revision check, maybe?
+            UINT8 revision = 2;
+            QModelIndex parent = model->parent(index);
+            if (parent.isValid() && model->type(parent) == Types::Volume) {
+                const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)model->header(parent).constData();
+                revision = volumeHeader->Revision;
+            }
+
             const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)model->header(index).constData();
-            if (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
+            if (revision == 1 && fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
                 UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
                 UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
                 extracted.append(ht).append(ft);
@@ -3621,9 +3629,9 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
         }
 
         // Check file state
-        // Invert it first if erase polarity is true
+        // Check top reserved bit of file state to determine it's original erase polarity
         UINT8 state = fileHeader->State;
-        if (erasePolarity == ERASE_POLARITY_TRUE)
+        if (state & EFI_FILE_ERASE_POLARITY)
             state = ~state;
 
         // Order of this checks must be preserved

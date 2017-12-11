@@ -346,6 +346,7 @@ extern const UINT8 ffsAlignment2Table[];
 #define EFI_FILE_MARKED_FOR_UPDATE      0x08
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
+#define EFI_FILE_ERASE_POLARITY         0x80 // Defined as "all other bits must be set to ERASE_POLARITY" in UEFI PI
 
 // PEI apriori file
 const QByteArray EFI_PEI_APRIORI_FILE_GUID
