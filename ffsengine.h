@@ -70,7 +70,7 @@ public:
     UINT8 parseEcRegion(const QByteArray & ec, QModelIndex & index, const QModelIndex & parent, const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseBios(const QByteArray & bios, const QModelIndex & parent = QModelIndex());
     UINT8 parseVolume(const QByteArray & volume, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
-    UINT8 parseFile(const QByteArray & file, QModelIndex & index, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
+    UINT8 parseFile(const QByteArray & file, QModelIndex & index, const UINT8 revision = 2, const UINT8 erasePolarity = ERASE_POLARITY_UNKNOWN, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
     UINT8 parseSections(const QByteArray & body, const QModelIndex & parent = QModelIndex());
     UINT8 parseSection(const QByteArray & section, QModelIndex & index, const QModelIndex & parent = QModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 
@@ -117,7 +117,6 @@ private:
     UINT8 parseDepexSection(const QByteArray & body, QString & parsed);
     UINT8 findNextVolume(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     UINT8 getVolumeSize(const QByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
-    UINT8 getFileSize(const QByteArray & volume, const UINT32 fileOffset, UINT32 & fileSize);
     UINT8 getSectionSize(const QByteArray & file, const UINT32 sectionOffset, UINT32 & sectionSize);
 
     // Reconstruction helpers

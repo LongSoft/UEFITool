@@ -30,7 +30,10 @@ const QVector<QByteArray> FFSv3Volumes =
 const UINT8 ffsAlignmentTable[] =
 { 0, 4, 7, 9, 10, 12, 15, 16 };
 
-UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
+const UINT8 ffsAlignment2Table[] =
+{ 17, 18, 19, 20, 21, 22, 23, 24 };
+
+UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize)
 {
     if (!buffer)
         return 0;
@@ -40,7 +43,15 @@ UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
     while (bufferSize--)
         counter += buffer[bufferSize];
 
-    return (UINT8)0x100 - counter;
+    return counter;
+}
+
+UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
+{
+    if (!buffer)
+        return 0;
+
+    return (UINT8)0x100 - calculateSum8(buffer, bufferSize);
 }
 
 UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
@@ -120,6 +131,8 @@ QString fileTypeToQString(const UINT8 type)
     case EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE: return QObject::tr("Volume image");
     case EFI_FV_FILETYPE_COMBINED_SMM_DXE:      return QObject::tr("Combined SMM/DXE");
     case EFI_FV_FILETYPE_SMM_CORE:              return QObject::tr("SMM core");
+	case EFI_FV_FILETYPE_SMM_STANDALONE:        return QObject::tr("SMM standalone");
+	case EFI_FV_FILETYPE_SMM_CORE_STANDALONE:   return QObject::tr("SMM core standalone");
     case EFI_FV_FILETYPE_PAD:                   return QObject::tr("Pad");
     default:                                    return QObject::tr("Unknown");
     };
@@ -155,10 +168,10 @@ UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header)
     if (!header)
         return 0;
 
-    const bool extended = false;
-    /*if (uint24ToUint32(header->Size) == EFI_SECTION2_IS_USED) {
+    bool extended = false;
+    if (uint24ToUint32(header->Size) == EFI_SECTION2_IS_USED) {
         extended = true;
-    }*/
+    }
 
     switch (header->Type)
     {

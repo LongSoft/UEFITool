@@ -292,7 +292,7 @@ UINT8                   Type;
 UINT8                   Attributes;
 UINT8                   Size[3]; // Set to 0xFFFFFF
 UINT8                   State;
-UINT32                  ExtendedSize;
+UINT64                  ExtendedSize;
 } EFI_FFS_FILE_HEADER2;
 
 // Standard data checksum, used if FFS_ATTRIB_CHECKSUM is clear
@@ -314,6 +314,8 @@ UINT32                  ExtendedSize;
 #define EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE   0x0B
 #define EFI_FV_FILETYPE_COMBINED_SMM_DXE        0x0C
 #define EFI_FV_FILETYPE_SMM_CORE                0x0D
+#define EFI_FV_FILETYPE_SMM_STANDALONE          0x0E
+#define EFI_FV_FILETYPE_SMM_CORE_STANDALONE     0x0F
 #define EFI_FV_FILETYPE_OEM_MIN                 0xC0
 #define EFI_FV_FILETYPE_OEM_MAX                 0xDF
 #define EFI_FV_FILETYPE_DEBUG_MIN               0xE0
@@ -326,12 +328,16 @@ UINT32                  ExtendedSize;
 #define FFS_ATTRIB_TAIL_PRESENT       0x01 // Valid only for revision 1 volumes
 #define FFS_ATTRIB_RECOVERY           0x02 // Valid only for revision 1 volumes
 #define FFS_ATTRIB_LARGE_FILE         0x01 // Valid only for FFSv3 volumes
+#define FFS_ATTRIB_DATA_ALIGNMENT2    0x02 // Valid only for revision 2 volumes
 #define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
 
 // FFS alignment table
 extern const UINT8 ffsAlignmentTable[];
+
+// Extended FFS alignment table
+extern const UINT8 ffsAlignment2Table[];
 
 // File states
 #define EFI_FILE_HEADER_CONSTRUCTION    0x01
@@ -360,7 +366,9 @@ const QByteArray EFI_FFS_PAD_FILE_GUID
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(const UINT8* ffsSize);
-// FFS file 8bit checksum calculation routine
+
+// FFS file 8bit checksum calculation routines
+extern UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize);
 extern UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 
 //*****************************************************************************
@@ -528,7 +536,7 @@ typedef EFI_COMMON_SECTION_HEADER2 EFI_FIRMWARE_VOLUME_IMAGE_SECTION2;
 typedef EFI_COMMON_SECTION_HEADER  EFI_USER_INTERFACE_SECTION;
 typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
 
-//Section routines
+// Section routines
 extern UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header);
 
 //*****************************************************************************

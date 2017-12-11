@@ -1,6 +1,6 @@
 /* uefipatch_main.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2017, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -19,8 +19,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    a.setOrganizationName("CodeRush");
-    a.setOrganizationDomain("coderush.me");
+    a.setOrganizationName("LongSoft");
+    a.setOrganizationDomain("longsoft.me");
     a.setApplicationName("UEFIPatch");
 
     UEFIPatch w;
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
         result = w.patchFromFile(a.arguments().at(1));
     }
     else {
-        std::cout << "UEFIPatch 0.3.9 - UEFI image file patching utility" << std::endl << std::endl <<
+        std::cout << "UEFIPatch 0.3.10 - UEFI image file patching utility" << std::endl << std::endl <<
             "Usage: UEFIPatch image_file" << std::endl << std::endl <<
             "Patches will be read from patches.txt file\n";
         return ERR_SUCCESS;
