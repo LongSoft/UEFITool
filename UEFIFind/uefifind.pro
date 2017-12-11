@@ -21,7 +21,8 @@ SOURCES  += uefifind_main.cpp \
  ../common/LZMA/LzmaDecompress.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/Tiano/EfiTianoDecompress.c \
- ../common/ustring.cpp
+ ../common/ustring.cpp \
+ ../common/sha256.c
 
 HEADERS  += uefifind.h \
  ../common/guiddatabase.h \
@@ -41,5 +42,5 @@ HEADERS  += uefifind.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/ustring.h \
  ../common/ubytearray.h \
-  ../common/bootguard.h \
+ ../common/bootguard.h \
  ../common/sha256.h

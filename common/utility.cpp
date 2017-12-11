@@ -300,8 +300,8 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
     }
 }
 
-// 8bit checksum calculation routine
-UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
+// 8bit sum calculation routine
+UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize)
 {
     if (!buffer)
         return 0;
@@ -311,7 +311,16 @@ UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
     while (bufferSize--)
         counter += buffer[bufferSize];
 
-    return (UINT8)(0x100 - counter);
+    return counter;
+}
+
+// 8bit checksum calculation routine
+UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
+{
+    if (!buffer)
+        return 0;
+
+    return (UINT8)0x100 - calculateSum8(buffer, bufferSize);
 }
 
 // 16bit checksum calculation routine

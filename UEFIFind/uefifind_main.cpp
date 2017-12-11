@@ -1,6 +1,6 @@
 /* uefifind_main.cpp
 
-Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2017, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -17,8 +17,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    a.setOrganizationName("CodeRush");
-    a.setOrganizationDomain("coderush.me");
+    a.setOrganizationName("LongSoft");
+    a.setOrganizationDomain("longsoft.me");
     a.setApplicationName("UEFIFind");
 
     UEFIFind w;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
         return U_SUCCESS;
     }
     else {
-        std::cout << "UEFIFind 0.10.9" << std::endl << std::endl <<
+        std::cout << "UEFIFind 0.10.10" << std::endl << std::endl <<
             "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
             "    or UEFIFind file patternsfile imagefile" << std::endl;
         return U_INVALID_PARAMETER;

@@ -1,6 +1,6 @@
 /* uefidump_main.cpp
 
-Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2017, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         return (uefidumper.dump(buffer, UString(argv[1])) != U_SUCCESS);
     }
 
-    std::cout << "UEFIDump 0.1.5" << std::endl << std::endl
+    std::cout << "UEFIDump 0.1.6" << std::endl << std::endl
               << "Usage: UEFIDump imagefile" << std::endl;
     return 0;
 }

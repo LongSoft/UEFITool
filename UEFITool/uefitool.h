@@ -134,6 +134,7 @@ private:
     QString currentPath;
     QString currentProgramPath;
     const QString version;
+    bool markingEnabled;
 
     bool enableExtractBodyUncompressed(const QModelIndex &current);
 

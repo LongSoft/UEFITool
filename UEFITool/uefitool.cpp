@@ -17,7 +17,7 @@
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE alpha 44"))
+version(tr("NE alpha 45"))
 {
     clipboard = QApplication::clipboard();
 
@@ -150,6 +150,10 @@ void UEFITool::init()
     delete ffsParser;
     ffsParser = new FfsParser(model);
 
+    // Set proper marking state
+    model->setMarkingEnabled(markingEnabled);
+    ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
+
     // Connect
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
         this, SLOT(populateUi(const QModelIndex &)));
@@ -199,7 +203,7 @@ void UEFITool::populateUi(const QModelIndex &current)
         || type == Types::EvsaEntry 
         || type == Types::FlashMapEntry);
     ui->menuStoreActions->setEnabled(type == Types::VssStore 
-        || type == Types::LenovoVssStore
+        || type == Types::Vss2Store
         || type == Types::FdcStore 
         || type == Types::FsysStore
         || type == Types::EvsaStore 
@@ -631,7 +635,7 @@ void UEFITool::extract(const UINT8 mode)
         case Types::EvsaEntry:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA entry to file"),       name + ".evse", "EVSA entry files (*.evse *.bin);;All files (*)");      break;
         case Types::FlashMapEntry:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap entry to file"),   name + ".fme",  "FlashMap entry files (*.fme *.bin);;All files (*)");   break;
         case Types::VssStore:       path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  "VSS store files (*.vss *.bin);;All files (*)");        break;
-        case Types::LenovoVssStore: path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  "VSS store files (*.vss *.bin);;All files (*)");        break;
+        case Types::Vss2Store:      path = QFileDialog::getSaveFileName(this, tr("Save VSS2 store to file"),       name + ".vss2", "VSS2 store files (*.vss2 *.bin);;All files (*)");      break;
         case Types::FdcStore:       path = QFileDialog::getSaveFileName(this, tr("Save FDC store to file"),        name + ".fdc",  "FDC store files (*.fdc *.bin);;All files (*)");        break;
         case Types::FsysStore:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"),       name + ".fsys", "Fsys store files (*.fsys *.bin);;All files (*)");      break;
         case Types::EvsaStore:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"),       name + ".evsa", "EVSA store files (*.evsa *.bin);;All files (*)");      break;
@@ -672,7 +676,7 @@ void UEFITool::extract(const UINT8 mode)
         case Types::FlashMapEntry:
         case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", "Binary files (*.bin);;All files (*)"); break;
         case Types::VssStore:
-        case Types::LenovoVssStore:
+        case Types::Vss2Store:
         case Types::FtwStore:
         case Types::FdcStore:
         case Types::FsysStore:
@@ -921,6 +925,7 @@ void UEFITool::clearMessages()
 void UEFITool::toggleBootGuardMarking(bool enabled)
 {
     model->setMarkingEnabled(enabled);
+    markingEnabled = enabled;
 }
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
@@ -1041,7 +1046,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::EvsaEntry:
     case Types::FlashMapEntry:  ui->menuEntryActions->exec(event->globalPos());        break;
     case Types::VssStore:
-    case Types::LenovoVssStore:
+    case Types::Vss2Store:
     case Types::FdcStore:
     case Types::FsysStore:
     case Types::EvsaStore:
@@ -1069,6 +1074,7 @@ void UEFITool::readSettings()
     ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
     ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
     ui->structureTreeView->setColumnWidth(3, settings.value("tree/columnWidth3", ui->structureTreeView->columnWidth(3)).toInt());
+    markingEnabled = settings.value("tree/markingEnabled", true).toBool();
 }
 
 void UEFITool::writeSettings()
@@ -1084,6 +1090,7 @@ void UEFITool::writeSettings()
     settings.setValue("tree/columnWidth1", ui->structureTreeView->columnWidth(1));
     settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
     settings.setValue("tree/columnWidth3", ui->structureTreeView->columnWidth(3));
+    settings.setValue("tree/markingEnabled", markingEnabled);
 }
 
 void UEFITool::showFitTable()

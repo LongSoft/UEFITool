@@ -28,6 +28,18 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "parsingdata.h"
 #include "types.h"
 
+#include "nvramparser.h"
+#include "meparser.h"
+
+#ifndef QT_CORE_LIB
+namespace Qt {
+    enum GlobalColor {
+        red = 7,
+        cyan = 10,
+        yellow = 12,
+    };
+}
+#endif
 
 // Region info structure definition
 struct REGION_INFO {
@@ -37,6 +49,30 @@ struct REGION_INFO {
     UByteArray data;
     friend bool operator< (const REGION_INFO & lhs, const REGION_INFO & rhs){ return lhs.offset < rhs.offset; }
 };
+
+// Constructor
+FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
+capsuleOffsetFixup(0), addressDiff(0x100000000ULL),
+bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgFirstVolumeOffset(0x100000000ULL) {
+    nvramParser = new NvramParser(treeModel, this); 
+    meParser = new MeParser(treeModel);
+}
+
+// Destructor
+FfsParser::~FfsParser() {
+    delete nvramParser;
+    delete meParser;
+}
+
+// Obtain parser messages 
+std::vector<std::pair<UString, UModelIndex> > FfsParser::getMessages() const {
+    std::vector<std::pair<UString, UModelIndex> > meVector = meParser->getMessages();
+    std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser->getMessages();
+    std::vector<std::pair<UString, UModelIndex> > resultVector = messagesVector;
+    resultVector.insert(resultVector.end(), meVector.begin(), meVector.end());
+    resultVector.insert(resultVector.end(), nvramVector.begin(), nvramVector.end());
+    return resultVector;
+}
 
 // Firmware image parsing functions
 USTATUS FfsParser::parse(const UByteArray & buffer) 
@@ -286,11 +322,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     }
 
     // BIOS region
-    REGION_INFO bios;
-    bios.type = Subtypes::BiosRegion;
-    bios.offset = 0;
-    bios.length = 0;
     if (regionSection->BiosLimit) {
+        REGION_INFO bios;
+        bios.type = Subtypes::BiosRegion;
         bios.offset = calculateRegionOffset(regionSection->BiosBase);
         bios.length = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
 
@@ -317,93 +351,22 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         return U_INVALID_FLASH_DESCRIPTOR;
     }
 
-    // GbE region
-    REGION_INFO gbe;
-    gbe.type = Subtypes::GbeRegion;
-    gbe.offset = 0;
-    gbe.length = 0;
-    if (regionSection->GbeLimit) {
-        gbe.offset = calculateRegionOffset(regionSection->GbeBase);
-        gbe.length = calculateRegionSize(regionSection->GbeBase, regionSection->GbeLimit);
-        gbe.data = intelImage.mid(gbe.offset, gbe.length);
-        regions.push_back(gbe);
-    }
+    // Add all other regions
+    for (UINT8 i = Subtypes::GbeRegion; i <= Subtypes::PttRegion; i++) {
+        if (descriptorVersion == 1 && i == Subtypes::MicrocodeRegion)
+            break; // Do not parse Microcode and other following regions for old descriptors 
 
-    // PDR region
-    REGION_INFO pdr;
-    pdr.type = Subtypes::PdrRegion;
-    pdr.offset = 0;
-    pdr.length = 0;
-    if (regionSection->PdrLimit) {
-        pdr.offset = calculateRegionOffset(regionSection->PdrBase);
-        pdr.length = calculateRegionSize(regionSection->PdrBase, regionSection->PdrLimit);
-        pdr.data = intelImage.mid(pdr.offset, pdr.length);
-        regions.push_back(pdr);
-    }
-
-    // Reserved1 region
-    REGION_INFO reserved1;
-    reserved1.type = Subtypes::Reserved1Region;
-    reserved1.offset = 0;
-    reserved1.length = 0;
-    if (regionSection->Reserved1Limit && regionSection->Reserved1Base != 0xFFFF && regionSection->Reserved1Limit != 0xFFFF) {
-        reserved1.offset = calculateRegionOffset(regionSection->Reserved1Base);
-        reserved1.length = calculateRegionSize(regionSection->Reserved1Base, regionSection->Reserved1Limit);
-        reserved1.data = intelImage.mid(reserved1.offset, reserved1.length);
-        regions.push_back(reserved1);
-    }
-
-    // Reserved2 region
-    REGION_INFO reserved2;
-    reserved2.type = Subtypes::Reserved2Region;
-    reserved2.offset = 0;
-    reserved2.length = 0;
-    if (regionSection->Reserved2Limit && regionSection->Reserved2Base != 0xFFFF && regionSection->Reserved2Limit != 0xFFFF) {
-        reserved2.offset = calculateRegionOffset(regionSection->Reserved2Base);
-        reserved2.length = calculateRegionSize(regionSection->Reserved2Base, regionSection->Reserved2Limit);
-        reserved2.data = intelImage.mid(reserved2.offset, reserved2.length);
-        regions.push_back(reserved2);
-    }
-
-    // Reserved3 region
-    REGION_INFO reserved3;
-    reserved3.type = Subtypes::Reserved3Region;
-    reserved3.offset = 0;
-    reserved3.length = 0;
-
-    // EC region
-    REGION_INFO ec;
-    ec.type = Subtypes::EcRegion;
-    ec.offset = 0;
-    ec.length = 0;
-
-    // Reserved4 region
-    REGION_INFO reserved4;
-    reserved3.type = Subtypes::Reserved4Region;
-    reserved4.offset = 0;
-    reserved4.length = 0;
-
-    // Check for EC and reserved region 4 only for v2 descriptor
-    if (descriptorVersion == 2) {
-        if (regionSection->Reserved3Limit) {
-            reserved3.offset = calculateRegionOffset(regionSection->Reserved3Base);
-            reserved3.length = calculateRegionSize(regionSection->Reserved3Base, regionSection->Reserved3Limit);
-            reserved3.data = intelImage.mid(reserved3.offset, reserved3.length);
-            regions.push_back(reserved3);
-        }
-
-        if (regionSection->EcLimit) {
-            ec.offset = calculateRegionOffset(regionSection->EcBase);
-            ec.length = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
-            ec.data = intelImage.mid(ec.offset, ec.length);
-            regions.push_back(ec);
-        }
-    
-        if (regionSection->Reserved4Limit) {
-            reserved4.offset = calculateRegionOffset(regionSection->Reserved4Base);
-            reserved4.length = calculateRegionSize(regionSection->Reserved4Base, regionSection->Reserved4Limit);
-            reserved4.data = intelImage.mid(reserved4.offset, reserved4.length);
-            regions.push_back(reserved4);
+        const UINT16* RegionBase = ((const UINT16*)regionSection) + 2 * i;
+        const UINT16* RegionLimit = ((const UINT16*)regionSection) + 2 * i + 1;
+        if (*RegionLimit && !(*RegionBase == 0xFFFF && *RegionLimit == 0xFFFF)) {
+            REGION_INFO region;
+            region.type = i;
+            region.offset = calculateRegionOffset(*RegionBase);
+            region.length = calculateRegionSize(*RegionBase, *RegionLimit);
+            if (region.length != 0) {
+                region.data = intelImage.mid(region.offset, region.length);
+                regions.push_back(region);
+            }
         }
     }
 
@@ -556,10 +519,10 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const VSCC_TABLE_ENTRY* vsccTableEntry = (const VSCC_TABLE_ENTRY*)(descriptor + ((UINT16)upperMap->VsccTableBase << 4));
     info += UString("\nFlash chips in VSCC table:");
     UINT8 vsscTableSize = upperMap->VsccTableSize * sizeof(UINT32) / sizeof(VSCC_TABLE_ENTRY);
+    UString jedecId = jedecIdToUString(vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1);
     for (UINT8 i = 0; i < vsscTableSize; i++) {
-        info += usprintf("\n%02X%02X%02X (",
-            vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1)
-            + jedecIdToUString(vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1) 
+        info += usprintf("\n%02X%02X%02X (", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1)
+            + jedecId
             + UString(")");
         vsccTableEntry++;
     }
@@ -567,6 +530,11 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Add descriptor tree item
     UModelIndex regionIndex = model->addItem(localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
     
+    // Show messages
+    if (jedecId == UString("Unknown")) {
+        msg(usprintf("SPI flash with unknown JEDEC ID %02X%02X%02X found in VSCC table", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1), regionIndex);
+    }
+
     // Parse regions
     UINT8 result = U_SUCCESS;
     UINT8 parseResult = U_SUCCESS;
@@ -585,12 +553,18 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         case Subtypes::PdrRegion:
             result = parsePdrRegion(region.data, region.offset, index, regionIndex);
             break;
+        case Subtypes::DevExp1Region:
+        case Subtypes::Bios2Region:
+        case Subtypes::MicrocodeRegion:
+        case Subtypes::EcRegion:
+        case Subtypes::DevExp2Region:
+        case Subtypes::IeRegion:
+        case Subtypes::Tgbe1Region:
+        case Subtypes::Tgbe2Region:
         case Subtypes::Reserved1Region:
         case Subtypes::Reserved2Region:
-        case Subtypes::Reserved3Region:
-        case Subtypes::EcRegion:
-        case Subtypes::Reserved4Region:
-            result = parseGeneralRegion(region.type, region.data, region.offset, index, regionIndex);
+        case Subtypes::PttRegion:
+            result = parseGenericRegion(region.type, region.data, region.offset, index, regionIndex);
             break;
         case Subtypes::ZeroPadding:
         case Subtypes::OnePadding:
@@ -702,7 +676,7 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
         msg(UString("parseMeRegion: ME version is unknown, it can be damaged"), index);
     }
     else {
-        meParser.parseMeRegionBody(index);
+        meParser->parseMeRegionBody(index);
     }
 
     return U_SUCCESS;
@@ -729,7 +703,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseGeneralRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
     // Check sanity
     if (region.isEmpty())
@@ -1184,7 +1158,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Parse VSS NVRAM volumes with a dedicated function
     if (model->subtype(index) == Subtypes::NvramVolume)
-        return nvramParser.parseNvramVolumeBody(index);
+        return nvramParser->parseNvramVolumeBody(index);
 
     // Get required values from parsing data
     UINT8 emptyByte = 0xFF;
@@ -1351,7 +1325,7 @@ UINT32 FfsParser::getFileSize(const UByteArray & volume, const UINT32 fileOffset
             return 0;
         const EFI_FFS_FILE_HEADER2* fileHeader = (const EFI_FFS_FILE_HEADER2*)(volume.constData() + fileOffset);
         if (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)
-            return fileHeader->ExtendedSize;
+            return (UINT32) fileHeader->ExtendedSize;
         else
             return uint24ToUint32(fileHeader->Size);
     }
@@ -1384,17 +1358,24 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
 
     // Get file header
     UByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
-    const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)header.constData();
-    if (ffsVersion == 3 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
+    bool largeFile = false;
+    EFI_FFS_FILE_HEADER* tempFileHeader = (EFI_FFS_FILE_HEADER*)header.data();
+    if (ffsVersion == 3 && (tempFileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
         if ((UINT32)file.size() < sizeof(EFI_FFS_FILE_HEADER2))
             return U_INVALID_FILE;
         header = file.left(sizeof(EFI_FFS_FILE_HEADER2));
+        largeFile = true;
     }
+    const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)header.constData();
 
     // Check file alignment
     bool msgUnalignedFile = false;
     UINT8 alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
-    UINT32 alignment = (UINT32)pow(2.0, alignmentPower);
+    if (volumeRevision > 1 && (fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT2)) {
+        alignmentPower = ffsAlignment2Table[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
+    }  
+       
+    UINT32 alignment = (UINT32)(1UL << alignmentPower);
     if ((localOffset + header.size()) % alignment)
         msgUnalignedFile = true;
 
@@ -1402,45 +1383,6 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     bool msgFileAlignmentIsGreaterThanVolumeAlignment = false;
     if (!isWeakAligned && volumeAlignment < alignment)
         msgFileAlignmentIsGreaterThanVolumeAlignment = true;
-
-    // Check header checksum
-    UByteArray tempHeader = header;
-    EFI_FFS_FILE_HEADER* tempFileHeader = (EFI_FFS_FILE_HEADER*)(tempHeader.data());
-    tempFileHeader->IntegrityCheck.Checksum.Header = 0;
-    tempFileHeader->IntegrityCheck.Checksum.File = 0;
-    UINT8 calculatedHeader = calculateChecksum8((const UINT8*)tempFileHeader, header.size() - 1);
-    bool msgInvalidHeaderChecksum = false;
-    if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader)
-        msgInvalidHeaderChecksum = true;
-
-    // Check data checksum
-    // Data checksum must be calculated
-    bool msgInvalidDataChecksum = false;
-    UINT8 calculatedData = 0;
-    if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
-        UINT32 bufferSize = file.size() - header.size();
-        // Exclude file tail from data checksum calculation
-        if (volumeRevision == 1 && (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT))
-            bufferSize -= sizeof(UINT16);
-        calculatedData = calculateChecksum8((const UINT8*)(file.constData() + header.size()), bufferSize);
-        if (fileHeader->IntegrityCheck.Checksum.File != calculatedData)
-            msgInvalidDataChecksum = true;
-    }
-    // Data checksum must be one of predefined values
-    else if (volumeRevision == 1 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM) {
-        calculatedData = FFS_FIXED_CHECKSUM;
-        msgInvalidDataChecksum = true;
-    }
-    else if (volumeRevision == 2 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM2) {
-        calculatedData = FFS_FIXED_CHECKSUM2;
-        msgInvalidDataChecksum = true;
-    }
-
-    // Check file type
-    bool msgUnknownType = false;
-    if (fileHeader->Type > EFI_FV_FILETYPE_MM_CORE_STANDALONE && fileHeader->Type != EFI_FV_FILETYPE_PAD) {
-        msgUnknownType = true;
-    };
 
     // Get file body
     UByteArray body = file.mid(header.size());
@@ -1458,6 +1400,36 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         tail = body.right(sizeof(UINT16));
         body = body.left(body.size() - sizeof(UINT16));
     }
+
+    // Check header checksum
+    UINT8 calculatedHeader = 0x100 - (calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->IntegrityCheck.Checksum.Header - fileHeader->IntegrityCheck.Checksum.File - fileHeader->State);
+    bool msgInvalidHeaderChecksum = false;
+    if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader)
+        msgInvalidHeaderChecksum = true;
+
+    // Check data checksum
+    // Data checksum must be calculated
+    bool msgInvalidDataChecksum = false;
+    UINT8 calculatedData = 0;
+    if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
+        calculatedData = calculateChecksum8((const UINT8*)body.constData(), body.size());
+    }
+    // Data checksum must be one of predefined values
+    else if (volumeRevision == 1) {
+        calculatedData = FFS_FIXED_CHECKSUM;
+    }
+    else {
+        calculatedData = FFS_FIXED_CHECKSUM2;
+    }
+
+    if (fileHeader->IntegrityCheck.Checksum.File != calculatedData)
+        msgInvalidDataChecksum = true;
+
+    // Check file type
+    bool msgUnknownType = false;
+    if (fileHeader->Type > EFI_FV_FILETYPE_MM_CORE_STANDALONE && fileHeader->Type != EFI_FV_FILETYPE_PAD) {
+        msgUnknownType = true;
+    };
 
     // Get info
     UString name;
@@ -1492,9 +1464,9 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         text = UString("Volume Top File");
     }
     // Check if the file is the first DXE Core
-    else if (fileGuid == EFI_DXE_CORE_GUID) {
-        // Mark is as first DXE code
-        // This information may be used to determine DXE volume offset for old AMI protected ranges
+    else if (fileGuid == EFI_DXE_CORE_GUID || fileGuid == AMI_CORE_DXE_GUID) {
+        // Mark is as first DXE core
+        // This information may be used to determine DXE volume offset for old AMI or post-IBB protected ranges
         isDxeCore = true;
     }
 
@@ -1579,7 +1551,7 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
 
         // Parse NVAR store
         if (fileGuid == NVRAM_NVAR_STORE_FILE_GUID)
-            return nvramParser.parseNvarStore(index);
+            return nvramParser->parseNvarStore(index);
 
         // Parse vendor hash file
         else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX)
@@ -2699,7 +2671,7 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
     }
     else if (parentFileGuid == NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID) { // AMI NVRAM external defaults
         // Parse NVAR area
-       nvramParser.parseNvarStore(index);
+       nvramParser->parseNvarStore(index);
 
         // Set parent file text
         model->setText(parentFile, UString("NVRAM external defaults"));
@@ -2708,7 +2680,6 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
         // Parse AMI vendor hash file
         parseVendorHashFile(parentFileGuid, index);
     }
-
 
     // Parse as raw area
     return parseRawArea(index);
@@ -3009,9 +2980,9 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
     UByteArray protectedParts;
     bool bgProtectedRangeFound = false;
     for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
-        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD) {
+        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
             bgProtectedRangeFound = true;
-            bgProtectedRanges[i].Offset -= addressDiff;
+            bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
             protectedParts += openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
         }
@@ -3019,7 +2990,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
     if (bgProtectedRangeFound) {
         UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-        sha256(protectedParts.constData(), protectedParts.length(), digest.data());
+        sha256(protectedParts.constData(), protectedParts.size(), digest.data());
 
         if (digest != bgBpDigest) {
             msg(UString("checkProtectedRanges: BG-protected ranges hash mismatch, opened image may refuse to boot"), index);
@@ -3031,7 +3002,8 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
     // Calculate digests for vendor-protected ranges
     for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
-        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD) {
+        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD 
+            && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF) {
             if (!bgDxeCoreIndex.isValid()) {
                 msg(UString("checkProtectedRanges: can't determine DXE volume offset, old AMI protected range hash can't be checked"), index);
             }
@@ -3046,10 +3018,10 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
                     UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-                    sha256(protectedParts.constData(), protectedParts.length(), digest.data());
+                    sha256(protectedParts.constData(), protectedParts.size(), digest.data());
 
                     if (digest != bgProtectedRanges[i].Hash) {
-                        msg(usprintf("checkProtectedRanges: AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
+                        msg(usprintf("checkProtectedRanges: old AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
                             bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
                             model->findByOffset(bgProtectedRanges[i].Offset));
                     }
@@ -3058,12 +3030,44 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 }
             }
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW) {
-            bgProtectedRanges[i].Offset -= addressDiff;
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB) {
+            if (!bgDxeCoreIndex.isValid()) {
+                msg(UString("checkProtectedRanges: can't determine DXE volume offset, post-IBB protected range hash can't be checked"), index);
+            }
+            else {
+                // Offset will be determined as the offset of root volume with first DXE core
+                UModelIndex dxeRootVolumeIndex = model->findLastParentOfType(bgDxeCoreIndex, Types::Volume);
+                if (!dxeRootVolumeIndex.isValid()) {
+                    msg(UString("checkProtectedRanges: can't determine DXE volume offset, post-IBB protected range hash can't be checked"), index);
+                }
+                else
+                {
+                    bgProtectedRanges[i].Offset = model->offset(dxeRootVolumeIndex);
+                    bgProtectedRanges[i].Size = model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size();
+                    protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+
+                    UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
+                    sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+
+                    if (digest != bgProtectedRanges[i].Hash) {
+                        msg(usprintf("checkProtectedRanges: post-IBB protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
+                            bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
+                            model->findByOffset(bgProtectedRanges[i].Offset));
+                    }
+
+                    markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+                }
+            }
+        }
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW 
+            && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
+            && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
+
+            bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
             protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
             UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-            sha256(protectedParts.constData(), protectedParts.length(), digest.data());
+            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
 
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("checkProtectedRanges: AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
@@ -3073,12 +3077,14 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX) {
-            bgProtectedRanges[i].Offset += bgFirstVolumeOffset;
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX
+            && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
+            && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
+            bgProtectedRanges[i].Offset += (UINT32)bgFirstVolumeOffset;
             protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
             UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-            sha256(protectedParts.constData(), protectedParts.length(), digest.data());
+            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
 
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("checkProtectedRanges: Phoenix protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
@@ -3088,12 +3094,14 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT) {
-            bgProtectedRanges[i].Offset -= addressDiff;
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT 
+            && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
+            && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
+            bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
             protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
             UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-            sha256(protectedParts.constData(), protectedParts.length(), digest.data());
+            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
 
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("checkProtectedRanges: Microsoft protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot",
@@ -3125,7 +3133,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
 
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
-                model->setMarking(index, range.Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD ? Qt::red : Qt::cyan);
+                model->setMarking(index, range.Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB ? Qt::red : Qt::cyan);
             }
             else { // Mark as partially in range
                 model->setMarking(index, Qt::yellow);
@@ -3579,6 +3587,15 @@ USTATUS FfsParser::parseIntelBootGuardKeyManifest(const UByteArray & keyManifest
                     header->KmSvn,
                     header->KmId
                     );
+
+                // Add hash of Key Manifest PubKey, this hash will be written to FPFs
+                UINT8 hash[SHA256_DIGEST_SIZE];
+                sha256(&header->KeyManifestSignature.PubKey.Modulus, sizeof(header->KeyManifestSignature.PubKey.Modulus), hash);
+                bootGuardInfo += UString("\n\nKey Manifest RSA Public Key Hash:\n");
+                for (UINT8 i = 0; i < sizeof(hash); i++) {
+                    bootGuardInfo += usprintf("%02X", hash[i]);
+                }
+
                 // Add BpKeyHash
                 bootGuardInfo += UString("\n\nBoot Policy RSA Public Key Hash:\n");
                 for (UINT8 i = 0; i < sizeof(header->BpKeyHash.HashBuffer); i++) {
@@ -3702,11 +3719,22 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                             elementHeader->PmrlLimit,
                             elementHeader->EntryPoint
                             );
+
                         // Add PostIbbHash
                         bootGuardInfo += UString("\n\nPost IBB Hash:\n");
                         for (UINT8 i = 0; i < sizeof(elementHeader->IbbHash.HashBuffer); i++) {
                             bootGuardInfo += usprintf("%02X", elementHeader->IbbHash.HashBuffer[i]);
                         }
+
+                        // Check for non-empry PostIbbHash
+                        UByteArray postIbbHash((const char*)elementHeader->IbbHash.HashBuffer, sizeof(elementHeader->IbbHash.HashBuffer));
+                        if (postIbbHash.count('\x00') != postIbbHash.size() && postIbbHash.count('\xFF') != postIbbHash.size()) {
+                            BG_PROTECTED_RANGE range;
+                            range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
+                            range.Hash = postIbbHash;
+                            bgProtectedRanges.push_back(range);
+                        }
+
                         // Add Digest
                         bgBpDigest = UByteArray((const char*)elementHeader->Digest.HashBuffer, sizeof(elementHeader->Digest.HashBuffer));
                         bootGuardInfo += UString("\n\nIBB Digest:\n");
@@ -3724,7 +3752,7 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                                 BG_PROTECTED_RANGE range;
                                 range.Offset = segments[i].Base;
                                 range.Size = segments[i].Size;
-                                range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD;
+                                range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB;
                                 bgProtectedRanges.push_back(range);
                             }
                         }

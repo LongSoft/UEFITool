@@ -288,7 +288,7 @@ UINT8                   Type;
 UINT8                   Attributes;
 UINT8                   Size[3]; // Set to 0xFFFFFF
 UINT8                   State;
-UINT32                  ExtendedSize;
+UINT64                  ExtendedSize;
 } EFI_FFS_FILE_HEADER2;
 
 // Standard data checksum, used if FFS_ATTRIB_CHECKSUM is clear
@@ -324,12 +324,17 @@ UINT32                  ExtendedSize;
 #define FFS_ATTRIB_TAIL_PRESENT       0x01 // Valid only for revision 1 volumes
 #define FFS_ATTRIB_RECOVERY           0x02 // Valid only for revision 1 volumes
 #define FFS_ATTRIB_LARGE_FILE         0x01 // Valid only for FFSv3 volumes
+#define FFS_ATTRIB_DATA_ALIGNMENT2    0x02 // Volaid only for revision 2 volumes, added in UEFI PI 1.6
 #define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
 
 // FFS alignment table
 extern const UINT8 ffsAlignmentTable[];
+
+// Extended FFS alignment table, added in UEFI PI 1.6
+extern const UINT8 ffsAlignment2Table[];
+
 
 // File states
 #define EFI_FILE_HEADER_CONSTRUCTION    0x01
@@ -338,7 +343,7 @@ extern const UINT8 ffsAlignmentTable[];
 #define EFI_FILE_MARKED_FOR_UPDATE      0x08
 #define EFI_FILE_DELETED                0x10
 #define EFI_FILE_HEADER_INVALID         0x20
-#define EFI_FILE_ERASE_POLARITY         0x80 // Defined as "all other bits must be set to ERASE_POLARITY" in UEFI PI Vol3
+#define EFI_FILE_ERASE_POLARITY         0x80 // Defined as "all other bits must be set to ERASE_POLARITY" in UEFI PI
 
 // PEI apriori file
 const UByteArray EFI_PEI_APRIORI_FILE_GUID
@@ -356,9 +361,13 @@ const UByteArray EFI_FFS_VOLUME_TOP_FILE_GUID
 const UByteArray EFI_FFS_PAD_FILE_GUID
 ("\x85\x65\x53\xE4\x09\x79\x60\x4A\xB5\xC6\xEC\xDE\xA6\xEB\xFB\x54", 16);
 
-// DXE core file
-const UByteArray EFI_DXE_CORE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
+// AMI DXE core file
+const UByteArray AMI_CORE_DXE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
 ("\x7E\xF3\xE3\x5A\xAE\x4E\xAE\x41\x82\x40\x35\x46\x5B\x5E\x81\xEB", 16);
+
+// EDK2 DXE code file
+const UByteArray EFI_DXE_CORE_GUID // D6A2CB7F-6A18-4E2F-B43B-9920A733700A
+("\x7F\xCB\xA2\xD6\x18\x6A\x2F\x4E\xB4\x3B\x99\x20\xA7\x33\x70\x0A", 16);
 
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);

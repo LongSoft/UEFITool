@@ -21,13 +21,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ustring.h"
 #include "ubytearray.h"
 #include "treemodel.h"
+#include "ffsparser.h"
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
 class NvramParser 
 {
 public:
     // Default constructor and destructor
-    NvramParser(TreeModel* treeModel) : model(treeModel) {}
+    NvramParser(TreeModel* treeModel, FfsParser* parser) : model(treeModel), ffsParser(parser) {}
     ~NvramParser() {}
 
     // Returns messages 
@@ -41,6 +42,7 @@ public:
     
 private:
     TreeModel *model;
+    FfsParser *ffsParser;
     std::vector<std::pair<UString, UModelIndex> > messagesVector;
     void msg(const UString message, const UModelIndex index = UModelIndex()) {
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
@@ -50,8 +52,8 @@ private:
     USTATUS getStoreSize(const UByteArray & data, const UINT32 storeOffset, UINT32 & storeSize);
     USTATUS parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
-    USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseLenovoVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseVss2StoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFtwStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFdcStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFsysStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
@@ -62,6 +64,7 @@ private:
     USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
+    USTATUS parseFdcStoreBody(const UModelIndex & index);
     USTATUS parseVssStoreBody(const UModelIndex & index, const UINT8 alignment);
     USTATUS parseFsysStoreBody(const UModelIndex & index);
     USTATUS parseEvsaStoreBody(const UModelIndex & index);
@@ -72,7 +75,7 @@ class NvramParser
 {
 public:
     // Default constructor and destructor
-    NvramParser(TreeModel* treeModel) { U_UNUSED_PARAMETER(treeModel); }
+    NvramParser(TreeModel* treeModel, FfsParser* parser) { U_UNUSED_PARAMETER(treeModel); U_UNUSED_PARAMETER(parser); }
     ~NvramParser() {}
 
     // Returns messages 

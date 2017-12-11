@@ -34,6 +34,9 @@ USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, U
 // CRC32 calculation routine
 UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
 
+// 8bit sum calculation routine
+UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize);
+
 // 8bit checksum calculation routine
 UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize);
 

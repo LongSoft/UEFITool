@@ -1,6 +1,6 @@
 /* ffsparser.h
 
-Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2017, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -19,8 +19,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ustring.h"
 #include "ubytearray.h"
 #include "treemodel.h"
-#include "nvramparser.h"
-#include "meparser.h"
 #include "bootguard.h"
 
 typedef struct BG_PROTECTED_RANGE_
@@ -31,31 +29,25 @@ typedef struct BG_PROTECTED_RANGE_
     UByteArray Hash;
 } BG_PROTECTED_RANGE;
 
-#define BG_PROTECTED_RANGE_INTEL_BOOT_GUARD      0x01
-#define BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX   0x02
-#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD   0x03
-#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW   0x04
-#define BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT 0x05
+#define BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB      0x01
+#define BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB 0x02
+#define BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX       0x03
+#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD       0x04
+#define BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW       0x05
+#define BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT     0x06
+
+class NvramParser;
+class MeParser;
 
 class FfsParser
 {
 public:
-    // Default constructor and destructor
-    FfsParser(TreeModel* treeModel) : model(treeModel), nvramParser(treeModel), meParser(treeModel), 
-        capsuleOffsetFixup(0), addressDiff(0x100000000ULL), 
-        bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgFirstVolumeOffset(0x100000000ULL) {}
-    ~FfsParser() {}
+    // Constructor and destructor
+    FfsParser(TreeModel* treeModel);
+    ~FfsParser();
 
     // Obtain parser messages 
-    std::vector<std::pair<UString, UModelIndex> > getMessages() const { 
-        std::vector<std::pair<UString, UModelIndex> > meVector = meParser.getMessages();
-        std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser.getMessages();
-        std::vector<std::pair<UString, UModelIndex> > resultVector = messagesVector;
-        resultVector.insert(resultVector.end(), meVector.begin(), meVector.end());
-        resultVector.insert(resultVector.end(), nvramVector.begin(), nvramVector.end());
-        return resultVector;
-    }
-
+    std::vector<std::pair<UString, UModelIndex> > getMessages() const;
     // Clear messages
     void clearMessages() { messagesVector.clear(); }
 
@@ -78,8 +70,8 @@ private:
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 
-    NvramParser nvramParser;
-    MeParser meParser;
+    NvramParser* nvramParser;
+    MeParser* meParser;
  
     UByteArray openedImage;
     UModelIndex lastVtf;
@@ -114,7 +106,7 @@ private:
     USTATUS parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseGeneralRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parsePadFileBody(const UModelIndex & index);
     USTATUS parseVolumeNonUefiData(const UByteArray & data, const UINT32 localOffset, const UModelIndex & index);
@@ -162,6 +154,10 @@ private:
     USTATUS parseIntelBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
+#endif
+
+#ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
+    friend class NvramParser; // Make FFS parsing routines accessible to NvramParser
 #endif
 };
 

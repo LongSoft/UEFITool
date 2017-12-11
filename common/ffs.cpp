@@ -32,6 +32,9 @@ const std::vector<UByteArray> FFSv3Volumes(1, EFI_FIRMWARE_FILE_SYSTEM3_GUID);
 const UINT8 ffsAlignmentTable[] =
 { 0, 4, 7, 9, 10, 12, 15, 16 };
 
+const UINT8 ffsAlignment2Table[] =
+{ 17, 18, 19, 20, 21, 22, 23, 24 };
+
 VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 {
     ffsSize[2] = (UINT8)((size) >> 16);

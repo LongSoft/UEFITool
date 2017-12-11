@@ -25,7 +25,9 @@ enum ItemFixedState {
 #include <QModelIndex>
 #include <QVariant>
 #include <QObject>
+#if defined(QT_GUI_LIB)
 #include <QBrush>
+#endif
 
 #include "ustring.h"
 #include "ubytearray.h"
@@ -86,15 +88,15 @@ class TreeModel : public QAbstractItemModel
 {
     Q_OBJECT
 private:
-    bool markingEnabled;
     TreeItem *rootItem;
+    bool markingEnabledFlag;
 
 public:
     QVariant data(const UModelIndex &index, int role) const;
     Qt::ItemFlags flags(const UModelIndex &index) const;
     QVariant headerData(int section, Qt::Orientation orientation,
         int role = Qt::DisplayRole) const;
-    TreeModel(QObject *parent = 0) : QAbstractItemModel(parent), markingEnabled(true) {
+    TreeModel(QObject *parent = 0) : QAbstractItemModel(parent), markingEnabledFlag(true) {
         rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), true, false);
     }
 
@@ -105,6 +107,8 @@ class TreeModel
 {
 private:
     TreeItem *rootItem;
+    bool markingEnabledFlag;
+
     void dataChanged(const UModelIndex &, const UModelIndex &) {}
     void layoutAboutToBeChanged() {}
     void layoutChanged() {}
@@ -130,6 +134,9 @@ public:
         delete rootItem;
     }
 
+    bool markingEnabled() { return markingEnabledFlag; }
+    void setMarkingEnabled(const bool enabled);
+
     UModelIndex index(int row, int column, const UModelIndex &parent = UModelIndex()) const;
     UModelIndex parent(const UModelIndex &index) const;
     int rowCount(const UModelIndex &parent = UModelIndex()) const;
@@ -145,7 +152,6 @@ public:
     void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
     void setFixed(const UModelIndex &index, const bool fixed);
     void setCompressed(const UModelIndex &index, const bool compressed);
-    void setMarkingEnabled(const bool enabled);
     void setMarking(const UModelIndex &index, const UINT8 marking);
     
     UINT32 offset(const UModelIndex &index) const;
@@ -163,7 +169,6 @@ public:
     bool fixed(const UModelIndex &index) const;
     bool compressed(const UModelIndex &index) const;
     UINT8 marking(const UModelIndex &index) const;
-
     UINT8 action(const UModelIndex &index) const;
 
     UByteArray parsingData(const UModelIndex &index) const;

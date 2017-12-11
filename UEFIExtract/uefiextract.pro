@@ -26,6 +26,7 @@ SOURCES += \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/Tiano/EfiTianoDecompress.c \
  ../common/ustring.cpp
+ ../common/sha256.c
 
 HEADERS += \
  ffsdumper.h \

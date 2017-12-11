@@ -193,13 +193,19 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
                     return result;
                 }
                 break;
-            case Subtypes::GbeRegion:
             case Subtypes::MeRegion:
+            case Subtypes::GbeRegion:
+            case Subtypes::DevExp1Region:
+            case Subtypes::Bios2Region:
+            case Subtypes::MicrocodeRegion:
             case Subtypes::EcRegion:
+            case Subtypes::DevExp2Region:
+            case Subtypes::IeRegion:
+            case Subtypes::Tgbe1Region:
+            case Subtypes::Tgbe2Region:
             case Subtypes::Reserved1Region:
             case Subtypes::Reserved2Region:
-            case Subtypes::Reserved3Region:
-            case Subtypes::Reserved4Region:
+            case Subtypes::PttRegion:
                 // Add region as is
                 region = model->header(currentRegion).append(model->body(currentRegion));
                 break;

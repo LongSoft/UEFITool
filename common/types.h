@@ -44,7 +44,7 @@ namespace Types {
         Section,
         FreeSpace,
         VssStore,
-        LenovoVssStore,
+        Vss2Store,
         FtwStore,
         FdcStore,
         FsysStore,
@@ -87,11 +87,17 @@ namespace Subtypes {
         MeRegion,
         GbeRegion,
         PdrRegion,
+        DevExp1Region,
+        Bios2Region,
+        MicrocodeRegion,
+        EcRegion,
+        DevExp2Region,
+        IeRegion,
+        Tgbe1Region,
+        Tgbe2Region,
         Reserved1Region,
         Reserved2Region,
-        Reserved3Region,
-        EcRegion,
-        Reserved4Region
+        PttRegion
     };
 
     enum PaddingSubtypes {

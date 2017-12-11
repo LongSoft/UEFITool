@@ -26,11 +26,13 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     if (role == Qt::DisplayRole) {
         return (const char*)item->data(index.column()).toLocal8Bit();
     }
+#if defined (QT_GUI_LIB)
     else if (role == Qt::BackgroundRole) {
-        if (markingEnabled && marking(index) > 0) {
+        if (markingEnabledFlag && marking(index) > 0) {
             return QBrush((Qt::GlobalColor)marking(index));
         }
     }
+#endif
     else if (role == Qt::UserRole) {
         return (const char*)item->info().toLocal8Bit();
     }
@@ -50,18 +52,12 @@ QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
     int role) const
 {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
-        switch (section)
-        {
-        case 0:
-            return tr("Name");
-        case 1:
-            return tr("Action");
-        case 2:
-            return tr("Type");
-        case 3:
-            return tr("Subtype");
-        case 4:
-            return tr("Text");
+        switch (section) {
+        case 0: return tr("Name");
+        case 1: return tr("Action");
+        case 2: return tr("Type");
+        case 3: return tr("Subtype");
+        case 4: return tr("Text");
         }
     }
 
@@ -90,16 +86,11 @@ UString TreeModel::headerData(int section, int orientation,
     if (orientation == 1 && role == 0) {
         switch (section)
         {
-        case 0:
-            return UString("Name");
-        case 1:
-            return UString("Action");
-        case 2:
-            return UString("Type");
-        case 3:
-            return UString("Subtype");
-        case 4:
-            return UString("Text");
+        case 0: return UString("Name");
+        case 1: return UString("Action");
+        case 2: return UString("Type");
+        case 3: return UString("Subtype");
+        case 4: return UString("Text");
         }
     }
 
@@ -330,7 +321,9 @@ void TreeModel::setCompressed(const UModelIndex &index, const bool compressed)
 
 void TreeModel::TreeModel::setMarkingEnabled(const bool enabled) 
 { 
-    markingEnabled = enabled; emit dataChanged(QModelIndex(), QModelIndex());
+    markingEnabledFlag = enabled;
+    
+    emit dataChanged(UModelIndex(), UModelIndex());
 }
 
 void TreeModel::setMarking(const UModelIndex &index, const UINT8 marking)

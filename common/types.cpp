@@ -23,11 +23,17 @@ UString regionTypeToUString(const UINT8 type)
     case Subtypes::MeRegion:          return UString("ME");
     case Subtypes::GbeRegion:         return UString("GbE");
     case Subtypes::PdrRegion:         return UString("PDR");
+    case Subtypes::DevExp1Region:     return UString("DevExp1");
+    case Subtypes::Bios2Region:       return UString("BIOS2");
+    case Subtypes::MicrocodeRegion:   return UString("Microcode");
+    case Subtypes::EcRegion:          return UString("EC");
+    case Subtypes::DevExp2Region:     return UString("DevExp2");
+    case Subtypes::IeRegion:          return UString("IE");
+    case Subtypes::Tgbe1Region:       return UString("10GbE1");
+    case Subtypes::Tgbe2Region:       return UString("10GbE2");
     case Subtypes::Reserved1Region:   return UString("Reserved1");
     case Subtypes::Reserved2Region:   return UString("Reserved2");
-    case Subtypes::Reserved3Region:   return UString("Reserved3");
-    case Subtypes::EcRegion:          return UString("EC");
-    case Subtypes::Reserved4Region:   return UString("Reserved4");
+    case Subtypes::PttRegion:         return UString("PTT");
     };
 
     return  UString("Unknown");
@@ -46,7 +52,7 @@ UString itemTypeToUString(const UINT8 type)
     case Types::Section:        return UString("Section");
     case Types::FreeSpace:      return UString("Free space");
     case Types::VssStore:       return UString("VSS store");
-    case Types::LenovoVssStore: return UString("Lenovo VSS store");
+    case Types::Vss2Store:      return UString("VSS2 store");
     case Types::FtwStore:       return UString("FTW store");
     case Types::FdcStore:       return UString("FDC store");
     case Types::FsysStore:      return UString("Fsys store");
@@ -71,7 +77,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
     case Types::Root:
     case Types::FreeSpace:
     case Types::VssStore:
-    case Types::LenovoVssStore:
+    case Types::Vss2Store:
     case Types::FdcStore:
     case Types::FsysStore:
     case Types::EvsaStore:
@@ -149,7 +155,7 @@ UString compressionTypeToUString(const UINT8 algorithm)
     case COMPRESSION_ALGORITHM_TIANO:        return UString("Tiano");
     case COMPRESSION_ALGORITHM_UNDECIDED:    return UString("Undecided Tiano/EFI 1.1");
     case COMPRESSION_ALGORITHM_LZMA:         return UString("LZMA");
-    case COMPRESSION_ALGORITHM_IMLZMA:       return UString("Intel modified LZMA");
+    case COMPRESSION_ALGORITHM_IMLZMA:       return UString("Intel LZMA");
     }
 
     return UString("Unknown");
@@ -173,16 +179,17 @@ UString actionTypeToUString(const UINT8 action)
 UString fitEntryTypeToUString(const UINT8 type)
 {
     switch (type & 0x7F) {
-    case FIT_TYPE_HEADER:           return ("FIT Header");
-    case FIT_TYPE_MICROCODE:        return ("Microcode");
-    case FIT_TYPE_BIOS_AC_MODULE:   return ("BIOS ACM");
-    case FIT_TYPE_BIOS_INIT_MODULE: return ("BIOS Init");
-    case FIT_TYPE_TPM_POLICY:       return ("TPM Policy");
-    case FIT_TYPE_BIOS_POLICY_DATA: return ("BIOS Policy Data");
-    case FIT_TYPE_TXT_CONF_POLICY:  return ("TXT Configuration Policy");
-    case FIT_TYPE_AC_KEY_MANIFEST:  return ("BootGuard Key Manifest");
-    case FIT_TYPE_AC_BOOT_POLICY:   return ("BootGuard Boot Policy");
-    case FIT_TYPE_EMPTY:            return ("Empty");
-    default:                        return ("Unknown");
+    case FIT_TYPE_HEADER:           return UString("FIT Header");
+    case FIT_TYPE_MICROCODE:        return UString("Microcode");
+    case FIT_TYPE_BIOS_AC_MODULE:   return UString("BIOS ACM");
+    case FIT_TYPE_BIOS_INIT_MODULE: return UString("BIOS Init");
+    case FIT_TYPE_TPM_POLICY:       return UString("TPM Policy");
+    case FIT_TYPE_BIOS_POLICY_DATA: return UString("BIOS Policy Data");
+    case FIT_TYPE_TXT_CONF_POLICY:  return UString("TXT Configuration Policy");
+    case FIT_TYPE_AC_KEY_MANIFEST:  return UString("BootGuard Key Manifest");
+    case FIT_TYPE_AC_BOOT_POLICY:   return UString("BootGuard Boot Policy");
+    case FIT_TYPE_EMPTY:            return UString("Empty");
     }
+
+    return UString("Unknown");
 }
