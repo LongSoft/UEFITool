@@ -4316,6 +4316,13 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
 
         // Run this relocation record
         while (Reloc < RelocEnd) {
+
+            if (!*Reloc) {
+                //skip last emtpy reloc entry (for padding)
+                ++Reloc;
+                continue;
+            }
+
             UINT32 RelocLocation = RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF);
             if ((UINT32)file.size() < RelocLocation)
                 return ERR_BAD_RELOCATION_ENTRY;
