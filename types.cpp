@@ -69,7 +69,7 @@ QString itemSubtypeToQString(const UINT8 type, const UINT8 subtype)
     case Types::Image:
         if (subtype == Subtypes::IntelImage)
             return QObject::tr("Intel");
-        else if (Subtypes::UefiImage)
+        else if (subtype == Subtypes::UefiImage)
             return QObject::tr("UEFI");
         else
             return QObject::tr("Unknown subtype");
