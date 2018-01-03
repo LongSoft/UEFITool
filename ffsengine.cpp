@@ -3911,11 +3911,10 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
             model->subtype(index.parent()) == EFI_FV_FILETYPE_PEIM ||
             model->subtype(index.parent()) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)) {
             UINT16 teFixup = 0;
-            //TODO: add proper handling
-            /*if (model->subtype(index) == EFI_SECTION_TE) {
+            if (model->subtype(index) == EFI_SECTION_TE) {
                 const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)model->body(index).constData();
                 teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
-            }*/
+            }
 
             if (base) {
                 result = rebase(reconstructed, base - teFixup + header.size());
