@@ -14,7 +14,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <map>
 #include <algorithm>
-#include <math.h>
 #include <inttypes.h>
 
 #include "descriptor.h"
@@ -519,21 +518,19 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const VSCC_TABLE_ENTRY* vsccTableEntry = (const VSCC_TABLE_ENTRY*)(descriptor + ((UINT16)upperMap->VsccTableBase << 4));
     info += UString("\nFlash chips in VSCC table:");
     UINT8 vsscTableSize = upperMap->VsccTableSize * sizeof(UINT32) / sizeof(VSCC_TABLE_ENTRY);
-    UString jedecId = jedecIdToUString(vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1);
     for (UINT8 i = 0; i < vsscTableSize; i++) {
+        UString jedecId = jedecIdToUString(vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1);
         info += usprintf("\n%02X%02X%02X (", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1)
             + jedecId
             + UString(")");
+        if (jedecId == UString("Unknown")) {
+            msg(usprintf("SPI flash with unknown JEDEC ID %02X%02X%02X found in VSCC table", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1), index);
+        }
         vsccTableEntry++;
     }
 
     // Add descriptor tree item
     UModelIndex regionIndex = model->addItem(localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
-    
-    // Show messages
-    if (jedecId == UString("Unknown")) {
-        msg(usprintf("SPI flash with unknown JEDEC ID %02X%02X%02X found in VSCC table", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1), regionIndex);
-    }
 
     // Parse regions
     UINT8 result = U_SUCCESS;
@@ -829,9 +826,8 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
         else {
             // Show messages
             if (volumeSize != bmVolumeSize)
-                msg(usprintf("parseRawArea: volume size stored in header %Xh (%u) differs from calculated using block map %Xh (%u)",
-                volumeSize, volumeSize,
-                bmVolumeSize, bmVolumeSize),
+                msg(usprintf("parseRawArea: volume size stored in header %Xh differs from calculated using block map %Xh",
+                volumeSize, bmVolumeSize),
                 volumeIndex);
         }
 
@@ -1498,11 +1494,11 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (msgFileAlignmentIsGreaterThanVolumeAlignment)
         msg(usprintf("parseFileHeader: file alignment %Xh is greater than parent volume alignment %Xh", alignment, volumeAlignment), index);
     if (msgInvalidHeaderChecksum)
-        msg(UString("parseFileHeader: invalid header checksum"), index);
+        msg(usprintf("parseFileHeader: invalid header checksum %02h, should be %02h", fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader), index);
     if (msgInvalidDataChecksum)
-        msg(UString("parseFileHeader: invalid data checksum"), index);
+        msg(usprintf("parseFileHeader: invalid data checksum %02h, should be %02h", fileHeader->IntegrityCheck.Checksum.File, calculatedData), index);
     if (msgInvalidTailValue)
-        msg(UString("parseFileHeader: invalid tail value"), index);
+        msg(usprintf("parseFileHeader: invalid tail value %04h", *(const UINT16*)tail.constData()), index);
     if (msgUnknownType)
         msg(usprintf("parseFileHeader: unknown file type %02Xh", fileHeader->Type), index);
 
@@ -1690,6 +1686,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
             else
                 return U_INVALID_SECTION;
         }
+
         // Move to next section
         sectionOffset += sectionSize;
         sectionOffset = ALIGN4(sectionOffset);
@@ -1756,7 +1753,7 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
     
     // Obtain required information from parent volume
     UINT8 ffsVersion = 2;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
@@ -1809,7 +1806,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
 
     // Obtain required information from parent volume
     UINT8 ffsVersion = 2;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
@@ -1883,7 +1880,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
 
     // Obtain required information from parent volume
     UINT8 ffsVersion = 2;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
@@ -2077,7 +2074,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
 
     // Obtain required information from parent volume
     UINT8 ffsVersion = 2;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
@@ -2152,7 +2149,7 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
 
     // Obtain required information from parent volume
     UINT8 ffsVersion = 2;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
@@ -2217,7 +2214,7 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
 
     // Obtain required information from parent volume
     UINT8 ffsVersion = 2;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
