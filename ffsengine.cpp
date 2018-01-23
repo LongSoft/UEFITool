@@ -3914,11 +3914,10 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
             model->subtype(index.parent()) == EFI_FV_FILETYPE_PEIM ||
             model->subtype(index.parent()) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)) {
             UINT16 teFixup = 0;
-            //TODO: add proper handling
-            /*if (model->subtype(index) == EFI_SECTION_TE) {
+            if (model->subtype(index) == EFI_SECTION_TE) {
                 const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)model->body(index).constData();
                 teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
-            }*/
+            }
 
             if (base) {
                 result = rebase(reconstructed, base - teFixup + header.size());
@@ -4319,6 +4318,13 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
 
         // Run this relocation record
         while (Reloc < RelocEnd) {
+
+            if (!*Reloc) {
+                //skip last emtpy reloc entry (for padding)
+                ++Reloc;
+                continue;
+            }
+
             UINT32 RelocLocation = RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF);
             if ((UINT32)file.size() < RelocLocation)
                 return ERR_BAD_RELOCATION_ENTRY;
