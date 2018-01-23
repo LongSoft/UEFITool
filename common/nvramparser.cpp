@@ -853,7 +853,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
 
     // Obtain required information from parent volume
     UINT8 emptyByte = 0xFF;
-    UModelIndex parentVolumeIndex = model->findParentOfType(index, Types::Volume);
+    UModelIndex parentVolumeIndex = model->findParentOfType(parent, Types::Volume);
     if (parentVolumeIndex.isValid() && model->hasEmptyParsingData(parentVolumeIndex) == false) {
         UByteArray data = model->parsingData(parentVolumeIndex);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();

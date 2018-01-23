@@ -114,6 +114,14 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0x20BB19: return UString("Micron MT25Q256");
     case 0x20BB20: return UString("Micron MT25Q512");
 
+    // Intel
+    case 0x898911: return UString("Intel 25F160S33B8");
+    case 0x898912: return UString("Intel 25F320S33B8");
+    case 0x898913: return UString("Intel 25F640S33B8");
+    case 0x898915: return UString("Intel 25F160S33T8");
+    case 0x898916: return UString("Intel 25F320S33T8");
+    case 0x898917: return UString("Intel 25F640S33T8");
+
     // Atmel
     case 0x1F4500: return UString("Atmel AT26DF081");
     case 0x1F4501: return UString("Atmel AT26DF081A");
@@ -177,11 +185,15 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0x374016: return UString("Amic A25L032A");
 
     // PMC
-    case 0x7F9D13: return UString("PMC Pm25LV080B");
-    case 0x7F9D14: return UString("PMC Pm25LV016B");
-    case 0x7F9D44: return UString("PMC Pm25LQ080C");
-    case 0x7F9D45: return UString("PMC Pm25LQ016C");
-    case 0x7F9D46: return UString("PMC Pm25LQ032C");
+    case 0x9DF713: return UString("PMC Pm25LV080B");
+    case 0x9DF714: return UString("PMC Pm25LV016B");
+    case 0x9DF744: return UString("PMC Pm25LQ080C");
+    case 0x9DF745: return UString("PMC Pm25LQ016C");
+    case 0x9DF746: return UString("PMC Pm25LQ032C");
+    case 0x9DF77B: return UString("PMC Pm25LV512A");
+    case 0x9DF77C: return UString("PMC Pm25LV010A");
+    case 0x9DF77D: return UString("PMC Pm25LV020");
+    case 0x9DF77E: return UString("PMC Pm25LV040");
 
     // ISSI
     case 0x9D6017: return UString("ISSI Ix25LP064");
