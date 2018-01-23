@@ -871,9 +871,8 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         if (msgUnknownRevision)
             msg(tr("parseBios: unknown volume revision %1").arg(volumeHeader->Revision), index);
         if (msgSizeMismach)
-            msg(tr("parseBios: volume size stored in header %1h (%2) differs from calculated using block map %3h (%4)")
-            .hexarg(volumeSize).arg(volumeSize)
-            .hexarg(bmVolumeSize).arg(bmVolumeSize),
+            msg(tr("parseBios: volume size stored in header %1h differs from calculated using block map %3h")
+            .hexarg(volumeSize).arg(bmVolumeSize),
             index);
 
         // Go to next volume
@@ -1219,16 +1218,16 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
     // Construct empty byte for this file
     char empty = erasePolarity ? '\xFF' : '\x00';
 
-	// Get file header
+    // Get file header
     QByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
     if (revision > 1 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
         if ((UINT32)file.size() < sizeof(EFI_FFS_FILE_HEADER2))
             return ERR_INVALID_FILE;
         header = file.left(sizeof(EFI_FFS_FILE_HEADER2));
-	}
-	
+    }
+
     // Check header checksum
-    UINT8 calculatedHeader = 0x100 -(calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->IntegrityCheck.Checksum.Header - fileHeader->IntegrityCheck.Checksum.File - fileHeader->State);
+    UINT8 calculatedHeader = 0x100 - (calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->IntegrityCheck.Checksum.Header - fileHeader->IntegrityCheck.Checksum.File - fileHeader->State);
     if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader)
         msgInvalidHeaderChecksum = true;
 
@@ -1253,12 +1252,16 @@ UINT8 FfsEngine::parseFile(const QByteArray & file, QModelIndex & index, const U
     UINT8 calculatedData = 0;
     if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
         calculatedData = calculateChecksum8((const UINT8*)body.constData(), body.size());
-        if (fileHeader->IntegrityCheck.Checksum.File != calculatedData)
-            msgInvalidDataChecksum = true;
     }
     // Data checksum must be one of predefined values
-    else if ((revision == 1 && fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM) 
-        || fileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM2)
+    else if (revision == 1) {
+        calculatedData = FFS_FIXED_CHECKSUM;
+    }
+    else {
+        calculatedData = FFS_FIXED_CHECKSUM2;
+    }
+
+    if (fileHeader->IntegrityCheck.Checksum.File != calculatedData)
         msgInvalidDataChecksum = true;
 
     // Parse current file by default
