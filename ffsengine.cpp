@@ -3921,7 +3921,15 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
             }*/
 
             if (base) {
-                result = rebase(reconstructed, base - teFixup + header.size());
+                UINT16 padding = 0;
+                const QModelIndex &padFileIndex = index.parent().sibling(index.parent().row() - 1, index.parent().column());
+                if (padFileIndex.isValid()) {
+                    if (model->subtype(padFileIndex) == EFI_FV_FILETYPE_PAD) {
+                        padding = model->header(padFileIndex).size() + model->body(padFileIndex).size();
+                    }
+                }
+
+                result = rebase(reconstructed, base - teFixup + header.size() + padding);
                 if (result) {
                     msg(tr("reconstructSection: executable section rebase failed"), index);
                     return result;
