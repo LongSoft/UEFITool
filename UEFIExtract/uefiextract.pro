@@ -25,7 +25,7 @@ SOURCES += \
  ../common/LZMA/LzmaDecompress.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/Tiano/EfiTianoDecompress.c \
- ../common/ustring.cpp
+ ../common/ustring.cpp \
  ../common/sha256.c
 
 HEADERS += \
