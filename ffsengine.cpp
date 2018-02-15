@@ -871,7 +871,7 @@ UINT8 FfsEngine::parseBios(const QByteArray & bios, const QModelIndex & parent)
         if (msgUnknownRevision)
             msg(tr("parseBios: unknown volume revision %1").arg(volumeHeader->Revision), index);
         if (msgSizeMismach)
-            msg(tr("parseBios: volume size stored in header %1h differs from calculated using block map %3h")
+            msg(tr("parseBios: volume size stored in header %1h differs from calculated using block map %2h")
             .hexarg(volumeSize).arg(bmVolumeSize),
             index);
 
@@ -1825,7 +1825,11 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
         // Get TE info
         bool msgInvalidSignature = false;
         const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)body.constData();
-        UINT32 teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+        
+        // Most EFI images today include teFixup in ImageBase value,
+        // which doesn't follow the UEFI spec, but is so popular that
+        // only a few images out of thousands are different
+        UINT32 teFixup = 0; //teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
         if (teHeader->Signature != EFI_IMAGE_TE_SIGNATURE) {
             info += tr("\nSignature: %1h, invalid").hexarg2(teHeader->Signature, 4);
             msgInvalidSignature = true;
@@ -3543,17 +3547,20 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                     volumeSize = newSize;
                 }
             }
-
-            // Check new volume size
-            if ((UINT32)(header.size() + reconstructed.size()) > volumeSize)
-            {
-                msg(tr("reconstructVolume: volume grow failed"), index);
-                return ERR_INVALID_VOLUME;
-            }
         }
         // Use current volume body
-        else
+        else {
             reconstructed = model->body(index);
+
+            // BUGBUG: volume size may change during this operation for volumes withour files in them
+            // but such volumes are fairly rare
+        }
+
+        // Check new volume size
+        if ((UINT32)(header.size() + reconstructed.size()) != volumeSize) {
+            msg(tr("reconstructVolume: volume size can't be changed"), index);
+            return ERR_INVALID_VOLUME;
+        }
 
         // Reconstruction successful
         reconstructed = header.append(reconstructed);
@@ -3574,6 +3581,7 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                 volumeHeader->Checksum = calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength);
             }
         }
+
         // Store new free space offset, if needed
         if (model->text(index).contains("AppleFSO ")) {
             // Get current CRC32 value from volume header
@@ -3716,29 +3724,30 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
                     offset += section.size();
                 }
             }
-
-            // Correct file size
-            UINT8 tailSize = (revision == 1 && (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)) ? sizeof(UINT16) : 0;
-			if (revision > 1 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
-				uint32ToUint24(EFI_SECTION2_IS_USED, fileHeader->Size);
-				EFI_FFS_FILE_HEADER2* fileHeader2 = (EFI_FFS_FILE_HEADER2*) fileHeader;
-				fileHeader2->ExtendedSize = sizeof(EFI_FFS_FILE_HEADER2) + reconstructed.size() + tailSize;
-			} else {
-                if (sizeof(EFI_FFS_FILE_HEADER) + reconstructed.size() + tailSize > 0xFFFFFF) {
-                    msg(tr("reconstructFile: resulting file size is too big"), index);
-                    return ERR_INVALID_FILE;
-                }
-				uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER) + reconstructed.size() + tailSize, fileHeader->Size);
-			}
-
-            // Recalculate header checksum
-            fileHeader->IntegrityCheck.Checksum.Header = 0;
-            fileHeader->IntegrityCheck.Checksum.File = 0;
-            fileHeader->IntegrityCheck.Checksum.Header = 0x100 - (calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->State);
         }
         // Use current file body
         else
             reconstructed = model->body(index);
+
+        // Correct file size
+        UINT8 tailSize = (revision == 1 && (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)) ? sizeof(UINT16) : 0;
+        if (revision > 1 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
+            uint32ToUint24(EFI_SECTION2_IS_USED, fileHeader->Size);
+            EFI_FFS_FILE_HEADER2* fileHeader2 = (EFI_FFS_FILE_HEADER2*)fileHeader;
+            fileHeader2->ExtendedSize = sizeof(EFI_FFS_FILE_HEADER2) + reconstructed.size() + tailSize;
+        }
+        else {
+            if (sizeof(EFI_FFS_FILE_HEADER) + reconstructed.size() + tailSize > 0xFFFFFF) {
+                msg(tr("reconstructFile: resulting file size is too big"), index);
+                return ERR_INVALID_FILE;
+            }
+            uint32ToUint24(sizeof(EFI_FFS_FILE_HEADER) + reconstructed.size() + tailSize, fileHeader->Size);
+        }
+
+        // Recalculate header checksum
+        fileHeader->IntegrityCheck.Checksum.Header = 0;
+        fileHeader->IntegrityCheck.Checksum.File = 0;
+        fileHeader->IntegrityCheck.Checksum.Header = 0x100 - (calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->State);
 
         // Recalculate data checksum, if needed
         if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
@@ -3755,6 +3764,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
             UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
             reconstructed.append(ht).append(ft);
         }
+
         // Set file state
         state = EFI_FILE_DATA_VALID | EFI_FILE_HEADER_VALID | EFI_FILE_HEADER_CONSTRUCTION;
         if (erasePolarity == ERASE_POLARITY_TRUE)
@@ -3792,8 +3802,8 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
         model->action(index) == Actions::Rebase) {
         QByteArray header = model->header(index);
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)header.data();
-		bool extended = false;
-        if(uint24ToUint32(commonHeader->Size) == 0xFFFFFF) {
+        bool extended = false;
+        if (uint24ToUint32(commonHeader->Size) == 0xFFFFFF) {
             extended = true;
         }
 
@@ -3894,34 +3904,44 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                     .arg(model->subtype(index)), index);
                 return ERR_INVALID_SECTION;
             }
-
-            // Correct section size
-			if (extended) {
-				EFI_COMMON_SECTION_HEADER2 * extHeader = (EFI_COMMON_SECTION_HEADER2*) commonHeader;
-				extHeader->ExtendedSize = header.size() + reconstructed.size();
-				uint32ToUint24(0xFFFFFF, commonHeader->Size);
-			} else {
-				uint32ToUint24(header.size() + reconstructed.size(), commonHeader->Size);
-			}
         }
         // Leaf section
-        else
+        else {
             reconstructed = model->body(index);
+        }
+
+        // Correct section size
+        if (extended) {
+            EFI_COMMON_SECTION_HEADER2 * extHeader = (EFI_COMMON_SECTION_HEADER2*)commonHeader;
+            extHeader->ExtendedSize = header.size() + reconstructed.size();
+            uint32ToUint24(0xFFFFFF, commonHeader->Size);
+        }
+        else {
+            uint32ToUint24(header.size() + reconstructed.size(), commonHeader->Size);
+        }
 
         // Rebase PE32 or TE image, if needed
         if ((model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE) &&
             (model->subtype(index.parent()) == EFI_FV_FILETYPE_PEI_CORE ||
-            model->subtype(index.parent()) == EFI_FV_FILETYPE_PEIM ||
-            model->subtype(index.parent()) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)) {
+                model->subtype(index.parent()) == EFI_FV_FILETYPE_PEIM ||
+                model->subtype(index.parent()) == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER)) {
             UINT16 teFixup = 0;
-            //TODO: add proper handling
-            /*if (model->subtype(index) == EFI_SECTION_TE) {
-                const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)model->body(index).constData();
-                teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
-            }*/
+
+            // Most EFI images today include teFixup in ImageBase value,
+            // which doesn't follow the UEFI spec, but is so popular that
+            // only a few images out of thousands are different
+
+            // There are some heuristics possible here to detect if an entry point is calculated correctly
+            // or needs a proper fixup, but new_engine already have them and it's better to work on proper
+            // builder for it than trying to fix this mess
+
+            //if (model->subtype(index) == EFI_SECTION_TE) {
+            //  const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)model->body(index).constData();
+            //  teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+            //
 
             if (base) {
-                result = rebase(reconstructed, base - teFixup + header.size());
+                result = rebase(reconstructed, base - teFixup + header.size(), index);
                 if (result) {
                     msg(tr("reconstructSection: executable section rebase failed"), index);
                     return result;
@@ -4217,7 +4237,7 @@ UINT8 FfsEngine::findTextPattern(const QModelIndex & index, const QString & patt
     return ERR_SUCCESS;
 }
 
-UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
+UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base, const QModelIndex & index)
 {
     UINT32 delta;       // Difference between old and new base addresses
     UINT32 relocOffset; // Offset of relocation region
@@ -4290,6 +4310,9 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
         relocSize = teHeader->DataDirectory[EFI_IMAGE_TE_DIRECTORY_ENTRY_BASERELOC].Size;
         // Set new base
         teHeader->ImageBase = base;
+
+        // Warn the user about possible outcome of incorrect rebase of TE image
+        msg(tr("rebase: can't determine if TE image base is adjusted or not, rebased TE image may stop working"), index);
     }
     else
         return ERR_UNKNOWN_IMAGE_TYPE;
@@ -4319,6 +4342,12 @@ UINT8 FfsEngine::rebase(QByteArray &executable, const UINT32 base)
 
         // Run this relocation record
         while (Reloc < RelocEnd) {
+            if (*Reloc == 0x0000) {
+                // Skip last emtpy reloc entry
+                Reloc += 1;
+                continue;
+            }
+
             UINT32 RelocLocation = RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF);
             if ((UINT32)file.size() < RelocLocation)
                 return ERR_BAD_RELOCATION_ENTRY;

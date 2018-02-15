@@ -1,6 +1,6 @@
 /* uefiextract_main.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2018, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -19,8 +19,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 int main(int argc, char *argv[])
 {
   QCoreApplication a(argc, argv);
-  a.setOrganizationName("CodeRush");
-  a.setOrganizationDomain("coderush.me");
+  a.setOrganizationName("LongSoft");
+  a.setOrganizationDomain("longsoft.me");
   a.setApplicationName("UEFIExtract");
 
   UEFIExtract w;
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     
   }
   else {
-    std::cout << "UEFIExtract 0.4.4" << std::endl << std::endl <<
+    std::cout << "UEFIExtract 0.4.5" << std::endl << std::endl <<
     "Usage: uefiextract imagefile [FileGUID_1 FileGUID_2 ... FileGUID_31]" << std::endl <<
     "Returned value is a bit mask where 0 on position N meant File with GUID_N was found and unpacked, 1 otherwise" << std::endl;
     return 1;

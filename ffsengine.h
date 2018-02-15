@@ -84,7 +84,6 @@ public:
     UINT8 reconstructIntelImage(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructRegion(const QModelIndex& index, QByteArray & reconstructed, bool includeHeader = true);
     UINT8 reconstructPadding(const QModelIndex& index, QByteArray & reconstructed);
-    UINT8 reconstructBios(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructVolume(const QModelIndex& index, QByteArray & reconstructed);
     UINT8 reconstructFile(const QModelIndex& index, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base, QByteArray& reconstructed);
     UINT8 reconstructSection(const QModelIndex& index, const UINT32 base, QByteArray & reconstructed);
@@ -126,7 +125,7 @@ private:
     // Rebase routines
     UINT8 getBase(const QByteArray& file, UINT32& base);
     UINT8 getEntryPoint(const QByteArray& file, UINT32 &entryPoint);
-    UINT8 rebase(QByteArray & executable, const UINT32 base);
+    UINT8 rebase(QByteArray & executable, const UINT32 base, const QModelIndex & index);
     void  rebasePeiFiles(const QModelIndex & index);
 
     // Patch routines

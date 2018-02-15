@@ -19,8 +19,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    a.setOrganizationName("CodeRush");
-    a.setOrganizationDomain("coderush.me");
+    a.setOrganizationName("LongSoft");
+    a.setOrganizationDomain("longsoft.me");
     a.setApplicationName("UEFIReplace");
 
     UEFIReplace r;
@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     QStringList args = a.arguments();
 
     if (args.length() < 5) {
-        std::cout << "UEFIReplace 0.3.9 - UEFI image file replacement utility" << std::endl << std::endl <<
+        std::cout << "UEFIReplace 0.1.1 - UEFI image file replacement utility" << std::endl << std::endl <<
             "Usage: UEFIReplace image_file guid section_type contents_file" << std::endl;
         return ERR_SUCCESS;
     }
