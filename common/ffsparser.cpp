@@ -1494,11 +1494,11 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (msgFileAlignmentIsGreaterThanVolumeAlignment)
         msg(usprintf("parseFileHeader: file alignment %Xh is greater than parent volume alignment %Xh", alignment, volumeAlignment), index);
     if (msgInvalidHeaderChecksum)
-        msg(usprintf("parseFileHeader: invalid header checksum %02h, should be %02h", fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader), index);
+        msg(usprintf("parseFileHeader: invalid header checksum %02Xh, should be %02Xh", fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader), index);
     if (msgInvalidDataChecksum)
-        msg(usprintf("parseFileHeader: invalid data checksum %02h, should be %02h", fileHeader->IntegrityCheck.Checksum.File, calculatedData), index);
+        msg(usprintf("parseFileHeader: invalid data checksum %02Xh, should be %02Xh", fileHeader->IntegrityCheck.Checksum.File, calculatedData), index);
     if (msgInvalidTailValue)
-        msg(usprintf("parseFileHeader: invalid tail value %04h", *(const UINT16*)tail.constData()), index);
+        msg(usprintf("parseFileHeader: invalid tail value %04Xh", *(const UINT16*)tail.constData()), index);
     if (msgUnknownType)
         msg(usprintf("parseFileHeader: unknown file type %02Xh", fileHeader->Type), index);
 
