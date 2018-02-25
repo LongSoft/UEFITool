@@ -3405,11 +3405,9 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
 
                     // Normal file
                     // Ensure correct alignment
-                    UINT8 alignmentPower;
-                    UINT32 alignmentBase;
-                    alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
+                    UINT8 alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
                     alignment = (UINT32)(1UL <<alignmentPower);
-                    alignmentBase = header.size() + offset + fileHeaderSize;
+                    UINT32 alignmentBase = header.size() + offset + fileHeaderSize;
                     if (alignmentBase % alignment) {
                         // File will be unaligned if added as is, so we must add pad file before it
                         // Determine pad file size
@@ -3706,7 +3704,21 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
 
                     // Calculate section base
                     UINT32 sectionBase = base ? base + headerSize + offset : 0;
-
+                    UINT8 alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
+                    UINT32 fileAlignment = (UINT32)(1UL << alignmentPower);
+                    UINT32 alignmentBase = base + headerSize;
+                    if (alignmentBase % fileAlignment) {
+                        // File will be unaligned if added as is, so we must add pad file before it
+                        // Determine pad file size
+                        UINT32 size = fileAlignment - (alignmentBase % fileAlignment);
+                        // Required padding is smaller then minimal pad file size
+                        while (size < sizeof(EFI_FFS_FILE_HEADER)) {
+                            size += fileAlignment;
+                        }
+                        // Adjust file base to incorporate pad file that will be added to align it
+                        sectionBase += size;
+                    }
+                    
                     // Reconstruct section
                     QByteArray section;
                     result = reconstructSection(index.child(i, 0), sectionBase, section);
