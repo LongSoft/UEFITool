@@ -358,9 +358,9 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     UINT32 ecEnd = 0;
     if (descriptorVersion == 2) {
         if (regionSection->EcLimit) {
-            pdrBegin = calculateRegionOffset(regionSection->EcBase);
-            pdrEnd = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
-            pdr = intelImage.mid(ecBegin, ecEnd);
+            ecBegin = calculateRegionOffset(regionSection->EcBase);
+            ecEnd = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
+            ec = intelImage.mid(ecBegin, ecEnd);
             ecEnd += ecBegin;
         }
     }
