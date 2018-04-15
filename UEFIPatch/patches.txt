@@ -57,3 +57,11 @@ F7731B4C-58A2-4DF4-8980-5645D39ECE58 10 P:0FBA6C24380F:0FBA7424380F
 
 # CpuInitPei | Skylake-X
 01359D99-9446-456D-ADA4-50A711C03ADA 12 P:BE0080000023CE0B:BE0000000023CE0B 
+
+#----------------------------------------------------------------------------------
+# Broken EFI_SIMPLE_POINTER_PROTOCOL implementation patches
+# Fixes incorrect pointer position update/click condition on Z87 chips
+#----------------------------------------------------------------------------------
+
+# UHCD | ASUS Z87-Pro
+580DD900-385D-11D7-883A-00500473D4EB 10 P:807A3200745C807A4000:807A32007506807A4000 
