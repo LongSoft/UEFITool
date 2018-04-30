@@ -61,8 +61,8 @@ extern "C" {
         EFIAPI
         LzmaGetInfo(
         const VOID  *Source,
-        UINT32      SourceSize,
-        UINT32      *DestinationSize
+        UINTN       SourceSize,
+        UINTN       *DestinationSize
         );
 
     /*
@@ -88,8 +88,8 @@ extern "C" {
         EFIAPI
         LzmaDecompress(
         const VOID  *Source,
-        UINT32       SourceSize,
-        VOID    *Destination
+        UINTN       SourceSize,
+        VOID        *Destination
         );
 
 #ifdef __cplusplus

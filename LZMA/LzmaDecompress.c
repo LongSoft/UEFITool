@@ -20,11 +20,11 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 UINT64
 EFIAPI
 LShiftU64(
-UINT64                    Operand,
-UINT32                     Count
+	UINT64                    Operand,
+	UINT32                     Count
 )
 {
-    return Operand << Count;
+	return Operand << Count;
 }
 
 static void * AllocForLzma(void *p, size_t size) { (void)p; return malloc(size); }
@@ -40,18 +40,18 @@ Get the size of the uncompressed buffer by parsing EncodeData header.
 */
 UINT64
 GetDecodedSizeOfBuf(
-UINT8 *EncodedData
+	UINT8 *EncodedData
 )
 {
-    UINT64 DecodedSize;
-    INT32   Index;
+	UINT64 DecodedSize;
+	INT32   Index;
 
-    // Parse header
-    DecodedSize = 0;
-    for (Index = LZMA_PROPS_SIZE + 7; Index >= LZMA_PROPS_SIZE; Index--)
-        DecodedSize = LShiftU64(DecodedSize, 8) + EncodedData[Index];
+	// Parse header
+	DecodedSize = 0;
+	for (Index = LZMA_PROPS_SIZE + 7; Index >= LZMA_PROPS_SIZE; Index--)
+		DecodedSize = LShiftU64(DecodedSize, 8) + EncodedData[Index];
 
-    return DecodedSize;
+	return DecodedSize;
 }
 
 //
@@ -88,19 +88,15 @@ buffer was returned ScratchSize.
 INT32
 EFIAPI
 LzmaGetInfo(
-CONST VOID  *Source,
-UINT32      SourceSize,
-UINT32      *DestinationSize
+	CONST VOID  *Source,
+	UINTN      SourceSize,
+	UINTN      *DestinationSize
 )
 {
-    UInt64  DecodedSize;
+	ASSERT(SourceSize >= LZMA_HEADER_SIZE); (void)SourceSize;
 
-    ASSERT(SourceSize >= LZMA_HEADER_SIZE); (void)SourceSize;
-    
-    DecodedSize = GetDecodedSizeOfBuf((UINT8*)Source);
-
-    *DestinationSize = (UINT32)DecodedSize;
-    return ERR_SUCCESS;
+	*DestinationSize = (UINTN)GetDecodedSizeOfBuf((UINT8*)Source);
+	return ERR_SUCCESS;
 }
 
 /*
@@ -125,35 +121,35 @@ The source buffer specified by Source is corrupted
 INT32
 EFIAPI
 LzmaDecompress(
-CONST VOID  *Source,
-UINT32       SourceSize,
-VOID    *Destination
+	CONST VOID  *Source,
+	UINTN       SourceSize,
+	VOID        *Destination
 )
 {
-    SRes              LzmaResult;
-    ELzmaStatus       Status;
-    SizeT             DecodedBufSize;
-    SizeT             EncodedDataSize;
+	SRes              LzmaResult;
+	ELzmaStatus       Status;
+	SizeT             DecodedBufSize;
+	SizeT             EncodedDataSize;
 
-    DecodedBufSize = (SizeT)GetDecodedSizeOfBuf((UINT8*)Source);
-    EncodedDataSize = (SizeT)(SourceSize - LZMA_HEADER_SIZE);
+	DecodedBufSize = (SizeT)GetDecodedSizeOfBuf((UINT8*)Source);
+	EncodedDataSize = (SizeT)(SourceSize - LZMA_HEADER_SIZE);
 
-    LzmaResult = LzmaDecode(
-        (Byte*)Destination,
-        &DecodedBufSize,
-        (Byte*)((UINT8*)Source + LZMA_HEADER_SIZE),
-        &EncodedDataSize,
-        (CONST Byte*) Source,
-        LZMA_PROPS_SIZE,
-        LZMA_FINISH_END,
-        &Status,
-        &SzAllocForLzma
-        );
+	LzmaResult = LzmaDecode(
+		(Byte*)Destination,
+		&DecodedBufSize,
+		(Byte*)((UINT8*)Source + LZMA_HEADER_SIZE),
+		&EncodedDataSize,
+		(CONST Byte*) Source,
+		LZMA_PROPS_SIZE,
+		LZMA_FINISH_END,
+		&Status,
+		&SzAllocForLzma
+	);
 
-    if (LzmaResult == SZ_OK) {
-        return ERR_SUCCESS;
-    }
-    else {
-        return ERR_INVALID_PARAMETER;
-    }
+	if (LzmaResult == SZ_OK) {
+		return ERR_SUCCESS;
+	}
+	else {
+		return ERR_INVALID_PARAMETER;
+	}
 }
