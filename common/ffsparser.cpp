@@ -1529,19 +1529,11 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (msgFileAlignmentIsGreaterThanVolumeAlignment)
         msg(usprintf("%s: file alignment %Xh is greater than parent volume alignment %Xh", __FUNCTION__, alignment, volumeAlignment), index);
     if (msgInvalidHeaderChecksum)
-<<<<<<< HEAD
         msg(usprintf("%s: invalid header checksum %02Xh, should be %02Xh", __FUNCTION__, fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader), index);
     if (msgInvalidDataChecksum)
         msg(usprintf("%s: invalid data checksum %02Xh, should be %02Xh", __FUNCTION__, fileHeader->IntegrityCheck.Checksum.File, calculatedData), index);
     if (msgInvalidTailValue)
         msg(usprintf("%s: invalid tail value %04Xh", __FUNCTION__, *(const UINT16*)tail.constData()), index);
-=======
-        msg(usprintf("parseFileHeader: invalid header checksum %02Xh, should be %02Xh", fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader), index);
-    if (msgInvalidDataChecksum)
-        msg(usprintf("parseFileHeader: invalid data checksum %02Xh, should be %02Xh", fileHeader->IntegrityCheck.Checksum.File, calculatedData), index);
-    if (msgInvalidTailValue)
-        msg(usprintf("parseFileHeader: invalid tail value %04Xh", *(const UINT16*)tail.constData()), index);
->>>>>>> 775ad7d25b97e266928f437af14b47d38578af63
     if (msgUnknownType)
         msg(usprintf("%s: unknown file type %02Xh", __FUNCTION__, fileHeader->Type), index);
 
