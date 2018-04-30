@@ -25,13 +25,13 @@ const UINT8* calculateAddress16(const UINT8* baseAddress, const UINT16 baseOrLim
     return baseAddress + baseOrLimit * 0x1000;
 }
 
-// Calculate offset of region using it's base
+// Calculate offset of region using its base
 UINT32 calculateRegionOffset(const UINT16 base)
 {
     return base * 0x1000;
 }
 
-//Calculate size of region using it's base and limit
+//Calculate size of region using its base and limit
 UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit)
 {
     if (limit)

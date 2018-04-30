@@ -89,17 +89,13 @@ INT32
 EFIAPI
 LzmaGetInfo(
 CONST VOID  *Source,
-UINT32      SourceSize,
-UINT32      *DestinationSize
+UINTN      SourceSize,
+UINTN      *DestinationSize
 )
 {
-    UInt64  DecodedSize;
-
     ASSERT(SourceSize >= LZMA_HEADER_SIZE); (void)SourceSize;
-    
-    DecodedSize = GetDecodedSizeOfBuf((UINT8*)Source);
 
-    *DestinationSize = (UINT32)DecodedSize;
+    *DestinationSize = (UINTN)GetDecodedSizeOfBuf((UINT8*)Source);
     return U_SUCCESS;
 }
 
@@ -126,8 +122,8 @@ INT32
 EFIAPI
 LzmaDecompress(
 CONST VOID  *Source,
-UINT32       SourceSize,
-VOID    *Destination
+UINTN        SourceSize,
+VOID         *Destination
 )
 {
     SRes              LzmaResult;

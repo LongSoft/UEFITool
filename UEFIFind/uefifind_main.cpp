@@ -1,6 +1,6 @@
 /* uefifind_main.cpp
 
-Copyright (c) 2017, LongSoft. All rights reserved.
+Copyright (c) 2018, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
         return U_SUCCESS;
     }
     else {
-        std::cout << "UEFIFind 0.10.10" << std::endl << std::endl <<
+        std::cout << "UEFIFind 0.10.11" << std::endl << std::endl <<
             "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
             "    or UEFIFind file patternsfile imagefile" << std::endl;
         return U_INVALID_PARAMETER;

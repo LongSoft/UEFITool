@@ -102,7 +102,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             else {
                 // Nothing is parsed yet, but the file is not empty 
                 if (!offset) {
-                    msg(UString("parseNvarStore: file can't be parsed as NVAR variables store"), index);
+                    msg(usprintf("%s: file can't be parsed as NVAR variables store", __FUNCTION__), index);
                     return U_SUCCESS;
                 }
 
@@ -225,7 +225,8 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             isInvalidLink = true;
             UModelIndex nvarIndex;
             // Search prevously added entries for a link to this variable
-            for (int i = 0; i < model->rowCount(index); i++) {
+            // WARNING: O(n^2), may be very slow
+            for (int i = model->rowCount(index) - 1; i >= 0; i--) {
                 nvarIndex = index.child(i, 0);
                 if (model->hasEmptyParsingData(nvarIndex) == false) {
                     UByteArray nvarData = model->parsingData(nvarIndex);
@@ -352,10 +353,10 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
         model->setParsingData(varIndex, UByteArray((const char*)&pdata, sizeof(pdata)));
 
         // Show messages
-        if (msgUnknownExtDataFormat) msg(UString("parseNvarStore: unknown extended data format"), varIndex);
-        if (msgExtHeaderTooLong)     msg(usprintf("parseNvarStore: extended header size (%Xh) is greater than body size (%Xh)",
+        if (msgUnknownExtDataFormat) msg(usprintf("%s: unknown extended data format", __FUNCTION__), varIndex);
+        if (msgExtHeaderTooLong)     msg(usprintf("%s: extended header size (%Xh) is greater than body size (%Xh)", __FUNCTION__,
             extendedHeaderSize, body.size()), varIndex);
-        if (msgExtDataTooShort)      msg(usprintf("parseNvarStore: extended header size (%Xh) is too small for timestamp and hash",
+        if (msgExtDataTooShort)      msg(usprintf("%s: extended header size (%Xh) is too small for timestamp and hash", __FUNCTION__,
             tail.size()), varIndex);
 
         // Try parsing the entry data as NVAR storage if it begins with NVAR signature
@@ -433,7 +434,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         UINT32 storeSize = 0;
         result = getStoreSize(data, storeOffset, storeSize);
         if (result) {
-            msg(UString("parseNvramVolumeBody: getStoreSize failed with error ") + errorCodeToUString(result), index);
+            msg(usprintf("%s: getStoreSize failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             return result;
         }
 
@@ -448,7 +449,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
             // Add tree item
             UModelIndex paddingIndex = model->addItem(localOffset + storeOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
-            msg(UString("parseNvramVolumeBody: one of stores inside overlaps the end of data"), paddingIndex);
+            msg(usprintf("%s: one of stores inside overlaps the end of data", __FUNCTION__), paddingIndex);
 
             // Update variables
             prevStoreOffset = storeOffset;
@@ -461,7 +462,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         UByteArray store = data.mid(storeOffset, storeSize);
         result = parseStoreHeader(store, localOffset + storeOffset, index, storeIndex);
         if (result)
-            msg(UString("parseNvramVolumeBody: store header parsing failed with error ") + errorCodeToUString(result), index);
+            msg(usprintf("%s: store header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
 
         // Go to next store
         prevStoreOffset = storeOffset;
@@ -483,7 +484,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         else {
             // Nothing is parsed yet, but the file is not empty 
             if (!storeOffset) {
-                msg(UString("parseNvramVolumeBody: can't be parsed as NVRAM volume"), index);
+                msg(usprintf("%s: can't be parsed as NVRAM volume", __FUNCTION__), index);
                 return U_SUCCESS;
             }
 
@@ -521,11 +522,11 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
         if (*currentPos == NVRAM_VSS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_SVS_STORE_SIGNATURE) { //$VSS or $SVS signatures found, perform checks
             const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)currentPos;
             if (vssHeader->Format != NVRAM_VSS_VARIABLE_STORE_FORMATTED) {
-                msg(usprintf("findNextStore: VSS store candidate at offset %Xh skipped, has invalid format %02Xh", localOffset + offset, vssHeader->Format), index);
+                msg(usprintf("%s: VSS store candidate at offset %Xh skipped, has invalid format %02Xh", __FUNCTION__, localOffset + offset, vssHeader->Format), index);
                 continue;
             }
             if (vssHeader->Size == 0 || vssHeader->Size == 0xFFFFFFFF) {
-                msg(usprintf("findNextStore: VSS store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, vssHeader->Size), index);
+                msg(usprintf("%s: VSS store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, vssHeader->Size), index);
                 continue;
             }
             // All checks passed, store found
@@ -538,11 +539,11 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
 
             const VSS2_VARIABLE_STORE_HEADER* vssHeader = (const VSS2_VARIABLE_STORE_HEADER*)currentPos;
             if (vssHeader->Format != NVRAM_VSS_VARIABLE_STORE_FORMATTED) {
-                msg(usprintf("findNextStore: VSS2 store candidate at offset %Xh skipped, has invalid format %02Xh", localOffset + offset, vssHeader->Format), index);
+                msg(usprintf("%s: VSS2 store candidate at offset %Xh skipped, has invalid format %02Xh", __FUNCTION__, localOffset + offset, vssHeader->Format), index);
                 continue;
             }
             if (vssHeader->Size == 0 || vssHeader->Size == 0xFFFFFFFF) {
-                msg(usprintf("findNextStore: VSS2 store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, vssHeader->Size), index);
+                msg(usprintf("%s: VSS2 store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, vssHeader->Size), index);
                 continue;
             }
             // All checks passed, store found
@@ -551,7 +552,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
         else if (*currentPos == NVRAM_FDC_VOLUME_SIGNATURE) { //FDC signature found
             const FDC_VOLUME_HEADER* fdcHeader = (const FDC_VOLUME_HEADER*)currentPos;
             if (fdcHeader->Size == 0 || fdcHeader->Size == 0xFFFFFFFF) {
-                msg(usprintf("findNextStore: FDC store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, fdcHeader->Size), index);
+                msg(usprintf("%s: FDC store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, fdcHeader->Size), index);
                 continue;
             }
             // All checks passed, store found
@@ -560,7 +561,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
         else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_GAID_STORE_SIGNATURE) { //Fsys or Gaid signature found
             const APPLE_FSYS_STORE_HEADER* fsysHeader = (const APPLE_FSYS_STORE_HEADER*)currentPos;
             if (fsysHeader->Size == 0 || fsysHeader->Size == 0xFFFF) {
-                msg(usprintf("findNextStore: Fsys store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, fsysHeader->Size), index);
+                msg(usprintf("%s: Fsys store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, fsysHeader->Size), index);
                 continue;
             }
             // All checks passed, store found
@@ -572,11 +573,11 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
 
             const EVSA_STORE_ENTRY* evsaHeader = (const EVSA_STORE_ENTRY*)(currentPos - 1);
             if (evsaHeader->Header.Type != NVRAM_EVSA_ENTRY_TYPE_STORE) {
-                msg(usprintf("findNextStore: EVSA store candidate at offset %Xh skipped, has invalid type %02Xh", localOffset + offset - 4, evsaHeader->Header.Type), index);
+                msg(usprintf("%s: EVSA store candidate at offset %Xh skipped, has invalid type %02Xh", __FUNCTION__, localOffset + offset - 4, evsaHeader->Header.Type), index);
                 continue;
             }
             if (evsaHeader->StoreSize == 0 || evsaHeader->StoreSize == 0xFFFFFFFF) {
-                msg(usprintf("findNextStore: EVSA store candidate at offset %Xh skipped, has invalid size %Xh", localOffset + offset, evsaHeader->StoreSize), index);
+                msg(usprintf("%s: EVSA store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, evsaHeader->StoreSize), index);
                 continue;
             }
             // All checks passed, store found
@@ -592,14 +593,14 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* ftwHeader = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)currentPos;
             if (ftwHeader->WriteQueueSize % 0x10 == 0x04) { // Header with 32 bit WriteQueueSize
                 if (ftwHeader->WriteQueueSize == 0 || ftwHeader->WriteQueueSize == 0xFFFFFFFF) {
-                    msg(usprintf("findNextStore: FTW block candidate at offset %Xh skipped, has invalid body size %Xh", localOffset + offset, ftwHeader->WriteQueueSize), index);
+                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %Xh", __FUNCTION__, localOffset + offset, ftwHeader->WriteQueueSize), index);
                     continue;
                 }
             }
             else if (ftwHeader->WriteQueueSize % 0x10 == 0x00) { // Header with 64 bit WriteQueueSize
                 const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)currentPos;
                 if (ftw64Header->WriteQueueSize == 0 || ftw64Header->WriteQueueSize >= 0xFFFFFFFF) {
-                    msg(usprintf("findNextStore: FTW block candidate at offset %Xh skipped, has invalid body size %Xh", localOffset + offset, ftw64Header->WriteQueueSize), index);
+                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %Xh", __FUNCTION__, localOffset + offset, ftw64Header->WriteQueueSize), index);
                     continue;
                 }
             }
@@ -750,7 +751,7 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
 
     // Check store size
     if (dataSize < sizeof(VSS_VARIABLE_STORE_HEADER)) {
-        msg(UString("parseVssStoreHeader: volume body is too small even for VSS store header"), parent);
+        msg(usprintf("%s: volume body is too small even for VSS store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -765,7 +766,7 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
 
     // Check store size
     if (dataSize < storeSize) {
-        msg(usprintf("parseVssStoreHeader: VSS store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: VSS store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             storeSize, storeSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -799,7 +800,7 @@ USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32
 
     // Check store size
     if (dataSize < sizeof(VSS2_VARIABLE_STORE_HEADER)) {
-        msg(UString("parseVss2StoreHeader: volume body is too small even for VSS2 store header"), parent);
+        msg(usprintf("%s: volume body is too small even for VSS2 store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -814,7 +815,7 @@ USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32
 
     // Check store size
     if (dataSize < storeSize) {
-        msg(usprintf("parseVssStoreHeader: VSS2 store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: VSS2 store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             storeSize, storeSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -847,7 +848,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
 
     // Check store size
     if (dataSize < sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64)) {
-        msg(UString("parseFtwStoreHeader: volume body is too small even for FTW store header"), parent);
+        msg(usprintf("%s: volume body is too small even for FTW store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -876,7 +877,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
         has32bitHeader = false;
     }
     if (dataSize < ftwBlockSize) {
-        msg(usprintf("parseFtwStoreHeader: FTW store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: FTW store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             ftwBlockSize, ftwBlockSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -917,7 +918,7 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
 
     // Check store size
     if (dataSize < sizeof(FDC_VOLUME_HEADER)) {
-        msg(UString("parseFdcStoreHeader: volume body is too small even for FDC store header"), parent);
+        msg(usprintf("%s: volume body is too small even for FDC store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -926,7 +927,7 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
 
     // Check store size
     if (dataSize < fdcStoreHeader->Size) {
-        msg(usprintf("parseFdcStoreHeader: FDC store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: FDC store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             fdcStoreHeader->Size, fdcStoreHeader->Size,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -935,7 +936,7 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
     // Check header size
     UINT32 headerSize = sizeof(FDC_VOLUME_HEADER);
     if (dataSize < headerSize) {
-        msg(usprintf("parseFdcStoreHeader: FDC store header size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: FDC store header size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             fdcStoreHeader->Size, fdcStoreHeader->Size,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -964,7 +965,7 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
 
     // Check store size
     if (dataSize < sizeof(APPLE_FSYS_STORE_HEADER)) {
-        msg(UString("parseFsysStoreHeader: volume body is too small even for Fsys store header"), parent);
+        msg(usprintf("%s: volume body is too small even for Fsys store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -973,7 +974,7 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
 
     // Check store size
     if (dataSize < fsysStoreHeader->Size) {
-        msg(usprintf("parseFsysStoreHeader: Fsys store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: Fsys store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             fsysStoreHeader->Size, fsysStoreHeader->Size,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1011,7 +1012,7 @@ USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32
 
     // Check dataSize
     if (dataSize < sizeof(EVSA_STORE_ENTRY)) {
-        msg(UString("parseEvsaStoreHeader: volume body is too small even for EVSA store header"), parent);
+        msg(usprintf("%s: volume body is too small even for EVSA store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -1020,7 +1021,7 @@ USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32
 
     // Check store size
     if (dataSize < evsaStoreHeader->StoreSize) {
-        msg(usprintf("parseEvsaStoreHeader: EVSA store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: EVSA store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             evsaStoreHeader->StoreSize, evsaStoreHeader->StoreSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1056,7 +1057,7 @@ USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UI
 
     // Check data size
     if (dataSize < sizeof(PHOENIX_FLASH_MAP_HEADER)) {
-        msg(UString("parseFlashMapStoreHeader: volume body is too small even for FlashMap block header"), parent);
+        msg(usprintf("%s: volume body is too small even for FlashMap block header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -1066,7 +1067,7 @@ USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UI
     // Check store size
     UINT32 flashMapSize = sizeof(PHOENIX_FLASH_MAP_HEADER) + flashMapHeader->NumEntries * sizeof(PHOENIX_FLASH_MAP_ENTRY);
     if (dataSize < flashMapSize) {
-        msg(usprintf("parseFlashMapStoreHeader: FlashMap block size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: FlashMap block size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             flashMapSize, flashMapSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1096,13 +1097,13 @@ USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32
 
     // Check store size
     if (dataSize < sizeof(PHOENIX_CMDB_HEADER)) {
-        msg(UString("parseCmdbStoreHeader: volume body is too small even for CMDB store header"), parent);
+        msg(usprintf("%s: volume body is too small even for CMDB store header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
     UINT32 cmdbSize = NVRAM_PHOENIX_CMDB_SIZE;
     if (dataSize < cmdbSize) {
-        msg(usprintf("parseCmdbStoreHeader: CMDB store size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: CMDB store size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             cmdbSize, cmdbSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1134,7 +1135,7 @@ USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT3
 
     // Check data size
     if (dataSize < sizeof(OEM_ACTIVATION_PUBKEY)) {
-        msg(UString("parseSlicPubkeyHeader: volume body is too small even for SLIC pubkey header"), parent);
+        msg(usprintf("%s: volume body is too small even for SLIC pubkey header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -1143,7 +1144,7 @@ USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT3
 
     // Check store size
     if (dataSize < pubkeyHeader->Size) {
-        msg(usprintf("parseSlicPubkeyHeader: SLIC pubkey size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: SLIC pubkey size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             pubkeyHeader->Size, pubkeyHeader->Size,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1176,7 +1177,7 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
 
     // Check data size
     if (dataSize < sizeof(OEM_ACTIVATION_MARKER)) {
-        msg(UString("parseSlicMarkerHeader: volume body is too small even for SLIC marker header"), parent);
+        msg(usprintf("%s: volume body is too small even for SLIC marker header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -1185,7 +1186,7 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
 
     // Check store size
     if (dataSize < markerHeader->Size) {
-        msg(usprintf("parseSlicMarkerHeader: SLIC marker size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: SLIC marker size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             markerHeader->Size, markerHeader->Size,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1218,7 +1219,7 @@ USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const U
 
     // Check data size
     if (dataSize < sizeof(INTEL_MICROCODE_HEADER)) {
-        msg(UString("parseIntelMicrocodeHeader: volume body is too small even for Intel microcode header"), parent);
+        msg(usprintf("%s: volume body is too small even for Intel microcode header", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -1227,7 +1228,7 @@ USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const U
 
     // Check store size
     if (dataSize < ucodeHeader->TotalSize) {
-        msg(usprintf("parseIntelMicrocodeHeader: Intel microcode size %Xh (%u) is greater than volume body size %Xh (%u)",
+        msg(usprintf("%s: Intel microcode size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
             ucodeHeader->TotalSize, ucodeHeader->TotalSize,
             dataSize, dataSize), parent);
         return U_SUCCESS;
@@ -1267,7 +1268,7 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     const UINT32* signature = (const UINT32*)store.constData();
     // Check store size
     if (dataSize < sizeof(UINT32)) {
-        msg(UString("parseStoreHeader: volume body is too small even for store signature"), parent);
+        msg(usprintf("%s: volume body is too small even for a store signature", __FUNCTION__), parent);
         return U_SUCCESS;
     }
 
@@ -1288,7 +1289,7 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *signature == NVRAM_APPLE_GAID_STORE_SIGNATURE)
         return parseFsysStoreHeader(store, localOffset, parent, index);
     // EVSA store
-    else if (*(signature + 1) == NVRAM_EVSA_STORE_SIGNATURE)
+    else if (dataSize >= 2 * sizeof(UINT32) && *(signature + 1) == NVRAM_EVSA_STORE_SIGNATURE)
         return parseEvsaStoreHeader(store, localOffset, parent, index);
     // Phoenix SCT flash map
     else if (*signature == NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1)
@@ -1297,10 +1298,10 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     else if (*signature == NVRAM_PHOENIX_CMDB_HEADER_SIGNATURE)
         return parseCmdbStoreHeader(store, localOffset, parent, index);
     // SLIC pubkey
-    else if (*(signature + 4) == OEM_ACTIVATION_PUBKEY_MAGIC)
+    else if (dataSize >= 5 * sizeof(UINT32) && *(signature + 4) == OEM_ACTIVATION_PUBKEY_MAGIC)
         return parseSlicPubkeyHeader(store, localOffset, parent, index);
     // SLIC marker
-    else if (*(const UINT64*)(store.constData() + 26) == OEM_ACTIVATION_MARKER_WINDOWS_FLAG)
+    else if (dataSize >= 34 && *(const UINT64*)(store.constData() + 26) == OEM_ACTIVATION_MARKER_WINDOWS_FLAG)
         return parseSlicMarkerHeader(store, localOffset, parent, index);
     // Intel microcode
     // Must be checked after SLIC marker because of the same *signature values
@@ -1327,20 +1328,20 @@ USTATUS NvramParser::parseFdcStoreBody(const UModelIndex & index)
     UModelIndex volumeIndex;
     USTATUS status = ffsParser->parseVolumeHeader(data, localOffset, index, volumeIndex);
     if (status || !volumeIndex.isValid()) {
-        msg(UString("parseFdcStoreBody: store can't be parsed as FDC store"), index);
+        msg(usprintf("%s: store can't be parsed as FDC store", __FUNCTION__), index);
         return U_SUCCESS;
     }
 
     // Determine if it's a VSS or VSS2 store inside
     UByteArray store = model->body(volumeIndex);
-    if (store.size() >= sizeof(UINT32) && *(const UINT32*)store.constData() == NVRAM_VSS_STORE_SIGNATURE) {
+    if ((UINT32)store.size() >= sizeof(UINT32) && *(const UINT32*)store.constData() == NVRAM_VSS_STORE_SIGNATURE) {
         UModelIndex vssIndex;
         status = parseVssStoreHeader(store, localOffset + model->header(volumeIndex).size(), true, volumeIndex, vssIndex);
         if (status)
             return status;
         return parseVssStoreBody(vssIndex, 0);
     }
-    else if (store.size() >= sizeof(EFI_GUID) && store.left(sizeof(EFI_GUID)) == NVRAM_FDC_STORE_GUID) {
+    else if ((UINT32)store.size() >= sizeof(EFI_GUID) && store.left(sizeof(EFI_GUID)) == NVRAM_FDC_STORE_GUID) {
         UModelIndex vss2Index;
         status = parseVss2StoreHeader(store, localOffset + model->header(volumeIndex).size(), true, volumeIndex, vss2Index);
         if (status)
@@ -1348,7 +1349,7 @@ USTATUS NvramParser::parseFdcStoreBody(const UModelIndex & index)
         return parseVssStoreBody(vss2Index, 0);
     }
     else {
-        msg(UString("parseFdcStoreBody: internal volume can't be parsed as VSS/VSS2 store"), index);
+        msg(usprintf("%s: internal volume can't be parsed as VSS/VSS2 store", __FUNCTION__), index);
         return U_SUCCESS;
     }
 
@@ -1378,7 +1379,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
     // Check that the is enough space for variable header
     const UINT32 dataSize = (UINT32)data.size();
     if (dataSize < sizeof(VSS_VARIABLE_HEADER)) {
-        msg(UString("parseVssStoreBody: store body is too small even for VSS variable header"), index);
+        msg(usprintf("%s: store body is too small even for VSS variable header", __FUNCTION__), index);
         return U_SUCCESS;
     }
 
@@ -1512,7 +1513,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             else { // Padding
                 // Nothing is parsed yet, but the store is not empty 
                 if (!offset) {
-                    msg(UString("parseVssStoreBody: store can't be parsed as VSS store"), index);
+                    msg(usprintf("%s: store can't be parsed as VSS store", __FUNCTION__), index);
                     return U_SUCCESS;
                 }
 
@@ -1647,7 +1648,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
             model->addItem(localOffset + offset, Types::Padding, getPaddingType(body), UString("Padding"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
             // Show message
-            msg(UString("parseFsysStoreBody: next variable appears too big, added as padding"), index);
+            msg(usprintf("%s: next variable appears too big, added as padding", __FUNCTION__), index);
 
             return U_SUCCESS;
         }
@@ -1728,7 +1729,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
                 UModelIndex itemIndex = model->addItem(localOffset + offset, Types::Padding, getPaddingType(body), UString("Padding"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
                 // Show message
-                msg(UString("parseEvsaStoreBody: variable parsing failed, the rest of unparsed store added as padding"), itemIndex);
+                msg(usprintf("%s: variable parsing failed, the rest of unparsed store added as padding", __FUNCTION__), itemIndex);
             }
             break;
         }
@@ -1820,7 +1821,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
                 UModelIndex itemIndex = model->addItem(localOffset + offset, Types::Padding, getPaddingType(body), UString("Padding"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
                 // Show message
-                msg(usprintf("parseEvsaStoreBody: unknown variable of type %02Xh found at offset %Xh, the rest of unparsed store added as padding", entryHeader->Type, offset), itemIndex);
+                msg(usprintf("%s: unknown variable of type %02Xh found at offset %Xh, the rest of unparsed store added as padding", __FUNCTION__, entryHeader->Type, offset), itemIndex);
             }
             break;
         }
@@ -1850,17 +1851,17 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             if (guid.isEmpty() && name.isEmpty()) { // Both name and guid aren't found
                 model->setSubtype(current, Subtypes::InvalidEvsaEntry);
                 model->setName(current, UString("Invalid"));
-                msg(UString("parseEvsaStoreBody: data variable with invalid GuidId and invalid VarId"), current);
+                msg(usprintf("%s: data variable with invalid GuidId and invalid VarId", __FUNCTION__), current);
             }
             else if (guid.isEmpty()) { // Guid not found
                 model->setSubtype(current, Subtypes::InvalidEvsaEntry);
                 model->setName(current, UString("Invalid"));
-                msg(UString("parseEvsaStoreBody: data variable with invalid GuidId"), current);
+                msg(usprintf("%s: data variable with invalid GuidId", __FUNCTION__), current);
             }
             else if (name.isEmpty()) { // Name not found
                 model->setSubtype(current, Subtypes::InvalidEvsaEntry);
                 model->setName(current, UString("Invalid"));
-                msg(UString("parseEvsaStoreBody: data variable with invalid VarId"), current);
+                msg(usprintf("%s: data variable with invalid VarId", __FUNCTION__), current);
             }
             else { // Variable is OK, rename it
                 if (dataHeader->Header.Type == NVRAM_EVSA_ENTRY_TYPE_DATA_INVALID) {
@@ -1909,7 +1910,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
 
             // Show message
             if (unparsedSize < entryHeader->Size)
-                msg(UString("parseFlashMapBody: next entry appears too big, added as padding"), index);
+                msg(usprintf("%s: next entry appears too big, added as padding", __FUNCTION__), index);
 
             break;
         }

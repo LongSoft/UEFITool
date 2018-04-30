@@ -20,9 +20,10 @@ TreeItem::TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
     const bool fixed, const bool compressed,
     TreeItem *parent) : 
     itemOffset(offset),
-    itemAction(Actions::NoAction),    
+    itemAction(Actions::NoAction),
     itemType(type),
     itemSubtype(subtype),
+    itemMarking(0),
     itemName(name),
     itemText(text),
     itemInfo(info),
@@ -31,7 +32,6 @@ TreeItem::TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
     itemTail(tail),
     itemFixed(fixed),
     itemCompressed(compressed),
-    itemMarking(0),
     parentItem(parent)
 {
 }

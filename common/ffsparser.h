@@ -75,7 +75,7 @@ private:
  
     UByteArray openedImage;
     UModelIndex lastVtf;
-    UINT32 capsuleOffsetFixup;
+    UINT32 imageBase;
     UINT64 addressDiff;
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable;
     
@@ -93,6 +93,10 @@ private:
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
+    USTATUS parseCapsule(const UByteArray & capsule, UModelIndex & index);
+    USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseVolumeBody(const UModelIndex & index);
@@ -101,7 +105,6 @@ private:
     USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
     USTATUS parseSectionBody(const UModelIndex & index);
 
-    USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & root);
     USTATUS parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
@@ -129,7 +132,7 @@ private:
     USTATUS parseTeImageSectionBody(const UModelIndex & index);
 
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
-    USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 localOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
+    USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 globalOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
     USTATUS getVolumeSize(const UByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
     UINT32  getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
