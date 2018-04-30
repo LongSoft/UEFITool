@@ -24,14 +24,14 @@ extern "C" {
 #define LZMA_DICTIONARY_SIZE 0x800000
 #define _LZMA_SIZE_OPT
 
-    INT32
-        EFIAPI
-        LzmaCompress(
-        const UINT8  *Source,
-        UINT32       SourceSize,
-        UINT8    *Destination,
-        UINT32   *DestinationSize
-        );
+	INT32
+		EFIAPI
+		LzmaCompress(
+			const UINT8  *Source,
+			UINTN        SourceSize,
+			UINT8        *Destination,
+			UINTN        *DestinationSize
+		);
 
 #ifdef __cplusplus
 }

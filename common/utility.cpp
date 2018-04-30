@@ -34,6 +34,7 @@ UString uniqueItemName(const UModelIndex & index)
     UString itemText = model->text(index);
 
     // Default name
+
     UString name = itemName;
     switch (model->type(index)) {
     case Types::NvarEntry:
@@ -49,17 +50,26 @@ UString uniqueItemName(const UModelIndex & index)
         UModelIndex fileIndex = model->findParentOfType(index, Types::File);
         UString fileText = model->text(fileIndex);
         name = fileText.isEmpty() ? model->name(fileIndex) : model->name(fileIndex) + '_' + fileText;
-        } break;
+
+        // Special case of GUIDed sections
+        if (model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
+            name = model->name(index) +'_' + name;
+        }
+    } break;
     }
 
+    // Populate subtypeString
     UString subtypeString = itemSubtypeToUString(model->type(index), model->subtype(index));
+
+    // Create final name
     name = itemTypeToUString(model->type(index))
         + (subtypeString.length() ? ('_' + subtypeString) : UString())
         + '_' + name;
 
+    // Replace some symbols with underscopes for better readability
     name.findreplace(' ', '_');
     name.findreplace('/', '_');
-    name.findreplace('-', '_');
+    name.findreplace('\\', '_');
 
     return name;
 }
@@ -341,6 +351,7 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
     return (UINT16)(0x10000 - counter);
 }
 
+// Get padding type for a given padding
 UINT8 getPaddingType(const UByteArray & padding)
 {
     if (padding.count('\x00') == padding.size())

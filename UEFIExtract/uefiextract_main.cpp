@@ -1,5 +1,5 @@
 /* uefiextract_main.cpp
-Copyright (c) 2017, LongSoft. All rights reserved.
+Copyright (c) 2018, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
         }
     }
     // If parameters are different, show version and usage information
-    std::cout << "UEFIExtract 0.13.5" << std::endl << std::endl
+    std::cout << "UEFIExtract 0.13.6" << std::endl << std::endl
         << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
         << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
         << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl

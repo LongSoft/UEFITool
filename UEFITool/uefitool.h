@@ -22,6 +22,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFont>
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
@@ -41,6 +42,7 @@
 #include "../common/ffsparser.h"
 #include "../common/ffsops.h"
 #include "../common/ffsbuilder.h"
+#include "../common/ffsreport.h"
 #include "../common/guiddatabase.h"
 
 #include "searchdialog.h"
@@ -115,6 +117,9 @@ private slots:
     void writeSettings();
 
     void loadGuidDatabase();
+	void unloadGuidDatabase();
+	void loadDefaultGuidDatabase();
+    void generateReport();
 
     void currentTabChanged(int index);
 
@@ -123,6 +128,7 @@ private:
     TreeModel* model;
     FfsParser* ffsParser;
     FfsFinder* ffsFinder;
+    FfsReport* ffsReport;
     FfsOperations* ffsOps;
     FfsBuilder* ffsBuilder;
     SearchDialog* searchDialog;
@@ -133,6 +139,7 @@ private:
     QString currentDir;
     QString currentPath;
     QString currentProgramPath;
+    QFont currentFont;
     const QString version;
     bool markingEnabled;
 

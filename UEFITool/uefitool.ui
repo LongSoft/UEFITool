@@ -322,7 +322,11 @@
     <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
+    <addaction name="actionGenerateReport"/>
+    <addaction name="separator"/>
     <addaction name="actionLoadGuidDatabase"/>
+    <addaction name="actionLoadDefaultGuidDatabase"/>
+    <addaction name="actionUnloadGuidDatabase"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -473,7 +477,7 @@
       <bool>false</bool>
      </property>
      <property name="title">
-      <string>Entry</string>
+      <string>&amp;Entry</string>
      </property>
      <addaction name="actionHexView"/>
      <addaction name="actionBodyHexView"/>
@@ -532,7 +536,7 @@
     <addaction name="separator"/>
     <addaction name="menuMessageActions"/>
    </widget>
-   <widget class="QMenu" name="menu_View">
+   <widget class="QMenu" name="menuView">
     <property name="title">
      <string>&amp;View</string>
     </property>
@@ -540,7 +544,7 @@
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAction"/>
-   <addaction name="menu_View"/>
+   <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
   <action name="actionInsertAfter">
@@ -718,7 +722,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Sear&amp;ch...</string>
+    <string>Searc&amp;h...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
@@ -867,10 +871,40 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;BootGuard marking</string>
+    <string>BootGuard &amp;markings</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+B</string>
+   </property>
+  </action>
+  <action name="actionGenerateReport">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Generate &amp;report...</string>
+   </property>
+   <property name="toolTip">
+    <string>Generate report</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+R</string>
+   </property>
+  </action>
+  <action name="actionUnloadGuidDatabase">
+   <property name="text">
+    <string>&amp;Unload GUID database</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+U</string>
+   </property>
+  </action>
+  <action name="actionLoadDefaultGuidDatabase">
+   <property name="text">
+    <string>Load &amp;default GUID database</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+D</string>
    </property>
   </action>
  </widget>

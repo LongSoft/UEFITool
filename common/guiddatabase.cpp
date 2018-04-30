@@ -56,7 +56,7 @@ void initGuidDatabase(const UString & path, UINT32* numEntries)
     }
 
     if (numEntries)
-        *numEntries = gGuidToUStringMap.size();
+        *numEntries = (UINT32)gGuidToUStringMap.size();
 }
 
 UString guidDatabaseLookup(const EFI_GUID & guid)

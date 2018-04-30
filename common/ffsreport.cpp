@@ -45,7 +45,7 @@ std::vector<UString> FfsReport::generate()
 USTATUS FfsReport::generateRecursive(std::vector<UString> & report, UModelIndex index, UINT32 level)
 {
     if (!index.isValid())
-        return U_SUCCESS; //Nothing to report for invalid index
+        return U_SUCCESS; // Nothing to report for invalid index
     
     // Calculate item CRC32
     UByteArray data = model->header(index) + model->body(index) + model->tail(index);
