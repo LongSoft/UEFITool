@@ -28,9 +28,9 @@ extern "C" {
         EFIAPI
         LzmaCompress(
         const UINT8  *Source,
-        UINT32       SourceSize,
+        UINTN       SourceSize,
         UINT8    *Destination,
-        UINT32   *DestinationSize
+        UINTN   *DestinationSize
         );
 
 #ifdef __cplusplus

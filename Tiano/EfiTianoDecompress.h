@@ -37,14 +37,13 @@ extern "C" {
         UINT32 OrigSize;
     } EFI_TIANO_HEADER;
 
-    EFI_STATUS
-        EFIAPI
-        EfiTianoGetInfo(
-        const VOID              *Source,
-        UINT32                  SrcSize,
-        UINT32                  *DstSize,
-        UINT32                  *ScratchSize
-        )
+	EFI_STATUS
+		EfiTianoGetInfo(
+			IN      const VOID              *Source,
+			IN      UINT32                  SrcSize,
+			OUT     UINT32                  *DstSize,
+			OUT     UINT32                  *ScratchSize
+		)
         /*++
 
         Routine Description:
@@ -67,16 +66,16 @@ extern "C" {
         --*/
         ;
 
-    EFI_STATUS
-        EFIAPI
-        EfiDecompress(
-        const VOID                    *Source,
-        UINT32                  SrcSize,
-        VOID                    *Destination,
-        UINT32                  DstSize,
-        VOID                    *Scratch,
-        UINT32                  ScratchSize
-        )
+	EFI_STATUS
+		EFIAPI
+		EfiDecompress(
+			IN      const VOID              *Source,
+			IN      UINT32                  SrcSize,
+			IN OUT  VOID                    *Destination,
+			IN      UINT32                  DstSize,
+			IN OUT  VOID                    *Scratch,
+			IN      UINT32                  ScratchSize
+		)
         /*++
 
         Routine Description:
@@ -101,16 +100,16 @@ extern "C" {
         --*/
         ;
 
-    EFI_STATUS
-        EFIAPI
-        TianoDecompress(
-        const VOID                          *Source,
-        UINT32                        SrcSize,
-        VOID                          *Destination,
-        UINT32                        DstSize,
-        VOID                          *Scratch,
-        UINT32                        ScratchSize
-        )
+	EFI_STATUS
+		EFIAPI
+		TianoDecompress(
+			IN      const VOID              *Source,
+			IN      UINT32                  SrcSize,
+			IN OUT  VOID                    *Destination,
+			IN      UINT32                  DstSize,
+			IN OUT  VOID                    *Scratch,
+			IN      UINT32                  ScratchSize
+		)
         /*++
 
         Routine Description:

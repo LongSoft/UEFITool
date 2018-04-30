@@ -78,6 +78,7 @@ public:
     void replaceBody();
 
     void rebuild();
+	void doNotRebuild();
 
     void remove();
 
