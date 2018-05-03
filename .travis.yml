@@ -1,14 +1,44 @@
 language: cpp
+matrix:
+  include:
+  - os: osx
+    osx_image: xcode9.2
 
-compiler:
-  - clang
-  - gcc
+    compiler: clang
 
-before_install:
-  - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+    script:
+      - ./macbuild.sh
 
-script:
-  - qmake -qt=qt5 uefitool.pro
-  - make
+    deploy:
+      provider: releases
+      skip_cleanup: true
+      file: "dist/*.zip"
+      file_glob: true
+      api_key:
+        secure: "TODO"
+      on:
+        tags: true
+
+  - os: linux
+    compiler: clang
+
+    before_install:
+      - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+
+    script:
+      - qmake -qt=qt5 uefitool.pro
+      - make
+
+  - os: linux
+    compiler: gcc
+
+    before_install:
+      - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+
+    script:
+      - qmake -qt=qt5 uefitool.pro
+      - make
