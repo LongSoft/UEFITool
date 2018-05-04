@@ -1,28 +1,46 @@
 language: cpp
-compiler: gcc
-sudo: require
-dist: trusty
+matrix:
+  include:
+  - os: osx
+    osx_image: xcode9.2
 
-before_install:
-    - sudo add-apt-repository ppa:beineri/opt-qt58-trusty -y
-    - sudo apt-get update -qq
-    
-install: 
-    - sudo apt-get -y install qt58base
-    - source /opt/qt58/bin/qt58-env.sh
+    compiler: clang
 
-script:
-  - cd UEFITool
-  - qmake PREFIX=/usr
-  - make -j4
-  - mkdir -p appdir/usr/bin ; mkdir -p appdir/usr/share/{applications,icons} ; cd appdir
-  - cp ../UEFITool usr/bin/uefitool
-  - cp ../uefitool.desktop .
-  - cp ../icons/uefitool_256x256.png uefitool.png
-  - cd .. 
-  - wget -c "https://github.com/probonopd/linuxdeployqt/releases/download/3/linuxdeployqt-3-x86_64.AppImage" 
-  - chmod a+x linuxdeployqt*.AppImage
-  - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/* -bundle-non-qt-libs
-  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/* -appimage 
-  - curl --upload-file ./UEFITool-*.AppImage https://transfer.sh/UEFITool-git.$(git rev-parse --short HEAD)-x86_64.AppImage 
+    script:
+      - ./macbuild.sh
+
+    deploy:
+      provider: releases
+      skip_cleanup: true
+      file: "dist/*.zip"
+      file_glob: true
+      api_key:
+        secure: "WjYd93lVLKHULBpUXS/WtGrkdXyAwxHOUnLJotyDmQipAQP5Ox7Kj12JwkSJGEmVOEdcbIQJyi0QxPjn1UYbYsAt6Op8zrjnYLS4G4fMdBtcxprWzid85uTW7oAAIFs7ygMVhpzxRKpu70yNb683vbThqNmaOu6RyG9aJOLtPAg="
+      on:
+        tags: true
+
+  - os: linux
+    compiler: clang
+
+    before_install:
+      - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+
+    script:
+      - cd UEFITool
+      - qmake -qt=qt5 uefitool.pro
+      - make
+
+  - os: linux
+    compiler: gcc
+
+    before_install:
+      - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+
+    script:
+      - cd UEFITool
+      - qmake -qt=qt5 uefitool.pro
+      - make
