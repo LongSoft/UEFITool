@@ -15,7 +15,7 @@ matrix:
       file: "dist/*.zip"
       file_glob: true
       api_key:
-        secure: "TODO"
+        secure: "WjYd93lVLKHULBpUXS/WtGrkdXyAwxHOUnLJotyDmQipAQP5Ox7Kj12JwkSJGEmVOEdcbIQJyi0QxPjn1UYbYsAt6Op8zrjnYLS4G4fMdBtcxprWzid85uTW7oAAIFs7ygMVhpzxRKpu70yNb683vbThqNmaOu6RyG9aJOLtPAg="
       on:
         tags: true
 
