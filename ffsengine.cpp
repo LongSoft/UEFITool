@@ -2662,6 +2662,17 @@ UINT8 FfsEngine::rebuild(const QModelIndex & index)
     return ERR_SUCCESS;
 }
 
+UINT8 FfsEngine::doNotRebuild(const QModelIndex & index)
+{
+    if (!index.isValid())
+        return ERR_INVALID_PARAMETER;
+
+    // Set action for the item
+    model->setAction(index, Actions::DoNotRebuild);
+
+    return ERR_SUCCESS;
+}
+
 // Compression routines
 UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compressionType, QByteArray & decompressedData, UINT8 * algorithm)
 {
