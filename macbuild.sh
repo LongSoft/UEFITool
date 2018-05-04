@@ -19,8 +19,6 @@ export PATH="/opt/qt56sm/bin:$PATH"
 echo "Attempting to build UEFITool for macOS..."
 
 UEFITOOL_VER=$(cat uefitool.cpp                        | grep ^version             | cut -d'"' -f2)
-UEFIEXTRACT_VER=$(cat UEFIExtract/uefiextract_main.cpp | grep '"UEFIExtract [0-9]' | cut -d'"' -f2 | cut -d' ' -f2)
-UEFIFIND_VER=$(cat UEFIFind/uefifind_main.cpp          | grep '"UEFIFind [0-9]'    | cut -d'"' -f2 | cut -d' ' -f2)
 UEFIPATCH_VER=$(cat UEFIPatch/uefipatch_main.cpp       | grep '"UEFIPatch [0-9]'   | cut -d'"' -f2 | cut -d' ' -f2)
 UEFIREPLACE_VER=$(cat UEFIReplace/uefireplace_main.cpp | grep '"UEFIReplace [0-9]' | cut -d'"' -f2 | cut -d' ' -f2)
 
@@ -59,8 +57,6 @@ rm -rf dist
 mkdir -p dist || exit 1
 
 build_tool UEFITool    "$UEFITOOL_VER"     uefitool.pro
-build_tool UEFIExtract "$UEFIEXTRACT_VER"  uefiextract.pro
-build_tool UEFIFind    "$UEFIFIND_VER"     uefifind.pro
 build_tool UEFIPatch   "$UEFIPATCH_VER"    uefipatch.pro patches.txt
 build_tool UEFIReplace "$UEFIREPLACE_VER"  uefireplace.pro
 
