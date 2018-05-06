@@ -317,14 +317,10 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->RegionBase);
     const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->ComponentBase);
 
-    UINT8 descriptorVersion = 0;
-    if (descriptorMap->Version.RawValue != FLASH_DESCRIPTOR_VERSION_INVALID)                     // Kaby Lake+ descriptor
-        descriptorVersion = 3;
+    UINT8 descriptorVersion = 2;
     // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
-    else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ)      // Old descriptor
+    if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ)
         descriptorVersion = 1;
-    else // Skylake+ descriptor
-        descriptorVersion = 2;
 
     // Regions
     std::vector<REGION_INFO> regions;
@@ -374,7 +370,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Add all other regions
     for (UINT8 i = Subtypes::GbeRegion; i <= Subtypes::PttRegion; i++) {
         if (descriptorVersion == 1 && i == Subtypes::MicrocodeRegion)
-            break; // Do not parse Microcode and other following regions for old descriptors 
+            break; // Do not parse Microcode and other following regions for legacy descriptors
 
         const UINT16* RegionBase = ((const UINT16*)regionSection) + 2 * i;
         const UINT16* RegionLimit = ((const UINT16*)regionSection) + 2 * i + 1;
@@ -507,7 +503,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         info += usprintf("\nPDR   %s  %s",  masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ",
                                             masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ");
     }
-    else if (descriptorVersion >= 2) {
+    else if (descriptorVersion == 2) {
         const FLASH_DESCRIPTOR_MASTER_SECTION_V2* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION_V2*)calculateAddress8((UINT8*)descriptor, descriptorMap->MasterBase);
         info += UString("\nRegion access settings:");
         info += usprintf("\nBIOS: %03Xh %03Xh ME: %03Xh %03Xh\nGbE:  %03Xh %03Xh EC: %03Xh %03Xh",
@@ -539,6 +535,17 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         info += usprintf("\nEC    %s  %s",
             masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ",
             masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ");
+
+        // Prepend descriptor version if present
+        if (descriptorMap->DescriptorVersion != FLASH_DESCRIPTOR_VERSION_INVALID) {
+            const FLASH_DESCRIPTOR_VERSION* version = (const FLASH_DESCRIPTOR_VERSION*)&descriptorMap->DescriptorVersion;
+            UString versionStr = usprintf("Flash descriptor version: %d.%d", version->Major, version->Minor);
+            if (version->Major != FLASH_DESCRIPTOR_VERSION_MAJOR || version->Minor != FLASH_DESCRIPTOR_VERSION_MINOR) {
+                versionStr += ", unknown";
+                msg(usprintf("%s: unknown flash descriptor version %d.%d", __FUNCTION__, version->Major, version->Minor));
+            }
+            info = versionStr + "\n" + info;
+        }
     }
 
     // VSCC table
