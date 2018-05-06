@@ -3039,7 +3039,8 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ) {      // Old descriptor
             descriptorVersion = 1;
         }
-        else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_17MHZ) { // Skylake+ descriptor
+        else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_17MHZ || // Skylake+ descriptor
+            componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_50MHZ_30MHZ) { // Coffee Lake+ descriptor
             descriptorVersion = 2;
             ecBegin = calculateRegionOffset(regionSection->EcBase);
             ecEnd = ecBegin + calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
