@@ -286,14 +286,10 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8(descriptor, descriptorMap->RegionBase);
     const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8(descriptor, descriptorMap->ComponentBase);
 
-    UINT8 descriptorVersion = 0;
-    if (descriptorMap->Version.RawValue != FLASH_DESCRIPTOR_VERSION_INVALID)                     // Kaby Lake+ descriptor
-        descriptorVersion = 3;
-    // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
-    else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ)      // Old descriptor
+    // Check for legacy descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
+    UINT8 descriptorVersion = 2; // Skylake+ descriptor
+    if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ)  // Legacy descriptor
         descriptorVersion = 1;
-    else // Skylake+ descriptor
-        descriptorVersion = 2;
 
     // ME region
     QByteArray me;
@@ -360,7 +356,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
     QByteArray ec;
     UINT32 ecBegin = 0;
     UINT32 ecEnd = 0;
-    if (descriptorVersion >= 2) {
+    if (descriptorVersion == 2) {
         if (regionSection->EcLimit) {
             ecBegin = calculateRegionOffset(regionSection->EcBase);
             ecEnd = calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
@@ -387,7 +383,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
-    if (descriptorVersion >= 2 && hasIntersection(descriptorBegin, descriptorEnd, ecBegin, ecEnd)) {
+    if (descriptorVersion == 2 && hasIntersection(descriptorBegin, descriptorEnd, ecBegin, ecEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, descriptor region has intersection with EC region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
@@ -404,7 +400,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
-    if (descriptorVersion >= 2 && hasIntersection(gbeBegin, gbeEnd, ecBegin, ecEnd)) {
+    if (descriptorVersion == 2 && hasIntersection(gbeBegin, gbeEnd, ecBegin, ecEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, GbE region has intersection with EC region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
@@ -417,7 +413,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
-    if (descriptorVersion >= 2 && hasIntersection(meBegin, meEnd, ecBegin, ecEnd)) {
+    if (descriptorVersion == 2 && hasIntersection(meBegin, meEnd, ecBegin, ecEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, ME region has intersection with EC region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
@@ -426,12 +422,12 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with PDR region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
-    if (descriptorVersion >= 2 && hasIntersection(biosBegin, biosEnd, ecBegin, ecEnd)) {
+    if (descriptorVersion == 2 && hasIntersection(biosBegin, biosEnd, ecBegin, ecEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, BIOS region has intersection with EC region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
     // PDR
-    if (descriptorVersion >= 2 && hasIntersection(pdrBegin, pdrEnd, ecBegin, ecEnd)) {
+    if (descriptorVersion == 2 && hasIntersection(pdrBegin, pdrEnd, ecBegin, ecEnd)) {
         msg(tr("parseIntelImage: descriptor parsing failed, PDR region has intersection with EC region"));
         return ERR_INVALID_FLASH_DESCRIPTOR;
     }
@@ -474,7 +470,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         offsets.append(pdrBegin);
         info += tr("\nPDR region offset:  %1h").hexarg(pdrBegin);
     }
-    if (descriptorVersion >= 2 && regionSection->EcLimit) {
+    if (descriptorVersion == 2 && regionSection->EcLimit) {
         offsets.append(ecBegin);
         info += tr("\nEC region offset:  %1h").hexarg(ecBegin);
     }
@@ -508,7 +504,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
             .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ")
             .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
     }
-    else if (descriptorVersion >= 2) {
+    else if (descriptorVersion == 2) {
         const FLASH_DESCRIPTOR_MASTER_SECTION_V2* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION_V2*)calculateAddress8(descriptor, descriptorMap->MasterBase);
         info += tr("\nRegion access settings:");
         info += tr("\nBIOS: %1h %2h ME: %3h %4h\nGbE:  %5h %6h EC: %7h %8h")
@@ -540,6 +536,17 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         info += tr("\nEC    %1  %2")
             .arg(masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ")
             .arg(masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ");
+
+        // Prepend descriptor version if present
+        if (descriptorMap->DescriptorVersion != FLASH_DESCRIPTOR_VERSION_INVALID) {
+            const FLASH_DESCRIPTOR_VERSION* version = (const FLASH_DESCRIPTOR_VERSION*)&descriptorMap->DescriptorVersion;
+            QString versionStr = tr("Flash descriptor version: %1.%2").arg(version->Major).arg(version->Minor);
+            if (version->Major != FLASH_DESCRIPTOR_VERSION_MAJOR || version->Minor != FLASH_DESCRIPTOR_VERSION_MINOR) {
+                versionStr += tr(", unknown");
+                msg(tr("parseIntelImage: unknown flash descriptor version %1.%2").arg(version->Major).arg(version->Minor));
+            }
+            info = versionStr + "\n" + info;
+        }
     }
 
     // VSCC table
@@ -584,7 +591,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
             result = parsePdrRegion(pdr, pdrIndex, index);
         }
         // Parse EC region
-        else if (descriptorVersion >= 2 && offsets.at(i) == ecBegin) {
+        else if (descriptorVersion == 2 && offsets.at(i) == ecBegin) {
             QModelIndex ecIndex;
             result = parseEcRegion(ec, ecIndex, index);
         }
@@ -603,7 +610,7 @@ UINT8 FfsEngine::parseIntelImage(const QByteArray & intelImage, QModelIndex & in
         IntelDataEnd = biosEnd;
     else if (LastRegionOffset == pdrBegin)
         IntelDataEnd = pdrEnd;
-    else if (descriptorVersion >= 2 && LastRegionOffset == ecBegin)
+    else if (descriptorVersion == 2 && LastRegionOffset == ecBegin)
         IntelDataEnd = ecEnd;
 
     if (IntelDataEnd > (UINT32)intelImage.size()) { // Image file is truncated
@@ -3037,32 +3044,21 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         UINT32 ecBegin = 0;
         UINT32 ecEnd = 0;
 
-        UINT8 descriptorVersion = 0;
-        if (descriptorMap->Version.RawValue != FLASH_DESCRIPTOR_VERSION_INVALID) {
-            // Normally this is 1.0, check only the major value to avoid unnecessary future incompatibilities.
-            if (descriptorMap->Version.V3.VersionMajor != 1) {
-                msg(tr("reconstructIntelImage: unknown descriptor version: %1.%2").arg(descriptorMap->Version.V3.VersionMajor)
-                    .arg(descriptorMap->Version.V3.VersionMinor));
-                return ERR_INVALID_FLASH_DESCRIPTOR;
-            }
-            descriptorVersion = 3;
-        }
-        else {
-            // Check legacy descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
-            const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->ComponentBase);
-            if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ) {      // Old descriptor
-                descriptorVersion = 1;
-            }
-            else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_17MHZ) { // Skylake+ descriptor
-                descriptorVersion = 2;
-            }
-            else {
-                msg(tr("reconstructIntelImage: unknown descriptor version with ReadClockFrequency %1h").hexarg(componentSection->FlashParameters.ReadClockFrequency));
-                return ERR_INVALID_FLASH_DESCRIPTOR;
-            }
+        // Check for legacy descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
+        UINT8 descriptorVersion = 2; // Skylake+ descriptor
+        const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->ComponentBase);
+        if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ) // Legacy descriptor
+            descriptorVersion = 1;
+
+        if (descriptorVersion == 2 && descriptorMap->DescriptorVersion != FLASH_DESCRIPTOR_VERSION_INVALID) {
+            // Warn about incompatible version descriptor in case it is different.
+            const FLASH_DESCRIPTOR_VERSION *version = (const FLASH_DESCRIPTOR_VERSION *)&descriptorMap->DescriptorVersion;
+            if (version->Major != FLASH_DESCRIPTOR_VERSION_MAJOR || version->Minor != FLASH_DESCRIPTOR_VERSION_MINOR)
+                msg(tr("reconstructIntelImage: discovered unexpected %1.%2 descriptor version, trying to continue...")
+                    .arg(version->Major).arg(version->Minor));
         }
 
-        if (descriptorVersion >= 2) {
+        if (descriptorVersion == 2) {
             ecBegin = calculateRegionOffset(regionSection->EcBase);
             ecEnd = ecBegin + calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
         }
