@@ -31,6 +31,22 @@ typedef struct _FLASH_DESCRIPTOR_HEADER {
 // Descriptor region size
 #define FLASH_DESCRIPTOR_SIZE      0x1000
 
+// Descriptor version was reserved in older firmware
+#define FLASH_DESCRIPTOR_VERSION_INVALID 0xFFFFFFFF
+
+// Descriptor version present in Coffee Lake and newer
+typedef struct _FLASH_DESCRIPTOR_VERSION_V3 {
+    UINT32 Reserved : 14;
+    UINT32 VersionMinor : 7;
+    UINT32 VersionMajor : 11;
+} FLASH_DESCRIPTOR_VERSION_V3;
+
+// Descripror version
+typedef union _FLASH_DESCRIPTOR_VERSION {
+    UINT32 RawValue;
+    FLASH_DESCRIPTOR_VERSION_V3 V3;
+} FLASH_DESCRIPTOR_VERSION;
+
 // Descriptor map
 // Base fields are storing bits [11:4] of actual base addresses, all other bits are 0
 typedef struct _FLASH_DESCRIPTOR_MAP {
@@ -51,6 +67,8 @@ typedef struct _FLASH_DESCRIPTOR_MAP {
     UINT32 ProcStrapsBase : 8;          
     UINT32 NumberOfProcStraps : 8;      // One-based number of UINT32s to read as processor straps, min=0, max=255 (1 Kb)
     UINT32: 16;
+    // FLMAP 3
+    FLASH_DESCRIPTOR_VERSION Version;   // Reserved prior to v3
 } FLASH_DESCRIPTOR_MAP;
 
 #define FLASH_DESCRIPTOR_MAX_BASE 0xE0
