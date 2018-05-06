@@ -3033,23 +3033,35 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
         UINT32 ecBegin = 0;
         UINT32 ecEnd = 0;
 
-        const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->ComponentBase);
-        // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
         UINT8 descriptorVersion = 0;
-        if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ) {      // Old descriptor
-            descriptorVersion = 1;
+        if (descriptorMap->Version.RawValue != FLASH_DESCRIPTOR_VERSION_INVALID) {
+            // Normally this is 1.0, check only the major value to avoid unnecessary future incompatibilities.
+            if (descriptorMap->Version.V3.VersionMajor != 1) {
+                msg(tr("reconstructIntelImage: unknown descriptor version: %1.%2").arg(descriptorMap->Version.V3.VersionMajor)
+                    .arg(descriptorMap->Version.V3.VersionMinor));
+                return ERR_INVALID_FLASH_DESCRIPTOR;
+            }
+            descriptorVersion = 3;
         }
-        else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_17MHZ || // Skylake+ descriptor
-            componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_50MHZ_30MHZ) { // Coffee Lake+ descriptor
-            descriptorVersion = 2;
+        else {
+            // Check legacy descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
+            const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((const UINT8*)descriptor.constData(), descriptorMap->ComponentBase);
+            if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ) {      // Old descriptor
+                descriptorVersion = 1;
+            }
+            else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_17MHZ) { // Skylake+ descriptor
+                descriptorVersion = 2;
+            }
+            else {
+                msg(tr("reconstructIntelImage: unknown descriptor version with ReadClockFrequency %1h").hexarg(componentSection->FlashParameters.ReadClockFrequency));
+                return ERR_INVALID_FLASH_DESCRIPTOR;
+            }
+        }
+
+        if (descriptorVersion >= 2) {
             ecBegin = calculateRegionOffset(regionSection->EcBase);
             ecEnd = ecBegin + calculateRegionSize(regionSection->EcBase, regionSection->EcLimit);
         }
-        else {
-            msg(tr("reconstructIntelImage: unknown descriptor version with ReadClockFrequency %1h").hexarg(componentSection->FlashParameters.ReadClockFrequency));
-            return ERR_INVALID_FLASH_DESCRIPTOR;
-        }
-
 
         UINT32 offset = descriptor.size();
         // Reconstruct other regions
