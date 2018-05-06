@@ -317,9 +317,11 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->RegionBase);
     const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->ComponentBase);
 
-    // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
     UINT8 descriptorVersion = 0;
-    if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ)      // Old descriptor
+    if (descriptorMap->Version.RawValue != FLASH_DESCRIPTOR_VERSION_INVALID)                     // Kaby Lake+ descriptor
+        descriptorVersion = 3;
+    // Check descriptor version by getting hardcoded value of FlashParameters.ReadClockFrequency
+    else if (componentSection->FlashParameters.ReadClockFrequency == FLASH_FREQUENCY_20MHZ)      // Old descriptor
         descriptorVersion = 1;
     else // Skylake+ descriptor
         descriptorVersion = 2;
