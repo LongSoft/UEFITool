@@ -33,7 +33,7 @@ public:
     explicit UEFIPatch(QObject *parent = 0);
     ~UEFIPatch();
 
-    UINT8 patchFromFile(QString path);
+    UINT8 patchFromFile(QString path, QString patches);
     UINT8 patch(QString path, QString fileGuid, QString findPattern, QString replacePattern);
 
 private:
