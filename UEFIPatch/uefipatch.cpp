@@ -25,15 +25,15 @@ UEFIPatch::~UEFIPatch()
     delete ffsEngine;
 }
 
-UINT8 UEFIPatch::patchFromFile(QString path)
+UINT8 UEFIPatch::patchFromFile(QString path, QString patches)
 {
-    QFileInfo patchInfo = QFileInfo("patches.txt");
+    QFileInfo patchInfo = QFileInfo(patches);
 
     if (!patchInfo.exists())
         return ERR_INVALID_FILE;
 
     QFile file;
-    file.setFileName("patches.txt");
+    file.setFileName(patches);
 
     if (!file.open(QFile::ReadOnly | QFile::Text))
         return ERR_INVALID_FILE;
