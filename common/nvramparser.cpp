@@ -1401,7 +1401,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         UINT8 subtype = 0;
         UString name;
         UString text;
-        EFI_GUID* variableGuid;
+        EFI_GUID* variableGuid = NULL;
         CHAR16*   variableName = (CHAR16*)L"";
         UByteArray header;
         UByteArray body;
@@ -1527,7 +1527,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         UString info;
 
         // Rename invalid variables
-        if (isInvalid) {
+        if (isInvalid || !variableGuid) {
             name = UString("Invalid");
         }
         else { // Add GUID and text for valid variables
