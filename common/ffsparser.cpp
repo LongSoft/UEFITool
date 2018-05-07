@@ -14,7 +14,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <map>
 #include <algorithm>
-#include <inttypes.h>
+#include <cinttypes>
 
 #include "descriptor.h"
 #include "ffs.h"

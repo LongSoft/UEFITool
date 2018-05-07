@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include <inttypes.h>
+#include <cinttypes>
 #include <map>
 
 #include "nvramparser.h"
