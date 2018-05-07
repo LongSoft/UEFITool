@@ -74,7 +74,7 @@ LzmaCompress(
 
 	if (*DestinationSize < destLen)
 	{
-		*DestinationSize = destLen;
+		*DestinationSize = (UINTN)destLen;
 		return ERR_BUFFER_TOO_SMALL;
 	}
 
