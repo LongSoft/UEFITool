@@ -1,0 +1,37 @@
+# Patch string format
+# FileGuid SectionType PatchType:FindPatternOrOffset:ReplacePattern 
+# Please ensure that the latest symbol in patch string is space
+
+# Possible section types:
+#  PE32 image                    10
+#  Position-independent code     11
+#  TE Image                      12
+#  DXE Dependency                13
+#  Version information           14
+#  User interface string         15
+#  16-bit code                   16
+#  Guided freeform               18
+#  Raw data                      19
+#  PEI Dependency                1B
+#  SMM Dependency                1C
+# Please do not try another section types, it can make the resulting image broken
+
+# Possible patch types:
+#  P - pattern-based, first parameter is a pattern to find, second - a pattern to replace
+#  O - offset-based, first parameter is hexadecimal offset, second - a pattern to replace
+# Patterns can have . as "any possible value" symbol
+
+#----------------------------------------------------------------------------------
+# Set IA32_FEATURE_CONTROL.SGX_LC
+#----------------------------------------------------------------------------------
+
+# SiInit | Gemini Lake
+299D6F8B-2EC9-4E40-9EC6-DDAA7EBF5FD9 10 P:B93A0000000F320D00000400:B93A0000000F320D00000600 
+
+#----------------------------------------------------------------------------------
+# Broken EFI_SIMPLE_POINTER_PROTOCOL implementation patches
+# Fixes incorrect pointer position update/click condition on Z87 chips
+#----------------------------------------------------------------------------------
+
+# UHCD | ASUS Z87-Pro
+580DD900-385D-11D7-883A-00500473D4EB 10 P:807A3200745C807A4000:807A32007506807A4000 

@@ -61,14 +61,14 @@ build_tool() {
   if [ "$1" = "UEFITool" ]; then
     if [ "$UPLATFORM" = "mac" ]; then
       strip -x UEFITool.app/Contents/MacOS/UEFITool || exit 1
-      zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" UEFITool.app "${4}" || exit 1
+      zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" UEFITool.app ${4} || exit 1
     else
       strip -x "$1" || exit 1
-      zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" "${1}" "${4}" || exit 1
+      zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" "${1}" ${4} || exit 1
     fi
   else
     strip -x "$1" || exit 1
-    zip -qry ../dist/"${1}_${2}_${UPLATFORM}.zip" "${1}" "${4}" || exit 1
+    zip -qry ../dist/"${1}_${2}_${UPLATFORM}.zip" "${1}" ${4} || exit 1
   fi
 
   # Return to parent
@@ -81,7 +81,7 @@ rm -rf dist
 mkdir -p dist || exit 1
 
 build_tool UEFITool    "$UEFITOOL_VER"     uefitool.pro
-build_tool UEFIPatch   "$UEFIPATCH_VER"    uefipatch.pro patches.txt
+build_tool UEFIPatch   "$UEFIPATCH_VER"    uefipatch.pro patches*.txt
 build_tool UEFIReplace "$UEFIREPLACE_VER"  uefireplace.pro
 
 exit 0
