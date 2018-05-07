@@ -52,7 +52,7 @@ build_tool() {
     if [ "$UPLATFORM" = "mac" ]; then
       qmake $3 QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
     else
-      qmake $3 CONFIG+=optimize_size
+      qmake $3 CONFIG+=optimize_size || exit 1
     fi
   else
     if [ "$UPLATFORM" = "mac" ]; then
