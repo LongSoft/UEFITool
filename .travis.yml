@@ -7,7 +7,7 @@ matrix:
     compiler: clang
 
     script:
-      - ./macbuild.sh
+      - ./unixbuild.sh
 
     deploy:
       provider: releases
@@ -20,25 +20,33 @@ matrix:
         tags: true
 
   - os: linux
+    dist: trusty
     compiler: clang
 
     before_install:
-      - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
       - sudo apt-get update -qq
-      - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+      - sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
 
     script:
-      - qmake -qt=qt5 uefitool.pro
-      - make
+      - ./unixbuild.sh
 
   - os: linux
+    dist: trusty
     compiler: gcc
 
     before_install:
-      - sudo add-apt-repository --yes ppa:ubuntu-sdk-team/ppa
       - sudo apt-get update -qq
-      - sudo apt-get install -qq qt5-qmake qtbase5-dev qtdeclarative5-dev libqt5webkit5-dev libsqlite3-dev
+      - sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
 
     script:
-      - qmake -qt=qt5 uefitool.pro
-      - make
+      - ./unixbuild.sh
+
+    deploy:
+      provider: releases
+      skip_cleanup: true
+      file: "dist/*.zip"
+      file_glob: true
+      api_key:
+        secure: "WjYd93lVLKHULBpUXS/WtGrkdXyAwxHOUnLJotyDmQipAQP5Ox7Kj12JwkSJGEmVOEdcbIQJyi0QxPjn1UYbYsAt6Op8zrjnYLS4G4fMdBtcxprWzid85uTW7oAAIFs7ygMVhpzxRKpu70yNb683vbThqNmaOu6RyG9aJOLtPAg="
+      on:
+        tags: true
