@@ -2448,7 +2448,8 @@ void FfsEngine::rebasePeiFiles(const QModelIndex & index)
                 // If section stores PE32 or TE image
                 if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
                     // Set rebase action
-                    model->setAction(currentSectionIndex, Actions::Rebase);
+                    if (model->action(currentSectionIndex) != Actions::Remove)
+                        model->setAction(currentSectionIndex, Actions::Rebase);
             }
         }
     }
