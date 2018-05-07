@@ -58,9 +58,14 @@ build_tool() {
   make || exit 1
 
   # Archive
-  if [ "$1" = "UEFITool" ] && [ "$UPLATFORM" = "mac" ]; then
-    strip -x UEFITool.app/Contents/MacOS/UEFITool || exit 1
-    zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" UEFITool.app "${4}" || exit 1
+  if [ "$1" = "UEFITool" ]; then
+    if [ "$UPLATFORM" = "mac" ]; then
+      strip -x UEFITool.app/Contents/MacOS/UEFITool || exit 1
+      zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" UEFITool.app "${4}" || exit 1
+    else
+      strip -x "$1" || exit 1
+      zip -qry dist/"${1}_${2}_${UPLATFORM}.zip" "${1}" "${4}" || exit 1
+    fi
   else
     strip -x "$1" || exit 1
     zip -qry ../dist/"${1}_${2}_${UPLATFORM}.zip" "${1}" "${4}" || exit 1
