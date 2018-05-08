@@ -12,7 +12,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+#ifdef __WIN32__ // To workaround PRIX64 issues
 #include <cinttypes>
+#else
+#include <inttypes.h>
+#endif
 #include <map>
 
 #include "nvramparser.h"
