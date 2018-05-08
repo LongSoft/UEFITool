@@ -19,10 +19,10 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 UINT64
 EFIAPI
-LShiftU64(
-UINT64                    Operand,
-UINT32                     Count
-)
+LShiftU64 (
+    UINT64 Operand,
+    UINT32 Count
+    )
 {
     return Operand << Count;
 }
@@ -39,12 +39,12 @@ Get the size of the uncompressed buffer by parsing EncodeData header.
 @return The size of the uncompressed buffer.
 */
 UINT64
-GetDecodedSizeOfBuf(
-UINT8 *EncodedData
-)
+GetDecodedSizeOfBuf (
+    UINT8 *EncodedData
+    )
 {
     UINT64 DecodedSize;
-    INT32   Index;
+    INT32  Index;
 
     // Parse header
     DecodedSize = 0;
@@ -85,18 +85,27 @@ DestinationSize and the size of the scratch
 buffer was returned ScratchSize.
 
 */
-INT32
+USTATUS
 EFIAPI
-LzmaGetInfo(
-CONST VOID  *Source,
-UINTN      SourceSize,
-UINTN      *DestinationSize
-)
+LzmaGetInfo (
+    CONST VOID  *Source,
+    UINT32       SourceSize,
+    UINT32       *DestinationSize
+    )
 {
-    ASSERT(SourceSize >= LZMA_HEADER_SIZE); (void)SourceSize;
+    UINT64 DecodedSize;
+    ASSERT(SourceSize >= LZMA_HEADER_SIZE);
+    (void)SourceSize;
 
-    *DestinationSize = (UINTN)GetDecodedSizeOfBuf((UINT8*)Source);
-    return U_SUCCESS;
+    DecodedSize = GetDecodedSizeOfBuf((UINT8*)Source);
+
+    if (DecodedSize <= UINT32_MAX) {
+        *DestinationSize = (UINT32)DecodedSize;
+        return U_SUCCESS;
+    }
+    else {
+        return U_INVALID_PARAMETER;
+    }
 }
 
 /*
@@ -118,13 +127,13 @@ the uncompressed buffer is returned Destination.
 The source buffer specified by Source is corrupted
 (not a valid compressed format).
 */
-INT32
+USTATUS
 EFIAPI
-LzmaDecompress(
-CONST VOID  *Source,
-UINTN        SourceSize,
-VOID         *Destination
-)
+LzmaDecompress (
+    CONST VOID  *Source,
+    UINT32      SourceSize,
+    VOID        *Destination
+    )
 {
     SRes              LzmaResult;
     ELzmaStatus       Status;
