@@ -1390,7 +1390,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         UINT32 storedCrc32 = 0;
         UINT32 calculatedCrc32 = 0;
         UINT64 monotonicCounter = 0;
-        EFI_TIME timestamp = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        EFI_TIME timestamp = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         UINT32 pubKeyIndex = 0;
 
         UINT8 subtype = 0;
