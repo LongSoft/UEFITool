@@ -186,12 +186,12 @@ UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length)
 USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressedData, UByteArray & efiDecompressedData)
 {
     const UINT8* data;
-    UINT32 dataSize;
+    UINT32  dataSize;
     UINT8* decompressed;
     UINT8* efiDecompressed;
-    UINT32 decompressedSize = 0;
+    UINT32  decompressedSize = 0;
     UINT8* scratch;
-    UINT32 scratchSize = 0;
+    UINT32  scratchSize = 0;
     const EFI_TIANO_HEADER* header;
 
     switch (compressionType)
@@ -235,18 +235,25 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
         // Try EFI 1.1
         USTATUS EfiResult = EfiDecompress(data, dataSize, efiDecompressed, decompressedSize, scratch, scratchSize);
 
+        if (decompressedSize > INT32_MAX) {
+            free(decompressed);
+            free(efiDecompressed);
+            free(scratch);
+            return U_STANDARD_DECOMPRESSION_FAILED;
+        }
+
         if (EfiResult == U_SUCCESS && TianoResult == U_SUCCESS) { // Both decompressions are OK 
             algorithm = COMPRESSION_ALGORITHM_UNDECIDED;
-            decompressedData = UByteArray((const char*)decompressed, decompressedSize);
-            efiDecompressedData = UByteArray((const char*)efiDecompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
+            efiDecompressedData = UByteArray((const char*)efiDecompressed, (int)decompressedSize);
         }
         else if (TianoResult == U_SUCCESS) { // Only Tiano is OK
             algorithm = COMPRESSION_ALGORITHM_TIANO;
-            decompressedData = UByteArray((const char*)decompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
         }
         else if (EfiResult == U_SUCCESS) { // Only EFI 1.1 is OK
             algorithm = COMPRESSION_ALGORITHM_EFI11;
-            decompressedData = UByteArray((const char*)efiDecompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)efiDecompressed, (int)decompressedSize);
         }
         else { // Both decompressions failed
             result = U_STANDARD_DECOMPRESSION_FAILED;
@@ -293,13 +300,21 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
                 return U_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
             else {
+                if (decompressedSize > INT32_MAX) {
+                    free(decompressed);
+                    return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+                }
                 algorithm = COMPRESSION_ALGORITHM_IMLZMA;
-                decompressedData = UByteArray((const char*)decompressed, decompressedSize);
+                decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
             }
         }
         else {
+            if (decompressedSize > INT32_MAX) {
+                free(decompressed);
+                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+            }
             algorithm = COMPRESSION_ALGORITHM_LZMA;
-            decompressedData = UByteArray((const char*)decompressed, decompressedSize);
+            decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
         }
 
         free(decompressed);
@@ -330,7 +345,7 @@ UINT8 calculateChecksum8(const UINT8* buffer, UINT32 bufferSize)
     if (!buffer)
         return 0;
 
-    return (UINT8)0x100 - calculateSum8(buffer, bufferSize);
+    return (UINT8)(0x100U - calculateSum8(buffer, bufferSize));
 }
 
 // 16bit checksum calculation routine

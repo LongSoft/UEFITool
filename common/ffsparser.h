@@ -66,7 +66,7 @@ public:
 private:
     TreeModel *model;
     std::vector<std::pair<UString, UModelIndex> > messagesVector;
-    void msg(const UString message, const UModelIndex index = UModelIndex()) {
+    void msg(const UString & message, const UModelIndex & index = UModelIndex()) {
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 

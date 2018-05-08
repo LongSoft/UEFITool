@@ -47,8 +47,8 @@ void HexViewDialog::setItem(const UModelIndex & index, bool bodyOnly)
     setWindowTitle(UString("Hex view: ") + (itemText.isEmpty() ? itemName : itemName + " | " + itemText));
     
     // Set hex data
-    QByteArray data;
-    if (bodyOnly) data = model->body(index);
-    else data = model->header(index) + model->body(index) + model->tail(index);
-    hexView->setData(data);
+    QByteArray hexdata;
+    if (bodyOnly) hexdata = model->body(index);
+    else hexdata = model->header(index) + model->body(index) + model->tail(index);
+    hexView->setData(hexdata);
 }
