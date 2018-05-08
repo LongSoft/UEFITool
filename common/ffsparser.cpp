@@ -14,7 +14,11 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <map>
 #include <algorithm>
+#ifdef __WIN32__ // To workaround PRIX64 issues
 #include <cinttypes>
+#else
+#include <inttypes.h>
+#endif
 
 #include "descriptor.h"
 #include "ffs.h"
