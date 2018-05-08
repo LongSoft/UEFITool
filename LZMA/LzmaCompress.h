@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __LZMACOMPRESS_H__
-#define __LZMACOMPRESS_H__
+#ifndef LZMACOMPRESS_H
+#define LZMACOMPRESS_H
 
 #include "SDK/C/Types.h"
 #include "../basetypes.h"
@@ -24,16 +24,17 @@ extern "C" {
 #define LZMA_DICTIONARY_SIZE 0x800000
 #define _LZMA_SIZE_OPT
 
-    INT32
+    EFI_STATUS
         EFIAPI
-        LzmaCompress(
-        const UINT8  *Source,
-        UINTN       SourceSize,
-        UINT8    *Destination,
-        UINTN   *DestinationSize
+        LzmaCompress (
+            const UINT8  *Source,
+            UINT32       SourceSize,
+            UINT8        *Destination,
+            UINT32       *DestinationSize
         );
 
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // LZMACOMPRESS_H

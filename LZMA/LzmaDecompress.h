@@ -11,8 +11,8 @@
 
   */
 
-#ifndef __LZMADECOMPRESS_H__
-#define __LZMADECOMPRESS_H__
+#ifndef LZMADECOMPRESS_H
+#define LZMADECOMPRESS_H
 
 #include "../basetypes.h"
 #include "SDK/C/LzmaDec.h"
@@ -22,13 +22,6 @@ extern "C" {
 #endif
 
 #define LZMA_HEADER_SIZE (LZMA_PROPS_SIZE + 8)
-
-    UINT64
-        EFIAPI
-        LShiftU64(
-        UINT64                    Operand,
-        UINT32                    Count
-        );
 
     /*
       Given a Lzma compressed source buffer, this function retrieves the size of
@@ -57,12 +50,12 @@ extern "C" {
       buffer was returned ScratchSize.
 
       */
-    INT32
+    EFI_STATUS
         EFIAPI
-        LzmaGetInfo(
-        const VOID  *Source,
-        UINTN       SourceSize,
-        UINTN       *DestinationSize
+        LzmaGetInfo (
+            CONST VOID  *Source,
+            UINT32       SourceSize,
+            UINT32       *DestinationSize
         );
 
     /*
@@ -84,15 +77,16 @@ extern "C" {
       The source buffer specified by Source is corrupted
       (not a valid compressed format).
       */
-    INT32
+    EFI_STATUS
         EFIAPI
-        LzmaDecompress(
-        const VOID  *Source,
-        UINTN       SourceSize,
-        VOID        *Destination
+        LzmaDecompress (
+            CONST VOID  *Source,
+            UINT32        SourceSize,
+            VOID         *Destination
         );
 
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // LZMADECOMPRESS_H

@@ -21,8 +21,8 @@ Providing both EFI and Tiano decompress algorithms.
 
 --*/
 
-#ifndef _EFITIANODECOMPRESS_H_
-#define _EFITIANODECOMPRESS_H_
+#ifndef EFITIANODECOMPRESS_H
+#define EFITIANODECOMPRESS_H
 #include <string.h>
 #include <stdlib.h>
 
@@ -32,109 +32,107 @@ Providing both EFI and Tiano decompress algorithms.
 extern "C" {
 #endif
 
-    typedef struct {
-        UINT32 CompSize;
-        UINT32 OrigSize;
-    } EFI_TIANO_HEADER;
+typedef struct EFI_TIANO_HEADER_ {
+    UINT32 CompSize;
+    UINT32 OrigSize;
+} EFI_TIANO_HEADER;
 
-	EFI_STATUS
-		EfiTianoGetInfo(
-			IN      const VOID              *Source,
-			IN      UINT32                  SrcSize,
-			OUT     UINT32                  *DstSize,
-			OUT     UINT32                  *ScratchSize
-		)
-        /*++
+EFI_STATUS
+EFIAPI
+EfiTianoGetInfo(
+        const VOID              *Source,
+        UINT32                  SrcSize,
+        UINT32                  *DstSize,
+        UINT32                  *ScratchSize
+        )
+/*++
 
-        Routine Description:
+Routine Description:
 
-        The implementation is same as that of EFI_DECOMPRESS_PROTOCOL.GetInfo().
+The implementation is same as that of EFI_DECOMPRESS_PROTOCOL.GetInfo().
 
-        Arguments:
+Arguments:
 
-        This        - The protocol instance pointer
-        Source      - The source buffer containing the compressed data.
-        SrcSize     - The size of source buffer
-        DstSize     - The size of destination buffer.
-        ScratchSize - The size of scratch buffer.
+Source      - The source buffer containing the compressed data.
+SrcSize     - The size of source buffer
+DstSize     - The size of destination buffer.
+ScratchSize - The size of scratch buffer.
 
-        Returns:
+Returns:
 
-        EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successfully retrieved.
-        EFI_INVALID_PARAMETER - The source data is corrupted
+EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successfully retrieved.
+EFI_INVALID_PARAMETER - The source data is corrupted
 
-        --*/
-        ;
+--*/
+;
 
-	EFI_STATUS
-		EFIAPI
-		EfiDecompress(
-			IN      const VOID              *Source,
-			IN      UINT32                  SrcSize,
-			IN OUT  VOID                    *Destination,
-			IN      UINT32                  DstSize,
-			IN OUT  VOID                    *Scratch,
-			IN      UINT32                  ScratchSize
-		)
-        /*++
+EFI_STATUS
+EFIAPI
+EfiDecompress(
+        const VOID              *Source,
+        UINT32                  SrcSize,
+        VOID                    *Destination,
+        UINT32                  DstSize,
+        VOID                    *Scratch,
+        UINT32                  ScratchSize
+        );
+/*++
 
-        Routine Description:
+Routine Description:
 
-        The implementation is same as that of EFI_DECOMPRESS_PROTOCOL.Decompress().
+The implementation is same as that of EFI_DECOMPRESS_PROTOCOL.Decompress().
 
-        Arguments:
+Arguments:
 
-        This        - The protocol instance pointer
-        Source      - The source buffer containing the compressed data.
-        SrcSize     - The size of source buffer
-        Destination - The destination buffer to store the decompressed data
-        DstSize     - The size of destination buffer.
-        Scratch     - The buffer used internally by the decompress routine. This  buffer is needed to store intermediate data.
-        ScratchSize - The size of scratch buffer.
+Source      - The source buffer containing the compressed data.
+SrcSize     - The size of source buffer
+Destination - The destination buffer to store the decompressed data
+DstSize     - The size of destination buffer.
+Scratch     - The buffer used internally by the decompress routine. This  buffer is needed to store intermediate data.
+ScratchSize - The size of scratch buffer.
 
-        Returns:
+Returns:
 
-        EFI_SUCCESS           - Decompression is successful
-        EFI_INVALID_PARAMETER - The source data is corrupted
+EFI_SUCCESS           - Decompression is successful
+EFI_INVALID_PARAMETER - The source data is corrupted
 
-        --*/
-        ;
+--*/
+;
 
-	EFI_STATUS
-		EFIAPI
-		TianoDecompress(
-			IN      const VOID              *Source,
-			IN      UINT32                  SrcSize,
-			IN OUT  VOID                    *Destination,
-			IN      UINT32                  DstSize,
-			IN OUT  VOID                    *Scratch,
-			IN      UINT32                  ScratchSize
-		)
-        /*++
+EFI_STATUS
+EFIAPI
+TianoDecompress(
+        const VOID                    *Source,
+        UINT32                        SrcSize,
+        VOID                          *Destination,
+        UINT32                        DstSize,
+        VOID                          *Scratch,
+        UINT32                        ScratchSize
+        )
+/*++
 
-        Routine Description:
+Routine Description:
 
-        The implementation is same as that  of EFI_TIANO_DECOMPRESS_PROTOCOL.Decompress().
+The implementation is same as that  of EFI_TIANO_DECOMPRESS_PROTOCOL.Decompress().
 
-        Arguments:
+Arguments:
 
-        This        - The protocol instance pointer
-        Source      - The source buffer containing the compressed data.
-        SrcSize     - The size of source buffer
-        Destination - The destination buffer to store the decompressed data
-        DstSize     - The size of destination buffer.
-        Scratch     - The buffer used internally by the decompress routine. This  buffer is needed to store intermediate data.
-        ScratchSize - The size of scratch buffer.
+Source      - The source buffer containing the compressed data.
+SrcSize     - The size of source buffer
+Destination - The destination buffer to store the decompressed data
+DstSize     - The size of destination buffer.
+Scratch     - The buffer used internally by the decompress routine. This  buffer is needed to store intermediate data.
+ScratchSize - The size of scratch buffer.
 
-        Returns:
+Returns:
 
-        EFI_SUCCESS           - Decompression is successful
-        EFI_INVALID_PARAMETER - The source data is corrupted
+EFI_SUCCESS           - Decompression is successful
+EFI_INVALID_PARAMETER - The source data is corrupted
 
-        --*/
-        ;
+--*/
+;
 
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // EFITIANODECOMPRESS_H

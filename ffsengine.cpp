@@ -2741,7 +2741,13 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
         else if (algorithm)
             *algorithm = COMPRESSION_ALGORITHM_TIANO;
 
-        decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+        if (decompressedSize > INT32_MAX) {
+            delete[] decompressed;
+            delete[] scratch;
+            return ERR_STANDARD_DECOMPRESSION_FAILED;
+        }
+
+        decompressedData = QByteArray((const char*)decompressed, (int)decompressedSize);
 
         delete[] decompressed;
         delete[] scratch;
@@ -2778,7 +2784,8 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             }
 
             // Decompress section data again
-            if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
+            if (ERR_SUCCESS != LzmaDecompress(data, dataSize, decompressed)
+                || decompressedSize > INT32_MAX) {
                 if (algorithm)
                     *algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
                 delete[] decompressed;
@@ -2787,13 +2794,17 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
             else {
                 if (algorithm)
                     *algorithm = COMPRESSION_ALGORITHM_IMLZMA;
-                decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+                decompressedData = QByteArray((const char*)decompressed, (int)decompressedSize);
             }
         }
         else {
+            if (decompressedSize > INT32_MAX) {
+                delete[] decompressed;
+                return ERR_CUSTOMIZED_DECOMPRESSION_FAILED;
+            }
             if (algorithm)
                 *algorithm = COMPRESSION_ALGORITHM_LZMA;
-            decompressedData = QByteArray((const char*)decompressed, decompressedSize);
+            decompressedData = QByteArray((const char*)decompressed, (int)decompressedSize);
         }
 
         delete[] decompressed;
