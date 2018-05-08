@@ -14,6 +14,7 @@ build_script:
 
 deploy:
   provider: GitHub
+  force_update: true
   auth_token:
     secure: zSJnpSnrKY1NO5RPVBaD/uq7UPyc+GW7ecjPFqEMsLjtnd6H+iNfROdoeuxJgt5T
   artifact: /dist\\.*\.zip/
