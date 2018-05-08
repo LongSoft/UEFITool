@@ -1526,6 +1526,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
 
         // Rename invalid variables
         if (isInvalid || !variableGuid) {
+            isInvalid = true;
             name = UString("Invalid");
         }
         else { // Add GUID and text for valid variables
