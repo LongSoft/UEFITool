@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <stddef.h>
 
 typedef uint8_t      BOOLEAN;
 typedef int8_t       INT8;
@@ -28,7 +29,7 @@ typedef int64_t      INT64;
 typedef uint64_t     UINT64;
 typedef char         CHAR8;
 typedef uint16_t     CHAR16;
-typedef unsigned int UINTN; 
+typedef size_t       UINTN;
 
 #define CONST  const
 #define VOID   void

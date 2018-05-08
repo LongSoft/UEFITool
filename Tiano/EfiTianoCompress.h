@@ -20,8 +20,8 @@ Header file for compression routine.
 
 */
 
-#ifndef _EFITIANOCOMPRESS_H_
-#define _EFITIANOCOMPRESS_H_
+#ifndef EFITIANOCOMPRESS_H
+#define EFITIANOCOMPRESS_H
 
 #include <string.h>
 #include <stdlib.h>
@@ -32,84 +32,87 @@ Header file for compression routine.
 extern "C" {
 #endif
 
-	/*++
+    /*++
 
-	Routine Description:
+    Routine Description:
 
-	Tiano compression routine.
+    Tiano compression routine.
 
-	Arguments:
+    Arguments:
 
-	SrcBuffer   - The buffer storing the source data
-	SrcSize     - The size of source data
-	DstBuffer   - The buffer to store the compressed data
-	DstSize     - On input, the size of DstBuffer; On output,
-	the size of the actual compressed data.
+    SrcBuffer   - The buffer storing the source data
+    SrcSize     - The size of source data
+    DstBuffer   - The buffer to store the compressed data
+    DstSize     - On input, the size of DstBuffer; On output,
+    the size of the actual compressed data.
 
-	Returns:
+    Returns:
 
-	EFI_BUFFER_TOO_SMALL  - The DstBuffer is too small. this case,
-	DstSize contains the size needed.
-	EFI_SUCCESS           - Compression is successful.
-	EFI_OUT_OF_RESOURCES  - No resource to complete function.
-	EFI_INVALID_PARAMETER - Parameter supplied is wrong.
+    EFI_BUFFER_TOO_SMALL  - The DstBuffer is too small. this case,
+    DstSize contains the size needed.
+    EFI_SUCCESS           - Compression is successful.
+    EFI_OUT_OF_RESOURCES  - No resource to complete function.
+    EFI_INVALID_PARAMETER - Parameter supplied is wrong.
 
-	--*/
-	EFI_STATUS
-		TianoCompress(
-			IN      CONST VOID   *SrcBuffer,
-			IN      UINT32  SrcSize,
-			IN      VOID   *DstBuffer,
-			IN OUT  UINT32  *DstSize
-		);
+    --*/
+    EFI_STATUS
+        TianoCompress(
+        CONST VOID   *SrcBuffer,
+        UINT32  SrcSize,
+        VOID   *DstBuffer,
+        UINT32  *DstSize
+        )
+        ;
 
-	EFI_STATUS
-		TianoCompressLegacy(
-			CONST VOID   *SrcBuffer,
-			UINT32  SrcSize,
-			VOID   *DstBuffer,
-			UINT32  *DstSize
-		);
-	/*++
+    EFI_STATUS
+        TianoCompressLegacy(
+        CONST VOID   *SrcBuffer,
+        UINT32  SrcSize,
+        VOID   *DstBuffer,
+        UINT32  *DstSize
+        )
+        ;
+    /*++
 
-	Routine Description:
+    Routine Description:
 
-	EFI 1.1 compression routine.
+    EFI 1.1 compression routine.
 
-	Arguments:
+    Arguments:
 
-	SrcBuffer   - The buffer storing the source data
-	SrcSize     - The size of source data
-	DstBuffer   - The buffer to store the compressed data
-	DstSize     - On input, the size of DstBuffer; On output,
-	the size of the actual compressed data.
+    SrcBuffer   - The buffer storing the source data
+    SrcSize     - The size of source data
+    DstBuffer   - The buffer to store the compressed data
+    DstSize     - On input, the size of DstBuffer; On output,
+    the size of the actual compressed data.
 
-	Returns:
+    Returns:
 
-	EFI_BUFFER_TOO_SMALL  - The DstBuffer is too small. this case,
-	DstSize contains the size needed.
-	EFI_SUCCESS           - Compression is successful.
-	EFI_OUT_OF_RESOURCES  - No resource to complete function.
-	EFI_INVALID_PARAMETER - Parameter supplied is wrong.
+    EFI_BUFFER_TOO_SMALL  - The DstBuffer is too small. this case,
+    DstSize contains the size needed.
+    EFI_SUCCESS           - Compression is successful.
+    EFI_OUT_OF_RESOURCES  - No resource to complete function.
+    EFI_INVALID_PARAMETER - Parameter supplied is wrong.
 
-	--*/
-	EFI_STATUS
-		EfiCompress(
-			IN      CONST VOID   *SrcBuffer,
-			IN      UINT32  SrcSize,
-			IN      VOID   *DstBuffer,
-			IN OUT  UINT32  *DstSize
-		);
-
-	EFI_STATUS
-		EfiCompressLegacy(
-			CONST VOID   *SrcBuffer,
-			UINT32  SrcSize,
-			VOID   *DstBuffer,
-			UINT32  *DstSize
-		);
+    --*/
+    EFI_STATUS
+        EfiCompress(
+        CONST VOID   *SrcBuffer,
+        UINT32  SrcSize,
+        VOID   *DstBuffer,
+        UINT32  *DstSize
+        )
+        ;
+    EFI_STATUS
+        EfiCompressLegacy(
+        CONST VOID   *SrcBuffer,
+        UINT32  SrcSize,
+        VOID   *DstBuffer,
+        UINT32  *DstSize
+        )
+        ;
 
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // EFITIANOCOMPRESS_H
