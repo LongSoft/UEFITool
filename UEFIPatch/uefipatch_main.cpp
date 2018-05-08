@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
         result = w.patchFromFile(a.arguments().at(1), patches);
     }
     else {
-        std::cout << "UEFIPatch 0.3.14 - UEFI image file patching utility" << std::endl << std::endl <<
+        std::cout << "UEFIPatch 0.3.15 - UEFI image file patching utility" << std::endl << std::endl <<
             "Usage: UEFIPatch image_file [patches.txt]" << std::endl << std::endl <<
             "Patches will be read from patches.txt file by default\n";
         return ERR_SUCCESS;
