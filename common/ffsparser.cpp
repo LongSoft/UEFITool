@@ -1399,6 +1399,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         ffsVersion = pdata->ffsVersion;
         volumeAlignment = pdata->alignment;
         volumeRevision = pdata->revision;
+        isWeakAligned = pdata->isWeakAligned;
     }
 
     // Get file header
@@ -2478,7 +2479,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
             }
             else {
                 msg(usprintf("%s: can't guess the correct decompression algorithm, both preparse steps are failed", __FUNCTION__), index);
-				parseCurrentSection = false;
+                parseCurrentSection = false;
             }
         }
         
@@ -2499,8 +2500,8 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         }
         else {
             info += UString("\nCompression algorithm: unknown");
-			parseCurrentSection = false;
-		}
+            parseCurrentSection = false;
+        }
     }
 
     // Add info
@@ -2933,13 +2934,13 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
             // Determine relocation type of uncompressed TE image sections
             if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_TE) {
                 // Obtain required values from parsing data
-                UINT32 imageBase = 0;
+                UINT32 originalImageBase = 0;
                 UINT32 adjustedImageBase = 0;
                 UINT8  imageBaseType = EFI_IMAGE_TE_BASE_OTHER;
                 if (model->hasEmptyParsingData(index) == false) {
                     UByteArray data = model->parsingData(index);
                     const TE_IMAGE_SECTION_PARSING_DATA* pdata = (const TE_IMAGE_SECTION_PARSING_DATA*)data.constData();
-                    imageBase = pdata->imageBase;
+                    originalImageBase = pdata->imageBase;
                     adjustedImageBase = pdata->adjustedImageBase;
                 }
 
@@ -2974,7 +2975,7 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
                     // Update parsing data
                     TE_IMAGE_SECTION_PARSING_DATA pdata;
                     pdata.imageBaseType = imageBaseType;
-                    pdata.imageBase = imageBase;
+                    pdata.imageBase = originalImageBase;
                     pdata.adjustedImageBase = adjustedImageBase;
                     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
                 }
@@ -3246,8 +3247,8 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     for (UINT32 i = 0; i < header->NumEntries; i++) {
                         const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
                         bootGuardInfo += usprintf("\nRelativeOffset: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
-                        for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
-                            bootGuardInfo += usprintf("%02X", entry->Hash[i]);
+                        for (UINT8 j = 0; j < sizeof(entry->Hash); j++) {
+                            bootGuardInfo += usprintf("%02X", entry->Hash[j]);
                         }
                     }
                     bootGuardInfo += UString("\n------------------------------------------------------------------------\n\n");
@@ -3285,8 +3286,8 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     for (UINT32 i = 0; i < NumEntries; i++) {
                         const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(model->body(index).constData()) + i;
                         bootGuardInfo += usprintf("\nAddress: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
-                        for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
-                            bootGuardInfo += usprintf("%02X", entry->Hash[i]);
+                        for (UINT8 j = 0; j < sizeof(entry->Hash); j++) {
+                            bootGuardInfo += usprintf("%02X", entry->Hash[j]);
                         }
                     }
                     bootGuardInfo += UString("\n------------------------------------------------------------------------\n\n");
@@ -3385,7 +3386,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
     currentStrings.push_back(usprintf("%04Xh", fitHeader->Version));
     currentStrings.push_back(usprintf("%02Xh", fitHeader->Checksum));
     currentStrings.push_back(fitEntryTypeToUString(fitHeader->Type));
-    currentStrings.push_back(UString("")); // Empty info for FIT header
+    currentStrings.push_back(UString()); // Empty info for FIT header
     fitTable.push_back(std::pair<std::vector<UString>, UModelIndex>(currentStrings, fitIndex));
 
     // Process all other entries
@@ -3844,13 +3845,13 @@ USTATUS FfsParser::parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, 
                                       elementHeader->DataSize
                                       );
             // Check for Microsoft PMDA hash data
-            const BG_MICROSOFT_PMDA_HEADER* header = (const BG_MICROSOFT_PMDA_HEADER*)(elementHeader + 1);
-            if (header->Version == BG_MICROSOFT_PMDA_VERSION
-                && elementHeader->DataSize == sizeof(BG_MICROSOFT_PMDA_HEADER) + sizeof(BG_MICROSOFT_PMDA_ENTRY)*header->NumEntries) {
+            const BG_MICROSOFT_PMDA_HEADER* pmdaHeader = (const BG_MICROSOFT_PMDA_HEADER*)(elementHeader + 1);
+            if (pmdaHeader->Version == BG_MICROSOFT_PMDA_VERSION
+                && elementHeader->DataSize == sizeof(BG_MICROSOFT_PMDA_HEADER) + sizeof(BG_MICROSOFT_PMDA_ENTRY)*pmdaHeader->NumEntries) {
                 // Add entries
                 bootGuardInfo += UString("\nMicrosoft PMDA-based protected ranges:\n");
-                const BG_MICROSOFT_PMDA_ENTRY* entries = (const BG_MICROSOFT_PMDA_ENTRY*)(header + 1);
-                for (UINT32 i = 0; i < header->NumEntries; i++) {
+                const BG_MICROSOFT_PMDA_ENTRY* entries = (const BG_MICROSOFT_PMDA_ENTRY*)(pmdaHeader + 1);
+                for (UINT32 i = 0; i < pmdaHeader->NumEntries; i++) {
 
                     bootGuardInfo += usprintf("Address: %08Xh Size: %08Xh\n", entries[i].Address, entries[i].Size);
                     bootGuardInfo += UString("Hash: ");

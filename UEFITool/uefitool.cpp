@@ -374,8 +374,8 @@ void UEFITool::goToData()
         if (model->hasEmptyParsingData(index))
             continue;
 
-        UByteArray data = model->parsingData(index);
-        const NVAR_ENTRY_PARSING_DATA* pdata = (const NVAR_ENTRY_PARSING_DATA*)data.constData();
+        UByteArray rdata = model->parsingData(index);
+        const NVAR_ENTRY_PARSING_DATA* pdata = (const NVAR_ENTRY_PARSING_DATA*)rdata.constData();
         UINT32 lastVariableFlag = pdata->emptyByte ? 0xFFFFFF : 0;
         UINT32 offset = model->offset(index);
         if (pdata->next == lastVariableFlag) {

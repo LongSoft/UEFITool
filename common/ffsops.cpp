@@ -21,10 +21,6 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
-    // Construct a name for extracted data
-    UString itemName = model->name(index);
-    UString itemText = model->text(index);
-
     // Default name
     name = uniqueItemName(index);
 
@@ -77,10 +73,8 @@ USTATUS FfsOperations::replace(const UModelIndex & index, const UString & data, 
     else if (mode == REPLACE_MODE_BODY) {
         return U_NOT_IMPLEMENTED;
     }
-    else 
-        return U_UNKNOWN_REPLACE_MODE;
     
-    return U_NOT_IMPLEMENTED;
+     return U_UNKNOWN_REPLACE_MODE;
 }
 
 USTATUS FfsOperations::remove(const UModelIndex & index)

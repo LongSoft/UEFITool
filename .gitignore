@@ -231,3 +231,10 @@ pip-log.txt
 #############
 *.o
 Makefile
+
+UEFITool/uefitool_plugin_import.cpp
+UEFITool.app/
+.qmake.stash
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake

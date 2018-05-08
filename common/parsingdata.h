@@ -20,16 +20,16 @@ routines without the need of backward traversal
 #include "basetypes.h"
 
 typedef struct VOLUME_PARSING_DATA_ {
-    UINT8    ffsVersion;
-    UINT8    emptyByte;
     EFI_GUID extendedHeaderGuid;
     UINT32   alignment;
+    UINT32   usedSpace;
+    BOOLEAN  hasValidUsedSpace;
+    UINT8    ffsVersion;
+    UINT8    emptyByte;
     UINT8    revision;
     BOOLEAN  hasExtendedHeader;
     BOOLEAN  hasAppleCrc32;
     BOOLEAN  isWeakAligned;
-    BOOLEAN  hasValidUsedSpace;
-    UINT32   usedSpace;
 } VOLUME_PARSING_DATA;
 
 typedef struct FILE_PARSING_DATA_ {

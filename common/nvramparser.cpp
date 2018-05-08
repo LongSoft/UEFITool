@@ -937,18 +937,9 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
         return U_SUCCESS;
     }
 
-    // Check header size
-    UINT32 headerSize = sizeof(FDC_VOLUME_HEADER);
-    if (dataSize < headerSize) {
-        msg(usprintf("%s: FDC store header size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
-            fdcStoreHeader->Size, fdcStoreHeader->Size,
-            dataSize, dataSize), parent);
-        return U_SUCCESS;
-    }
-
     // Construct header and body
-    UByteArray header = store.left(headerSize);
-    UByteArray body = store.mid(headerSize, fdcStoreHeader->Size - headerSize);
+    UByteArray header = store.left(sizeof(FDC_VOLUME_HEADER));
+    UByteArray body = store.mid(sizeof(FDC_VOLUME_HEADER), fdcStoreHeader->Size - sizeof(FDC_VOLUME_HEADER));
 
     // Add info
     UString name("FDC store");
@@ -1391,7 +1382,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
 
     // Parse all variables
     while (1) {
-        bool isInvalid = false;
+        bool isInvalid = true;
         bool isAuthenticated = false;
         bool isAppleCrc32 = false;
         bool isIntelSpecial = false;
@@ -1465,7 +1456,8 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             }
 
             // Intel special variable
-            else if (variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_VALID || variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_INVALID) {
+            else if (variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_VALID
+                || variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_INVALID) {
                 isIntelSpecial = true;
                 const VSS_INTEL_VARIABLE_HEADER* intelVariableHeader = (const VSS_INTEL_VARIABLE_HEADER*)variableHeader;
                 variableSize = intelVariableHeader->TotalSize;
@@ -1483,7 +1475,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             }
 
             // Normal VSS variable
-            if (!isAuthenticated && !isAppleCrc32 && !isIntelSpecial) {
+            else {
                 variableSize = sizeof(VSS_VARIABLE_HEADER) + variableHeader->NameSize + variableHeader->DataSize;
                 variableGuid = (EFI_GUID*)&variableHeader->VendorGuid;
                 variableName = (CHAR16*)(variableHeader + 1);
@@ -1493,8 +1485,10 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             }
 
             // Check variable state
-            if (variableHeader->State != NVRAM_VSS_INTEL_VARIABLE_VALID && variableHeader->State != NVRAM_VSS_VARIABLE_ADDED && variableHeader->State != NVRAM_VSS_VARIABLE_HEADER_VALID) {
-                isInvalid = true;
+            if (variableHeader->State == NVRAM_VSS_INTEL_VARIABLE_VALID
+                || variableHeader->State == NVRAM_VSS_VARIABLE_ADDED
+                || variableHeader->State == NVRAM_VSS_VARIABLE_HEADER_VALID) {
+                isInvalid = false;
             }
 
             // Check variable size
@@ -1565,8 +1559,9 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         else if (isIntelSpecial) {
             subtype = Subtypes::IntelVssEntry;
         }
-        else
+        else {
             subtype = Subtypes::StandardVssEntry;
+        }
 
         // Add tree item
         model->addItem(localOffset + offset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Movable, index);
@@ -1596,12 +1591,12 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
     const UByteArray data = model->body(index);
 
     // Check that the is enough space for variable header
-    const UINT32 dataSize = (UINT32)data.size();
+    const UINT32 storeDataSize = (UINT32)data.size();
     UINT32 offset = 0;
 
     // Parse all variables
     while (1) {
-        UINT32 unparsedSize = dataSize - offset;
+        UINT32 unparsedSize = storeDataSize - offset;
         UINT32 variableSize = 0;
 
         // Get nameSize and name of the variable
@@ -1699,14 +1694,14 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
     const UByteArray data = model->body(index);
 
     // Check that the is enough space for entry header
-    const UINT32 dataSize = (UINT32)data.size();
+    const UINT32 storeDataSize = (UINT32)data.size();
     UINT32 offset = 0;
 
     std::map<UINT16, EFI_GUID> guidMap;
     std::map<UINT16, UString> nameMap;
 
     // Parse all entries
-    UINT32 unparsedSize = dataSize;
+    UINT32 unparsedSize = storeDataSize;
     while (unparsedSize) {
         UINT32 variableSize = 0;
         UString name;
@@ -1721,8 +1716,8 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
         // Check entry size
         variableSize = sizeof(EVSA_ENTRY_HEADER);
         if (unparsedSize < variableSize || unparsedSize < entryHeader->Size) {
-            UByteArray body = data.mid(offset);
-            UString info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+            body = data.mid(offset);
+            info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
@@ -1813,8 +1808,8 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
         }
         // Unknown entry or free space
         else {
-            UByteArray body = data.mid(offset);
-            UString info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+            body = data.mid(offset);
+            info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
@@ -1835,7 +1830,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
         // Move to next variable
         offset += variableSize;
-        unparsedSize = dataSize - offset;
+        unparsedSize = storeDataSize - offset;
     }
 
     // Reparse all data variables to detect invalid ones and assign name and test to valid ones
