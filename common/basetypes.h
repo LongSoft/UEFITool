@@ -16,8 +16,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <stddef.h>
 
-typedef uint8_t USTATUS;
+typedef size_t USTATUS;
 #define U_SUCCESS                         0
 #define U_INVALID_PARAMETER               1
 #define U_BUFFER_TOO_SMALL                2
@@ -79,7 +80,7 @@ typedef int64_t      INT64;
 typedef uint64_t     UINT64;
 typedef char         CHAR8;
 typedef uint16_t     CHAR16;
-typedef unsigned int UINTN;
+typedef size_t       UINTN;
 
 #define CONST  const
 #define VOID   void
@@ -161,11 +162,11 @@ typedef struct EFI_TIME_ {
     UINT8   Hour;       // Hour:       0 - 23
     UINT8   Minute;     // Minute:     0 - 59
     UINT8   Second;     // Second:     0 - 59
-    UINT8   : 8;
+    UINT8   Reserved0;
     UINT32  Nanosecond; // Nanosecond: 0 - 999,999,999
     INT16   TimeZone;   // TimeZone:   -1440 to 1440 or UNSPECIFIED (0x07FF)
     UINT8   Daylight;   // Daylight:   ADJUST_DAYLIGHT (1) or IN_DAYLIGHT (2) 
-    UINT8   : 8;
+    UINT8   Reserved1;
 } EFI_TIME;
 
 // Align to 4 or 8 bytes

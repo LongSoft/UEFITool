@@ -56,22 +56,20 @@ extern "C" {
 
     --*/
     EFI_STATUS
-        TianoCompress(
-        CONST VOID   *SrcBuffer,
-        UINT32  SrcSize,
-        VOID   *DstBuffer,
-        UINT32  *DstSize
-        )
-        ;
+        TianoCompress (
+            IN      CONST VOID   *SrcBuffer,
+            IN      UINT32       SrcSize,
+            IN      VOID         *DstBuffer,
+            IN OUT  UINT32       *DstSize
+        );
 
     EFI_STATUS
         TianoCompressLegacy(
-        CONST VOID   *SrcBuffer,
-        UINT32  SrcSize,
-        VOID   *DstBuffer,
-        UINT32  *DstSize
-        )
-        ;
+            CONST VOID   *SrcBuffer,
+            UINT32        SrcSize,
+            VOID          *DstBuffer,
+            UINT32        *DstSize
+        );
     /*++
 
     Routine Description:
@@ -96,21 +94,20 @@ extern "C" {
 
     --*/
     EFI_STATUS
-        EfiCompress(
-        CONST VOID   *SrcBuffer,
-        UINT32  SrcSize,
-        VOID   *DstBuffer,
-        UINT32  *DstSize
-        )
-        ;
+        EfiCompress (
+            IN CONST VOID   *SrcBuffer,
+            IN UINT32       SrcSize,
+            IN VOID         *DstBuffer,
+            IN OUT UINT32   *DstSize
+        );
+
     EFI_STATUS
         EfiCompressLegacy(
-        CONST VOID   *SrcBuffer,
-        UINT32  SrcSize,
-        VOID   *DstBuffer,
-        UINT32  *DstSize
-        )
-        ;
+            CONST VOID   *SrcBuffer,
+            UINT32       SrcSize,
+            VOID         *DstBuffer,
+            UINT32       *DstSize
+        );
 
 #ifdef __cplusplus
 }

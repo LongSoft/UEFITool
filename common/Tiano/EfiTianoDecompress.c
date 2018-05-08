@@ -79,12 +79,6 @@ typedef struct {
     UINT8   mPBit;
 } SCRATCH_DATA;
 
-STATIC
-VOID
-FillBuf(
-IN  SCRATCH_DATA  *Sd,
-IN  UINT16        NumOfBits
-)
 /*++
 
 Routine Description:
@@ -99,6 +93,12 @@ NumOfBits  - The number of bits to shift and read.
 Returns: (VOID)
 
 --*/
+STATIC
+VOID
+FillBuf (
+    IN  SCRATCH_DATA  *Sd,
+    IN  UINT16        NumOfBits
+    )
 {
     Sd->mBitBuf = (UINT32) (((UINT64)Sd->mBitBuf) << NumOfBits);
 
@@ -127,12 +127,6 @@ Returns: (VOID)
     Sd->mBitBuf |= Sd->mSubBitBuf >> Sd->mBitCount;
 }
 
-STATIC
-UINT32
-GetBits(
-IN  SCRATCH_DATA  *Sd,
-IN  UINT16        NumOfBits
-)
 /*++
 
 Routine Description:
@@ -151,6 +145,12 @@ Returns:
 The bits that are popped out.
 
 --*/
+STATIC
+UINT32
+GetBits (
+    IN  SCRATCH_DATA  *Sd,
+    IN  UINT16        NumOfBits
+    )
 {
     UINT32  OutBits;
 
@@ -161,15 +161,6 @@ The bits that are popped out.
     return OutBits;
 }
 
-STATIC
-UINT16
-MakeTable(
-IN  SCRATCH_DATA  *Sd,
-IN  UINT16        NumOfChar,
-IN  UINT8         *BitLen,
-IN  UINT16        TableBits,
-OUT UINT16        *Table
-)
 /*++
 
 Routine Description:
@@ -190,6 +181,15 @@ Returns:
 BAD_TABLE - The table is corrupted.
 
 --*/
+STATIC
+UINT16
+MakeTable (
+    IN  SCRATCH_DATA  *Sd,
+    IN  UINT16        NumOfChar,
+    IN  UINT8         *BitLen,
+    IN  UINT16        TableBits,
+    OUT UINT16        *Table
+)
 {
     UINT16  Count[17];
     UINT16  Weight[17];
@@ -321,11 +321,6 @@ BAD_TABLE - The table is corrupted.
     return 0;
 }
 
-STATIC
-UINT32
-DecodeP(
-IN  SCRATCH_DATA  *Sd
-)
 /*++
 
 Routine Description:
@@ -341,6 +336,11 @@ Returns:
 The position value decoded.
 
 --*/
+STATIC
+UINT32
+DecodeP (
+    IN  SCRATCH_DATA  *Sd
+    )
 {
     UINT16  Val;
     UINT32  Mask;
@@ -375,14 +375,6 @@ The position value decoded.
     return Pos;
 }
 
-STATIC
-UINT16
-ReadPTLen(
-IN  SCRATCH_DATA  *Sd,
-IN  UINT16        nn,
-IN  UINT16        nbit,
-IN  UINT16        Special
-)
 /*++
 
 Routine Description:
@@ -402,6 +394,14 @@ Returns:
 BAD_TABLE - Table is corrupted.
 
 --*/
+STATIC
+UINT16
+ReadPTLen (
+    IN  SCRATCH_DATA  *Sd,
+    IN  UINT16        nn,
+    IN  UINT16        nbit,
+    IN  UINT16        Special
+)
 {
     UINT16  Number;
     UINT16  CharC;
@@ -469,11 +469,6 @@ BAD_TABLE - Table is corrupted.
     return MakeTable(Sd, nn, Sd->mPTLen, 8, Sd->mPTTable);
 }
 
-STATIC
-VOID
-ReadCLen(
-SCRATCH_DATA  *Sd
-)
 /*++
 
 Routine Description:
@@ -487,6 +482,11 @@ Sd    - the global scratch data
 Returns: (VOID)
 
 --*/
+STATIC
+VOID
+ReadCLen (
+    SCRATCH_DATA  *Sd
+    )
 {
     UINT16  Number;
     UINT16  CharC;
@@ -560,11 +560,6 @@ Returns: (VOID)
     return;
 }
 
-STATIC
-UINT16
-DecodeC(
-SCRATCH_DATA  *Sd
-)
 /*++
 
 Routine Description:
@@ -580,6 +575,11 @@ Returns:
 The value decoded.
 
 --*/
+STATIC
+UINT16
+DecodeC (
+    SCRATCH_DATA  *Sd
+    )
 {
     UINT16  Index2;
     UINT32  Mask;
@@ -627,11 +627,6 @@ The value decoded.
     return Index2;
 }
 
-STATIC
-VOID
-Decode(
-SCRATCH_DATA  *Sd
-)
 /*++
 
 Routine Description:
@@ -645,6 +640,11 @@ Sd            - The global scratch data
 Returns: (VOID)
 
 --*/
+STATIC
+VOID
+Decode (
+    SCRATCH_DATA  *Sd
+)
 {
     UINT16  BytesRemain;
     UINT32  DataIdx;
@@ -700,13 +700,6 @@ Returns: (VOID)
     }
 }
 
-EFI_STATUS
-GetInfo(
-IN      const VOID    *Source,
-IN      UINT32        SrcSize,
-OUT     UINT32        *DstSize,
-OUT     UINT32        *ScratchSize
-)
 /*++
 
 Routine Description:
@@ -726,6 +719,13 @@ EFI_SUCCESS           - The size of destination buffer and the size of scratch b
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
+EFI_STATUS
+GetInfo(
+    IN      const VOID    *Source,
+    IN      UINT32        SrcSize,
+    OUT     UINT32        *DstSize,
+    OUT     UINT32        *ScratchSize
+)
 {
     const UINT8 *Src;
 
@@ -740,16 +740,6 @@ EFI_INVALID_PARAMETER - The source data is corrupted
     return EFI_SUCCESS;
 }
 
-EFI_STATUS
-Decompress(
-IN      const VOID *Source,
-IN      UINT32     SrcSize,
-IN OUT  VOID       *Destination,
-IN      UINT32     DstSize,
-IN OUT  VOID       *Scratch,
-IN      UINT32     ScratchSize,
-IN      UINT8      Version
-)
 /*++
 
 Routine Description:
@@ -774,6 +764,16 @@ EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
+EFI_STATUS
+Decompress (
+    IN      CONST VOID *Source,
+    IN      UINT32     SrcSize,
+    IN OUT  VOID       *Destination,
+    IN      UINT32     DstSize,
+    IN OUT  VOID       *Scratch,
+    IN      UINT32     ScratchSize,
+    IN      UINT8      Version
+)
 {
     UINT32        Index;
     UINT32        CompSize;
@@ -866,14 +866,6 @@ EFI_INVALID_PARAMETER - The source data is corrupted
     return Status;
 }
 
-EFI_STATUS
-EFIAPI
-EfiTianoGetInfo(
-IN      const VOID              *Source,
-IN      UINT32                  SrcSize,
-OUT     UINT32                  *DstSize,
-OUT     UINT32                  *ScratchSize
-)
 /*++
 
 Routine Description:
@@ -894,25 +886,18 @@ EFI_SUCCESS           - The size of destination buffer and the size of scratch b
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
-{
-    return GetInfo(
-        Source,
-        SrcSize,
-        DstSize,
-        ScratchSize
-        );
-}
-
 EFI_STATUS
 EFIAPI
-EfiDecompress(
-IN      const VOID              *Source,
-IN      UINT32                  SrcSize,
-IN OUT  VOID                    *Destination,
-IN      UINT32                  DstSize,
-IN OUT  VOID                    *Scratch,
-IN      UINT32                  ScratchSize
-)
+EfiTianoGetInfo(
+    IN      CONST VOID *Source,
+    IN      UINT32      SrcSize,
+    OUT     UINT32      *DstSize,
+    OUT     UINT32      *ScratchSize
+    )
+{
+    return GetInfo (Source, SrcSize, DstSize, ScratchSize);
+}
+
 /*++
 
 Routine Description:
@@ -935,11 +920,21 @@ EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
+EFI_STATUS
+EFIAPI
+EfiDecompress (
+    IN      CONST VOID *Source,
+    IN      UINT32     SrcSize,
+    IN OUT  VOID       *Destination,
+    IN      UINT32     DstSize,
+    IN OUT  VOID       *Scratch,
+    IN      UINT32     ScratchSize
+    )
 {
     //
     // For EFI 1.1 de/compression algorithm, the version is 1.
     //
-    return Decompress(
+    return Decompress (
         Source,
         SrcSize,
         Destination,
@@ -950,16 +945,6 @@ EFI_INVALID_PARAMETER - The source data is corrupted
         );
 }
 
-EFI_STATUS
-EFIAPI
-TianoDecompress(
-IN      const VOID                    *Source,
-IN      UINT32                        SrcSize,
-IN OUT  VOID                          *Destination,
-IN      UINT32                        DstSize,
-IN OUT  VOID                          *Scratch,
-IN      UINT32                        ScratchSize
-)
 /*++
 
 Routine Description:
@@ -982,11 +967,21 @@ EFI_SUCCESS           - Decompression is successful
 EFI_INVALID_PARAMETER - The source data is corrupted
 
 --*/
+EFI_STATUS
+EFIAPI
+TianoDecompress (
+    IN      CONST VOID *Source,
+    IN      UINT32     SrcSize,
+    IN OUT  VOID       *Destination,
+    IN      UINT32     DstSize,
+    IN OUT  VOID       *Scratch,
+    IN      UINT32     ScratchSize
+)
 {
     //
     // For Tiano de/compression algorithm, the version is 2.
     //
-    return Decompress(
+    return Decompress (
         Source,
         SrcSize,
         Destination,
