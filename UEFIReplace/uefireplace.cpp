@@ -84,15 +84,20 @@ UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & g
 {
     if (!model || !index.isValid())
         return ERR_INVALID_PARAMETER;
-	bool patched = false;
+    bool patched = false;
     if (model->subtype(index) == sectionType) {
         QModelIndex fileIndex = model->findParentOfType(index, Types::File);
         QByteArray fileGuid = model->header(fileIndex).left(sizeof(EFI_GUID));
-        if (fileGuid == guid && model->action(index) != Actions::Replace) {
+        bool guidMatch = fileGuid == guid;
+        if (!guidMatch && sectionType == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
+            QByteArray subGuid = model->header(index).mid(sizeof(uint32_t), sizeof(EFI_GUID));
+            guidMatch = subGuid == guid;
+        }
+        if (guidMatch && model->action(index) != Actions::Replace) {
             UINT8 result = ffsEngine->replace(index, newData, REPLACE_MODE_BODY);
             if (replaceOnce || (result != ERR_SUCCESS && result != ERR_NOTHING_TO_PATCH))
                 return result;
-			patched = result == ERR_SUCCESS;
+            patched = result == ERR_SUCCESS;
         }
     }
 
