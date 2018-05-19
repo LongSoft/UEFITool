@@ -26,20 +26,32 @@ int main(int argc, char *argv[])
 
     UEFIPatch w;
     UINT8 result = ERR_SUCCESS;
-    UINT32 argumentsCount = a.arguments().length();
-    
-    QString patches = "patches.txt";
-    if (argumentsCount == 3)
-        patches = a.arguments().at(2);
+    const QStringList &args = a.arguments();
+    UINT32 argumentsCount = args.length();
 
-    if (argumentsCount == 2 || argumentsCount == 3) {
-        result = w.patchFromFile(a.arguments().at(1), patches);
-    }
-    else {
+    if (argumentsCount < 2) {
         std::cout << "UEFIPatch 0.3.15 - UEFI image file patching utility" << std::endl << std::endl <<
-            "Usage: UEFIPatch image_file [patches.txt]" << std::endl << std::endl <<
+            "Usage: UEFIPatch image_file [patches.txt] [-o output]" << std::endl << std::endl <<
             "Patches will be read from patches.txt file by default\n";
         return ERR_SUCCESS;
+    }
+
+    QString inputPath = a.arguments().at(1);
+    QString patches = "patches.txt";
+    QString outputPath = inputPath + ".patched";
+    for (UINT32 i = 2; i < argumentsCount; i++) {
+        if ((args.at(i) == "-o" || args.at(i) == "--output") && i + 1 < argumentsCount) {
+            outputPath = args.at(i+1);
+            i++;
+        } else if (patches == "patches.txt") {
+            patches = args.at(i);
+        } else {
+            result = ERR_INVALID_PARAMETER;
+        }
+    }
+
+    if (result == ERR_SUCCESS) {
+        result = w.patchFromFile(inputPath, patches, outputPath);
     }
 
     switch (result) {
