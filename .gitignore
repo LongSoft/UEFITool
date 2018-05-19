@@ -235,3 +235,6 @@ UEFIFind/UEFIFind
 UEFIPatch/UEFIPatch
 UEFIReplace/UEFIReplace
 UEFITool
+.qmake.stash
+UEFITool.app/
+uefitool_plugin_import.cpp

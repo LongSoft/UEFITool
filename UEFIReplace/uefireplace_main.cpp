@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
     if (args.length() < 5) {
         std::cout << "UEFIReplace 0.1.3 - UEFI image file replacement utility" << std::endl << std::endl <<
-            "Usage: UEFIReplace image_file guid section_type contents_file" << std::endl;
+            "Usage: UEFIReplace image_file guid section_type contents_file [-o output] [-all]" << std::endl;
         return ERR_SUCCESS;
     }
 
@@ -37,10 +37,25 @@ int main(int argc, char *argv[])
     QByteArray guid = QByteArray::fromRawData((const char*)&uuid.data1, sizeof(EFI_GUID));
     bool converted;
     UINT8 sectionType = (UINT8)args.at(3).toUShort(&converted, 16);
-    if (!converted)
+    if (!converted) {
         result = ERR_INVALID_PARAMETER;
-    else
-        result = r.replace(args.at(1), guid, sectionType, args.at(4));
+    } else {
+        QString output = args.at(1) + ".patched";
+        bool replaceOnce = true;
+        for (int i = 5, sz = args.size(); i < sz; i++) {
+            if ((args.at(i) == "-o" || args.at(i) == "--output") && i + 1 < sz) {
+                output = args.at(i+1);
+                i++;
+            } else if (args.at(i) == "-all") {
+                replaceOnce = false;
+            } else {
+                result = ERR_INVALID_PARAMETER;
+            }
+        }
+        if (result == ERR_SUCCESS) {
+            result = r.replace(args.at(1), guid, sectionType, args.at(4), output, replaceOnce);
+        }
+    }
 
     switch (result) {
     case ERR_SUCCESS:

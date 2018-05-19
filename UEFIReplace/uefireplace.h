@@ -30,10 +30,10 @@ public:
     explicit UEFIReplace(QObject *parent = 0);
     ~UEFIReplace();
 
-    UINT8 replace(const QString inPath, const QByteArray & guid, const UINT8 sectionType, const QString contentPath);
+    UINT8 replace(const QString & inPath, const QByteArray & guid, const UINT8 sectionType, const QString & contentPath, const QString & outPath, bool replaceOnce);
 
 private:
-    UINT8 replaceInFile(const QModelIndex & index, const QByteArray & guid, const UINT8 sectionType, const QByteArray & contents);
+    UINT8 replaceInFile(const QModelIndex & index, const QByteArray & guid, const UINT8 sectionType, const QByteArray & contents, bool replaceOnce);
     FfsEngine* ffsEngine;
     TreeModel* model;
 };
