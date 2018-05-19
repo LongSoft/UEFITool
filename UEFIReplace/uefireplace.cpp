@@ -25,7 +25,7 @@ UEFIReplace::~UEFIReplace()
     delete ffsEngine;
 }
 
-UINT8 UEFIReplace::replace(QString inPath, const QByteArray & guid, const UINT8 sectionType, const QString contentPath)
+UINT8 UEFIReplace::replace(const QString & inPath, const QByteArray & guid, const UINT8 sectionType, const QString & contentPath, const QString & outPath, bool replaceOnce)
 {
     QFileInfo fileInfo = QFileInfo(inPath);
     if (!fileInfo.exists())
@@ -57,7 +57,7 @@ UINT8 UEFIReplace::replace(QString inPath, const QByteArray & guid, const UINT8 
     QByteArray contents = contentFile.readAll();
     contentFile.close();
 
-    result = replaceInFile(model->index(0, 0), guid, sectionType, contents);
+    result = replaceInFile(model->index(0, 0), guid, sectionType, contents, replaceOnce);
     if (result)
         return result;
 
@@ -69,7 +69,7 @@ UINT8 UEFIReplace::replace(QString inPath, const QByteArray & guid, const UINT8 
         return ERR_NOTHING_TO_PATCH;
 
     QFile outputFile;
-    outputFile.setFileName(inPath.append(".patched"));
+    outputFile.setFileName(outPath);
     if (!outputFile.open(QFile::WriteOnly))
         return ERR_FILE_WRITE;
 
@@ -80,7 +80,7 @@ UINT8 UEFIReplace::replace(QString inPath, const QByteArray & guid, const UINT8 
     return ERR_SUCCESS;
 }
 
-UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & guid, const UINT8 sectionType, const QByteArray & newData)
+UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & guid, const UINT8 sectionType, const QByteArray & newData, bool replaceOnce)
 {
     if (!model || !index.isValid())
         return ERR_INVALID_PARAMETER;
@@ -88,19 +88,23 @@ UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & g
         QModelIndex fileIndex = model->findParentOfType(index, Types::File);
         QByteArray fileGuid = model->header(fileIndex).left(sizeof(EFI_GUID));
         if (fileGuid == guid) {
-            return ffsEngine->replace(index, newData, REPLACE_MODE_BODY);
+            UINT8 result = ffsEngine->replace(index, newData, REPLACE_MODE_BODY);
+            if (replaceOnce || (result != ERR_SUCCESS && result != ERR_NOTHING_TO_PATCH))
+                return result;
         }
     }
 
     bool patched = false;
     if (model->rowCount(index) > 0) {
         for (int i = 0; i < model->rowCount(index); i++) {
-            UINT8 result = replaceInFile(index.child(i, 0), guid, sectionType, newData);
-            if (!result) {
+            UINT8 result = replaceInFile(index.child(i, 0), guid, sectionType, newData, replaceOnce);
+            if (result == ERR_SUCCESS) {
                 patched = true;
-                break;
-            } else if (result != ERR_NOTHING_TO_PATCH)
+                if (replaceOnce)
+                    break;
+            } else if (result != ERR_NOTHING_TO_PATCH) {
                 return result;
+            }
         }
     }
 
