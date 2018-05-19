@@ -25,7 +25,7 @@ UEFIPatch::~UEFIPatch()
     delete ffsEngine;
 }
 
-UINT8 UEFIPatch::patchFromFile(QString path, QString patches)
+UINT8 UEFIPatch::patchFromFile(const QString & path, const QString & patches, const QString & outputPath)
 {
     QFileInfo patchInfo = QFileInfo(patches);
 
@@ -110,7 +110,7 @@ UINT8 UEFIPatch::patchFromFile(QString path, QString patches)
         return ERR_NOTHING_TO_PATCH;
     
     QFile outputFile;
-    outputFile.setFileName(path.append(".patched"));
+    outputFile.setFileName(outputPath);
     if (!outputFile.open(QFile::WriteOnly))
         return ERR_FILE_WRITE;
 
