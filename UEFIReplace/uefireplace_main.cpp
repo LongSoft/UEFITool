@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
     if (args.length() < 5) {
         std::cout << "UEFIReplace 0.1.3 - UEFI image file replacement utility" << std::endl << std::endl <<
-            "Usage: UEFIReplace image_file guid section_type contents_file [-o output] [-all]" << std::endl;
+            "Usage: UEFIReplace image_file guid section_type contents_file [-o output] [-all] [-asis]" << std::endl;
         return ERR_SUCCESS;
     }
 
@@ -42,18 +42,21 @@ int main(int argc, char *argv[])
     } else {
         QString output = args.at(1) + ".patched";
         bool replaceOnce = true;
+        bool replaceAsIs = false;
         for (int i = 5, sz = args.size(); i < sz; i++) {
             if ((args.at(i) == "-o" || args.at(i) == "--output") && i + 1 < sz) {
                 output = args.at(i+1);
                 i++;
             } else if (args.at(i) == "-all") {
                 replaceOnce = false;
+            } else if (args.at(i) == "-asis") {
+                replaceAsIs = true;
             } else {
                 result = ERR_INVALID_PARAMETER;
             }
         }
         if (result == ERR_SUCCESS) {
-            result = r.replace(args.at(1), guid, sectionType, args.at(4), output, replaceOnce);
+            result = r.replace(args.at(1), guid, sectionType, args.at(4), output, replaceAsIs, replaceOnce);
         }
     }
 
