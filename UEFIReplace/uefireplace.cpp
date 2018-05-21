@@ -25,7 +25,7 @@ UEFIReplace::~UEFIReplace()
     delete ffsEngine;
 }
 
-UINT8 UEFIReplace::replace(const QString & inPath, const QByteArray & guid, const UINT8 sectionType, const QString & contentPath, const QString & outPath, bool replaceOnce)
+UINT8 UEFIReplace::replace(const QString & inPath, const QByteArray & guid, const UINT8 sectionType, const QString & contentPath, const QString & outPath, bool replaceAsIs, bool replaceOnce)
 {
     QFileInfo fileInfo = QFileInfo(inPath);
     if (!fileInfo.exists())
@@ -57,7 +57,8 @@ UINT8 UEFIReplace::replace(const QString & inPath, const QByteArray & guid, cons
     QByteArray contents = contentFile.readAll();
     contentFile.close();
 
-    result = replaceInFile(model->index(0, 0), guid, sectionType, contents, replaceOnce);
+    result = replaceInFile(model->index(0, 0), guid, sectionType, contents,
+        replaceAsIs ? REPLACE_MODE_AS_IS : REPLACE_MODE_BODY, replaceOnce);
     if (result)
         return result;
 
@@ -80,21 +81,24 @@ UINT8 UEFIReplace::replace(const QString & inPath, const QByteArray & guid, cons
     return ERR_SUCCESS;
 }
 
-UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & guid, const UINT8 sectionType, const QByteArray & newData, bool replaceOnce)
+UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & guid, const UINT8 sectionType, const QByteArray & newData, const UINT8 mode, bool replaceOnce)
 {
     if (!model || !index.isValid())
         return ERR_INVALID_PARAMETER;
     bool patched = false;
     if (model->subtype(index) == sectionType) {
-        QModelIndex fileIndex = model->findParentOfType(index, Types::File);
+        QModelIndex fileIndex = index;
+        if (model->type(index) != Types::File)
+            fileIndex = model->findParentOfType(index, Types::File);
         QByteArray fileGuid = model->header(fileIndex).left(sizeof(EFI_GUID));
+
         bool guidMatch = fileGuid == guid;
         if (!guidMatch && sectionType == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
-            QByteArray subGuid = model->header(index).mid(sizeof(uint32_t), sizeof(EFI_GUID));
+            QByteArray subGuid = model->header(index).mid(sizeof(UINT32), sizeof(EFI_GUID));
             guidMatch = subGuid == guid;
         }
         if (guidMatch && model->action(index) != Actions::Replace) {
-            UINT8 result = ffsEngine->replace(index, newData, REPLACE_MODE_BODY);
+            UINT8 result = ffsEngine->replace(index, newData, mode);
             if (replaceOnce || (result != ERR_SUCCESS && result != ERR_NOTHING_TO_PATCH))
                 return result;
             patched = result == ERR_SUCCESS;
@@ -103,7 +107,7 @@ UINT8 UEFIReplace::replaceInFile(const QModelIndex & index, const QByteArray & g
 
     if (model->rowCount(index) > 0) {
         for (int i = 0; i < model->rowCount(index); i++) {
-            UINT8 result = replaceInFile(index.child(i, 0), guid, sectionType, newData, replaceOnce);
+            UINT8 result = replaceInFile(index.child(i, 0), guid, sectionType, newData, mode, replaceOnce);
             if (result == ERR_SUCCESS) {
                 patched = true;
                 if (replaceOnce)
