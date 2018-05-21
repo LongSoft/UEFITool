@@ -36,6 +36,7 @@ HEADERS  += uefipatch.h \
  ../ffsengine.h \
  ../treeitem.h \
  ../treemodel.h \
+ ../version.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
  ../Tiano/EfiTianoDecompress.h \

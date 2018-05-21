@@ -11,13 +11,14 @@
 
   */
 
+#include "version.h"
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("0.24.0"))
+version(tr(PROGRAM_VERSION))
 {
     clipboard = QApplication::clipboard();
 

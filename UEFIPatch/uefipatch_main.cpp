@@ -15,6 +15,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <QStringList>
 #include <iostream>
 #include <string>
+
+#include "../version.h"
 #include "uefipatch.h"
 
 int main(int argc, char *argv[])
@@ -30,7 +32,7 @@ int main(int argc, char *argv[])
     UINT32 argumentsCount = args.length();
 
     if (argumentsCount < 2) {
-        std::cout << "UEFIPatch 0.3.15 - UEFI image file patching utility" << std::endl << std::endl <<
+        std::cout << "UEFIPatch " PROGRAM_VERSION " - UEFI image file patching utility" << std::endl << std::endl <<
             "Usage: UEFIPatch image_file [patches.txt] [-o output]" << std::endl << std::endl <<
             "Patches will be read from patches.txt file by default\n";
         return ERR_SUCCESS;
