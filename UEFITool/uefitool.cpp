@@ -11,13 +11,14 @@
 
   */
 
+#include "../version.h"
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE alpha 50"))
+version(tr(PROGRAM_VERSION))
 {
     clipboard = QApplication::clipboard();
 
@@ -723,7 +724,7 @@ void UEFITool::remove()
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2018, LongSoft"
+        "Copyright (c) 2018, LongSoft.<br>"
         "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br>"
         "The program uses QHexEdit2 library made by <a href=https://github.com/Simsys/>Simsys</a>.<br>"
         "Qt-less engine is using Bstrlib made by <a href=https://github.com/websnarf/>Paul Hsieh</a>.<br><br>"

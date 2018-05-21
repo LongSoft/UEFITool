@@ -12,6 +12,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 #include <QCoreApplication>
 #include <iostream>
+
+#include "../version.h"
 #include "uefifind.h"
 
 int main(int argc, char *argv[])
@@ -148,7 +150,7 @@ int main(int argc, char *argv[])
         return U_SUCCESS;
     }
     else {
-        std::cout << "UEFIFind 0.10.13" << std::endl << std::endl <<
+        std::cout << "UEFIFind " PROGRAM_VERSION << std::endl << std::endl <<
             "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
             "    or UEFIFind file patternsfile imagefile" << std::endl;
         return U_INVALID_PARAMETER;

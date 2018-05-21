@@ -57,10 +57,7 @@ fi
 
 echo "Attempting to build UEFITool NE for ${UPLATFORM}..."
 
-UEFITOOL_VER=$(cat UEFITool/uefitool.cpp               | grep ^version             | cut -d'"' -f2 | sed 's/NE alpha /A/')
-UEFIDUMP_VER=$(cat UEFIDump/uefidump_main.cpp          | grep '"UEFIDump [0-9]'    | cut -d'"' -f2 | cut -d' ' -f2)
-UEFIEXTRACT_VER=$(cat UEFIExtract/uefiextract_main.cpp | grep '"UEFIExtract [0-9]' | cut -d'"' -f2 | cut -d' ' -f2)
-UEFIFIND_VER=$(cat UEFIFind/uefifind_main.cpp          | grep '"UEFIFind [0-9]'    | cut -d'"' -f2 | cut -d' ' -f2)
+UEFITOOL_VER=$(cat version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/')
 
 build_tool() {
   echo "Building $1 $2"
@@ -115,9 +112,9 @@ build_tool() {
 rm -rf dist
 mkdir -p dist || exit 1
 
-build_tool UEFITool    "$UEFITOOL_VER"     uefitool.pro
-build_tool UEFIDump    "$UEFIDUMP_VER"     ""
-build_tool UEFIExtract "$UEFIEXTRACT_VER"  uefiextract.pro
-build_tool UEFIFind    "$UEFIFIND_VER"     uefifind.pro
+build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
+build_tool UEFIDump    "$UEFITOOL_VER"  ""
+build_tool UEFIExtract "$UEFITOOL_VER"  uefiextract.pro
+build_tool UEFIFind    "$UEFITOOL_VER"  uefifind.pro
 
 exit 0

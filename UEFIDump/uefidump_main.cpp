@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <iostream>
 #include <fstream>
 
+#include "../version.h"
 #include "uefidump.h"
 
 int main(int argc, char *argv[])
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
         return (uefidumper.dump(buffer, UString(argv[1])) != U_SUCCESS);
     }
 
-    std::cout << "UEFIDump 0.1.9" << std::endl << std::endl
+    std::cout << "UEFIDump " PROGRAM_VERSION << std::endl << std::endl
               << "Usage: UEFIDump imagefile" << std::endl;
     return 0;
 }

@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <iostream>
 
+#include "../version.h"
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
 #include "ffsdumper.h"
@@ -121,7 +122,7 @@ int main(int argc, char *argv[])
         }
     }
     // If parameters are different, show version and usage information
-    std::cout << "UEFIExtract 0.13.8" << std::endl << std::endl
+    std::cout << "UEFIExtract " PROGRAM_VERSION << std::endl << std::endl
         << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
         << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
         << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl

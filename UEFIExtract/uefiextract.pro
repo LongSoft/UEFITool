@@ -50,5 +50,6 @@ HEADERS += \
  ../common/ubytearray.h \
  ../common/ustring.h \
  ../common/bootguard.h \
- ../common/sha256.h
- 
+ ../common/sha256.h \
+ ../version.h
+

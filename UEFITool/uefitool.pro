@@ -43,6 +43,7 @@ HEADERS += uefitool.h \
  ../common/ubytearray.h \
  ../common/bootguard.h \
  ../common/sha256.h \
+ ../version.h \
  qhexedit2/qhexedit.h \
  qhexedit2/chunks.h \
  qhexedit2/commands.h

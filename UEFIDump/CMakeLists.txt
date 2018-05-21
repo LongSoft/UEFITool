@@ -50,6 +50,7 @@ SET(PROJECT_HEADERS
  ../common/sha256.h 
  ../common/bstrlib/bstrlib.h 
  ../common/bstrlib/bstrwrap.h
+ ../version.h
 )
 
 ADD_DEFINITIONS(-DU_ENABLE_NVRAM_PARSING_SUPPORT)
