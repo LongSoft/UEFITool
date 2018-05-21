@@ -39,6 +39,7 @@ HEADERS  += uefitool.h \
  treemodel.h \
  messagelistitem.h \
  guidlineedit.h \
+ version.h \
  LZMA/LzmaCompress.h \
  LZMA/LzmaDecompress.h \
  Tiano/EfiTianoDecompress.h \

@@ -55,11 +55,9 @@ elif [ "$UPLATFORM" = "win32" ]; then
   export PATH="/c/Qt/5.6/mingw49_32_release_static/bin:$PATH"
 fi
 
-echo "Attempting to build UEFITool NE for ${UPLATFORM}..."
+echo "Attempting to build UEFITool for ${UPLATFORM}..."
 
-UEFITOOL_VER=$(cat uefitool.cpp                        | grep ^version             | cut -d'"' -f2)
-UEFIPATCH_VER=$(cat UEFIPatch/uefipatch_main.cpp       | grep '"UEFIPatch [0-9]'   | cut -d'"' -f2 | cut -d' ' -f2)
-UEFIREPLACE_VER=$(cat UEFIReplace/uefireplace_main.cpp | grep '"UEFIReplace [0-9]' | cut -d'"' -f2 | cut -d' ' -f2)
+UEFITOOL_VER=$(cat version.h | grep PROGRAM_VERSION | cut -d'"' -f2)
 
 build_tool() {
   echo "Building $1 $2"
@@ -113,8 +111,8 @@ build_tool() {
 rm -rf dist
 mkdir -p dist || exit 1
 
-build_tool UEFITool    "$UEFITOOL_VER"     uefitool.pro
-build_tool UEFIPatch   "$UEFIPATCH_VER"    uefipatch.pro patches*.txt
-build_tool UEFIReplace "$UEFIREPLACE_VER"  uefireplace.pro
+build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
+build_tool UEFIPatch   "$UEFITOOL_VER"  uefipatch.pro patches*.txt
+build_tool UEFIReplace "$UEFITOOL_VER"  uefireplace.pro
 
 exit 0
