@@ -27,34 +27,39 @@ int main(int argc, char *argv[])
     UINT8 result;
 
     if (a.arguments().length() == 5) {
+        const QString &inputArg = a.arguments().at(1);
+        const QString &modeArg = a.arguments().at(2);
+        const QString &subModeArg = a.arguments().at(3);
+        const QString &patternArg = a.arguments().at(4);
+
         // Get search mode
         UINT8 mode;
-        if (a.arguments().at(1) == QString("header"))
+        if (modeArg == QString("header"))
             mode = SEARCH_MODE_HEADER;
-        else if (a.arguments().at(1) == QString("body"))
+        else if (modeArg == QString("body"))
             mode = SEARCH_MODE_BODY;
-        else if (a.arguments().at(1) == QString("all"))
+        else if (modeArg == QString("all"))
             mode = SEARCH_MODE_ALL;
         else
             return U_INVALID_PARAMETER;
 
         // Get result type
         bool count;
-        if (a.arguments().at(2) == QString("list"))
+        if (subModeArg == QString("list"))
             count = false;
-        else if (a.arguments().at(2) == QString("count"))
+        else if (subModeArg == QString("count"))
             count = true;
         else
             return U_INVALID_PARAMETER;
 
         // Parse input file
-        result = w.init(a.arguments().at(4));
+        result = w.init(inputArg);
         if (result)
             return result;
 
         // Go find the supplied pattern
         QString found;
-        result = w.find(mode, count, a.arguments().at(3), found);
+        result = w.find(mode, count, patternArg, found);
         if (result)
             return result;
 
@@ -67,22 +72,26 @@ int main(int argc, char *argv[])
         return U_SUCCESS;
     }
     else if (a.arguments().length() == 4) {
+        const QString &inputArg = a.arguments().at(1);
+        const QString &modeArg = a.arguments().at(2);
+        const QString &patternArg = a.arguments().at(3);
+
         // Get search mode
-        if (a.arguments().at(1) != QString("file"))
+        if (modeArg != QString("file"))
             return U_INVALID_PARAMETER;
 
         // Open patterns file
-        QFileInfo fileInfo(a.arguments().at(2));
+        QFileInfo fileInfo(patternArg);
         if (!fileInfo.exists())
             return U_FILE_OPEN;
 
         QFile patternsFile;
-        patternsFile.setFileName(a.arguments().at(2));
+        patternsFile.setFileName(patternArg);
         if (!patternsFile.open(QFile::ReadOnly))
             return U_FILE_OPEN;
 
         // Parse input file
-        result = w.init(a.arguments().at(3));
+        result = w.init(inputArg);
         if (result)
             return result;
 
@@ -151,8 +160,8 @@ int main(int argc, char *argv[])
     }
     else {
         std::cout << "UEFIFind " PROGRAM_VERSION << std::endl << std::endl <<
-            "Usage: UEFIFind {header | body | all} {list | count} pattern imagefile" << std::endl <<
-            "    or UEFIFind file patternsfile imagefile" << std::endl;
+            "Usage: UEFIFind imagefile {header | body | all} {list | count} pattern" << std::endl <<
+            "    or UEFIFind imagefile file patternsfile" << std::endl;
         return U_INVALID_PARAMETER;
     }
 }
