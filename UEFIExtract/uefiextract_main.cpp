@@ -18,17 +18,19 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "../common/ffsreport.h"
 #include "ffsdumper.h"
 
+enum ReadType {
+    READ_INPUT,
+    READ_OUTPUT,
+    READ_MODE,
+    READ_SECTION
+};
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     a.setOrganizationName("LongSoft");
     a.setOrganizationDomain("longsoft.me");
     a.setApplicationName("UEFIExtract");
-
-    if (a.arguments().length() > 32) {
-        std::cout << "Too many arguments" << std::endl;
-        return 1;
-    }
 
     if (a.arguments().length() > 1) {
         // Check that input file exists
@@ -87,13 +89,67 @@ int main(int argc, char *argv[])
         }
         else if (a.arguments().length() > 3 ||
             (a.arguments().length() == 3 && a.arguments().at(2) != QString("all") && a.arguments().at(2) != QString("report"))) { // Dump specific files, without report
-            UINT32 returned = 0;
+            std::vector<QString> inputs, outputs;
+            std::vector<FfsDumper::DumpMode> modes;
+            std::vector<UINT8> sectionTypes;
+            ReadType readType = READ_INPUT;
             for (int i = 2; i < a.arguments().length(); i++) {
-                result = ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true, a.arguments().at(i));
-                if (result)
-                    returned |= (1 << (i - 1));
+                QString arg = a.arguments().at(i);
+                if (arg == QString("-i")) {
+                    readType = READ_INPUT;
+                    continue;
+                } else if (arg == QString("-o")) {
+                    readType = READ_OUTPUT;
+                    continue;
+                } else if (arg == QString("-m")) {
+                    readType = READ_MODE;
+                    continue;
+                } else if (arg == QString("-t")) {
+                    readType = READ_SECTION;
+                    continue;
+                }
+
+                if (readType == READ_INPUT) {
+                    inputs.push_back(arg);
+                } else if (readType == READ_OUTPUT) {
+                    outputs.push_back(arg);
+                } else if (readType == READ_MODE) {
+                    if (arg == QString("all"))
+                        modes.push_back(FfsDumper::DUMP_ALL);
+                    else if (arg == QString("body"))
+                        modes.push_back(FfsDumper::DUMP_BODY);
+                    else if (arg == QString("header"))
+                        modes.push_back(FfsDumper::DUMP_HEADER);
+                    else if (arg == QString("info"))
+                        modes.push_back(FfsDumper::DUMP_INFO);
+                    else
+                        return U_INVALID_PARAMETER;
+                } else if (readType == READ_SECTION) {
+                    bool converted;
+                    UINT8 sectionType = (UINT8)arg.toUShort(&converted, 16);
+                    if (!converted)
+                        return U_INVALID_PARAMETER;
+                    sectionTypes.push_back(sectionType);
+                }
             }
-            return returned;
+            if (inputs.empty() || (!outputs.empty() && inputs.size() != outputs.size()) ||
+                (!modes.empty() && inputs.size() != modes.size()) ||
+                (!sectionTypes.empty() && inputs.size() != sectionTypes.size()))
+                return U_INVALID_PARAMETER;
+
+            USTATUS lastError = U_SUCCESS;
+            for (size_t i = 0; i < inputs.size(); i++) {
+                QString outPath = outputs.empty() ? fileInfo.fileName().append(".dump") : outputs[i];
+                FfsDumper::DumpMode mode = modes.empty() ? FfsDumper::DUMP_ALL : modes[i];
+                UINT8 type = sectionTypes.empty() ? FfsDumper::IgnoreSectionType : sectionTypes[i];
+                result = ffsDumper.dump(model.index(0, 0), outPath, mode, type, inputs[i]);
+                if (result) {
+                    std::cout << "Guid " << inputs[i].toStdString() << " failed with " << result << " code!" << std::endl;
+                    lastError = result;
+                }
+            }
+
+            return lastError;
         }
 
         // Create ffsReport
@@ -115,7 +171,7 @@ int main(int argc, char *argv[])
             return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
         }
         else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump every elementm with report
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), true) != U_SUCCESS);
+            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), FfsDumper::DUMP_ALL) != U_SUCCESS);
         }
         else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("report")) { // Skip dumping
             return 0;
@@ -127,7 +183,9 @@ int main(int argc, char *argv[])
         << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
         << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl
         << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
-        << "       UEFIExtract imagefile GUID_1 GUID_2 ... GUID_31 - dump only FFS file(s) with specific GUID(s), without report." << std::endl
+        << "       UEFIExtract imagefile GUID_1 ... [ -o FILE_1 ... ] [ -m MODE_1 ... ] [ -t TYPE_1 ... ] -" << std::endl
+        << "         Dump only FFS file(s) with specific GUID(s), without report." << std::endl
+        << "         Type is section type or FF to ignore. Mode is one of: all, body, header, info." << std::endl
         << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise." << std::endl;
     return 1;
 }

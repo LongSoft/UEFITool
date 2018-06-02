@@ -27,13 +27,23 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 class FfsDumper
 {
 public:
+    enum DumpMode {
+        DUMP_CURRENT,
+        DUMP_ALL,
+        DUMP_BODY,
+        DUMP_HEADER,
+        DUMP_INFO
+    };
+
+    static const UINT8 IgnoreSectionType = 0xFF;
+
     explicit FfsDumper(TreeModel * treeModel) : model(treeModel), dumped(false) {}
     ~FfsDumper() {};
 
-    USTATUS dump(const QModelIndex & root, const QString & path, const bool dumpAll = false, const QString & guid = QString());
+    USTATUS dump(const QModelIndex & root, const QString & path, const DumpMode dumpMode = DUMP_CURRENT, const UINT8 sectionType = IgnoreSectionType, const QString & guid = QString());
 
 private:
-    USTATUS recursiveDump(const QModelIndex & root, const QString & path, const bool dumpAll, const QString & guid);
+    USTATUS recursiveDump(const QModelIndex & root, const QString & path, const DumpMode dumpMode, const UINT8 sectionType, const QString & guid);
     TreeModel* model;
     bool dumped;
 };
