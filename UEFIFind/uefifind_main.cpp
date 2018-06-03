@@ -27,10 +27,10 @@ int main(int argc, char *argv[])
     UINT8 result;
 
     if (a.arguments().length() == 5) {
-        const QString &inputArg = a.arguments().at(1);
-        const QString &modeArg = a.arguments().at(2);
-        const QString &subModeArg = a.arguments().at(3);
-        const QString &patternArg = a.arguments().at(4);
+        QString inputArg = a.arguments().at(1);
+        QString modeArg = a.arguments().at(2);
+        QString subModeArg = a.arguments().at(3);
+        QString patternArg = a.arguments().at(4);
 
         // Get search mode
         UINT8 mode;
@@ -72,9 +72,9 @@ int main(int argc, char *argv[])
         return U_SUCCESS;
     }
     else if (a.arguments().length() == 4) {
-        const QString &inputArg = a.arguments().at(1);
-        const QString &modeArg = a.arguments().at(2);
-        const QString &patternArg = a.arguments().at(3);
+        QString inputArg = a.arguments().at(1);
+        QString modeArg = a.arguments().at(2);
+        QString patternArg = a.arguments().at(3);
 
         // Get search mode
         if (modeArg != QString("file"))
