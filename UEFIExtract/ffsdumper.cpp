@@ -36,6 +36,8 @@ USTATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path
 
     QDir dir;
     if (guid.isEmpty() ||
+        (model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID &&
+        guidToUString(*(const EFI_GUID*)(model->header(index).constData() + sizeof(EFI_COMMON_SECTION_HEADER))) == guid) ||
         guidToUString(*(const EFI_GUID*)model->header(index).constData()) == guid ||
         guidToUString(*(const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData()) == guid) {
 
