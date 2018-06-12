@@ -37,7 +37,7 @@ public:
 
     static const UINT8 IgnoreSectionType = 0xFF;
 
-    explicit FfsDumper(TreeModel * treeModel) : model(treeModel), dumped(false) {}
+    explicit FfsDumper(TreeModel * treeModel) : model(treeModel), dumped(false), counter(0) {}
     ~FfsDumper() {};
 
     USTATUS dump(const QModelIndex & root, const QString & path, const DumpMode dumpMode = DUMP_CURRENT, const UINT8 sectionType = IgnoreSectionType, const QString & guid = QString());
@@ -46,5 +46,6 @@ private:
     USTATUS recursiveDump(const QModelIndex & root, const QString & path, const DumpMode dumpMode, const UINT8 sectionType, const QString & guid);
     TreeModel* model;
     bool dumped;
+    int counter;
 };
 #endif // FFSDUMPER_H

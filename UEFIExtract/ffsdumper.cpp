@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 USTATUS FfsDumper::dump(const QModelIndex & root, const QString & path, const DumpMode dumpMode, const UINT8 sectionType, const QString & guid)
 {
     dumped = false;
+    counter = 0;
 
     QDir dir;
     if (dir.cd(path))
@@ -48,7 +49,11 @@ USTATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path
         if (dumpMode == DUMP_ALL || model->rowCount(index) == 0)  { // Dump if leaf item or dumpAll is true
             if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT || dumpMode == DUMP_HEADER) {
                 if (!model->header(index).isEmpty() && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
-                    file.setFileName(QObject::tr("%1/header.bin").arg(path));
+                    if (counter == 0)
+                        file.setFileName(QObject::tr("%1/header.bin").arg(path));
+                    else
+                        file.setFileName(QObject::tr("%1/header_%2.bin").arg(path).arg(counter));
+                    counter++;
                     if (!file.open(QFile::WriteOnly))
                         return U_FILE_OPEN;
 
@@ -59,7 +64,11 @@ USTATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path
 
             if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT || dumpMode == DUMP_BODY) {
                 if (!model->body(index).isEmpty() && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
-                    file.setFileName(QObject::tr("%1/body.bin").arg(path));
+                    if (counter == 0)
+                        file.setFileName(QObject::tr("%1/body.bin").arg(path));
+                    else
+                        file.setFileName(QObject::tr("%1/body_%2.bin").arg(path).arg(counter));
+                    counter++;
                     if (!file.open(QFile::WriteOnly))
                         return U_FILE_OPEN;
 
@@ -77,7 +86,11 @@ USTATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path
                 .arg(itemSubtypeToUString(model->type(index), model->subtype(index)))
                 .arg(model->text(index).isEmpty() ? QObject::tr("") : QObject::tr("Text: %1\n").arg(model->text(index)))
                 .arg(model->info(index));
-            file.setFileName(QObject::tr("%1/info.txt").arg(path));
+            if (counter == 0)
+                file.setFileName(QObject::tr("%1/info.txt").arg(path));
+            else
+                file.setFileName(QObject::tr("%1/info_%2.bin").arg(path).arg(counter));
+            counter++;
             if (!file.open(QFile::Text | QFile::WriteOnly))
                 return U_FILE_OPEN;
 
