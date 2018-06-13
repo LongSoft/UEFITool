@@ -76,6 +76,23 @@ USTATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path
                     file.close();
                 }
             }
+
+            if (dumpMode == DUMP_FILE && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
+                UModelIndex fileIndex = model->findParentOfType(index, Types::File);
+                if (!fileIndex.isValid())
+                    fileIndex = index;
+                if (counter == 0)
+                    file.setFileName(QObject::tr("%1/file.ffs").arg(path));
+                else
+                    file.setFileName(QObject::tr("%1/file_%2.ffs").arg(path).arg(counter));
+                counter++;
+                if (!file.open(QFile::WriteOnly))
+                    return U_FILE_OPEN;
+                file.write(model->header(fileIndex));
+                file.write(model->body(fileIndex));
+                file.write(model->tail(fileIndex));
+                file.close();
+            }
         }
 
         // Always dump info unless explicitly prohibited

@@ -122,6 +122,8 @@ int main(int argc, char *argv[])
                         modes.push_back(FfsDumper::DUMP_HEADER);
                     else if (arg == QString("info"))
                         modes.push_back(FfsDumper::DUMP_INFO);
+                    else if (arg == QString("file"))
+                        modes.push_back(FfsDumper::DUMP_FILE);
                     else
                         return U_INVALID_PARAMETER;
                 } else if (readType == READ_SECTION) {
@@ -185,7 +187,7 @@ int main(int argc, char *argv[])
         << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
         << "       UEFIExtract imagefile GUID_1 ... [ -o FILE_1 ... ] [ -m MODE_1 ... ] [ -t TYPE_1 ... ] -" << std::endl
         << "         Dump only FFS file(s) with specific GUID(s), without report." << std::endl
-        << "         Type is section type or FF to ignore. Mode is one of: all, body, header, info." << std::endl
+        << "         Type is section type or FF to ignore. Mode is one of: all, body, header, info, file." << std::endl
         << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise." << std::endl;
     return 1;
 }

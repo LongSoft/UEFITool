@@ -32,7 +32,8 @@ public:
         DUMP_ALL,
         DUMP_BODY,
         DUMP_HEADER,
-        DUMP_INFO
+        DUMP_INFO,
+        DUMP_FILE
     };
 
     static const UINT8 IgnoreSectionType = 0xFF;
