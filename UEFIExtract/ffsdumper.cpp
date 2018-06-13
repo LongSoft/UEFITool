@@ -106,7 +106,7 @@ USTATUS FfsDumper::recursiveDump(const QModelIndex & index, const QString & path
             if (counter == 0)
                 file.setFileName(QObject::tr("%1/info.txt").arg(path));
             else
-                file.setFileName(QObject::tr("%1/info_%2.bin").arg(path).arg(counter));
+                file.setFileName(QObject::tr("%1/info_%2.txt").arg(path).arg(counter));
             counter++;
             if (!file.open(QFile::Text | QFile::WriteOnly))
                 return U_FILE_OPEN;
