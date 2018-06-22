@@ -95,7 +95,7 @@ public:
     UINT8 replace(const QModelIndex & index, const QByteArray & object, const UINT8 mode);
     UINT8 remove(const QModelIndex & index);
     UINT8 rebuild(const QModelIndex & index);
-	UINT8 doNotRebuild(const QModelIndex & index);
+    UINT8 doNotRebuild(const QModelIndex & index);
     UINT8 dump(const QModelIndex & index, const QString & path, const QString & filter = QString());
     UINT8 patch(const QModelIndex & index, const QVector<PatchData> & patches);
 
