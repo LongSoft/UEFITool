@@ -209,22 +209,6 @@ void TreeItem::setAction(const UINT8 action)
 
     // Set rebuild action for parent, if it has no action now
     if (parentItem && parentItem->type() != Types::Root
-        && parentItem->action() == Actions::NoAction) {
+        && parentItem->action() == Actions::NoAction)
         parentItem->setAction(Actions::Rebuild);
-
-        // Set rebuild action for subsequent items after parent.
-        // This is a little ugly, but fixes UEFIReplace image corruption,
-        // where one cannot manually choose the targets for rebuild.
-        // See: https://github.com/LongSoft/UEFITool/issues/137
-        TreeItem *grandParent = parentItem->parentItem;
-        if (grandParent) {
-            QList<TreeItem *> &parentCousins = grandParent->childItems;
-            int count = parentCousins.count();
-            for (int i = parentCousins.indexOf(parentItem) + 1; i < count; i++) {
-                TreeItem *parentCousin = parentCousins.value(i, NULL);
-                if (parentCousin && parentCousin->action() == Actions::NoAction)
-                    parentCousin->setAction(Actions::Rebuild);
-            }
-        }
-    }
 }

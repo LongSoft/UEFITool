@@ -2453,6 +2453,32 @@ void FfsEngine::rebasePeiFiles(const QModelIndex & index)
             }
         }
     }
+
+    // Rebase VTF in subsequent volumes.
+    QModelIndex parent = index.parent();
+    while (parent.isValid() && model->type(parent) != Types::Volume)
+        parent = parent.parent();
+    if (parent.isValid()) {
+        QModelIndex volumeContainer = parent.parent();
+        // Iterate over volumes starting from the one after.
+        for (int i = parent.row() + 1; i < model->rowCount(volumeContainer); i++) {
+            QModelIndex currentVolumeIndex = volumeContainer.child(i, 0);
+            // Iterate over files within each volume after the current one.
+            for (int j = 0; j < model->rowCount(currentVolumeIndex); j++) {
+                QModelIndex currentFileIndex = currentVolumeIndex.child(j, 0);
+                if (model->header(currentFileIndex).left(sizeof(EFI_GUID)) == EFI_FFS_VOLUME_TOP_FILE_GUID) {
+                    for (int k = 0; k < model->rowCount(currentFileIndex); k++) {
+                        QModelIndex currentSectionIndex = currentFileIndex.child(k, 0);
+                        // If section stores PE32 or TE image
+                        if (model->subtype(currentSectionIndex) == EFI_SECTION_PE32 || model->subtype(currentSectionIndex) == EFI_SECTION_TE)
+                            // Set rebase action
+                            if (model->action(currentSectionIndex) != Actions::Remove)
+                                model->setAction(currentSectionIndex, Actions::Rebase);
+                    }
+                }
+            }
+        }
+    }
 }
 
 UINT8 FfsEngine::insert(const QModelIndex & index, const QByteArray & object, const UINT8 mode)
