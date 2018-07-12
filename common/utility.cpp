@@ -75,7 +75,7 @@ UString uniqueItemName(const UModelIndex & index)
 }
 
 // Returns text representation of error code
-UString errorCodeToUString(UINT8 errorCode)
+UString errorCodeToUString(USTATUS errorCode)
 {
     switch (errorCode) {
     case U_SUCCESS:                         return UString("Success");

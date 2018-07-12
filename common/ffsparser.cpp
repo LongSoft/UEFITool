@@ -572,8 +572,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     UModelIndex regionIndex = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
     // Parse regions
-    UINT8 result = U_SUCCESS;
-    UINT8 parseResult = U_SUCCESS;
+    USTATUS result = U_SUCCESS;
+    USTATUS parseResult = U_SUCCESS;
     for (size_t i = 0; i < regions.size(); i++) {
         region = regions[i];
         switch (region.type) {
@@ -732,7 +732,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::PdrRegion, name, UString(), info, UByteArray(), pdr, UByteArray(), Fixed, parent);
 
     // Parse PDR region as BIOS space
-    UINT8 result = parseRawArea(index);
+    USTATUS result = parseRawArea(index);
     if (result && result != U_VOLUMES_NOT_FOUND && result != U_INVALID_VOLUME)
         return result;
 

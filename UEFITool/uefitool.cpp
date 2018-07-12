@@ -598,7 +598,7 @@ void UEFITool::extract(const UINT8 mode)
 
     QByteArray extracted;
     QString name;
-    UINT8 result = ffsOps->extract(index, name, extracted, mode);
+    USTATUS result = ffsOps->extract(index, name, extracted, mode);
     if (result) {
         QMessageBox::critical(this, tr("Extraction failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
@@ -820,7 +820,7 @@ void UEFITool::openImageFile(QString path)
     setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
 
     // Parse the image
-    UINT8 result = ffsParser->parse(buffer);
+    USTATUS result = ffsParser->parse(buffer);
     showParserMessages();
     if (result) {
         QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToUString(result), QMessageBox::Ok);

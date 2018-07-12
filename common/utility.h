@@ -23,7 +23,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 UString uniqueItemName(const UModelIndex & index);
 
 // Converts error code to UString
-UString errorCodeToUString(UINT8 errorCode);
+UString errorCodeToUString(USTATUS errorCode);
 
 // Decompression routine
 USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
