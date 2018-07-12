@@ -14,15 +14,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef FFSDUMPER_H
 #define FFSDUMPER_H
 
-#include <QObject>
-#include <QDir>
-#include <QByteArray>
-#include <QString>
-#include <QModelIndex>
-
 #include "../common/basetypes.h"
+#include "../common/ustring.h"
 #include "../common/treemodel.h"
 #include "../common/ffs.h"
+#include "../common/filesystem.h"
 
 class FfsDumper
 {
@@ -38,15 +34,16 @@ public:
 
     static const UINT8 IgnoreSectionType = 0xFF;
 
-    explicit FfsDumper(TreeModel * treeModel) : model(treeModel), dumped(false), counter(0) {}
+    explicit FfsDumper(TreeModel * treeModel) : model(treeModel), dumped(false), 
+        counterHeader(0), counterBody(0), counterRaw(0), counterInfo(0) {}
     ~FfsDumper() {};
 
-    USTATUS dump(const QModelIndex & root, const QString & path, const DumpMode dumpMode = DUMP_CURRENT, const UINT8 sectionType = IgnoreSectionType, const QString & guid = QString());
+    USTATUS dump(const UModelIndex & root, const UString & path, const DumpMode dumpMode = DUMP_CURRENT, const UINT8 sectionType = IgnoreSectionType, const UString & guid = UString());
 
 private:
-    USTATUS recursiveDump(const QModelIndex & root, const QString & path, const DumpMode dumpMode, const UINT8 sectionType, const QString & guid);
+    USTATUS recursiveDump(const UModelIndex & root, const UString & path, const DumpMode dumpMode, const UINT8 sectionType, const UString & guid);
     TreeModel* model;
     bool dumped;
-    int counter;
+    int counterHeader, counterBody, counterRaw, counterInfo;
 };
 #endif // FFSDUMPER_H

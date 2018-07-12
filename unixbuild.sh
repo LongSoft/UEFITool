@@ -114,7 +114,7 @@ mkdir -p dist || exit 1
 
 build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
 build_tool UEFIDump    "$UEFITOOL_VER"  ""
-build_tool UEFIExtract "$UEFITOOL_VER"  uefiextract.pro
+build_tool UEFIExtract "$UEFITOOL_VER"  ""
 build_tool UEFIFind    "$UEFITOOL_VER"  uefifind.pro
 
 exit 0

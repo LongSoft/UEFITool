@@ -50,6 +50,7 @@ SET(PROJECT_HEADERS
  ../common/sha256.h 
  ../common/bstrlib/bstrlib.h 
  ../common/bstrlib/bstrwrap.h
+ ../common/filesystem.h
  ../version.h
 )
 

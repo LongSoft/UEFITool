@@ -7,13 +7,16 @@ http://opensource.org/licenses/bsd-license.php
 THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
-#include <QCoreApplication>
-#include <QString>
-#include <QFileInfo>
 
 #include <iostream>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
 
 #include "../version.h"
+#include "../common/basetypes.h"
+#include "../common/ustring.h"
+#include "../common/filesystem.h"
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
 #include "ffsdumper.h"
@@ -27,26 +30,17 @@ enum ReadType {
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
-    a.setOrganizationName("LongSoft");
-    a.setOrganizationDomain("longsoft.me");
-    a.setApplicationName("UEFIExtract");
-
-    if (a.arguments().length() > 1) {
+    if (argc > 1) {
         // Check that input file exists
-        QString path = a.arguments().at(1);
-        QFileInfo fileInfo(path);
-        if (!fileInfo.exists())
+        UString path = argv[1];
+        if (!isExistOnFs(path))
             return U_FILE_OPEN;
 
         // Open the input file
-        QFile inputFile;
-        inputFile.setFileName(path);
-        if (!inputFile.open(QFile::ReadOnly))
-            return U_FILE_OPEN;
-
-        // Read and close the file
-        QByteArray buffer = inputFile.readAll();
+        std::ifstream inputFile;
+        inputFile.open(argv[1], std::ios::in | std::ios::binary);
+        std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
+            (std::istreambuf_iterator<char>()));
         inputFile.close();
 
         // Create model and ffsParser
@@ -58,24 +52,24 @@ int main(int argc, char *argv[])
             return result;
 
         // Show ffsParser's messages
-        std::vector<std::pair<QString, QModelIndex> > messages = ffsParser.getMessages();
+        std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << messages[i].first.toLatin1().constData() << std::endl;
+            std::cout << (const char *)messages[i].first.toLocal8Bit() << std::endl;
         }
 
         // Get last VTF
-        std::vector<std::pair<std::vector<QString>, QModelIndex > > fitTable = ffsParser.getFitTable();
+        std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser.getFitTable();
         if (fitTable.size()) {
             std::cout << "---------------------------------------------------------------------------" << std::endl;
             std::cout << "     Address     |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
             std::cout << "---------------------------------------------------------------------------" << std::endl;
             for (size_t i = 0; i < fitTable.size(); i++) {
-                std::cout << fitTable[i].first[0].toLatin1().constData() << " | "
-                    << fitTable[i].first[1].toLatin1().constData() << " | "
-                    << fitTable[i].first[2].toLatin1().constData() << " | "
-                    << fitTable[i].first[3].toLatin1().constData() << " | "
-                    << fitTable[i].first[4].toLatin1().constData() << " | "
-                    << fitTable[i].first[5].toLatin1().constData() << std::endl;
+                std::cout << (const char *)fitTable[i].first[0].toLocal8Bit() << " | "
+                    << (const char *)fitTable[i].first[1].toLocal8Bit() << " | "
+                    << (const char *)fitTable[i].first[2].toLocal8Bit() << " | "
+                    << (const char *)fitTable[i].first[3].toLocal8Bit() << " | "
+                    << (const char *)fitTable[i].first[4].toLocal8Bit() << " | "
+                    << (const char *)fitTable[i].first[5].toLocal8Bit() << std::endl;
             }
         }
 
@@ -84,27 +78,27 @@ int main(int argc, char *argv[])
         FfsDumper ffsDumper(&model);
 
         // Dump only leaf elements, no report
-        if (a.arguments().length() == 3 && a.arguments().at(2) == QString("dump")) {
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
+        if (argc == 3 && !std::strcmp(argv[2], "dump")) {
+            return (ffsDumper.dump(model.index(0, 0), path + UString(".dump")) != U_SUCCESS);
         }
-        else if (a.arguments().length() > 3 ||
-            (a.arguments().length() == 3 && a.arguments().at(2) != QString("all") && a.arguments().at(2) != QString("report"))) { // Dump specific files, without report
-            std::vector<QString> inputs, outputs;
+        else if (argc > 3 ||
+            (argc == 3 && std::strcmp(argv[2], "all") != 0 && std::strcmp(argv[2], "report") != 0)) { // Dump specific files, without report
+            std::vector<UString> inputs, outputs;
             std::vector<FfsDumper::DumpMode> modes;
             std::vector<UINT8> sectionTypes;
             ReadType readType = READ_INPUT;
-            for (int i = 2; i < a.arguments().length(); i++) {
-                QString arg = a.arguments().at(i);
-                if (arg == QString("-i")) {
+            for (int i = 2; i < argc; i++) {
+                const char *arg = argv[i];
+                if (!std::strcmp(arg, "-i")) {
                     readType = READ_INPUT;
                     continue;
-                } else if (arg == QString("-o")) {
+                } else if (!std::strcmp(arg, "-o")) {
                     readType = READ_OUTPUT;
                     continue;
-                } else if (arg == QString("-m")) {
+                } else if (!std::strcmp(arg, "-m")) {
                     readType = READ_MODE;
                     continue;
-                } else if (arg == QString("-t")) {
+                } else if (!std::strcmp(arg, "-t")) {
                     readType = READ_SECTION;
                     continue;
                 }
@@ -114,22 +108,22 @@ int main(int argc, char *argv[])
                 } else if (readType == READ_OUTPUT) {
                     outputs.push_back(arg);
                 } else if (readType == READ_MODE) {
-                    if (arg == QString("all"))
+                    if (!std::strcmp(arg, "all"))
                         modes.push_back(FfsDumper::DUMP_ALL);
-                    else if (arg == QString("body"))
+                    else if (!std::strcmp(arg, "body"))
                         modes.push_back(FfsDumper::DUMP_BODY);
-                    else if (arg == QString("header"))
+                    else if (!std::strcmp(arg, "header"))
                         modes.push_back(FfsDumper::DUMP_HEADER);
-                    else if (arg == QString("info"))
+                    else if (!std::strcmp(arg, "info"))
                         modes.push_back(FfsDumper::DUMP_INFO);
-                    else if (arg == QString("file"))
+                    else if (!std::strcmp(arg, "file"))
                         modes.push_back(FfsDumper::DUMP_FILE);
                     else
                         return U_INVALID_PARAMETER;
                 } else if (readType == READ_SECTION) {
-                    bool converted;
-                    UINT8 sectionType = (UINT8)arg.toUShort(&converted, 16);
-                    if (!converted)
+                    char *converted = const_cast<char *>(arg);
+                    UINT8 sectionType = (UINT8)std::strtol(arg, &converted, 16);
+                    if (converted == arg)
                         return U_INVALID_PARAMETER;
                     sectionTypes.push_back(sectionType);
                 }
@@ -141,12 +135,12 @@ int main(int argc, char *argv[])
 
             USTATUS lastError = U_SUCCESS;
             for (size_t i = 0; i < inputs.size(); i++) {
-                QString outPath = outputs.empty() ? fileInfo.fileName().append(".dump") : outputs[i];
+                UString outPath = outputs.empty() ? path + UString(".dump") : outputs[i];
                 FfsDumper::DumpMode mode = modes.empty() ? FfsDumper::DUMP_ALL : modes[i];
                 UINT8 type = sectionTypes.empty() ? FfsDumper::IgnoreSectionType : sectionTypes[i];
                 result = ffsDumper.dump(model.index(0, 0), outPath, mode, type, inputs[i]);
                 if (result) {
-                    std::cout << "Guid " << inputs[i].toStdString() << " failed with " << result << " code!" << std::endl;
+                    std::cout << "Guid " << (const char *)inputs[i].toLocal8Bit() << " failed with " << result << " code!" << std::endl;
                     lastError = result;
                 }
             }
@@ -156,26 +150,22 @@ int main(int argc, char *argv[])
 
         // Create ffsReport
         FfsReport ffsReport(&model);
-        std::vector<QString> report = ffsReport.generate();
+        std::vector<UString> report = ffsReport.generate();
         if (report.size()) {
-            QFile file;
-            file.setFileName(fileInfo.fileName().append(".report.txt"));
-            if (file.open(QFile::Text | QFile::WriteOnly)) {
-                for (size_t i = 0; i < report.size(); i++) {
-                    file.write(report[i].toLatin1().append('\n'));
-                }
-                file.close();
-            }
+            std::ofstream file;
+            file.open((const char *)(path + UString(".report.txt")).toLocal8Bit());
+            for (size_t i = 0; i < report.size(); i++)
+                file << (const char *)report[i].toLocal8Bit() << '\n';
         }
 
         // Dump all non-leaf elements, with report, default
-        if (a.arguments().length() == 2) {
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump")) != U_SUCCESS);
+        if (argc == 2) {
+            return (ffsDumper.dump(model.index(0, 0), path + UString(".dump")) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("all")) { // Dump every elementm with report
-            return (ffsDumper.dump(model.index(0, 0), fileInfo.fileName().append(".dump"), FfsDumper::DUMP_ALL) != U_SUCCESS);
+        else if (argc == 3 && !std::strcmp(argv[2], "all")) { // Dump every elementm with report
+            return (ffsDumper.dump(model.index(0, 0), path + UString(".dump"), FfsDumper::DUMP_ALL) != U_SUCCESS);
         }
-        else if (a.arguments().length() == 3 && a.arguments().at(2) == QString("report")) { // Skip dumping
+        else if (argc == 3 && !std::strcmp(argv[2], "report")) { // Skip dumping
             return 0;
         }
     }
