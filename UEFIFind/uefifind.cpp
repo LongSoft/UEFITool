@@ -55,8 +55,8 @@ USTATUS UEFIFind::init(const QString & path)
 
 USTATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result)
 {
-    QModelIndex root = model->index(0, 0);
-    std::set<std::pair<QModelIndex, QModelIndex> > files;
+    UModelIndex root = model->index(0, 0);
+    std::set<std::pair<UModelIndex, UModelIndex> > files;
 
     result.clear();
 
@@ -70,9 +70,9 @@ USTATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPa
         return U_SUCCESS;
     }
 
-    for (std::set<std::pair<QModelIndex, QModelIndex> >::const_iterator citer = files.begin(); citer != files.end(); ++citer) {
+    for (std::set<std::pair<UModelIndex, UModelIndex> >::const_iterator citer = files.begin(); citer != files.end(); ++citer) {
         QByteArray data(16, '\x00');
-        std::pair<QModelIndex, QModelIndex> indexes = *citer;
+        std::pair<UModelIndex, UModelIndex> indexes = *citer;
         if (!model->hasEmptyHeader(indexes.first))
             data = model->header(indexes.first).left(16);
         result.append(guidToUString(*(const EFI_GUID*)data.constData()));
@@ -88,7 +88,7 @@ USTATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPa
     return U_SUCCESS;
 }
 
-USTATUS UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files)
+USTATUS UEFIFind::findFileRecursive(const UModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<UModelIndex, UModelIndex> > & files)
 {
     if (!index.isValid())
         return U_SUCCESS;
@@ -125,14 +125,14 @@ USTATUS UEFIFind::findFileRecursive(const QModelIndex index, const QString & hex
     while (offset >= 0) {
         if (offset % 2 == 0) {
             if (model->type(index) != Types::File) {
-                QModelIndex ffs = model->findParentOfType(index, Types::File);
+                UModelIndex ffs = model->findParentOfType(index, Types::File);
                 if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID)
-                    files.insert(std::pair<QModelIndex, QModelIndex>(ffs, index));
+                    files.insert(std::pair<UModelIndex, UModelIndex>(ffs, index));
                 else
-                    files.insert(std::pair<QModelIndex, QModelIndex>(ffs, QModelIndex()));
+                    files.insert(std::pair<UModelIndex, UModelIndex>(ffs, UModelIndex()));
             }
             else
-                files.insert(std::pair<QModelIndex, QModelIndex>(index, QModelIndex()));
+                files.insert(std::pair<UModelIndex, UModelIndex>(index, UModelIndex()));
 
             break;
         }

@@ -39,7 +39,7 @@ public:
     USTATUS find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result);
 
 private:
-    USTATUS findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files);
+    USTATUS findFileRecursive(const UModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<UModelIndex, UModelIndex> > & files);
     QString guidToQString(const UINT8* guid);
 
     FfsParser* ffsParser;

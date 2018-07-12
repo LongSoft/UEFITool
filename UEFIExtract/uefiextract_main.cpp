@@ -10,7 +10,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <iostream>
 #include <fstream>
-#include <cstdio>
+#include <cstring>
 #include <cstdlib>
 
 #include "../version.h"
