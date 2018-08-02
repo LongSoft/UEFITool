@@ -521,6 +521,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
             break;
         default:
             // Ignore unknown!
+            break;
         }
     }
 
@@ -1211,8 +1212,8 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
         markerHeader->Size, markerHeader->Size,
         header.size(), header.size(),
         markerHeader->Version,
-        UString((const char*)&(markerHeader->OemId)).left(6).toLocal8Bit(),
-        UString((const char*)&(markerHeader->OemTableId)).left(8).toLocal8Bit(),
+        (const char*)UString((const char*)&(markerHeader->OemId)).left(6).toLocal8Bit(),
+        (const char*)UString((const char*)&(markerHeader->OemTableId)).left(8).toLocal8Bit(),
         markerHeader->SlicVersion);
 
 
