@@ -11,6 +11,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+#include <cstdio>
+#include <cctype>
+
 #include "treemodel.h"
 #include "utility.h"
 #include "ffs.h"
@@ -374,4 +377,69 @@ UINT8 getPaddingType(const UByteArray & padding)
     if (padding.count('\xFF') == padding.size())
         return Subtypes::OnePadding;
     return Subtypes::DataPadding;
+}
+
+static inline int char2hex(char c) {
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'A' && c <= 'F')
+        return c - 'A';
+    if (c == '.')
+        return -2;
+    return -1;
+}
+
+INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSize,
+    const UINT8 *data, UINTN dataSize, UINTN dataOff) {
+    if (patternSize == 0 || dataSize == 0 || dataOff >= dataSize || dataSize - dataOff < patternSize)
+        return -1;
+
+    while (dataOff + patternSize < dataSize) {
+        BOOLEAN matches = TRUE;
+        for (UINTN i = 0; i < patternSize; i++) {
+            if ((data[dataOff + i] & patternMask[i]) != pattern[i]) {
+                matches = FALSE;
+                break;
+            }
+        }
+
+        if (matches)
+            return static_cast<INTN>(dataOff);
+
+        dataOff++;
+    }
+
+    return -1;
+}
+
+BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask) {
+    UINTN len = std::strlen(textPattern);
+
+    if (len == 0 || len % 2 != 0)
+        return FALSE;
+
+    len /= 2;
+
+    pattern.resize(len);
+    patternMask.resize(len);
+
+    for (UINTN i = 0; i < len; i++) {
+        int v1 = char2hex(std::toupper(textPattern[i * 2]));
+        int v2 = char2hex(std::toupper(textPattern[i * 2 + 1]));
+
+        if (v1 == -1 || v2 == -1)
+            return FALSE;
+
+        if (v1 != -2) {
+            patternMask[i] = 0xF0;
+            pattern[i] = static_cast<UINT8>(v1) << 4;
+        }
+
+        if (v2 != -2) {
+            patternMask[i] |= 0x0F;
+            pattern[i] |= static_cast<UINT8>(v2);
+        }
+    }
+
+    return TRUE;
 }

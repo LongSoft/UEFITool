@@ -54,12 +54,12 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
             std::cout << "     Address     |   Size    |  Ver  | CS  |         Type / Info         " << std::endl;
             std::cout << "-------------------------------------------------------------------------" << std::endl;
             for (size_t i = 0; i < fitTable.size(); i++) {
-                std::cout << (const char*)fitTable[i].first[0].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i].first[1].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i].first[2].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i].first[3].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i].first[4].toLocal8Bit() << " | "
-                    << (const char*)fitTable[i].first[5].toLocal8Bit() << std::endl;
+                std::cout << fitTable[i].first[0].toLocal8Bit() << " | "
+                    << fitTable[i].first[1].toLocal8Bit() << " | "
+                    << fitTable[i].first[2].toLocal8Bit() << " | "
+                    << fitTable[i].first[3].toLocal8Bit() << " | "
+                    << fitTable[i].first[4].toLocal8Bit() << " | "
+                    << fitTable[i].first[5].toLocal8Bit() << std::endl;
             }
         }
 
@@ -68,9 +68,9 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
         std::vector<UString> report = ffsReport.generate();
         if (report.size()) {
             std::ofstream ofs;
-            ofs.open((const char*)reportPath, std::ofstream::out);
+            ofs.open(reportPath, std::ofstream::out);
             for (size_t i = 0; i < report.size(); i++) {
-                ofs << (const char*)report[i].toLocal8Bit() << std::endl;
+                ofs << report[i].toLocal8Bit() << std::endl;
             }
             ofs.close();
         }

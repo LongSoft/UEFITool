@@ -646,13 +646,9 @@ Decode (
     SCRATCH_DATA  *Sd
 )
 {
-    UINT16  BytesRemain;
-    UINT32  DataIdx;
-    UINT16  CharC;
-
-    BytesRemain = (UINT16)(-1);
-
-    DataIdx = 0;
+    UINT16  BytesRemain = (UINT16)(-1);
+    UINT32  DataIdx = 0;
+    UINT16  CharC = 0;
 
     for (;;) {
         CharC = DecodeC(Sd);

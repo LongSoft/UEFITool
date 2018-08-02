@@ -37,8 +37,9 @@ int main(int argc, char *argv[])
             return U_FILE_OPEN;
 
         // Open the input file
-        std::ifstream inputFile;
-        inputFile.open(argv[1], std::ios::in | std::ios::binary);
+        std::ifstream inputFile(argv[1], std::ios::in | std::ios::binary);
+        if (!inputFile)
+            return U_FILE_OPEN;
         std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
             (std::istreambuf_iterator<char>()));
         inputFile.close();
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
         // Show ffsParser's messages
         std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
         for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << (const char *)messages[i].first.toLocal8Bit() << std::endl;
+            std::cout << messages[i].first.toLocal8Bit() << std::endl;
         }
 
         // Get last VTF
@@ -64,12 +65,12 @@ int main(int argc, char *argv[])
             std::cout << "     Address     |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
             std::cout << "---------------------------------------------------------------------------" << std::endl;
             for (size_t i = 0; i < fitTable.size(); i++) {
-                std::cout << (const char *)fitTable[i].first[0].toLocal8Bit() << " | "
-                    << (const char *)fitTable[i].first[1].toLocal8Bit() << " | "
-                    << (const char *)fitTable[i].first[2].toLocal8Bit() << " | "
-                    << (const char *)fitTable[i].first[3].toLocal8Bit() << " | "
-                    << (const char *)fitTable[i].first[4].toLocal8Bit() << " | "
-                    << (const char *)fitTable[i].first[5].toLocal8Bit() << std::endl;
+                std::cout << fitTable[i].first[0].toLocal8Bit() << " | "
+                    << fitTable[i].first[1].toLocal8Bit() << " | "
+                    << fitTable[i].first[2].toLocal8Bit() << " | "
+                    << fitTable[i].first[3].toLocal8Bit() << " | "
+                    << fitTable[i].first[4].toLocal8Bit() << " | "
+                    << fitTable[i].first[5].toLocal8Bit() << std::endl;
             }
         }
 
@@ -140,7 +141,7 @@ int main(int argc, char *argv[])
                 UINT8 type = sectionTypes.empty() ? FfsDumper::IgnoreSectionType : sectionTypes[i];
                 result = ffsDumper.dump(model.index(0, 0), outPath, mode, type, inputs[i]);
                 if (result) {
-                    std::cout << "Guid " << (const char *)inputs[i].toLocal8Bit() << " failed with " << result << " code!" << std::endl;
+                    std::cout << "Guid " << inputs[i].toLocal8Bit() << " failed with " << result << " code!" << std::endl;
                     lastError = result;
                 }
             }
@@ -153,9 +154,9 @@ int main(int argc, char *argv[])
         std::vector<UString> report = ffsReport.generate();
         if (report.size()) {
             std::ofstream file;
-            file.open((const char *)(path + UString(".report.txt")).toLocal8Bit());
+            file.open((path + UString(".report.txt")).toLocal8Bit());
             for (size_t i = 0; i < report.size(); i++)
-                file << (const char *)report[i].toLocal8Bit() << '\n';
+                file << report[i].toLocal8Bit() << '\n';
         }
 
         // Dump all non-leaf elements, with report, default

@@ -81,6 +81,7 @@ typedef uint64_t     UINT64;
 typedef char         CHAR8;
 typedef uint16_t     CHAR16;
 typedef size_t       UINTN;
+typedef ptrdiff_t    INTN;
 
 #define CONST  const
 #define VOID   void

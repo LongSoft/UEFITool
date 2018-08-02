@@ -501,12 +501,26 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
-        case Types::FdcStore:      return parseFdcStoreBody(current);
-        case Types::VssStore:      return parseVssStoreBody(current, 0);
-        case Types::Vss2Store:     return parseVssStoreBody(current, 4);
-        case Types::FsysStore:     return parseFsysStoreBody(current);
-        case Types::EvsaStore:     return parseEvsaStoreBody(current);
-        case Types::FlashMapStore: return parseFlashMapBody(current);
+        case Types::FdcStore:
+            parseFdcStoreBody(current);
+            break;
+        case Types::VssStore:
+            parseVssStoreBody(current, 0);
+            break;
+        case Types::Vss2Store:
+            parseVssStoreBody(current, 4);
+            break;
+        case Types::FsysStore:
+            parseFsysStoreBody(current);
+            break;
+        case Types::EvsaStore:
+            parseEvsaStoreBody(current);
+            break;
+        case Types::FlashMapStore:
+            parseFlashMapBody(current);
+            break;
+        default:
+            // Ignore unknown!
         }
     }
 
@@ -1197,8 +1211,8 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
         markerHeader->Size, markerHeader->Size,
         header.size(), header.size(),
         markerHeader->Version,
-        (const char*)UString((const char*)&(markerHeader->OemId)).left(6).toLocal8Bit(),
-        (const char*)UString((const char*)&(markerHeader->OemTableId)).left(8).toLocal8Bit(),
+        UString((const char*)&(markerHeader->OemId)).left(6).toLocal8Bit(),
+        UString((const char*)&(markerHeader->OemTableId)).left(8).toLocal8Bit(),
         markerHeader->SlicVersion);
 
 

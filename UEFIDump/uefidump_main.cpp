@@ -20,8 +20,9 @@ int main(int argc, char *argv[])
 {
     
     if (argc > 1) { 
-        std::ifstream inputFile;
-        inputFile.open(argv[1], std::ios::in | std::ios::binary);
+        std::ifstream inputFile(argv[1], std::ios::in | std::ios::binary);
+        if (!inputFile)
+            return U_FILE_OPEN;
         std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
             (std::istreambuf_iterator<char>()));
         inputFile.close();

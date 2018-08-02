@@ -14,6 +14,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef UTILITY_H
 #define UTILITY_H
 
+#include <vector>
+
 #include "basetypes.h"
 #include "ustring.h"
 #include "treemodel.h"
@@ -45,5 +47,12 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 
 // Return padding type from it's contents
 UINT8 getPaddingType(const UByteArray & padding);
+
+// Make pattern from a hexstring with an assumption of . being any char
+BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask);
+
+// Find pattern in a binary blob
+INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSize,
+    const UINT8 *data, UINTN dataSize, UINTN dataOff);
 
 #endif // UTILITY_H

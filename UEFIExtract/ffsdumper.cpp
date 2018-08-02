@@ -53,11 +53,11 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 if (!model->header(index).isEmpty() && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
                     UString filename;
                     if (counterHeader == 0)
-                        filename = usprintf("%s/header.bin", (const char *)path.toLocal8Bit());
+                        filename = usprintf("%s/header.bin", path.toLocal8Bit());
                     else
-                        filename = usprintf("%s/header_%d.bin", (const char *)path.toLocal8Bit(), counterHeader);
+                        filename = usprintf("%s/header_%d.bin", path.toLocal8Bit(), counterHeader);
                     counterHeader++;
-                    file.open((const char *)filename.toLocal8Bit(), std::ofstream::binary);
+                    file.open(filename.toLocal8Bit(), std::ofstream::binary);
                     const UByteArray &data = model->header(index);
                     file.write(data.constData(), data.size());
                     file.close();
@@ -68,11 +68,11 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 if (!model->body(index).isEmpty() && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
                     UString filename;
                     if (counterBody == 0)
-                        filename = usprintf("%s/body.bin", (const char *)path.toLocal8Bit());
+                        filename = usprintf("%s/body.bin", path.toLocal8Bit());
                     else
-                        filename = usprintf("%s/body_%d.bin", (const char *)path.toLocal8Bit(), counterBody);
+                        filename = usprintf("%s/body_%d.bin", path.toLocal8Bit(), counterBody);
                     counterBody++;
-                    file.open((const char *)filename.toLocal8Bit(), std::ofstream::binary);
+                    file.open(filename.toLocal8Bit(), std::ofstream::binary);
                     const UByteArray &data = model->body(index);
                     file.write(data.constData(), data.size());
                     file.close();
@@ -85,11 +85,11 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                     fileIndex = index;
                 UString filename;
                 if (counterRaw == 0)
-                    filename = usprintf("%s/file.ffs", (const char *)path.toLocal8Bit());
+                    filename = usprintf("%s/file.ffs", path.toLocal8Bit());
                 else
-                    filename = usprintf("%s/file_%d.bin", (const char *)path.toLocal8Bit(), counterRaw);
+                    filename = usprintf("%s/file_%d.bin", path.toLocal8Bit(), counterRaw);
                 counterRaw++;
-                file.open((const char *)filename.toLocal8Bit(), std::ofstream::binary);
+                file.open(filename.toLocal8Bit(), std::ofstream::binary);
                 const UByteArray &headerData = model->header(index);
                 const UByteArray &bodyData = model->body(index);
                 const UByteArray &tailData = model->tail(index);
@@ -104,19 +104,19 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         if ((dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT || dumpMode == DUMP_INFO)
             && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
             UString info = usprintf("Type: %s\nSubtype: %s\n%s%s\n",
-                (const char *)itemTypeToUString(model->type(index)).toLocal8Bit(),
-                (const char *)itemSubtypeToUString(model->type(index), model->subtype(index)).toLocal8Bit(),
-                (const char *)(model->text(index).isEmpty() ? UString("") :
-                    usprintf("Text: %s\n", (const char *)model->text(index).toLocal8Bit())).toLocal8Bit(),
-                (const char *)model->info(index).toLocal8Bit());
+                itemTypeToUString(model->type(index)).toLocal8Bit(),
+                itemSubtypeToUString(model->type(index), model->subtype(index)).toLocal8Bit(),
+                (model->text(index).isEmpty() ? UString("") :
+                    usprintf("Text: %s\n", model->text(index).toLocal8Bit())).toLocal8Bit(),
+                model->info(index).toLocal8Bit());
             UString filename;
             if (counterInfo == 0)
-                filename = usprintf("%s/info.txt", (const char *)path.toLocal8Bit());
+                filename = usprintf("%s/info.txt", path.toLocal8Bit());
             else
-                filename = usprintf("%s/info_%d.txt", (const char *)path.toLocal8Bit(), counterInfo);
+                filename = usprintf("%s/info_%d.txt", path.toLocal8Bit(), counterInfo);
             counterInfo++;
-            file.open((const char *)filename.toLocal8Bit());
-            file << (const char *)info.toLocal8Bit();
+            file.open(filename.toLocal8Bit());
+            file << info.toLocal8Bit();
             file.close();
         }
 
@@ -132,8 +132,8 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
 
         UString childPath = path;
         if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT)
-            childPath = usprintf("%s/%d %s", (const char *)path.toLocal8Bit(), i,
-                (const char *)(useText ? model->text(childIndex) : model->name(childIndex)).toLocal8Bit());
+            childPath = usprintf("%s/%d %s", path.toLocal8Bit(), i,
+                (useText ? model->text(childIndex) : model->name(childIndex)).toLocal8Bit());
         result = recursiveDump(childIndex, childPath, dumpMode, sectionType, guid);
         if (result)
             return result;

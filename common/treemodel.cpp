@@ -24,7 +24,7 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
     if (role == Qt::DisplayRole) {
-        return (const char*)item->data(index.column()).toLocal8Bit();
+        return item->data(index.column()).toLocal8Bit();
     }
 #if defined (QT_GUI_LIB)
     else if (role == Qt::BackgroundRole) {
@@ -34,7 +34,7 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     }
 #endif
     else if (role == Qt::UserRole) {
-        return (const char*)item->info().toLocal8Bit();
+        return item->info().toLocal8Bit();
     }
 
     return QVariant();

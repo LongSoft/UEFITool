@@ -22,29 +22,29 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <direct.h>
 static inline bool isExistOnFs(const UString & path) {
     struct _stat buf;
-    return (_stat((const char*)path.toLocal8Bit(), &buf) == 0);
+    return (_stat(path.toLocal8Bit(), &buf) == 0);
 }
 
 static inline bool makeDirectory(const UString & dir) {
-    return (_mkdir((const char*)dir.toLocal8Bit()) == 0);
+    return (_mkdir(dir.toLocal8Bit()) == 0);
 }
 
 static inline bool changeDirectory(const UString & dir) {
-    return (_chdir((const char*)dir.toLocal8Bit()) == 0);
+    return (_chdir(dir.toLocal8Bit()) == 0);
 }
 #else
 #include <unistd.h>
 static inline bool isExistOnFs(const UString & path) {
     struct stat buf;
-    return (stat((const char*)path.toLocal8Bit(), &buf) == 0);
+    return (stat(path.toLocal8Bit(), &buf) == 0);
 }
 
 static inline bool makeDirectory(const UString & dir) {
-    return (mkdir((const char*)dir.toLocal8Bit(), ACCESSPERMS) == 0);
+    return (mkdir(dir.toLocal8Bit(), ACCESSPERMS) == 0);
 }
 
 static inline bool changeDirectory(const UString & dir) {
-    return (chdir((const char*)dir.toLocal8Bit()) == 0);
+    return (chdir(dir.toLocal8Bit()) == 0);
 }
 #endif
 

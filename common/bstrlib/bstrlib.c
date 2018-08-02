@@ -2432,7 +2432,7 @@ int i, c, v;
  *  NULL is returned, otherwise a bstring with the correct result is returned.
  */
 bstring bjoin (const struct bstrList * bl, const_bstring sep) {
-	if (sep != NULL && (sep->slen < 0 || sep->data == NULL)) return NULL;
+	if (sep == NULL || (sep->slen < 0 || sep->data == NULL)) return NULL;
 	return bjoinblk (bl, sep->data, sep->slen);
 }
 
@@ -2458,9 +2458,9 @@ bstring bjoin (const struct bstrList * bl, const_bstring sep) {
  */
 int bssplitscb (struct bStream * s, const_bstring splitStr,
 	int (* cb) (void * parm, int ofs, const_bstring entry), void * parm) {
-struct charField chrs;
-bstring buff;
-int i, p, ret;
+	struct charField chrs;
+	bstring buff;
+	int i = 0, p = 0, ret = 0;
 
 	if (cb == NULL || s == NULL || s->readFnPtr == NULL ||
 	    splitStr == NULL || splitStr->slen < 0) return BSTR_ERR;
@@ -2473,7 +2473,6 @@ int i, p, ret;
 			ret = 0;
 	} else {
 		buildCharField (&chrs, splitStr);
-		ret = p = i = 0;
 		for (;;) {
 			if (i >= buff->slen) {
 				bsreada (buff, s, BSSSC_BUFF_LEN);
@@ -2525,8 +2524,8 @@ int i, p, ret;
  */
 int bssplitstrcb (struct bStream * s, const_bstring splitStr,
 	int (* cb) (void * parm, int ofs, const_bstring entry), void * parm) {
-bstring buff;
-int i, p, ret;
+	bstring buff;
+	int i = 0, p = 0, ret = 0;
 
 	if (cb == NULL || s == NULL || s->readFnPtr == NULL
 	 || splitStr == NULL || splitStr->slen < 0) return BSTR_ERR;
@@ -2545,8 +2544,7 @@ int i, p, ret;
 		}
 		return BSTR_OK;
 	} else {
-		ret = p = i = 0;
-		for (i=p=0;;) {
+		for (;;) {
 			if ((ret = binstr (buff, 0, splitStr)) >= 0) {
 				struct tagbstring t;
 				blk2tbstr (t, buff->data, ret);
