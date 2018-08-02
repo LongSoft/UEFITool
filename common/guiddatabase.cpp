@@ -13,11 +13,13 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "guiddatabase.h"
 #include "ubytearray.h"
 
-// TODO: remove Qt dependency
-#if defined(U_ENABLE_GUID_DATABASE_SUPPORT) && defined(QT_CORE_LIB)
+#if defined(U_ENABLE_GUID_DATABASE_SUPPORT)
 #include <map>
-#include <QFile>
-#include <QUuid>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <cstdio>
+#include <vector>
 
 struct OperatorLessForGuids : public std::binary_function<EFI_GUID, EFI_GUID, bool>
 {
@@ -30,29 +32,82 @@ struct OperatorLessForGuids : public std::binary_function<EFI_GUID, EFI_GUID, bo
 typedef std::map<EFI_GUID, UString, OperatorLessForGuids> GuidToUStringMap;
 static GuidToUStringMap gGuidToUStringMap;
 
+#ifdef QT_CORE_LIB
+
+#include <QFile>
+#include <QTextStream>
+
+// This is required to be able to read Qt-embedded paths
+
+static std::string readGuidDatabase(const UString &path) {
+    QFile guids(path);
+    if (guids.open(QFile::ReadOnly | QFile::Text))
+        return QTextStream(&guids).readAll().toStdString();
+    return std::string {};
+}
+
+#else
+
+static std::string readGuidDatabase(const UString &path) {
+    std::ifstream guids(path.toLocal8Bit());
+    std::stringstream ret;
+    if (ret)
+        ret << guids.rdbuf();
+    return ret.str();
+}
+
+#endif
+
 void initGuidDatabase(const UString & path, UINT32* numEntries)
 {
     gGuidToUStringMap.clear();
 
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
+    std::stringstream file(readGuidDatabase(path));
 
-    while (!file.atEnd()) {
-        UByteArray line = file.readLine();
+    while (!file.eof()) {
+        std::string line;
+        std::getline(file, line);
 
-        // Use sharp sign as commentary
-        if (line.length() == 0 || line[0] == '#')
+        // Use sharp symbol as commentary
+        if (line.size() == 0 || line[0] == '#')
             continue;
 
         // GUID and name are comma-separated 
-        QList<UByteArray> lineParts = line.split(',');
-        if (lineParts.length() < 2)
+        std::vector<UString> lineParts;
+        std::string::size_type prev = 0, curr = 0;
+        while ((curr = line.find(',', curr)) != std::string::npos) {
+            std::string substring( line.substr(prev, curr-prev) );
+            lineParts.push_back(UString(substring.c_str()));
+            prev = ++curr;
+        }
+        lineParts.push_back(UString(line.substr(prev, curr-prev).c_str()));
+
+        if (lineParts.size() < 2)
             continue;
 
-        QUuid uuid(lineParts[0]);
-        UString str(lineParts[1].constData());
-        gGuidToUStringMap.insert(GuidToUStringMap::value_type(*(const EFI_GUID*)&uuid.data1, str.simplified()));
+        EFI_GUID guid;
+
+        unsigned long p0;
+        int p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
+
+        int err = std::sscanf(lineParts[0].toLocal8Bit(), "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+            &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10);
+        if (err == 0)
+            continue;
+
+        guid.Data1 = p0;
+        guid.Data2 = p1;
+        guid.Data3 = p2;
+        guid.Data4[0] = p3;
+        guid.Data4[1] = p4;
+        guid.Data4[2] = p5;
+        guid.Data4[3] = p6;
+        guid.Data4[4] = p7;
+        guid.Data4[5] = p8;
+        guid.Data4[6] = p9;
+        guid.Data4[7] = p10;
+
+        gGuidToUStringMap.insert(GuidToUStringMap::value_type(guid, lineParts[1]));
     }
 
     if (numEntries)

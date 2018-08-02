@@ -1491,8 +1491,6 @@ int p, i;
 
 static int streamSplitCb (void * parm, int ofs, const_bstring entry) {
 	CBStringList * r = (CBStringList *) parm;
-	//FIXME: this is broken!
-	// ofs = ofs;
 	(void)ofs;
 	r->push_back (CBString (*entry));
 	return 0;

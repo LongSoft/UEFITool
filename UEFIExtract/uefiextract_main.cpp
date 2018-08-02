@@ -19,6 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "../common/filesystem.h"
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
+#include "../common/guiddatabase.h"
 #include "ffsdumper.h"
 #include "uefidump.h"
 
@@ -31,6 +32,8 @@ enum ReadType {
 
 int main(int argc, char *argv[])
 {
+    initGuidDatabase("guids.csv");
+
     if (argc > 1) {
         // Check that input file exists
         UString path = argv[1];
