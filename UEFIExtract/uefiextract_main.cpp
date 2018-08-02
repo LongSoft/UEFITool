@@ -20,6 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "../common/ffsparser.h"
 #include "../common/ffsreport.h"
 #include "ffsdumper.h"
+#include "uefidump.h"
 
 enum ReadType {
     READ_INPUT,
@@ -43,6 +44,12 @@ int main(int argc, char *argv[])
         std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
             (std::istreambuf_iterator<char>()));
         inputFile.close();
+
+        // Hack to support legacy UEFIDump mode.
+        if (argc == 3 && !std::strcmp(argv[2], "unpack")) {
+            UEFIDumper uefidumper;
+            return (uefidumper.dump(buffer, UString(argv[1])) != U_SUCCESS);
+        }
 
         // Create model and ffsParser
         TreeModel model;
@@ -174,6 +181,7 @@ int main(int argc, char *argv[])
     std::cout << "UEFIExtract " PROGRAM_VERSION << std::endl << std::endl
         << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
         << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
+        << "       UEFIExtract imagefile unpack - generate report and dump all tree items in one dir." << std::endl
         << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl
         << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
         << "       UEFIExtract imagefile GUID_1 ... [ -o FILE_1 ... ] [ -m MODE_1 ... ] [ -t TYPE_1 ... ] -" << std::endl

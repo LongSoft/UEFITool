@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 
-PROJECT(UEFIExtract)
+PROJECT(UEFIFind)
 
 SET(PROJECT_SOURCES
- uefiextract_main.cpp
- ffsdumper.cpp
- uefidump.cpp
+ uefifind_main.cpp
+ uefifind.cpp
  ../common/guiddatabase.cpp
  ../common/types.cpp
  ../common/descriptor.cpp
@@ -28,8 +27,7 @@ SET(PROJECT_SOURCES
 )
 
 SET(PROJECT_HEADERS
- ffsdumper.h
- uefidump.h
+ uefifind.h
  ../common/guiddatabase.h
  ../common/basetypes.h
  ../common/descriptor.h
@@ -59,4 +57,4 @@ SET(PROJECT_HEADERS
 
 ADD_DEFINITIONS(-DU_ENABLE_NVRAM_PARSING_SUPPORT)
 
-ADD_EXECUTABLE(UEFIExtract ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+ADD_EXECUTABLE(UEFIFind ${PROJECT_SOURCES} ${PROJECT_HEADERS})

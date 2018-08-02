@@ -244,5 +244,4 @@ cmake_install.cmake
 DerivedData
 *.xcodeproj
 compile_commands.json
-CMakeLists.txt
 CMakeScripts
