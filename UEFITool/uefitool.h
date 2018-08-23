@@ -76,6 +76,10 @@ private slots:
     void openImageFile();
     void openImageFileInNewWindow();
     void saveImageFile();
+
+    void specifyPathIDA();
+    void specifyPathIDA32();
+    void specifyPathIDA64();
     
     void search();
     void goToOffset();
@@ -85,7 +89,7 @@ private slots:
     void bodyHexView();
     void goToData();
     
-    void extract(const UINT8 mode);
+    void extract(const UINT8 mode, UString* pathOut = NULL);
     void extractAsIs();
     void extractBody();
     void extractBodyUncompressed();
@@ -102,6 +106,10 @@ private slots:
     void rebuild();
 
     void remove();
+
+    void inspectIDA32();
+    void inspectIDA64();
+    void inspect(const UINT8 mode);
 
     void copyMessage();
     void copyAllMessages();
@@ -139,6 +147,8 @@ private:
     QString currentDir;
     QString currentPath;
     QString currentProgramPath;
+    QString idaPath32;
+    QString idaPath64;
     QFont currentFont;
     const QString version;
     bool markingEnabled;

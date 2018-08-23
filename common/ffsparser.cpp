@@ -55,7 +55,7 @@ struct REGION_INFO {
 
 // Constructor
 FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
-imageBase(0), addressDiff(0x100000000ULL),
+imageBase(0), addressDiff(0x100000000ULL), peiCoreEntryPoint(0), newPeiCoreEntryPoint(0),
 bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgFirstVolumeOffset(0x100000000ULL) {
     nvramParser = new NvramParser(treeModel, this); 
     meParser = new MeParser(treeModel);
@@ -101,6 +101,9 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
 
 USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & index)
 {
+    peiCoreEntryPoint = 0;
+    newPeiCoreEntryPoint = 0;
+
    // Sanity check
     if (buffer.isEmpty()) {
         return EFI_INVALID_PARAMETER;
@@ -630,7 +633,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     return parseResult;
 }
 
-USTATUS FfsParser::parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Check sanity
     if (gbe.isEmpty())
@@ -650,12 +653,12 @@ USTATUS FfsParser::parseGbeRegion(const UByteArray & gbe, const UINT32 localOffs
         version->minor);
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::GbeRegion, name, UString(), info, UByteArray(), gbe, UByteArray(), Fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::GbeRegion, name, UString(), info, UByteArray(), gbe, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Check sanity
     if (me.isEmpty())
@@ -702,7 +705,7 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     }
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::MeRegion, name, UString(), info, UByteArray(), me, UByteArray(), Fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::MeRegion, name, UString(), info, UByteArray(), me, UByteArray(), Fixed, parent, mode);
 
     // Show messages
     if (emptyRegion) {
@@ -718,7 +721,7 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Check sanity
     if (pdr.isEmpty())
@@ -729,7 +732,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     UString info = usprintf("Full size: %Xh (%u)", pdr.size(), pdr.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::PdrRegion, name, UString(), info, UByteArray(), pdr, UByteArray(), Fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::PdrRegion, name, UString(), info, UByteArray(), pdr, UByteArray(), Fixed, parent, mode);
 
     // Parse PDR region as BIOS space
     USTATUS result = parseRawArea(index);
@@ -739,7 +742,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Check sanity
     if (region.isEmpty())
@@ -750,12 +753,12 @@ USTATUS FfsParser::parseGenericRegion(const UINT8 subtype, const UByteArray & re
     UString info = usprintf("Full size: %Xh (%u)", region.size(), region.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, subtype, name, UString(), info, UByteArray(), region, UByteArray(), Fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::Region, subtype, name, UString(), info, UByteArray(), region, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Sanity check
     if (bios.isEmpty())
@@ -766,7 +769,7 @@ USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 localOf
     UString info = usprintf("Full size: %Xh (%u)", bios.size(), bios.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::BiosRegion, name, UString(), info, UByteArray(), bios, UByteArray(), Fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::BiosRegion, name, UString(), info, UByteArray(), bios, UByteArray(), Fixed, parent, mode);
 
     return parseRawArea(index);
 }
@@ -907,7 +910,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Sanity check
     if (volume.isEmpty())
@@ -1069,7 +1072,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         else if (isNvramVolume)
             subtype = Subtypes::NvramVolume;
     }
-    index = model->addItem(model->offset(parent) + localOffset, Types::Volume, subtype, name, text, info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::Volume, subtype, name, text, info, header, body, UByteArray(), Fixed, parent, mode);
 
     // Set parsing data for created volume
     VOLUME_PARSING_DATA pdata;
@@ -1376,7 +1379,7 @@ UINT32 FfsParser::getFileSize(const UByteArray & volume, const UINT32 fileOffset
     return 0;
 }
 
-USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     // Sanity check
     if (file.isEmpty()) {
@@ -1496,6 +1499,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         usprintf("\nHeader checksum: %02Xh", fileHeader->IntegrityCheck.Checksum.Header) + (msgInvalidHeaderChecksum ? usprintf(", invalid, should be %02Xh", calculatedHeader) : UString(", valid")) +
         usprintf("\nData checksum: %02Xh", fileHeader->IntegrityCheck.Checksum.File) + (msgInvalidDataChecksum ? usprintf(", invalid, should be %02Xh", calculatedData) : UString(", valid"));
 
+
     UString text;
     bool isVtf = false;
     bool isDxeCore = false;
@@ -1514,12 +1518,62 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         // This information may be used to determine DXE volume offset for old AMI or post-IBB protected ranges
         isDxeCore = true;
     }
+    else if (fileGuid == EFI_TXT_ACM_GUID) {
+        // Detect TXT ACM and update TXT tab
+        const INTEL_ACM_HEADER* acmHeader = (const INTEL_ACM_HEADER*)body.constData();
+
+        // Add ACM header info
+        txtInfo += usprintf(
+                                  "TXT ACM found at offset %Xh\n"
+                                  "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08Xh\n"
+                                  "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
+                                  "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08Xh\n"
+                                  "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
+                                  "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
+                                  "SegSel: %08Xh         KeySize: %08Xh       Unknown3: %08Xh",
+                                  model->offset(parent) + localOffset,
+                                  acmHeader->ModuleType,
+                                  acmHeader->ModuleSubtype,
+                                  acmHeader->ModuleSize * sizeof(UINT32),
+                                  acmHeader->HeaderVersion,
+                                  acmHeader->ChipsetId,
+                                  acmHeader->Flags,
+                                  acmHeader->ModuleVendor,
+                                  acmHeader->DateDay, acmHeader->DateMonth, acmHeader->DateYear,
+                                  acmHeader->ModuleSize * sizeof(UINT32),
+                                  acmHeader->EntryPoint,
+                                  acmHeader->AcmSvn,
+                                  acmHeader->Unknown1,
+                                  acmHeader->Unknown2,
+                                  acmHeader->GdtBase,
+                                  acmHeader->GdtMax,
+                                  acmHeader->SegmentSel,
+                                  acmHeader->KeySize * sizeof(UINT32),
+                                  acmHeader->Unknown4 * sizeof(UINT32)
+                                  );
+        // Add PubKey
+        txtInfo += usprintf("\n\nACM RSA Public Key (Exponent: %Xh):", acmHeader->RsaPubExp);
+        for (UINT16 i = 0; i < sizeof(acmHeader->RsaPubKey); i++) {
+            if (i % 32 == 0)
+                txtInfo += UString("\n");
+            txtInfo += usprintf("%02X", acmHeader->RsaPubKey[i]);
+        }
+        // Add RsaSig
+        txtInfo += UString("\n\nACM RSA Signature:");
+        for (UINT16 i = 0; i < sizeof(acmHeader->RsaSig); i++) {
+            if (i % 32 == 0)
+                txtInfo += UString("\n");
+            txtInfo += usprintf("%02X", acmHeader->RsaSig[i]);
+        }
+        txtInfo += UString("\n------------------------------------------------------------------------\n\n");
+
+    }
 
     // Construct fixed state
     ItemFixedState fixed = (ItemFixedState)((fileHeader->Attributes & FFS_ATTRIB_FIXED) != 0);
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::File, fileHeader->Type, name, text, info, header, body, tail, fixed, parent);
+    index = model->addItem(model->offset(parent) + localOffset, Types::File, fileHeader->Type, name, text, info, header, body, tail, fixed, parent, mode);
 
     // Set parsing data for created file
     FILE_PARSING_DATA pdata;
@@ -1763,7 +1817,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER)) {
@@ -1773,12 +1827,12 @@ USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 l
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     switch (sectionHeader->Type) {
     // Special
-    case EFI_SECTION_COMPRESSION:           return parseCompressedSectionHeader(section, localOffset, parent, index, insertIntoTree);
-    case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, localOffset, parent, index, insertIntoTree);
-    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, localOffset, parent, index, insertIntoTree);
-    case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, localOffset, parent, index, insertIntoTree);
+    case EFI_SECTION_COMPRESSION:           return parseCompressedSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
+    case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
+    case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseFreeformGuidedSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
+    case EFI_SECTION_VERSION:               return parseVersionSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
     case PHOENIX_SECTION_POSTCODE:
-    case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, localOffset, parent, index, insertIntoTree);
+    case INSYDE_SECTION_POSTCODE:           return parsePostcodeSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
     // Common
     case EFI_SECTION_DISPOSABLE:
     case EFI_SECTION_DXE_DEPEX:
@@ -1790,16 +1844,16 @@ USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 l
     case EFI_SECTION_COMPATIBILITY16:
     case EFI_SECTION_USER_INTERFACE:
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
-    case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, localOffset, parent, index, insertIntoTree);
+    case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
     // Unknown
     default: 
-        USTATUS result = parseCommonSectionHeader(section, localOffset, parent, index, insertIntoTree);
+        USTATUS result = parseCommonSectionHeader(section, localOffset, parent, index, insertIntoTree, mode);
         msg(usprintf("%s: section with unknown type %02Xh", __FUNCTION__, sectionHeader->Type), index);
         return result;
     }
 }
 
-USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER)) {
@@ -1847,15 +1901,23 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
         headerSize, headerSize,
         body.size(), body.size());
 
+    // Special case of PEI Core
+    if (model->subtype(parent) == EFI_FV_FILETYPE_PEI_CORE
+        && peiCoreEntryPoint == 0) {
+        USTATUS result = getEntryPoint(body, peiCoreEntryPoint);
+        if (result)
+            msg("parseCommonSectionHeader: can't get original PEI core entry point", index);
+    }
+
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent, mode);
     }
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -1919,7 +1981,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent, mode);
 
         // Set section parsing data
         COMPRESSED_SECTION_PARSING_DATA pdata;
@@ -1931,7 +1993,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2097,7 +2159,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent, mode);
 
         // Set parsing data
         GUIDED_SECTION_PARSING_DATA pdata;
@@ -2124,7 +2186,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2186,7 +2248,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent, mode);
 
         // Set parsing data
         FREEFORM_GUIDED_SECTION_PARSING_DATA pdata;
@@ -2200,7 +2262,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2260,13 +2322,13 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent, mode);
     }
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree)
+USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode)
 {
     // Check sanity
     if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
@@ -2326,7 +2388,7 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent, mode);
     }
 
     return U_SUCCESS;
@@ -3407,6 +3469,9 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
             return U_INVALID_FIT;
         }
 
+        if (currentEntry->Type == FIT_TYPE_TXT_CONF_POLICY)
+            parseTxtConfigurationPolicy(currentEntry, info);
+
         // Set item index
         if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) { // Only elements in the image need to be parsed
             currentEntryOffset = (UINT32)(currentEntry->Address - addressDiff);
@@ -3554,6 +3619,64 @@ USTATUS FfsParser::parseIntelMicrocode(const UByteArray & microcode, const UINT3
                     header->DateYear
                     );
     realSize = mcSize;
+
+    // Add Microcode header info
+    microcodeInfo += usprintf(
+                              "Microcode Update Capsule found at offset %Xh\n"
+                              "Checksum: %08Xh       CPU Flags: %08Xh     CPU Signature: %08Xh\n"
+                              "Data Size:  %08Xh     Date: %02X.%02X.%04X         Loader Revision: %08Xh\n"
+                              "Date: %02X.%02X.%04X    ModuleSize: %08Xh    EntryPoint: %08Xh\n"
+                              "Reserved: %02Xh             Revision: %08Xh      TotalSize: %08Xh\n"
+                              "Version: %08Xh"
+                              "\n------------------------------------------------------------------------\n\n",
+                              model->offset(parent) + localOffset,
+                              header->Checksum,
+                              header->CpuFlags,
+                              header->CpuSignature,
+                              header->DataSize,
+                              header->DateDay, header->DateMonth, header->DateYear,
+                              header->LoaderRevision,
+                              header->Reserved,
+                              header->Revision,
+                              header->TotalSize,
+                              header->Version
+                              );
+
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseTxtConfigurationPolicy(const FIT_ENTRY* entry, UString & info)
+{
+    U_UNUSED_PARAMETER(info);
+    const TXT_CONFIG_POLICY* txtCfg = (const TXT_CONFIG_POLICY*)entry;
+
+    if(entry->Version == 0) {
+        txtInfo += usprintf(
+                            "TXT Configuration Policy found (Version = 0)\n"
+                            "Index: %04Xh       Bit Position: %02Xh\n"
+                            "Access width in bytes: %02Xh\n"
+                            "Data Register Address:  %04Xh\n"
+                            "Index Register Address:  %04Xh",
+                            txtCfg->IndexedIOPtrInfo.Index,
+                            txtCfg->IndexedIOPtrInfo.BitPosition,
+                            txtCfg->IndexedIOPtrInfo.AccessWidth,
+                            txtCfg->IndexedIOPtrInfo.DataRegisterAddress,
+                            txtCfg->IndexedIOPtrInfo.IndexRegisterAddress
+                            );
+    }
+    else if(entry->Version == 1) {
+        txtInfo += usprintf(
+                            "TXT Configuration Policy found (Version = 1)\n"
+                            "Physical Address: %16Xh ",
+                            txtCfg->FlatMemoryPtrInfo.FlatMemoryPhysicalAddress
+                            );
+        txtInfo += txtCfg->FlatMemoryPtrInfo.TxtEnabled ?
+                    "(Bit 0 is zero - Intel TXT disabled)" : "(Bit 0 is 1 - Intel TXT enabled)";
+    }
+    else
+        txtInfo += "\nUnknown version of TXT Configuration Policy";
+
+    txtInfo += "\n------------------------------------------------------------------------\n\n";
     return U_SUCCESS;
 }
 
@@ -3585,16 +3708,18 @@ USTATUS FfsParser::parseIntelAcm(const UByteArray & acm, const UINT32 localOffse
     realSize = acmSize;
 
     // Add ACM header info
-    bootGuardInfo += usprintf(
-                              "Intel ACM found at offset %Xh\n"
-                              "ModuleType: %08Xh     HeaderLength: %08Xh  HeaderVersion: %08Xh\n"
-                              "ChipsetId:  %04Xh     Flags: %04Xh       ModuleVendor: %04Xh\n"
-                              "Date: %02X.%02X.%04X  ModuleSize: %08Xh    EntryPoint: %08Xh\n"
-                              "AcmSvn: %04Xh         Unknown1: %08Xh      Unknown2: %08Xh\n"
-                              "GdtBase: %08Xh        GdtMax: %08Xh        SegSel: %08Xh\n"
-                              "KeySize: %08Xh        Unknown3: %08Xh",
+    UString acmInfo;
+    acmInfo += usprintf(
+                              " found at offset %Xh\n"
+                              "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08Xh\n"
+                              "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
+                              "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08Xh\n"
+                              "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
+                              "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
+                              "SegSel: %08Xh         KeySize: %08Xh       Unknown3: %08Xh",
                               model->offset(parent) + localOffset,
                               header->ModuleType,
+                              header->ModuleSubtype,
                               header->ModuleSize * sizeof(UINT32),
                               header->HeaderVersion,
                               header->ChipsetId,
@@ -3613,20 +3738,28 @@ USTATUS FfsParser::parseIntelAcm(const UByteArray & acm, const UINT32 localOffse
                               header->Unknown4 * sizeof(UINT32)
                               );
     // Add PubKey
-    bootGuardInfo += usprintf("\n\nACM RSA Public Key (Exponent: %Xh):", header->RsaPubExp);
+    acmInfo += usprintf("\n\nACM RSA Public Key (Exponent: %Xh):", header->RsaPubExp);
     for (UINT16 i = 0; i < sizeof(header->RsaPubKey); i++) {
         if (i % 32 == 0)
-            bootGuardInfo += UString("\n");
-        bootGuardInfo += usprintf("%02X", header->RsaPubKey[i]);
+            acmInfo += UString("\n");
+        acmInfo += usprintf("%02X", header->RsaPubKey[i]);
     }
     // Add RsaSig
-    bootGuardInfo += UString("\n\nACM RSA Signature:");
+    acmInfo += UString("\n\nACM RSA Signature:");
     for (UINT16 i = 0; i < sizeof(header->RsaSig); i++) {
         if (i % 32 == 0)
-            bootGuardInfo += UString("\n");
-        bootGuardInfo += usprintf("%02X", header->RsaSig[i]);
+            acmInfo += UString("\n");
+        acmInfo += usprintf("%02X", header->RsaSig[i]);
     }
-    bootGuardInfo += UString("\n------------------------------------------------------------------------\n\n");
+    acmInfo += UString("\n------------------------------------------------------------------------\n\n");
+
+    if(header->ModuleSubtype == INTEL_ACM_MODULE_SUBTYPE_TXT_ACM)
+        txtInfo += "TXT ACM (From FIT)" + acmInfo;
+    else if(header->ModuleSubtype == INTEL_ACM_MODULE_SUBTYPE_S_ACM)
+        txtInfo += "S-ACM (From FIT)" + acmInfo;
+    else
+        bootGuardInfo += "Intel ACM" + acmInfo;
+
     bgAcmFound = true;
     return U_SUCCESS;
 }

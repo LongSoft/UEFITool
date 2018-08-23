@@ -764,7 +764,7 @@ USTATUS NvramParser::getStoreSize(const UByteArray & data, const UINT32 storeOff
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -808,12 +808,12 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
         vssStoreHeader->Unknown);
 
     // Add tree item
-    index = model->addItem(localOffset, Types::VssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::VssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -856,12 +856,12 @@ USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32
             vssStoreHeader->Unknown);
 
     // Add tree item
-    index = model->addItem(localOffset, Types::Vss2Store, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Vss2Store, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -926,12 +926,12 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
             (ftw32BlockHeader->Crc != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
 
     // Add tree item
-    index = model->addItem(localOffset, Types::FtwStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::FtwStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -964,12 +964,12 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
         body.size(), body.size());
 
     // Add tree item
-    index = model->addItem(localOffset, Types::FdcStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::FdcStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1011,12 +1011,12 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
         + (storedCrc != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
 
     // Add tree item
-    index = model->addItem(localOffset, Types::FsysStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::FsysStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1056,12 +1056,12 @@ USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32
         (evsaStoreHeader->Header.Checksum != calculated ? usprintf("%, invalid, should be %02Xh", calculated) : UString(", valid"));
 
     // Add tree item
-    index = model->addItem(localOffset, Types::EvsaStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::EvsaStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1096,12 +1096,12 @@ USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UI
         flashMapHeader->NumEntries);
 
     // Add tree item
-    index = model->addItem(localOffset, Types::FlashMapStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::FlashMapStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1134,12 +1134,12 @@ USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32
         body.size(), body.size());
 
     // Add tree item
-    index = model->addItem(localOffset, Types::CmdbStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::CmdbStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1176,12 +1176,12 @@ USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT3
         pubkeyHeader->Exponent);
 
     // Add tree item
-    index = model->addItem(localOffset, Types::SlicData, Subtypes::PubkeySlicData, name, UString(), info, header, UByteArray(), UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::SlicData, Subtypes::PubkeySlicData, name, UString(), info, header, UByteArray(), UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1218,12 +1218,12 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
 
 
     // Add tree item
-    index = model->addItem(localOffset, Types::SlicData, Subtypes::MarkerSlicData, name, UString(), info, header, UByteArray(), UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::SlicData, Subtypes::MarkerSlicData, name, UString(), info, header, UByteArray(), UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
 
@@ -1267,12 +1267,12 @@ USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const U
         ucodeHeader->CpuFlags);
 
     // Add tree item
-    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
     const UINT32* signature = (const UINT32*)store.constData();
@@ -1285,38 +1285,38 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     // Check signature and run parser function needed
     // VSS/SVS store
     if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE)
-        return parseVssStoreHeader(store, localOffset, false, parent, index);
+        return parseVssStoreHeader(store, localOffset, false, parent, index, mode);
     // VSS2 store
     if (*signature == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *signature == NVRAM_VSS2_STORE_GUID_PART1)
-        return parseVss2StoreHeader(store, localOffset, false, parent, index);
+        return parseVss2StoreHeader(store, localOffset, false, parent, index, mode);
     // FTW store
     else if (*signature == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *signature == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1)
-        return parseFtwStoreHeader(store, localOffset, parent, index);
+        return parseFtwStoreHeader(store, localOffset, parent, index, mode);
     // FDC store
     else if (*signature == NVRAM_FDC_VOLUME_SIGNATURE)
-        return parseFdcStoreHeader(store, localOffset, parent, index);
+        return parseFdcStoreHeader(store, localOffset, parent, index, mode);
     // Apple Fsys/Gaid store
     else if (*signature == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *signature == NVRAM_APPLE_GAID_STORE_SIGNATURE)
-        return parseFsysStoreHeader(store, localOffset, parent, index);
+        return parseFsysStoreHeader(store, localOffset, parent, index, mode);
     // EVSA store
     else if (dataSize >= 2 * sizeof(UINT32) && *(signature + 1) == NVRAM_EVSA_STORE_SIGNATURE)
-        return parseEvsaStoreHeader(store, localOffset, parent, index);
+        return parseEvsaStoreHeader(store, localOffset, parent, index, mode);
     // Phoenix SCT flash map
     else if (*signature == NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1)
-        return parseFlashMapStoreHeader(store, localOffset, parent, index);
+        return parseFlashMapStoreHeader(store, localOffset, parent, index, mode);
     // Phoenix CMDB store
     else if (*signature == NVRAM_PHOENIX_CMDB_HEADER_SIGNATURE)
-        return parseCmdbStoreHeader(store, localOffset, parent, index);
+        return parseCmdbStoreHeader(store, localOffset, parent, index, mode);
     // SLIC pubkey
     else if (dataSize >= 5 * sizeof(UINT32) && *(signature + 4) == OEM_ACTIVATION_PUBKEY_MAGIC)
-        return parseSlicPubkeyHeader(store, localOffset, parent, index);
+        return parseSlicPubkeyHeader(store, localOffset, parent, index, mode);
     // SLIC marker
     else if (dataSize >= 34 && *(const UINT64*)(store.constData() + 26) == OEM_ACTIVATION_MARKER_WINDOWS_FLAG)
-        return parseSlicMarkerHeader(store, localOffset, parent, index);
+        return parseSlicMarkerHeader(store, localOffset, parent, index, mode);
     // Intel microcode
     // Must be checked after SLIC marker because of the same *signature values
     else if (*signature == INTEL_MICROCODE_HEADER_VERSION)
-        return parseIntelMicrocodeHeader(store, localOffset, parent, index);
+        return parseIntelMicrocodeHeader(store, localOffset, parent, index, mode);
 
     msg(usprintf("parseStoreHeader: don't know how to parse a header with signature %08Xh", *signature), parent);
     return U_SUCCESS;

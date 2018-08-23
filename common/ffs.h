@@ -26,6 +26,7 @@ extern UString guidToUString(const EFI_GUID& guid, bool convertToString = true);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);
 
+
 //*****************************************************************************
 // EFI Capsule
 //*****************************************************************************
@@ -369,6 +370,10 @@ const UByteArray AMI_CORE_DXE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
 const UByteArray EFI_DXE_CORE_GUID // D6A2CB7F-6A18-4E2F-B43B-9920A733700A
 ("\x7F\xCB\xA2\xD6\x18\x6A\x2F\x4E\xB4\x3B\x99\x20\xA7\x33\x70\x0A", 16);
 
+// TXT ACM
+const UByteArray EFI_TXT_ACM_GUID // 2D27C618-7DCD-41F5-BB10-21166BE7E143
+("\x18\xC6\x27\x2D\xCD\x7D\xF5\x41\xBB\x10\x21\x16\x6B\xE7\xE1\x43", 16);
+
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(const UINT8* ffsSize);
@@ -432,6 +437,14 @@ typedef struct EFI_COMPRESSION_SECTION_ {
     UINT8    CompressionType;
 } EFI_COMPRESSION_SECTION;
 
+typedef struct _EFI_COMPRESSION_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    UINT32   UncompressedLength;
+    UINT8    CompressionType;
+} EFI_COMPRESSION_SECTION2;
+
 typedef struct EFI_COMPRESSION_SECTION_APPLE_ {
     UINT32   UncompressedLength;
     UINT32   CompressionType;
@@ -455,6 +468,16 @@ typedef struct EFI_GUID_DEFINED_SECTION_APPLE_ {
     UINT16   Attributes;
     UINT32   Reserved;
 } EFI_GUID_DEFINED_SECTION_APPLE;
+
+typedef struct _EFI_GUID_DEFINED_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    EFI_GUID SectionDefinitionGuid;
+    UINT16   DataOffset;
+    UINT16   Attributes;
+} EFI_GUID_DEFINED_SECTION2;
+
 
 // Attributes for GUID defined section
 #define EFI_GUIDED_SECTION_PROCESSING_REQUIRED  0x01
@@ -511,15 +534,63 @@ typedef struct EFI_VERSION_SECTION_ {
     UINT16   BuildNumber;
 } EFI_VERSION_SECTION;
 
+typedef struct _EFI_VERSION_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    UINT16   BuildNumber;
+} EFI_VERSION_SECTION2;
+
 // Freeform subtype GUID section
 typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION_ {
     EFI_GUID SubTypeGuid;
 } EFI_FREEFORM_SUBTYPE_GUID_SECTION;
 
+typedef struct _EFI_FREEFORM_SUBTYPE_GUID_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    EFI_GUID SubTypeGuid;
+} EFI_FREEFORM_SUBTYPE_GUID_SECTION2;
+
 // Phoenix SCT and Insyde postcode section
 typedef struct POSTCODE_SECTION_ {
     UINT32   Postcode;
 } POSTCODE_SECTION;
+
+typedef struct _POSTCODE_SECTION2 {
+    UINT8    Size[3];
+    UINT8    Type;
+    UINT32   ExtendedSize;
+    UINT32   Postcode;
+} POSTCODE_SECTION2;
+
+// Other sections
+typedef EFI_COMMON_SECTION_HEADER  EFI_DISPOSABLE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_DISPOSABLE_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_RAW_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_RAW_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_DXE_DEPEX_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_DXE_DEPEX_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_PEI_DEPEX_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_PEI_DEPEX_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_SMM_DEPEX_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_SMM_DEPEX_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_PE32_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_PE32_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_PIC_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_PIC_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_TE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_TE_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_COMPATIBILITY16_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_COMPATIBILITY16_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_FIRMWARE_VOLUME_IMAGE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_FIRMWARE_VOLUME_IMAGE_SECTION2;
+typedef EFI_COMMON_SECTION_HEADER  EFI_USER_INTERFACE_SECTION;
+typedef EFI_COMMON_SECTION_HEADER2 EFI_USER_INTERFACE_SECTION2;
+
+// Section routines
+UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header);
 
 //*****************************************************************************
 // EFI Dependency Expression

@@ -142,7 +142,7 @@
         <bool>true</bool>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="parserTab">
         <attribute name="title">
@@ -241,6 +241,82 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="txtTab">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <attribute name="title">
+         <string>TXT</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_8">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QPlainTextEdit" name="txtEdit">
+           <property name="acceptDrops">
+            <bool>false</bool>
+           </property>
+           <property name="undoRedoEnabled">
+            <bool>false</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="microcodeTab">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <attribute name="title">
+         <string>Microcode</string>
+        </attribute>
+        <layout class="QHBoxLayout" name="horizontalLayout_9">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>5</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
+         <item>
+          <widget class="QPlainTextEdit" name="microcodeEdit">
+           <property name="acceptDrops">
+            <bool>false</bool>
+           </property>
+           <property name="undoRedoEnabled">
+            <bool>false</bool>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
        <widget class="QWidget" name="finderTab">
         <attribute name="title">
          <string>Search</string>
@@ -311,7 +387,7 @@
      <x>0</x>
      <y>0</y>
      <width>851</width>
-     <height>31</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -327,6 +403,8 @@
     <addaction name="actionLoadGuidDatabase"/>
     <addaction name="actionLoadDefaultGuidDatabase"/>
     <addaction name="actionUnloadGuidDatabase"/>
+    <addaction name="separator"/>
+    <addaction name="actionSpecifyPathIDA"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -423,6 +501,9 @@
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
+     <addaction name="separator"/>
+     <addaction name="actionInspectBodyIDA"/>
+     <addaction name="actionInspectBodyIDA64"/>
      <addaction name="separator"/>
      <addaction name="actionRebuild"/>
      <addaction name="separator"/>
@@ -905,6 +986,30 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+D</string>
+   </property>
+  </action>
+  <action name="actionSpecifyPathIDA">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Specify path to IDA Pro</string>
+   </property>
+  </action>
+  <action name="actionInspectBodyIDA">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Inspect body with IDA</string>
+   </property>
+  </action>
+  <action name="actionInspectBodyIDA64">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Inspect body with IDA64</string>
    </property>
   </action>
  </widget>

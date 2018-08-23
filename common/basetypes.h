@@ -19,54 +19,57 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <stddef.h>
 
 typedef size_t USTATUS;
-#define U_SUCCESS                         0
-#define U_INVALID_PARAMETER               1
-#define U_BUFFER_TOO_SMALL                2
-#define U_OUT_OF_RESOURCES                3
-#define U_OUT_OF_MEMORY                   4
-#define U_FILE_OPEN                       5
-#define U_FILE_READ                       6
-#define U_FILE_WRITE                      7
-#define U_ITEM_NOT_FOUND                  8
-#define U_UNKNOWN_ITEM_TYPE               9
-#define U_INVALID_FLASH_DESCRIPTOR        10
-#define U_INVALID_REGION                  11
-#define U_EMPTY_REGION                    12
-#define U_BIOS_REGION_NOT_FOUND           13
-#define U_VOLUMES_NOT_FOUND               14
-#define U_INVALID_VOLUME                  15
-#define U_VOLUME_REVISION_NOT_SUPPORTED   16
-#define U_COMPLEX_BLOCK_MAP               17
-#define U_UNKNOWN_FFS                     18
-#define U_INVALID_FILE                    19
-#define U_INVALID_SECTION                 20
-#define U_UNKNOWN_SECTION                 21
-#define U_STANDARD_COMPRESSION_FAILED     22
-#define U_CUSTOMIZED_COMPRESSION_FAILED   23
-#define U_STANDARD_DECOMPRESSION_FAILED   24
-#define U_CUSTOMIZED_DECOMPRESSION_FAILED 25
-#define U_UNKNOWN_COMPRESSION_TYPE        26
-#define U_DEPEX_PARSE_FAILED              27
-#define U_UNKNOWN_EXTRACT_MODE            28
-#define U_UNKNOWN_REPLACE_MODE            29
-#define U_UNKNOWN_IMAGE_TYPE              30
-#define U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 31
-#define U_UNKNOWN_RELOCATION_TYPE         32
-#define U_DIR_ALREADY_EXIST               33
-#define U_DIR_CREATE                      34
-#define U_DIR_CHANGE                      35
-#define U_TRUNCATED_IMAGE                 36
-#define U_INVALID_CAPSULE                 37
-#define U_STORES_NOT_FOUND                38
-#define U_INVALID_IMAGE                   39
-#define U_INVALID_RAW_AREA                40
-#define U_INVALID_FIT                     41
-#define U_INVALID_MICROCODE               42
-#define U_INVALID_ACM                     43
-#define U_INVALID_BG_KEY_MANIFEST         44
-#define U_INVALID_BG_BOOT_POLICY          45
-#define U_ELEMENTS_NOT_FOUND              46
-#define U_NOT_IMPLEMENTED                 0xFF
+#define U_SUCCESS                           0
+#define U_INVALID_PARAMETER                 1
+#define U_BUFFER_TOO_SMALL                  2
+#define U_OUT_OF_RESOURCES                  3
+#define U_OUT_OF_MEMORY                     4
+#define U_FILE_OPEN                         5
+#define U_FILE_READ                         6
+#define U_FILE_WRITE                        7
+#define U_ITEM_NOT_FOUND                    8
+#define U_UNKNOWN_ITEM_TYPE                 9
+#define U_INVALID_FLASH_DESCRIPTOR          10
+#define U_INVALID_REGION                    11
+#define U_EMPTY_REGION                      12
+#define U_BIOS_REGION_NOT_FOUND             13
+#define U_VOLUMES_NOT_FOUND                 14
+#define U_INVALID_VOLUME                    15
+#define U_VOLUME_REVISION_NOT_SUPPORTED     16
+#define U_COMPLEX_BLOCK_MAP                 17
+#define U_UNKNOWN_FFS                       18
+#define U_INVALID_FILE                      19
+#define U_INVALID_SECTION                   20
+#define U_UNKNOWN_SECTION                   21
+#define U_STANDARD_COMPRESSION_FAILED       22
+#define U_CUSTOMIZED_COMPRESSION_FAILED     23
+#define U_STANDARD_DECOMPRESSION_FAILED     24
+#define U_CUSTOMIZED_DECOMPRESSION_FAILED   25
+#define U_UNKNOWN_COMPRESSION_TYPE          26
+#define U_DEPEX_PARSE_FAILED                27
+#define U_UNKNOWN_EXTRACT_MODE              28
+#define U_UNKNOWN_REPLACE_MODE              29
+#define U_UNKNOWN_IMAGE_TYPE                30
+#define U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE   31
+#define U_UNKNOWN_RELOCATION_TYPE           32
+#define U_DIR_ALREADY_EXIST                 33
+#define U_DIR_CREATE                        34
+#define U_DIR_CHANGE                        35
+#define U_TRUNCATED_IMAGE                   36
+#define U_INVALID_CAPSULE                   37
+#define U_STORES_NOT_FOUND                  38
+#define U_INVALID_IMAGE                     39
+#define U_INVALID_RAW_AREA                  40
+#define U_INVALID_FIT                       41
+#define U_INVALID_MICROCODE                 42
+#define U_INVALID_ACM                       43
+#define U_INVALID_BG_KEY_MANIFEST           44
+#define U_INVALID_BG_BOOT_POLICY            45
+#define U_INVALID_TXT_CONF                  46
+#define U_ELEMENTS_NOT_FOUND                47
+#define U_PEI_CORE_ENTRY_POINT_NOT_FOUND    48
+#define U_INVALID_STORE_SIZE                49
+#define U_NOT_IMPLEMENTED                   0xFF
 
 // UDK porting definitions
 typedef uint8_t      BOOLEAN;
@@ -86,6 +89,10 @@ typedef ptrdiff_t    INTN;
 #define CONST  const
 #define VOID   void
 #define STATIC static
+
+#ifndef INT32_MAX
+#define INT32_MAX 0x7fffffff
+#endif
 
 #ifndef TRUE
 #define TRUE  ((BOOLEAN)(1==1))
@@ -124,6 +131,10 @@ typedef ptrdiff_t    INTN;
 #define EXTRACT_MODE_AS_IS                 0
 #define EXTRACT_MODE_BODY                  1
 #define EXTRACT_MODE_BODY_UNCOMPRESSED     2
+
+// Item inspect modes
+#define INSPECT_MODE_IDA32     0
+#define INSPECT_MODE_IDA64     1
 
 // Item replace modes
 #define REPLACE_MODE_AS_IS    0

@@ -31,6 +31,7 @@ UString errorCodeToUString(USTATUS errorCode);
 USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
 
 // Compression routine
+UINT8 compress(const UByteArray & data, const UINT8 algorithm, UByteArray & compressedData);
 //USTATUS compress(const UByteArray & decompressed, UByteArray & compressed, const UINT8 & algorithm);
 
 // CRC32 calculation routine
@@ -54,5 +55,14 @@ BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::
 // Find pattern in a binary blob
 INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSize,
     const UINT8 *data, UINTN dataSize, UINTN dataOff);
+
+// Image base adress
+USTATUS getBase(const UByteArray& file, UINT32& base);
+// Entry point
+USTATUS getEntryPoint(const UByteArray& file, UINT32 &entryPoint);
+
+USTATUS growVolume(UByteArray & header, const UINT32 size, UINT32 & newSize);
+
+USTATUS rebase(UByteArray &executable, const UINT32 base);
 
 #endif // UTILITY_H

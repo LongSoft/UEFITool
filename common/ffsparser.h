@@ -20,6 +20,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "treemodel.h"
 #include "bootguard.h"
+#include "fit.h"
 
 typedef struct BG_PROTECTED_RANGE_
 {
@@ -60,8 +61,16 @@ public:
     // Obtain BootGuardInfo
     UString getBootGuardInfo() const { return bootGuardInfo; }
 
+    // Obtain TXT ACM Info
+    UString getTxtInfo() const { return txtInfo; }
+
+    // Obtain Microcode Info
+    UString getMicrocodeInfo() const { return microcodeInfo; }
+
     // Obtain offset/address difference
     UINT64 getAddressDiff() { return addressDiff; }
+
+    void setNewPeiCoreEntryPoint(UINT32 entry) { newPeiCoreEntryPoint = entry; }
 
 private:
     TreeModel *model;
@@ -77,6 +86,8 @@ private:
     UModelIndex lastVtf;
     UINT32 imageBase;
     UINT64 addressDiff;
+    UINT32 peiCoreEntryPoint;
+    UINT32 newPeiCoreEntryPoint;
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable;
     
     UString bootGuardInfo;
@@ -90,6 +101,9 @@ private:
     UINT64 bgFirstVolumeOffset;
     UModelIndex bgDxeCoreIndex;
 
+    UString txtInfo;
+    UString microcodeInfo;
+
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
@@ -98,29 +112,29 @@ private:
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parseRawArea(const UModelIndex & index);
-    USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
     USTATUS parseVolumeBody(const UModelIndex & index);
-    USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
     USTATUS parseFileBody(const UModelIndex & index);
-    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
     USTATUS parseSectionBody(const UModelIndex & index);
 
-    USTATUS parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
 
     USTATUS parsePadFileBody(const UModelIndex & index);
     USTATUS parseVolumeNonUefiData(const UByteArray & data, const UINT32 localOffset, const UModelIndex & index);
 
     USTATUS parseSections(const UByteArray & sections, const UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
+    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
 
     USTATUS parseCompressedSectionBody(const UModelIndex & index);
     USTATUS parseGuidedSectionBody(const UModelIndex & index);
@@ -156,12 +170,15 @@ private:
     USTATUS parseIntelAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseIntelBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseTxtConfigurationPolicy(const FIT_ENTRY* entry, UString & info);
     USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
 #endif
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
     friend class NvramParser; // Make FFS parsing routines accessible to NvramParser
 #endif
+    friend class FfsOperations;
+    friend class FfsBuilder;
 };
 
 #endif // FFSPARSER_H

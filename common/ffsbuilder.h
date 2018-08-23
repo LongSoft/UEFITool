@@ -20,11 +20,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "ustring.h"
 #include "treemodel.h"
+#include "ffsparser.h"
 
 class FfsBuilder
 {
 public:
     FfsBuilder(const TreeModel * treeModel) : model(treeModel) {}
+    FfsBuilder(const TreeModel * treeModel, FfsParser * ffsParser) : model(treeModel), parser(ffsParser) {}
+
     ~FfsBuilder() {}
 
     std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
@@ -33,7 +36,9 @@ public:
     USTATUS build(const UModelIndex & root, UByteArray & image);
 
 private:
-    const TreeModel* model;
+    const TreeModel * model;
+    FfsParser * parser;
+
     std::vector<std::pair<UString, UModelIndex> > messagesVector;
     void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
@@ -41,17 +46,23 @@ private:
 
     USTATUS buildCapsule(const UModelIndex & index, UByteArray & capsule);
     USTATUS buildIntelImage(const UModelIndex & index, UByteArray & intelImage);
-    USTATUS buildRawArea(const UModelIndex & index, UByteArray & rawArea);
+    USTATUS buildRawArea(const UModelIndex & index, UByteArray & rawArea, bool includeHeader = true);
     USTATUS buildPadding(const UModelIndex & index, UByteArray & padding);
     USTATUS buildVolume(const UModelIndex & index, UByteArray & volume);
+    USTATUS buildNvramVolume(const UModelIndex & index, UByteArray & volume);
+    USTATUS buildNvramStore(const UModelIndex & index, UByteArray & store);
+    USTATUS buildNvarStore(const UModelIndex & index, UByteArray & store);
     USTATUS buildNonUefiData(const UModelIndex & index, UByteArray & data);
     USTATUS buildFreeSpace(const UModelIndex & index, UByteArray & freeSpace);
-    USTATUS buildPadFile(const UModelIndex & index, UByteArray & padFile);
-    USTATUS buildFile(const UModelIndex & index, UByteArray & file);
-    USTATUS buildSection(const UModelIndex & index, UByteArray & section);
+    USTATUS buildPadFile(const UByteArray &guid, const UINT32 size, const UINT8 revision, const UINT8 erasePolarity, UByteArray & pad);
+    USTATUS buildFile(const UModelIndex & index, const UINT8 revision, const UINT8 erasePolarity, const UINT32 base, UByteArray & reconstructed);
+    USTATUS buildSection(const UModelIndex & index, const UINT32 base, UByteArray & reconstructed);
+    USTATUS buildRegion(const UModelIndex& index, UByteArray & reconstructed, bool includeHeader = true);
     
     // Utility functions
     USTATUS erase(const UModelIndex & index, UByteArray & erased);
+
+
 };
 
 #endif // FFSBUILDER_H

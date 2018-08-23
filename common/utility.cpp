@@ -17,7 +17,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "treemodel.h"
 #include "utility.h"
+#include "peimage.h"
 #include "ffs.h"
+#include "basetypes.h"
 #include "Tiano/EfiTianoCompress.h"
 #include "Tiano/EfiTianoDecompress.h"
 #include "LZMA/LzmaCompress.h"
@@ -131,6 +133,7 @@ UString errorCodeToUString(USTATUS errorCode)
     case U_TRUNCATED_IMAGE:                 return UString("Image is truncated");
     case U_INVALID_CAPSULE:                 return UString("Invalid capsule");
     case U_STORES_NOT_FOUND:                return UString("Stores not found");
+    case U_INVALID_STORE_SIZE:              return UString("Invalid store size");
     default:                                return usprintf("Unknown error %02X", errorCode);
     }
 }
@@ -329,6 +332,139 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
     }
 }
 
+UINT8 compress(const UByteArray & data, const UINT8 algorithm, UByteArray & compressedData)
+{
+    UINT8* compressed;
+
+    switch (algorithm) {
+    case COMPRESSION_ALGORITHM_NONE:
+    {
+        compressedData = data;
+        return U_SUCCESS;
+    }
+        break;
+    case COMPRESSION_ALGORITHM_EFI11:
+    {
+        // Try legacy function first
+        UINT32 compressedSize = 0;
+        if (EfiCompressLegacy(data.constData(), data.size(), NULL, &compressedSize) != U_BUFFER_TOO_SMALL)
+            return U_STANDARD_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (EfiCompressLegacy(data.constData(), data.size(), compressed, &compressedSize) != U_SUCCESS) {
+            delete[] compressed;
+            return U_STANDARD_COMPRESSION_FAILED;
+        }
+        compressedData = UByteArray((const char*)compressed, compressedSize);
+
+        // Check that compressed data can be decompressed normally
+        UByteArray decompressed;
+        UByteArray efiDecompressed;
+        UINT8 alg = 0; // TODO !!
+        if (decompress(compressedData, EFI_STANDARD_COMPRESSION, alg, decompressed, efiDecompressed) == U_SUCCESS
+                && decompressed == data) {
+            delete[] compressed;
+            return U_SUCCESS;
+        }
+        delete[] compressed;
+
+        // Legacy function failed, use current one
+        compressedSize = 0;
+        if (EfiCompress(data.constData(), data.size(), NULL, &compressedSize) != U_BUFFER_TOO_SMALL)
+            return U_STANDARD_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (EfiCompress(data.constData(), data.size(), compressed, &compressedSize) != U_SUCCESS) {
+            delete[] compressed;
+            return U_STANDARD_COMPRESSION_FAILED;
+        }
+        compressedData = UByteArray((const char*)compressed, compressedSize);
+
+        // New functions will be trusted here, because another check will reduce performance
+        delete[] compressed;
+        return U_SUCCESS;
+    }
+        break;
+    case COMPRESSION_ALGORITHM_TIANO:
+    {
+        // Try legacy function first
+        UINT32 compressedSize = 0;
+        if (TianoCompressLegacy(data.constData(), data.size(), NULL, &compressedSize) != U_BUFFER_TOO_SMALL)
+            return U_STANDARD_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (TianoCompressLegacy(data.constData(), data.size(), compressed, &compressedSize) != U_SUCCESS) {
+            delete[] compressed;
+            return U_STANDARD_COMPRESSION_FAILED;
+        }
+        compressedData = UByteArray((const char*)compressed, compressedSize);
+
+        // Check that compressed data can be decompressed normally
+        UByteArray decompressed;
+        UByteArray efiDecompressed;
+        UINT8 alg = 0; // TODO !!
+        if (decompress(compressedData, EFI_STANDARD_COMPRESSION, alg, decompressed, efiDecompressed) == U_SUCCESS
+                && decompressed == data) {
+            delete[] compressed;
+            return U_SUCCESS;
+        }
+        delete[] compressed;
+
+        // Legacy function failed, use current one
+        compressedSize = 0;
+        if (TianoCompress(data.constData(), data.size(), NULL, &compressedSize) != U_BUFFER_TOO_SMALL)
+            return U_STANDARD_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (TianoCompress(data.constData(), data.size(), compressed, &compressedSize) != U_SUCCESS) {
+            delete[] compressed;
+            return U_STANDARD_COMPRESSION_FAILED;
+        }
+        compressedData = UByteArray((const char*)compressed, compressedSize);
+
+        // New functions will be trusted here, because another check will reduce performance
+        delete[] compressed;
+        return U_SUCCESS;
+    }
+        break;
+    case COMPRESSION_ALGORITHM_LZMA:
+    {
+        UINT32 compressedSize = 0;
+        if (LzmaCompress((const UINT8*)data.constData(), data.size(), NULL, &compressedSize) != U_BUFFER_TOO_SMALL)
+            return U_CUSTOMIZED_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (LzmaCompress((const UINT8*)data.constData(), data.size(), compressed, &compressedSize) != U_SUCCESS) {
+            delete[] compressed;
+            return U_CUSTOMIZED_COMPRESSION_FAILED;
+        }
+        compressedData = UByteArray((const char*)compressed, compressedSize);
+        delete[] compressed;
+        return U_SUCCESS;
+    }
+        break;
+    case COMPRESSION_ALGORITHM_IMLZMA:
+    {
+        UINT32 compressedSize = 0;
+        UByteArray header = data.left(sizeof(EFI_COMMON_SECTION_HEADER));
+        const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)header.constData();
+        UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
+        header = data.left(headerSize);
+        UByteArray newData = data.mid(headerSize);
+        if (LzmaCompress((const UINT8*)newData.constData(), newData.size(), NULL, &compressedSize) != U_BUFFER_TOO_SMALL)
+            return U_CUSTOMIZED_COMPRESSION_FAILED;
+        compressed = new UINT8[compressedSize];
+        if (LzmaCompress((const UINT8*)newData.constData(), newData.size(), compressed, &compressedSize) != U_SUCCESS) {
+            delete[] compressed;
+            return U_CUSTOMIZED_COMPRESSION_FAILED;
+        }
+        compressedData = header.append(UByteArray((const char*)compressed, compressedSize));
+        delete[] compressed;
+        return U_SUCCESS;
+    }
+        break;
+    default:
+        //msg(usprintf("compress: unknown compression algorithm %1").arg(algorithm));
+        //return U_UNKNOWN_COMPRESSION_ALGORITHM;
+        return -1;
+    }
+}
+
 // 8bit sum calculation routine
 UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize)
 {
@@ -414,7 +550,7 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
 }
 
 BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask) {
-    UINTN len = std::strlen(textPattern);
+    UINTN len = strlen(textPattern);
 
     if (len == 0 || len % 2 != 0)
         return FALSE;
@@ -441,6 +577,316 @@ BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::
             pattern[i] |= static_cast<UINT8>(v2);
         }
     }
-
+    
     return TRUE;
+}
+
+USTATUS getEntryPoint(const UByteArray &file, UINT32& entryPoint)
+{
+    if (file.isEmpty())
+        return U_INVALID_FILE;
+
+    // Populate DOS header
+    if ((UINT32)file.size() < sizeof(EFI_IMAGE_DOS_HEADER))
+        return U_INVALID_FILE;
+    const EFI_IMAGE_DOS_HEADER* dosHeader = (const EFI_IMAGE_DOS_HEADER*)file.constData();
+
+    // Check signature
+    if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
+        UINT32 offset = dosHeader->e_lfanew;
+        if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_PE_HEADER))
+            return U_UNKNOWN_IMAGE_TYPE;
+        const EFI_IMAGE_PE_HEADER* peHeader = (const EFI_IMAGE_PE_HEADER*)(file.constData() + offset);
+        if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
+            return U_UNKNOWN_IMAGE_TYPE;
+        offset += sizeof(EFI_IMAGE_PE_HEADER);
+
+        // Skip file header
+        offset += sizeof(EFI_IMAGE_FILE_HEADER);
+
+        // Check optional header magic
+        const UINT16 magic = *(const UINT16*)(file.constData() + offset);
+        if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER32))
+                return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+            const EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER32*)(file.constData() + offset);
+            entryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
+        }
+        else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER64))
+                return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+            const EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER64*)(file.constData() + offset);
+            entryPoint = optHeader->ImageBase + optHeader->AddressOfEntryPoint;
+        }
+        else
+            return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+    }
+    else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
+        // Populate TE header
+        if ((UINT32)file.size() < sizeof(EFI_IMAGE_TE_HEADER))
+            return U_INVALID_FILE;
+        const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)file.constData();
+        UINT32 teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+        entryPoint = teHeader->ImageBase + teHeader->AddressOfEntryPoint - teFixup;
+    }
+    return U_SUCCESS;
+}
+
+USTATUS getBase(const UByteArray& file, UINT32& base)
+{
+    if (file.isEmpty())
+        return U_INVALID_FILE;
+
+    // Populate DOS header
+    if ((UINT32)file.size() < sizeof(EFI_IMAGE_DOS_HEADER))
+        return U_INVALID_FILE;
+    const EFI_IMAGE_DOS_HEADER* dosHeader = (const EFI_IMAGE_DOS_HEADER*)file.constData();
+
+    // Check signature
+    if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
+        UINT32 offset = dosHeader->e_lfanew;
+        if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_PE_HEADER))
+            return U_UNKNOWN_IMAGE_TYPE;
+        const EFI_IMAGE_PE_HEADER* peHeader = (const EFI_IMAGE_PE_HEADER*)(file.constData() + offset);
+        if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
+            return U_UNKNOWN_IMAGE_TYPE;
+        offset += sizeof(EFI_IMAGE_PE_HEADER);
+
+        // Skip file header
+        offset += sizeof(EFI_IMAGE_FILE_HEADER);
+
+        // Check optional header magic
+        const UINT16 magic = *(const UINT16*)(file.constData() + offset);
+        if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER32))
+                return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+            const EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER32*)(file.constData() + offset);
+            base = optHeader->ImageBase;
+        }
+        else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER64))
+                return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+            const EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (const EFI_IMAGE_OPTIONAL_HEADER64*)(file.constData() + offset);
+            base = optHeader->ImageBase;
+        }
+        else
+            return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+    }
+    else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
+        // Populate TE header
+        if ((UINT32)file.size() < sizeof(EFI_IMAGE_TE_HEADER))
+            return U_INVALID_FILE;
+        const EFI_IMAGE_TE_HEADER* teHeader = (const EFI_IMAGE_TE_HEADER*)file.constData();
+        //!TODO: add handling
+        base = teHeader->ImageBase;
+    }
+
+    return U_SUCCESS;
+}
+
+USTATUS growVolume(UByteArray & header, const UINT32 size, UINT32 & newSize)
+{
+    // Check sanity
+    if ((UINT32)header.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER))
+        return U_INVALID_VOLUME;
+
+    // Adjust new size to be representable by current FvBlockMap
+    EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (EFI_FIRMWARE_VOLUME_HEADER*)header.data();
+    EFI_FV_BLOCK_MAP_ENTRY* blockMap = (EFI_FV_BLOCK_MAP_ENTRY*)(header.data() + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
+
+    // Get block map size
+    UINT32 blockMapSize = volumeHeader->HeaderLength - sizeof(EFI_FIRMWARE_VOLUME_HEADER);
+    if (blockMapSize % sizeof(EFI_FV_BLOCK_MAP_ENTRY))
+        return U_INVALID_VOLUME;
+    UINT32 blockMapCount = blockMapSize / sizeof(EFI_FV_BLOCK_MAP_ENTRY);
+
+    // Check blockMap validity
+    if (blockMap[blockMapCount - 1].NumBlocks != 0 || blockMap[blockMapCount - 1].Length != 0)
+        return U_INVALID_VOLUME;
+
+    // Case of complex blockMap
+    if (blockMapCount > 2)
+        return U_COMPLEX_BLOCK_MAP;
+
+    // Calculate new size
+    if (newSize <= size)
+        return U_INVALID_PARAMETER;
+
+    newSize += blockMap[0].Length - newSize % blockMap[0].Length;
+
+    // Recalculate number of blocks
+    blockMap[0].NumBlocks = newSize / blockMap[0].Length;
+
+    // Set new volume size
+    volumeHeader->FvLength = 0;
+    for (UINT8 i = 0; i < blockMapCount; i++) {
+        volumeHeader->FvLength += blockMap[i].NumBlocks * blockMap[i].Length;
+    }
+
+    // Recalculate volume header checksum
+    volumeHeader->Checksum = 0;
+    volumeHeader->Checksum = calculateChecksum16((const UINT16*)volumeHeader, volumeHeader->HeaderLength);
+
+    return U_SUCCESS;
+}
+
+USTATUS rebase(UByteArray &executable, const UINT32 base)
+{
+    UINT32 delta;       // Difference between old and new base addresses
+    UINT32 relocOffset; // Offset of relocation region
+    UINT32 relocSize;   // Size of relocation region
+    UINT32 teFixup = 0; // Bytes removed form PE header for TE images
+
+    // Copy input data to local storage
+    UByteArray file = executable;
+
+    // Populate DOS header
+    if ((UINT32)file.size() < sizeof(EFI_IMAGE_DOS_HEADER))
+        return U_INVALID_FILE;
+    EFI_IMAGE_DOS_HEADER* dosHeader = (EFI_IMAGE_DOS_HEADER*)file.data();
+
+    // Check signature
+    if (dosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE){
+        UINT32 offset = dosHeader->e_lfanew;
+        if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_PE_HEADER))
+            return U_UNKNOWN_IMAGE_TYPE;
+        EFI_IMAGE_PE_HEADER* peHeader = (EFI_IMAGE_PE_HEADER*)(file.data() + offset);
+        if (peHeader->Signature != EFI_IMAGE_PE_SIGNATURE)
+            return U_UNKNOWN_IMAGE_TYPE;
+        offset += sizeof(EFI_IMAGE_PE_HEADER);
+        // Skip file header
+        offset += sizeof(EFI_IMAGE_FILE_HEADER);
+        // Check optional header magic
+        if ((UINT32)file.size() < offset + sizeof(UINT16))
+            return U_UNKNOWN_IMAGE_TYPE;
+        UINT16 magic = *(UINT16*)(file.data() + offset);
+        if (magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER32))
+                return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+            EFI_IMAGE_OPTIONAL_HEADER32* optHeader = (EFI_IMAGE_OPTIONAL_HEADER32*)(file.data() + offset);
+            delta = base - optHeader->ImageBase;
+            if (!delta)
+                // No need to rebase
+                return U_SUCCESS;
+            relocOffset = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+            relocSize = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+            // Set new base
+            optHeader->ImageBase = base;
+        }
+        else if (magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
+            if ((UINT32)file.size() < offset + sizeof(EFI_IMAGE_OPTIONAL_HEADER64))
+                return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+            EFI_IMAGE_OPTIONAL_HEADER64* optHeader = (EFI_IMAGE_OPTIONAL_HEADER64*)(file.data() + offset);
+            delta = base - optHeader->ImageBase;
+            if (!delta)
+                // No need to rebase
+                return U_SUCCESS;
+            relocOffset = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+            relocSize = optHeader->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size;
+            // Set new base
+            optHeader->ImageBase = base;
+        }
+        else
+            return U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE;
+    }
+    else if (dosHeader->e_magic == EFI_IMAGE_TE_SIGNATURE){
+        // Populate TE header
+        if ((UINT32)file.size() < sizeof(EFI_IMAGE_TE_HEADER))
+            return U_INVALID_FILE;
+        EFI_IMAGE_TE_HEADER* teHeader = (EFI_IMAGE_TE_HEADER*)file.data();
+        delta = base - teHeader->ImageBase;
+        if (!delta)
+            // No need to rebase
+            return U_SUCCESS;
+        relocOffset = teHeader->DataDirectory[EFI_IMAGE_TE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress;
+        teFixup = teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER);
+        relocSize = teHeader->DataDirectory[EFI_IMAGE_TE_DIRECTORY_ENTRY_BASERELOC].Size;
+        // Set new base
+        teHeader->ImageBase = base;
+
+        // Warn the user about possible outcome of incorrect rebase of TE image
+        //msg(tr("rebase: can't determine if TE image base is adjusted or not, rebased TE image may stop working"), index);
+    }
+    else
+        return U_UNKNOWN_IMAGE_TYPE;
+
+    // No relocations
+    if (relocOffset == 0) {
+        // No need to fix relocations
+        executable = file;
+        return U_SUCCESS;
+    }
+
+    EFI_IMAGE_BASE_RELOCATION *RelocBase;
+    EFI_IMAGE_BASE_RELOCATION *RelocBaseEnd;
+    UINT16                    *Reloc;
+    UINT16                    *RelocEnd;
+    UINT16                    *F16;
+    UINT32                    *F32;
+    UINT64                    *F64;
+
+    // Run the whole relocation block
+    RelocBase = (EFI_IMAGE_BASE_RELOCATION*)(file.data() + relocOffset - teFixup);
+    RelocBaseEnd = (EFI_IMAGE_BASE_RELOCATION*)(file.data() + relocOffset - teFixup + relocSize);
+
+    while (RelocBase < RelocBaseEnd) {
+        Reloc = (UINT16*)((UINT8*)RelocBase + sizeof(EFI_IMAGE_BASE_RELOCATION));
+        RelocEnd = (UINT16*)((UINT8*)RelocBase + RelocBase->SizeOfBlock);
+
+        // Run this relocation record
+        while (Reloc < RelocEnd) {
+            if (*Reloc == 0x0000) {
+                // Skip last emtpy reloc entry
+                Reloc += 1;
+                continue;
+            }
+
+            UINT32 RelocLocation = RelocBase->VirtualAddress - teFixup + (*Reloc & 0x0FFF);
+            if ((UINT32)file.size() < RelocLocation)
+                //return U_BAD_RELOCATION_ENTRY;
+                return U_UNKNOWN_RELOCATION_TYPE;
+            UINT8* data = (UINT8*)(file.data() + RelocLocation);
+            switch ((*Reloc) >> 12) {
+            case EFI_IMAGE_REL_BASED_ABSOLUTE:
+                // Do nothing
+                break;
+
+            case EFI_IMAGE_REL_BASED_HIGH:
+                // Add second 16 bits of delta
+                F16 = (UINT16*)data;
+                *F16 = (UINT16)(*F16 + (UINT16)(((UINT32)delta) >> 16));
+                break;
+
+            case EFI_IMAGE_REL_BASED_LOW:
+                // Add first 16 bits of delta
+                F16 = (UINT16*)data;
+                *F16 = (UINT16)(*F16 + (UINT16)delta);
+                break;
+
+            case EFI_IMAGE_REL_BASED_HIGHLOW:
+                // Add first 32 bits of delta
+                F32 = (UINT32*)data;
+                *F32 = *F32 + (UINT32)delta;
+                break;
+
+            case EFI_IMAGE_REL_BASED_DIR64:
+                // Add all 64 bits of delta
+                F64 = (UINT64*)data;
+                *F64 = *F64 + (UINT64)delta;
+                break;
+
+            default:
+                return U_UNKNOWN_RELOCATION_TYPE;
+            }
+
+            // Next relocation record
+            Reloc += 1;
+        }
+
+        // Next relocation block
+        RelocBase = (EFI_IMAGE_BASE_RELOCATION*)RelocEnd;
+    }
+
+    executable = file;
+    return U_SUCCESS;
 }
