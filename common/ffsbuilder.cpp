@@ -755,7 +755,7 @@ out:
                 }
                 if (parser->newPeiCoreEntryPoint && parser->peiCoreEntryPoint != parser->newPeiCoreEntryPoint) {
                     // Replace last occurrence of oldPeiCoreEntryPoint with newPeiCoreEntryPoint
-                    QByteArray old((char*)&parser->peiCoreEntryPoint, sizeof(parser->peiCoreEntryPoint));
+                    UByteArray old((char*)&parser->peiCoreEntryPoint, sizeof(parser->peiCoreEntryPoint));
                     int i = vtf.lastIndexOf(old);
                     if (i == -1)
                         msg("patchVtf: PEI Core entry point can't be found in VTF. VTF not patched.", index);

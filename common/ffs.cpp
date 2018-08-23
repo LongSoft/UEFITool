@@ -133,7 +133,7 @@ UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header)
     case EFI_SECTION_GUID_DEFINED: {
         if (!extended) {
             const EFI_GUID_DEFINED_SECTION* gdsHeader = (const EFI_GUID_DEFINED_SECTION*)header;
-            if (QByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
+            if (UByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
                 const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)(gdsHeader + 1);
                 return gdsHeader->DataOffset + certificateHeader->Length;
             }
@@ -141,7 +141,7 @@ UINT32 sizeOfSectionHeader(const EFI_COMMON_SECTION_HEADER* header)
         }
         else {
             const EFI_GUID_DEFINED_SECTION2* gdsHeader = (const EFI_GUID_DEFINED_SECTION2*)header;
-            if (QByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
+            if (UByteArray((const char*)&gdsHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
                 const WIN_CERTIFICATE* certificateHeader = (const WIN_CERTIFICATE*)(gdsHeader + 1);
                 return gdsHeader->DataOffset + certificateHeader->Length;
             }
