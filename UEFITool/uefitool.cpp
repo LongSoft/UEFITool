@@ -760,7 +760,11 @@ void UEFITool::inspectIDA64()
 }
 
 void UEFITool::inspect(const UINT8 mode)
-{
+{ 
+    if((mode == INSPECT_MODE_IDA32 && idaPath32.trimmed().isEmpty()) ||
+            (mode == INSPECT_MODE_IDA64 && idaPath64.trimmed().isEmpty()))
+        return;
+
     UString filePath;
 
     extract(EXTRACT_MODE_BODY, &filePath);
@@ -770,10 +774,7 @@ void UEFITool::inspect(const UINT8 mode)
     QStringList arg;
     arg << filePath;
 
-    QProcess idaProcess;
-    idaProcess.setProgram(mode == INSPECT_MODE_IDA32 ? idaPath32 : idaPath64);
-    idaProcess.setArguments(arg);
-    if(!idaProcess.startDetached()) {
+    if(!QProcess::startDetached(mode == INSPECT_MODE_IDA32 ? idaPath32 : idaPath64, arg)) {
         QMessageBox::critical(this, tr("Inspect failed"), tr("Can't start IDA process"), QMessageBox::Ok);
         return;
     }
@@ -941,21 +942,28 @@ void UEFITool::specifyPathIDA()
 
 void UEFITool::specifyPathIDA32()
 {
-    QString path;
+    UString path;
 
+#if defined Q_OS_WIN
     path = QFileDialog::getOpenFileName(this, tr("Specify path to ida.exe"),  "ida.exe", tr("IDA Pro executable (ida.exe);;All files (*)"));
+#else
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida.exe"),  "ida.exe", tr("IDA Pro executable (ida);;All files (*)"));
+#endif
 
     if (path.trimmed().isEmpty())
            return;
-
     idaPath32 = path;
 }
 
 void UEFITool::specifyPathIDA64()
 {
-    QString path;
+    UString path;
 
+#if defined Q_OS_WIN
     path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64.exe"),  "ida64.exe", tr("IDA Pro 64 executable (ida64.exe);;All files (*)"));
+#else
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64.exe"),  "ida64.exe", tr("IDA Pro 64 executable (ida64);;All files (*)"));
+#endif
 
     if (path.trimmed().isEmpty())
            return;
