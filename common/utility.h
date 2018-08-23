@@ -31,7 +31,7 @@ UString errorCodeToUString(USTATUS errorCode);
 USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
 
 // Compression routine
-UINT8 compress(const UByteArray & data, const UINT8 algorithm, UByteArray & compressedData);
+USTATUS compress(const UByteArray & data, const UINT8 algorithm, UByteArray & compressedData);
 //USTATUS compress(const UByteArray & decompressed, UByteArray & compressed, const UINT8 & algorithm);
 
 // CRC32 calculation routine

@@ -332,7 +332,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
     }
 }
 
-UINT8 compress(const UByteArray & data, const UINT8 algorithm, UByteArray & compressedData)
+USTATUS compress(const UByteArray & data, const UINT8 algorithm, UByteArray & compressedData)
 {
     UINT8* compressed;
 
@@ -453,7 +453,7 @@ UINT8 compress(const UByteArray & data, const UINT8 algorithm, UByteArray & comp
             delete[] compressed;
             return U_CUSTOMIZED_COMPRESSION_FAILED;
         }
-        compressedData = header.append(UByteArray((const char*)compressed, compressedSize));
+        compressedData = header + UByteArray((const char*)compressed, compressedSize);
         delete[] compressed;
         return U_SUCCESS;
     }

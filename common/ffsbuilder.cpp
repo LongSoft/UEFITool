@@ -115,7 +115,7 @@ USTATUS FfsBuilder::buildRegion(const UModelIndex& index, UByteArray& reconstruc
 
     // No action
     if (model->action(index) == Actions::NoAction) {
-        reconstructed = model->header(index).append(model->body(index));
+        reconstructed = model->header(index) + model->body(index);
         return U_SUCCESS;
     }
     else if (model->action(index) == Actions::Remove) {
@@ -132,7 +132,7 @@ USTATUS FfsBuilder::buildRegion(const UModelIndex& index, UByteArray& reconstruc
                 result = build(index.child(i, 0), child);
                 if (result)
                     return result;
-                reconstructed.append(child);
+                reconstructed += child;
             }
         }
         // Use stored item body
@@ -153,7 +153,7 @@ USTATUS FfsBuilder::buildRegion(const UModelIndex& index, UByteArray& reconstruc
 
         // Reconstruction successful
         if (includeHeader)
-            reconstructed = model->header(index).append(reconstructed);
+            reconstructed = model->header(index) + reconstructed;
         return U_SUCCESS;
     }
 
@@ -211,7 +211,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
                     return result;
                 }
                 else
-                    capsule.append(imageData);
+                    capsule += imageData;
             }
             else {
                 msg(UString("buildCapsule: unexpected item type ") + itemTypeToUString(model->type(imageIndex)), imageIndex);
@@ -233,7 +233,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
         else
             capsule = model->body(index);
 
-        // Build successful, append header and tail
+        // Build successful,  header and tail
         capsule = model->header(index) + capsule + model->tail(index);
         return U_SUCCESS;
     }
@@ -275,7 +275,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             UINT8 type = model->type(currentRegion);
             if (type == Types::Padding) {
                 // Add padding as is
-                intelImage.append(model->header(currentRegion) + model->body(currentRegion) + model->tail(currentRegion));
+                intelImage += model->header(currentRegion) + model->body(currentRegion) + model->tail(currentRegion);
                 continue;
             }
 
@@ -306,15 +306,15 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             case Subtypes::Reserved2Region:
             case Subtypes::PttRegion:
                 // Add region as is
-                region = model->header(currentRegion).append(model->body(currentRegion));
+                region = model->header(currentRegion) + model->body(currentRegion);
                 break;
             default:
                 msg(UString("buildIntelImage: unknown region type"), currentRegion);
                 return U_UNKNOWN_ITEM_TYPE;
             }
 
-            // Append the resulting region
-            intelImage.append(region);
+            //  the resulting region
+            intelImage += region;
         }
         
         // Check size of new image, it must be same as old one
@@ -329,7 +329,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             return U_INVALID_IMAGE;
         }
 
-        // Build successful, append header and tail
+        // Build successful,  header and tail
         intelImage = model->header(index) + intelImage + model->tail(index);
         return U_SUCCESS;
     }
@@ -383,8 +383,8 @@ USTATUS FfsBuilder::buildRawArea(const UModelIndex & index, UByteArray & rawArea
                     msg(UString("buildRawArea: building of ") + model->name(currentChild) + UString(" failed with error ") + errorCodeToUString(result), currentChild);
                     return result;
                 }
-                // Append current data
-                rawArea.append(currentData);
+                //  current data
+                rawArea += currentData;
             }
 
             // Check size of new raw area, it must be same as original one
@@ -489,7 +489,7 @@ USTATUS FfsBuilder::buildVolume(const UModelIndex & index, UByteArray & volume)
 
     // No action
     if (model->action(index) == Actions::NoAction) {
-        volume = model->header(index).append(model->body(index));
+        volume = model->header(index) + model->body(index);
         return U_SUCCESS;
     }
     else if (model->action(index) == Actions::Remove) {
@@ -614,7 +614,7 @@ out:
                     if (alignment) {
                         alignment = 8 - alignment;
                         offset += alignment;
-                        volume.append(UByteArray(alignment, empty));
+                        volume += UByteArray(alignment, empty);
                     }
 
                     // Calculate file base
@@ -674,12 +674,12 @@ out:
                         if (result)
                             return result;
                         // Append constructed pad file to volume body
-                        volume.append(pad);
+                        volume += pad;
                         offset += size;
                     }
 
                     // Append current file to new volume body
-                    volume.append(file);
+                    volume += file;
 
                     // Change current file offset
                     offset += file.size();
@@ -731,7 +731,7 @@ out:
                     if (result)
                         return result;
                     // Append constructed pad file to volume body
-                    volume.append(pad);
+                    volume += pad;
                 }
                 // No more space left in volume
                 else if (offset > vtfOffset) {
@@ -766,7 +766,7 @@ out:
                 }
 
                 // Append VTF
-                volume.append(vtf);
+                volume += vtf;
             }
             else if (!nonUefiData.isEmpty()) { //Non-UEFI data found
                 // No space left
@@ -777,17 +777,17 @@ out:
                 }
                 // Append additional free space
                 else if (nonUefiDataOffset > offset) {
-                    volume.append(UByteArray(nonUefiDataOffset - offset, empty));
+                    volume += UByteArray(nonUefiDataOffset - offset, empty);
                 }
 
                 // Append VTF
-                volume.append(nonUefiData);
+                volume += nonUefiData;
             }
             else {
                 // Fill the rest of volume space with empty char
                 if (body.size() > volume.size()) {
                     // Fill volume end with empty char
-                    volume.append(UByteArray(body.size() - volume.size(), empty));
+                    volume += UByteArray(body.size() - volume.size(), empty);
                 }
                 else if (body.size() < volume.size()) {
                     // Check if volume can be grown
@@ -805,7 +805,7 @@ out:
                         return result;
 
                     // Fill volume end with empty char
-                    volume.append(UByteArray(newSize - header.size() - volume.size(), empty));
+                    volume += UByteArray(newSize - header.size() - volume.size(), empty);
                     volumeSize = newSize;
                 }
             }
@@ -825,7 +825,7 @@ out:
         }
 
         // Reconstruction successful
-        volume = header.append(volume);
+        volume = header + volume;
 
         // Recalculate CRC32 in ZeroVector, if needed
         if (model->text(index).contains("AppleCRC32 ")) {
@@ -874,7 +874,7 @@ USTATUS FfsBuilder::buildNvramVolume(const UModelIndex & index, UByteArray & vol
 
     // No action
     if (model->action(index) == Actions::NoAction) {
-        volume = model->header(index).append(model->body(index));
+        volume = model->header(index) + model->body(index);
         return U_SUCCESS;
     }
     else if (model->action(index) == Actions::Remove) {
@@ -908,11 +908,11 @@ USTATUS FfsBuilder::buildNvramVolume(const UModelIndex & index, UByteArray & vol
                 return result;
 
             // Element reconstruct success
-            volume.append(store);
+            volume += store;
         }
 
         // Volume reconstruct success
-        volume = header.append(volume);
+        volume = header + volume;
 
 
         return U_SUCCESS;
@@ -967,7 +967,7 @@ USTATUS FfsBuilder::buildNvramStore(const UModelIndex & index, UByteArray & stor
                             //appleVariableHeader->DataSize = currentBody.size();
                         }
                     }
-                    body.append(currentHeader.append(currentBody));
+                    body += currentHeader + currentBody;
                 }
             }
         }
@@ -1020,7 +1020,7 @@ USTATUS FfsBuilder::buildNvramStore(const UModelIndex & index, UByteArray & stor
                         }
                     }
 
-                    body.append(currentHeader.append(currentBody));
+                    body += currentHeader + currentBody;
                 }
             }
         }
@@ -1033,7 +1033,7 @@ USTATUS FfsBuilder::buildNvramStore(const UModelIndex & index, UByteArray & stor
 
     // Rebuild end
     store.clear();
-    store = header.append(body);
+    store = header + body;
 
     return U_SUCCESS;
 }
@@ -1080,13 +1080,13 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
 
     // No action
     if (model->action(index) == Actions::NoAction) {
-        reconstructed = model->header(index).append(model->body(index));
+        reconstructed = model->header(index) + model->body(index);
         const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)model->header(index).constData();
         // Append tail, if needed
         if (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
             UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
             UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
-            reconstructed.append(ht).append(ft);
+            reconstructed += ht + ft;
         }
         return U_SUCCESS;
     }
@@ -1168,7 +1168,7 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
                     if (alignment) {
                         alignment = 4 - alignment;
                         offset += alignment;
-                        reconstructed.append(UByteArray(alignment, '\x00'));
+                        reconstructed += UByteArray(alignment, '\x00');
                     }
 
                     // Calculate section base
@@ -1199,7 +1199,7 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
                         continue;
 
                     // Append current section to new file body
-                    reconstructed.append(section);
+                    reconstructed += section;
 
                     // Change current file offset
                     offset += section.size();
@@ -1243,7 +1243,7 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
         if (revision == 1 && fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
             UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
             UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
-            reconstructed.append(ht).append(ft);
+            reconstructed += ht + ft;
         }
 
         // Set file state
@@ -1253,7 +1253,7 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
         fileHeader->State = state;
 
         // Reconstruction successful
-        reconstructed = header.append(reconstructed);
+        reconstructed = header + reconstructed;
         return U_SUCCESS;
     }
 
@@ -1271,7 +1271,7 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
 
     // No action
     if (model->action(index) == Actions::NoAction) {
-        reconstructed = model->header(index).append(model->body(index));
+        reconstructed = model->header(index) + model->body(index);
         return U_SUCCESS;
     }
     else if (model->action(index) == Actions::Remove) {
@@ -1305,7 +1305,7 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
                 if (alignment) {
                     alignment = 4 - alignment;
                     offset += alignment;
-                    reconstructed.append(UByteArray(alignment, '\x00'));
+                    reconstructed += UByteArray(alignment, '\x00');
                 }
 
                 // Reconstruct subsections
@@ -1319,7 +1319,7 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
                     continue;
 
                 // Append current subsection to new section body
-                reconstructed.append(section);
+                reconstructed += section;
 
                 // Change current file offset
                 offset += section.size();
@@ -1434,7 +1434,7 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
         }
 
         // Reconstruction successful
-        reconstructed = header.append(reconstructed);
+        reconstructed = header + reconstructed;
 
         return U_SUCCESS;
     }
