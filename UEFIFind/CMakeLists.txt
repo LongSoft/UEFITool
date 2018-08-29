@@ -17,13 +17,14 @@ SET(PROJECT_SOURCES
  ../common/treeitem.cpp
  ../common/treemodel.cpp
  ../common/utility.cpp
- ../common/LZMA/LzmaDecompress.c
- ../common/LZMA/SDK/C/LzmaDec.c
- ../common/Tiano/EfiTianoDecompress.c
- ../common/LZMA/LzmaCompress.c
- ../common/LZMA/SDK/C/LzmaEnc.c
- ../common/Tiano/EfiTianoCompress.c
- ../common/Tiano/EfiTianoCompressLegacy.c
+ ../common/LZMA/LzmaCompress.c 
+ ../common/LZMA/LzmaDecompress.c 
+ ../common/LZMA/SDK/C/LzFind.c 
+ ../common/LZMA/SDK/C/LzmaDec.c 
+ ../common/LZMA/SDK/C/LzmaEnc.c 
+ ../common/Tiano/EfiTianoDecompress.c 
+ ../common/Tiano/EfiTianoCompress.c 
+ ../common/Tiano/EfiTianoCompressLegacy.c 
  ../common/ustring.cpp
  ../common/sha256.c
  ../common/bstrlib/bstrlib.c
