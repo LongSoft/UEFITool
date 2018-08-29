@@ -20,6 +20,10 @@ SET(PROJECT_SOURCES
  ../common/LZMA/LzmaDecompress.c
  ../common/LZMA/SDK/C/LzmaDec.c
  ../common/Tiano/EfiTianoDecompress.c
+ ../common/LZMA/LzmaCompress.c
+ ../common/LZMA/SDK/C/LzmaEnc.c
+ ../common/Tiano/EfiTianoCompress.c
+ ../common/Tiano/EfiTianoCompressLegacy.c
  ../common/ustring.cpp
  ../common/sha256.c
  ../common/bstrlib/bstrlib.c
@@ -45,6 +49,8 @@ SET(PROJECT_HEADERS
  ../common/utility.h
  ../common/LZMA/LzmaDecompress.h
  ../common/Tiano/EfiTianoDecompress.h
+ ../common/LZMA/LzmaCompress.h
+ ../common/Tiano/EfiTianoCompress.h
  ../common/ubytearray.h
  ../common/ustring.h
  ../common/bootguard.h

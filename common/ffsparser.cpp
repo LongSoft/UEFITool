@@ -1727,6 +1727,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
 
     // Show message
     msg(usprintf("%s: non-UEFI data found in pad-file", __FUNCTION__), dataIndex);
+    msg(usprintf("%s: non-empty pad-file contents will be destroyed after volume modifications", __FUNCTION__), dataIndex);
 
     // Rename the file
     model->setName(index, UString("Non-empty pad-file"));

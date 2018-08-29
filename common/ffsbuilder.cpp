@@ -641,6 +641,7 @@ out:
                         // Parse non-empty pad file
                         if (model->rowCount(index.child(i, 0))) {
                             //TODO: handle it
+                            msg("buildVolume: non-empty pad-file contents will be destroyed after volume modifications");
                             continue;
                         }
                         // Skip empty pad-file

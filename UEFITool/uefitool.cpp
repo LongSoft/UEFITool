@@ -947,7 +947,7 @@ void UEFITool::specifyPathIDA32()
 #if defined Q_OS_WIN
     path = QFileDialog::getOpenFileName(this, tr("Specify path to ida.exe"),  "ida.exe", tr("IDA Pro executable (ida.exe);;All files (*)"));
 #else
-    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida.exe"),  "ida.exe", tr("IDA Pro executable (ida);;All files (*)"));
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida binary"),  "ida", tr("IDA Pro executable (ida);;All files (*)"));
 #endif
 
     if (path.trimmed().isEmpty())
@@ -962,7 +962,7 @@ void UEFITool::specifyPathIDA64()
 #if defined Q_OS_WIN
     path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64.exe"),  "ida64.exe", tr("IDA Pro 64 executable (ida64.exe);;All files (*)"));
 #else
-    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64.exe"),  "ida64.exe", tr("IDA Pro 64 executable (ida64);;All files (*)"));
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64 binary"),  "ida64", tr("IDA Pro 64 executable (ida64);;All files (*)"));
 #endif
 
     if (path.trimmed().isEmpty())
