@@ -1287,7 +1287,6 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
         EFI_COMMON_SECTION_HEADER* commonHeader = (EFI_COMMON_SECTION_HEADER*)header.data();
         bool extended = false;
         UByteArray data = model->parsingData(index);
-        const COMPRESSED_SECTION_PARSING_DATA* compress_data = (const COMPRESSED_SECTION_PARSING_DATA*)data.constData();
 
         if (uint24ToUint32(commonHeader->Size) == 0xFFFFFF) {
             extended = true;
@@ -1327,17 +1326,26 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
             }
 
             // Only this 2 sections can have compressed body
+            UINT8 compression = model->compressed(index) ? model->compression(index) : COMPRESSION_ALGORITHM_NONE;
             if (model->subtype(index) == EFI_SECTION_COMPRESSION) {
                 EFI_COMPRESSION_SECTION* compessionHeader = (EFI_COMPRESSION_SECTION*)header.data();
                 // Set new uncompressed size
                 compessionHeader->UncompressedLength = reconstructed.size();
                 // Compress new section body
                 UByteArray compressed;
-                result = compress(reconstructed, compress_data->algorithm, compressed);
+                result = compress(reconstructed, compression, compressed);
                 if (result)
                     return result;
+
                 // Correct compression type
-                compessionHeader->CompressionType = compress_data->compressionType;
+                if (compression == COMPRESSION_ALGORITHM_NONE)
+                    compessionHeader->CompressionType = EFI_NOT_COMPRESSED;
+                else if (compression == COMPRESSION_ALGORITHM_LZMA || compression == COMPRESSION_ALGORITHM_IMLZMA)
+                    compessionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
+                else if (compression == COMPRESSION_ALGORITHM_EFI11 || compression == COMPRESSION_ALGORITHM_TIANO)
+                    compessionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+                else
+                    return U_UNKNOWN_COMPRESSION_ALGORITHM;
 
                 // Replace new section body
                 reconstructed = compressed;
@@ -1346,7 +1354,7 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
                 EFI_GUID_DEFINED_SECTION* guidDefinedHeader = (EFI_GUID_DEFINED_SECTION*)header.data();
                 // Compress new section body
                 UByteArray compressed;
-                result = compress(reconstructed, compress_data->algorithm, compressed);
+                result = compress(reconstructed, compression, compressed);
                 if (result)
                     return result;
                 // Check for authentication status valid attribute
@@ -1377,7 +1385,7 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
                 // Replace new section body
                 reconstructed = compressed;
             }
-            else if (compress_data->algorithm != COMPRESSION_ALGORITHM_NONE) {
+            else if (compression != COMPRESSION_ALGORITHM_NONE) {
                 msg(usprintf("buildSection: incorrectly required compression for section of type %1")
                     .arg(model->subtype(index)), index);
                 return U_INVALID_SECTION;

@@ -159,8 +159,6 @@ void UEFITool::init()
     ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
 
     // Connect
-    connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const UModelIndex &, const UModelIndex &)),
-        this, SLOT(populateUi(const UModelIndex &)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
         this, SLOT(populateUi(const QItemSelection &)));
     connect(ui->parserMessagesListWidget,  SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));

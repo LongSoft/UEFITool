@@ -460,8 +460,7 @@ USTATUS compress(const UByteArray & data, const UINT8 algorithm, UByteArray & co
         break;
     default:
         //msg(usprintf("compress: unknown compression algorithm %1").arg(algorithm));
-        //return U_UNKNOWN_COMPRESSION_ALGORITHM;
-        return -1;
+        return U_UNKNOWN_COMPRESSION_ALGORITHM;
     }
 }
 

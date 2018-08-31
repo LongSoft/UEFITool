@@ -284,6 +284,14 @@ bool TreeModel::compressed(const UModelIndex &index) const
     return item->compressed();
 }
 
+UINT8 TreeModel::compression(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return false;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->compression();
+}
+
 void TreeModel::setFixed(const UModelIndex &index, const bool fixed)
 {
     if (!index.isValid())
@@ -315,6 +323,17 @@ void TreeModel::setCompressed(const UModelIndex &index, const bool compressed)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setCompressed(compressed);
+
+    emit dataChanged(index, index);
+}
+
+void TreeModel::setCompression(const UModelIndex &index, const UINT8 compression)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setCompression(compression);
 
     emit dataChanged(index, index);
 }

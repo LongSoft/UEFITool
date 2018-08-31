@@ -2493,8 +2493,10 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     pdata.uncompressedSize = uncompressedSize;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
     
-    if (algorithm != COMPRESSION_ALGORITHM_NONE)
+    if (algorithm != COMPRESSION_ALGORITHM_NONE) {
         model->setCompressed(index, true);
+        model->setCompression(index, algorithm);
+    }
 
     // Parse decompressed data
     return parseSections(decompressed, index, true);
@@ -2571,8 +2573,10 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     model->addInfo(index, info);
 
     // Update data
-    if (algorithm != COMPRESSION_ALGORITHM_NONE)
+    if (algorithm != COMPRESSION_ALGORITHM_NONE) {
         model->setCompressed(index, true);
+        model->setCompression(index, algorithm);
+    }
 
     if (!parseCurrentSection) {
         msg(usprintf("%s: GUID defined section can not be processed", __FUNCTION__), index);
@@ -2614,32 +2618,38 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
 
     // Special cases of first opcode
     switch (*current) {
-    case EFI_DEP_BEFORE:
+    case EFI_DEP_BEFORE: {
         if (body.size() != 2 * EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)) {
             msg(usprintf("%s: DEPEX section too long for a section starting with BEFORE opcode", __FUNCTION__), index);
             return U_SUCCESS;
         }
         guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-        parsed += UString("\nBEFORE ") + guidToUString(*guid);
+        EFI_GUID tmpGuid;
+        memcpy(&tmpGuid, guid, sizeof(EFI_GUID));
+        parsed += UString("\nBEFORE ") + guidToUString(tmpGuid);
         current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
         if (*current != EFI_DEP_END){
             msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
             return U_SUCCESS;
         }
         return U_SUCCESS;
-    case EFI_DEP_AFTER:
+    }
+    case EFI_DEP_AFTER: {
         if (body.size() != 2 * EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)){
             msg(usprintf("%s: DEPEX section too long for a section starting with AFTER opcode", __FUNCTION__), index);
             return U_SUCCESS;
         }
         guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-        parsed += UString("\nAFTER ") + guidToUString(*guid);
+        EFI_GUID tmpGuid;
+        memcpy(&tmpGuid, guid, sizeof(EFI_GUID));
+        parsed += UString("\nAFTER ") + guidToUString(tmpGuid);
         current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
         if (*current != EFI_DEP_END) {
             msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
             return U_SUCCESS;
         }
         return U_SUCCESS;
+    }
     case EFI_DEP_SOR:
         if (body.size() <= 2 * EFI_DEP_OPCODE_SIZE) {
             msg(usprintf("%s: DEPEX section too short for a section starting with SOR opcode", __FUNCTION__), index);
@@ -2665,7 +2675,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
             msg(usprintf("%s: misplaced SOR opcode", __FUNCTION__), index);
             return U_SUCCESS;
         }
-        case EFI_DEP_PUSH:
+        case EFI_DEP_PUSH: {
             // Check that the rest of depex has correct size
             if ((UINT32)body.size() - (UINT32)(current - (const UINT8*)body.constData()) <= EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)) {
                 parsed.clear();
@@ -2673,9 +2683,12 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 return U_SUCCESS;
             }
             guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-            parsed += UString("\nPUSH ") + guidToUString(*guid);
+            EFI_GUID tmpGuid;
+            memcpy(&tmpGuid, guid, sizeof(EFI_GUID));
+            parsed += UString("\nPUSH ") + guidToUString(tmpGuid);
             current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
             break;
+        }
         case EFI_DEP_AND:
             parsed += UString("\nAND");
             current += EFI_DEP_OPCODE_SIZE;

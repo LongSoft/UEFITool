@@ -32,6 +32,7 @@ TreeItem::TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
     itemTail(tail),
     itemFixed(fixed),
     itemCompressed(compressed),
+    itemCompression(COMPRESSION_ALGORITHM_NONE),
     parentItem(parent)
 {
 }

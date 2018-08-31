@@ -152,6 +152,7 @@ public:
     void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
     void setFixed(const UModelIndex &index, const bool fixed);
     void setCompressed(const UModelIndex &index, const bool compressed);
+    void setCompression(const UModelIndex &index, const UINT8 compression);
     void setMarking(const UModelIndex &index, const UINT8 marking);
     
     UINT32 offset(const UModelIndex &index) const;
@@ -168,6 +169,7 @@ public:
     bool hasEmptyTail(const UModelIndex &index) const;
     bool fixed(const UModelIndex &index) const;
     bool compressed(const UModelIndex &index) const;
+    UINT8 compression(const UModelIndex &index) const;
     UINT8 marking(const UModelIndex &index) const;
     UINT8 action(const UModelIndex &index) const;
 

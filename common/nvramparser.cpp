@@ -283,8 +283,10 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
                 // The list begins at the end of the store and goes backwards
                 const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
-                name = guidToUString(*guidPtr);
-                guid = guidToUString(*guidPtr, false);
+                EFI_GUID tmpGuid;
+                memcpy(&tmpGuid, guidPtr, sizeof(EFI_GUID));
+                name = guidToUString(tmpGuid);
+                guid = guidToUString(tmpGuid, false);
                 hasGuidIndex = true;
             }
 
@@ -365,7 +367,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         // Try parsing the entry data as NVAR storage if it begins with NVAR signature
         if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
-            && *(const UINT32*)body.constData() == NVRAM_NVAR_ENTRY_SIGNATURE)
+            && body.size() >= 4 && *(const UINT32*)body.constData() == NVRAM_NVAR_ENTRY_SIGNATURE)
             parseNvarStore(varIndex);
 
         // Move to next exntry

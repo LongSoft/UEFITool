@@ -69,6 +69,7 @@ typedef size_t USTATUS;
 #define U_ELEMENTS_NOT_FOUND                47
 #define U_PEI_CORE_ENTRY_POINT_NOT_FOUND    48
 #define U_INVALID_STORE_SIZE                49
+#define U_UNKNOWN_COMPRESSION_ALGORITHM     50
 #define U_NOT_IMPLEMENTED                   0xFF
 
 // UDK porting definitions

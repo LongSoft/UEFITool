@@ -82,6 +82,9 @@ public:
     bool compressed() const { return itemCompressed; }
     void setCompressed(const bool compressed) { itemCompressed = compressed; }
 
+    bool compression() const { return itemCompression; }
+    void setCompression(const UINT8 compression) { itemCompression = compression; }
+
     UByteArray parsingData() const { return itemParsingData; };
     bool hasEmptyParsingData() const { return itemParsingData.isEmpty(); }
     void setParsingData(const UByteArray & pdata) { itemParsingData = pdata; }
@@ -104,6 +107,7 @@ private:
     UByteArray itemTail;
     bool       itemFixed;
     bool       itemCompressed;
+    UINT8      itemCompression;
     UByteArray itemParsingData;
     TreeItem*  parentItem;
 };
