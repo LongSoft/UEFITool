@@ -978,7 +978,7 @@ USTATUS FfsBuilder::buildNvramStore(const UModelIndex & index, UByteArray & stor
             // Recalculate store checksum
             UINT32 calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
             // Write new checksum
-            body.replace((const UINT32)body.size() - sizeof(UINT32), sizeof(UINT32), (const char*)calculatedCrc, sizeof(UINT32));
+            body.replace((const UINT32)body.size() - sizeof(UINT32), sizeof(UINT32), &calculatedCrc, sizeof(UINT32));
         }
         else if(type == Types::EvsaStore) {
             UByteArray store = header + body;
