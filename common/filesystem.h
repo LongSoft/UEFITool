@@ -16,7 +16,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "basetypes.h"
 #include "ustring.h"
+#include "ubytearray.h"
 #include <sys/stat.h>
+#include <fstream>
 
 #ifdef WIN32
 #include <direct.h>
@@ -47,5 +49,21 @@ static inline bool changeDirectory(const UString & dir) {
     return (chdir(dir.toLocal8Bit()) == 0);
 }
 #endif
+
+static inline USTATUS readFileIntoArray(const UString & inPath, UByteArray &array) {
+    if (!isExistOnFs(inPath))
+        return U_FILE_OPEN;
+
+    std::ifstream inputFile(inPath.toLocal8Bit(), std::ios::in | std::ios::binary);
+    if (!inputFile)
+        return U_FILE_OPEN;
+    std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
+        (std::istreambuf_iterator<char>()));
+    inputFile.close();
+
+    array = buffer;
+
+    return U_SUCCESS;
+}
 
 #endif

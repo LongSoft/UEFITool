@@ -240,6 +240,7 @@ UEFITool/XCBuildData
 UEFIDump/UEFIDump
 UEFIExtract/UEFIExtract
 UEFIFind/UEFIFind
+UEFIReplace/UEFIReplace
 .qmake.stash
 CMakeCache.txt
 CMakeFiles

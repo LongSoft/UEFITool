@@ -36,17 +36,12 @@ int main(int argc, char *argv[])
 
     if (argc > 1) {
         // Check that input file exists
+        USTATUS result;
+        UByteArray buffer;
         UString path = argv[1];
-        if (!isExistOnFs(path))
-            return U_FILE_OPEN;
-
-        // Open the input file
-        std::ifstream inputFile(argv[1], std::ios::in | std::ios::binary);
-        if (!inputFile)
-            return U_FILE_OPEN;
-        std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
-            (std::istreambuf_iterator<char>()));
-        inputFile.close();
+        result = readFileIntoArray(path, buffer);
+        if (result)
+            return result;
 
         // Hack to support legacy UEFIDump mode.
         if (argc == 3 && !std::strcmp(argv[2], "unpack")) {
@@ -58,7 +53,7 @@ int main(int argc, char *argv[])
         TreeModel model;
         FfsParser ffsParser(&model);
         // Parse input buffer
-        USTATUS result = ffsParser.parse(buffer);
+        result = ffsParser.parse(buffer);
         if (result)
             return result;
 

@@ -10,6 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
+#include <cstdio>
+
 #include "ffs.h"
 #include "guiddatabase.h"
 
@@ -67,6 +69,32 @@ UString guidToUString(const EFI_GUID & guid, bool convertToString)
         guid.Data4[5],
         guid.Data4[6],
         guid.Data4[7]);
+}
+
+
+bool ustringToGuid(const UString & str, EFI_GUID & guid)
+{
+    unsigned long p0;
+    int p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
+
+    int err = std::sscanf(str.toLocal8Bit(), "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+                          &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10);
+    if (err == 0)
+        return false;
+
+    guid.Data1 = p0;
+    guid.Data2 = p1;
+    guid.Data3 = p2;
+    guid.Data4[0] = p3;
+    guid.Data4[1] = p4;
+    guid.Data4[2] = p5;
+    guid.Data4[3] = p6;
+    guid.Data4[4] = p7;
+    guid.Data4[5] = p8;
+    guid.Data4[6] = p9;
+    guid.Data4[7] = p10;
+
+    return true;
 }
 
 UString fileTypeToUString(const UINT8 type)

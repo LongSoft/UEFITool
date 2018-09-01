@@ -34,20 +34,20 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
         extracted += model->tail(index);
     }
     else if (mode == EXTRACT_MODE_BODY) {
-        name += QObject::tr("_body");
+        name += UString("_body");
         // Extract without header and tail
         extracted.clear();
         extracted += model->body(index);
     }
     else if (mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
-        name += QObject::tr("_body_unc");
+        name += UString("_body_unc");
         // Extract without header and tail, uncompressed
         extracted.clear();
         // There is no need to redo decompression, we can use child items
         for (int i = 0; i < model->rowCount(index); i++) {
              UModelIndex childIndex = index.child(i, 0);
              // Ensure 4-byte alignment of current section
-             extracted += UByteArray('\x00', ALIGN4((UINT32)extracted.size()) - (UINT32)extracted.size());
+             extracted += UByteArray(ALIGN4((UINT32)extracted.size()) - (UINT32)extracted.size(), '\x00');
              // Add current section header, body and tail
              extracted += model->header(childIndex);
              extracted += model->body(childIndex);
@@ -66,7 +66,6 @@ USTATUS FfsOperations::replace(const UModelIndex & index, UByteArray & data, con
         return U_INVALID_PARAMETER;
 
     USTATUS result;
-    UByteArray empty = "";
     FfsParser parser(model);
     UINT32 localOffset = model->offset(index) + model->header(index).size();
     UModelIndex index_out;
@@ -98,8 +97,8 @@ USTATUS FfsOperations::replace(const UModelIndex & index, UByteArray & data, con
     }
     else if (model->type(index) == Types::Padding) {
         // Get info
-        QString name = usprintf("Padding");
-        QString info = usprintf("Full size: %Xh (%u)", data.size(), data.size());
+        UString name = usprintf("Padding");
+        UString info = usprintf("Full size: %Xh (%u)", data.size(), data.size());
         // Add tree item
         //!TODO UModelIndex fileIndex = model->addItem(Types::Padding, getPaddingType(body), COMPRESSION_ALGORITHM_NONE, name, "", info, UByteArray(), body, index, mode);
     }

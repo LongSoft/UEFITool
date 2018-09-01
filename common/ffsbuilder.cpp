@@ -99,7 +99,7 @@ USTATUS FfsBuilder::build(const UModelIndex & index, UByteArray & reconstructed)
             return result;
         break;
     default:
-        msg(usprintf("build: unknown item type %1").arg(model->type(index)), index);
+        msg(usprintf("build: unknown item type %d", model->type(index)), index);
         return U_UNKNOWN_ITEM_TYPE;
     }
 
@@ -978,7 +978,8 @@ USTATUS FfsBuilder::buildNvramStore(const UModelIndex & index, UByteArray & stor
             // Recalculate store checksum
             UINT32 calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
             // Write new checksum
-            body.replace((const UINT32)body.size() - sizeof(UINT32), sizeof(UINT32), (const char *)&calculatedCrc, sizeof(UINT32));
+            UINT32 *crc = reinterpret_cast<UINT32 *>(body.data() + body.size() - sizeof(UINT32));
+            std::memcpy(crc, &calculatedCrc, sizeof(UINT32));
         }
         else if(type == Types::EvsaStore) {
             UByteArray store = header + body;
@@ -1048,7 +1049,7 @@ USTATUS FfsBuilder::buildPadFile(const UByteArray & guid, const UINT32 size, con
         return U_INVALID_PARAMETER;
 
     pad = UByteArray(size - guid.size(), erasePolarity == ERASE_POLARITY_TRUE ? '\xFF' : '\x00');
-    pad.prepend(guid);
+    pad = guid + pad;
     EFI_FFS_FILE_HEADER* header = (EFI_FFS_FILE_HEADER*)pad.data();
     uint32ToUint24(size, header->Size);
     header->Attributes = 0x00;
@@ -1087,7 +1088,8 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
         if (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
             UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
             UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
-            reconstructed += ht + ft;
+            reconstructed += UByteArray(1, (char)ht);
+            reconstructed += UByteArray(1, (char)ft);
         }
         return U_SUCCESS;
     }
@@ -1244,7 +1246,8 @@ USTATUS FfsBuilder::buildFile(const UModelIndex & index, const UINT8 revision, c
         if (revision == 1 && fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
             UINT8 ht = ~fileHeader->IntegrityCheck.Checksum.Header;
             UINT8 ft = ~fileHeader->IntegrityCheck.Checksum.File;
-            reconstructed += ht + ft;
+            reconstructed += UByteArray(1, (char)ht);
+            reconstructed += UByteArray(1, (char)ft);
         }
 
         // Set file state
@@ -1372,22 +1375,21 @@ USTATUS FfsBuilder::buildSection(const UModelIndex & index, const UINT32 base, U
                         *(UINT32*)(header.data() + sizeof(EFI_GUID_DEFINED_SECTION)) = crc;
                     }
                     else {
-                        msg(usprintf("buildSection: GUID defined section authentication info can become invalid")
-                            .arg(guidToUString(guidDefinedHeader->SectionDefinitionGuid)), index);
+                        const char *guidStr = guidToUString(guidDefinedHeader->SectionDefinitionGuid).toLocal8Bit();
+                        msg(usprintf("buildSection: GUID defined section signature can become invalid (%s)", guidStr), index);
                     }
                 }
                 // Check for Intel signed section
                 if (guidDefinedHeader->Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED
                         && UByteArray((const char*)&guidDefinedHeader->SectionDefinitionGuid, sizeof(EFI_GUID)) == EFI_FIRMWARE_CONTENTS_SIGNED_GUID) {
-                    msg(usprintf("buildSection: GUID defined section signature can become invalid")
-                        .arg(guidToUString(guidDefinedHeader->SectionDefinitionGuid)), index);
+                    const char *guidStr = guidToUString(guidDefinedHeader->SectionDefinitionGuid).toLocal8Bit();
+                    msg(usprintf("buildSection: GUID defined section signature can become invalid (%s)", guidStr), index);
                 }
                 // Replace new section body
                 reconstructed = compressed;
             }
             else if (compression != COMPRESSION_ALGORITHM_NONE) {
-                msg(usprintf("buildSection: incorrectly required compression for section of type %1")
-                    .arg(model->subtype(index)), index);
+                msg(usprintf("buildSection: incorrectly required compression for section of type %d", model->subtype(index)), index);
                 return U_INVALID_SECTION;
             }
         }

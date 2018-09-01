@@ -23,6 +23,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push,1)
 
 extern UString guidToUString(const EFI_GUID& guid, bool convertToString = true);
+extern bool ustringToGuid(const UString& str, EFI_GUID& guid);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);
 

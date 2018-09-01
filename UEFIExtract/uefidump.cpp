@@ -133,7 +133,7 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             if (!data.isEmpty()) {
                 std::ofstream file;
                 UString str = name + UString("_header.bin");
-                file.open((const char*)str, std::ios::out | std::ios::binary);
+                file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
                 file.write(data.constData(), data.size());
                 file.close();
             }
@@ -143,7 +143,7 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             if (!data.isEmpty()) {
                 std::ofstream file;
                 UString str = name + UString("_body.bin");
-                file.open((const char*)str, std::ios::out | std::ios::binary);
+                file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
                 file.write(data.constData(), data.size());
                 file.close();
             }
@@ -157,8 +157,8 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
 
         std::ofstream file;
         UString str = name + UString("_info.txt");
-        file.open((const char*)str, std::ios::out);
-        file.write((const char*)info, info.length());
+        file.open(str.toLocal8Bit(), std::ios::out);
+        file.write(info.toLocal8Bit(), info.length());
         file.close();
 
         dumped = true;
