@@ -18,6 +18,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "utility.h"
 #include "nvram.h"
 
+#include <cstring>
+
 USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
 {
     // Sanity check
