@@ -108,6 +108,6 @@ UString flashMapGuidToUString(const EFI_GUID & guid)
         || baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA6_GUID
         || baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA7_GUID)        return UString("EVSA store");
     if (baGuid == NVRAM_PHOENIX_FLASH_MAP_SELF_GUID)            return UString("Flash map");
-    return UString();
+    return UString("Unknown");
 }
 

@@ -64,9 +64,6 @@ public:
     // Obtain TXT ACM Info
     UString getTxtInfo() const { return txtInfo; }
 
-    // Obtain Microcode Info
-    UString getMicrocodeInfo() const { return microcodeInfo; }
-
     // Obtain offset/address difference
     UINT64 getAddressDiff() { return addressDiff; }
 
@@ -102,18 +99,18 @@ private:
     UModelIndex bgDxeCoreIndex;
 
     UString txtInfo;
-    UString microcodeInfo;
 
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
-    USTATUS parseCapsule(const UByteArray & capsule, UModelIndex & index);
+    USTATUS parseCapsule(const UByteArray & capsule, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
     USTATUS parseVolumeBody(const UModelIndex & index);
+    USTATUS parseMicrocodeVolumeBody(const UModelIndex & index);
     USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode = CREATE_MODE_APPEND);
     USTATUS parseFileBody(const UModelIndex & index);
     USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree, const UINT8 mode = CREATE_MODE_APPEND);
@@ -146,8 +143,8 @@ private:
     USTATUS parseTeImageSectionBody(const UModelIndex & index);
 
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
-    USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 globalOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
-    USTATUS getVolumeSize(const UByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
+    USTATUS findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset,
+                                UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize);
     UINT32  getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
 
@@ -161,17 +158,18 @@ private:
 
     USTATUS parseFit(const UModelIndex & index);
     USTATUS parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index);
+    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, UINT8 mode  = CREATE_MODE_APPEND);
 
 #ifdef U_ENABLE_FIT_PARSING_SUPPORT
     USTATUS findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
 
     // FIT entries
-    USTATUS parseIntelMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseIntelAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseIntelBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseTxtConfigurationPolicy(const FIT_ENTRY* entry, UString & info);
-    USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
+    USTATUS parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryTxtConfigurationPolicy(const FIT_ENTRY* entry, UString & info);
+    USTATUS findNextBootGuardBootPolicyElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
 #endif
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT

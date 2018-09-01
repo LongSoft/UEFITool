@@ -279,44 +279,6 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="microcodeTab">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <attribute name="title">
-         <string>Microcode</string>
-        </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_9">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>5</number>
-         </property>
-         <property name="topMargin">
-          <number>5</number>
-         </property>
-         <property name="rightMargin">
-          <number>5</number>
-         </property>
-         <property name="bottomMargin">
-          <number>5</number>
-         </property>
-         <item>
-          <widget class="QPlainTextEdit" name="microcodeEdit">
-           <property name="acceptDrops">
-            <bool>false</bool>
-           </property>
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
        <widget class="QWidget" name="finderTab">
         <attribute name="title">
          <string>Search</string>

@@ -112,7 +112,7 @@ int QHexEdit::addressWidth()
     if (size > Q_INT64_C(0x100000000)){ n += 8; size /= Q_INT64_C(0x100000000);}
     if (size > 0x10000){ n += 4; size /= 0x10000;}
     if (size > 0x100){ n += 2; size /= 0x100;}
-    if (size > 0x10){ n += 1; size /= 0x10;}
+    if (size > 0x10){ n += 1; }
 
     if (n > _addressWidth)
         return n;

@@ -18,8 +18,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <cstdio>
 #include <vector>
+#include <cstdio>
 
 struct OperatorLessForGuids : public std::binary_function<EFI_GUID, EFI_GUID, bool>
 {

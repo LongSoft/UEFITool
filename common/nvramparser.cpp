@@ -1225,55 +1225,6 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
-{
-    const UINT32 dataSize = (const UINT32)store.size();
-
-    // Check data size
-    if (dataSize < sizeof(INTEL_MICROCODE_HEADER)) {
-        msg(usprintf("%s: volume body is too small even for Intel microcode header", __FUNCTION__), parent);
-        return U_SUCCESS;
-    }
-
-    // Get Intel microcode header
-    const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)store.constData();
-
-    // Check store size
-    if (dataSize < ucodeHeader->TotalSize) {
-        msg(usprintf("%s: Intel microcode size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
-            ucodeHeader->TotalSize, ucodeHeader->TotalSize,
-            dataSize, dataSize), parent);
-        return U_SUCCESS;
-    }
-
-    // Construct header and body
-    UByteArray header = store.left(sizeof(INTEL_MICROCODE_HEADER));
-    UByteArray body = store.mid(sizeof(INTEL_MICROCODE_HEADER), ucodeHeader->DataSize);
-
-    //TODO: recalculate microcode checksum
-
-    // Add info
-    UString name("Intel microcode");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
-        "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
-        ucodeHeader->TotalSize, ucodeHeader->TotalSize,
-        header.size(), header.size(),
-        body.size(), body.size(),
-        ucodeHeader->DateDay,
-        ucodeHeader->DateMonth,
-        ucodeHeader->DateYear,
-        ucodeHeader->CpuSignature,
-        ucodeHeader->Revision,
-        ucodeHeader->Checksum,
-        ucodeHeader->LoaderRevision,
-        ucodeHeader->CpuFlags);
-
-    // Add tree item
-    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent, mode);
-
-    return U_SUCCESS;
-}
-
 USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const UINT8 mode)
 {
     const UINT32 dataSize = (const UINT32)store.size();
@@ -1318,7 +1269,7 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     // Intel microcode
     // Must be checked after SLIC marker because of the same *signature values
     else if (*signature == INTEL_MICROCODE_HEADER_VERSION)
-        return parseIntelMicrocodeHeader(store, localOffset, parent, index, mode);
+        return ffsParser->parseIntelMicrocodeHeader(store, localOffset, parent, index, mode);
 
     msg(usprintf("parseStoreHeader: don't know how to parse a header with signature %08Xh", *signature), parent);
     return U_SUCCESS;

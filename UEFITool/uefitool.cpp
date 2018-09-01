@@ -114,7 +114,6 @@ void UEFITool::init()
     ui->infoEdit->clear();
     ui->bootGuardEdit->clear();
     ui->txtEdit->clear();
-    ui->microcodeEdit->clear();
     ui->messagesTabWidget->setTabEnabled(1, false);
     ui->messagesTabWidget->setTabEnabled(2, false);
     ui->messagesTabWidget->setTabEnabled(3, false);
@@ -201,7 +200,8 @@ void UEFITool::populateUi(const UModelIndex &current)
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
-    ui->menuEntryActions->setEnabled(type == Types::NvarEntry 
+    ui->menuEntryActions->setEnabled(type == Types::Microcode
+        || type == Types::NvarEntry
         || type == Types::VssEntry 
         || type == Types::FsysEntry
         || type == Types::EvsaEntry 
@@ -214,8 +214,8 @@ void UEFITool::populateUi(const UModelIndex &current)
         || type == Types::FtwStore 
         || type == Types::FlashMapStore 
         || type == Types::CmdbStore
-        || type == Types::Microcode 
-        || type == Types::SlicData);
+        || type == Types::SlicData
+		);
     
     // Enable actions
     ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
@@ -700,18 +700,6 @@ void UEFITool::extract(const UINT8 mode, UString* pathOut)
                 || subtype == EFI_SECTION_PIC)                     path = QFileDialog::getSaveFileName(this, tr("Save section body to EFI executable file"),         name + ".efi", tr("EFI executable files (*.efi *.bin);;All files (*)"));
             else                                                   path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),                        name + ".bin", tr("Binary files (*.bin);;All files (*)"));
            break;
-        case Types::NvarEntry:
-        case Types::VssEntry:
-        case Types::EvsaEntry:
-        case Types::FlashMapEntry:
-        case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
-        case Types::VssStore:
-        case Types::Vss2Store:
-        case Types::FtwStore:
-        case Types::FdcStore:
-        case Types::FsysStore:
-        case Types::FlashMapStore:
-        case Types::CmdbStore:                       path = QFileDialog::getSaveFileName(this, tr("Save store body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
         case Types::Microcode:                       path = QFileDialog::getSaveFileName(this, tr("Save microcode body to file"),   name + ".ucb", tr("Microcode body files (*.ucb *.bin);;All files (*)")); break;
         case Types::SlicData:
             if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey body to file"), name + ".spb", tr("SLIC pubkey body files (*.spb *.bin);;All files (*)"));
@@ -1144,18 +1132,13 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 
     switch (model->type(index))
     {
-    case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());        break;
+    case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
     case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
-    case Types::Region:         ui->menuRegionActions->exec(event->globalPos());        break;
-    case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());        break;
-    case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());        break;
-    case Types::File:           ui->menuFileActions->exec(event->globalPos());        break;
-    case Types::Section:        ui->menuSectionActions->exec(event->globalPos());        break;
-    case Types::NvarEntry:
-    case Types::VssEntry:
-    case Types::FsysEntry:
-    case Types::EvsaEntry:
-    case Types::FlashMapEntry:  ui->menuEntryActions->exec(event->globalPos());        break;
+    case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
+    case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());      break;
+    case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());       break;
+    case Types::File:           ui->menuFileActions->exec(event->globalPos());         break;
+    case Types::Section:        ui->menuSectionActions->exec(event->globalPos());      break;
     case Types::VssStore:
     case Types::Vss2Store:
     case Types::FdcStore:
@@ -1163,9 +1146,8 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::EvsaStore:
     case Types::FtwStore:
     case Types::FlashMapStore:
-    case Types::CmdbStore:
-    case Types::Microcode:
-    case Types::SlicData:       ui->menuStoreActions->exec(event->globalPos());        break;
+    case Types::CmdbStore:      ui->menuStoreActions->exec(event->globalPos());        break;
+    default:                    ui->menuEntryActions->exec(event->globalPos());        break;
     }
 }
 
@@ -1213,7 +1195,6 @@ void UEFITool::readSettings()
     ui->fitTableWidget->setFont(currentFont);
     ui->bootGuardEdit->setFont(currentFont);
     ui->txtEdit->setFont(currentFont);
-    ui->microcodeEdit->setFont(currentFont);
     ui->structureTreeView->setFont(currentFont);
     searchDialog->ui->guidEdit->setFont(currentFont);
     searchDialog->ui->hexEdit->setFont(currentFont);
@@ -1285,14 +1266,6 @@ void UEFITool::showFitTable()
         ui->messagesTabWidget->setTabEnabled(2, true);
         ui->bootGuardEdit->setPlainText(bgInfo);
         ui->messagesTabWidget->setCurrentIndex(2);
-    }
-
-    // Get Microcode info
-    UString microcodeInfo = ffsParser->getMicrocodeInfo();
-    if (!microcodeInfo.isEmpty()) {
-        ui->messagesTabWidget->setTabEnabled(4, true);
-        ui->microcodeEdit->setPlainText(microcodeInfo);
-        ui->messagesTabWidget->setCurrentIndex(4);
     }
 
     // Get TXT ACM info
