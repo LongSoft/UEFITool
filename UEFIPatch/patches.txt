@@ -1,0 +1,59 @@
+# Patch string format
+# FileGuid SectionType PatchType:FindPatternOrOffset:ReplacePattern 
+# Please ensure that the latest symbol in patch string is space
+
+# Possible section types:
+#  PE32 image                    10
+#  Position-independent code     11
+#  TE Image                      12
+#  DXE Dependency                13
+#  Version information           14
+#  User interface string         15
+#  16-bit code                   16
+#  Guided freeform               18
+#  Raw data                      19
+#  PEI Dependency                1B
+#  SMM Dependency                1C
+# Please do not try another section types, it can make the resulting image broken
+
+# Possible patch types:
+#  P - pattern-based, first parameter is a pattern to find, second - a pattern to replace
+#  O - offset-based, first parameter is hexadecimal offset, second - a pattern to replace
+# Patterns can have . as "any possible value" symbol
+
+#----------------------------------------------------------------------------------
+# OSX CPU Power Management patches
+# Remove lock from MSR 0xE2 register
+#----------------------------------------------------------------------------------
+
+# PowerMgmtDxe | Haswell
+F7731B4C-58A2-4DF4-8980-5645D39ECE58 10 P:75080FBAE80F89442430:EB080FBAE80F89442430 
+
+# PowerMgmtDxe | Haswell-E
+F7731B4C-58A2-4DF4-8980-5645D39ECE58 10 P:0FBA6C24380F:0FBA7424380F 
+
+# PowerManagement | Sandy Bridge with ME 8.xx, Ivy Bridge 
+8C783970-F02A-4A4D-AF09-8797A51EEC8D 10 P:75080FBAE80F89442430:EB080FBAE80F89442430 
+
+# PowerManagement | New SB-E/IB-E 
+8C783970-F02A-4A4D-AF09-8797A51EEC8D 10 P:0FBA6C24380F:0FBA7424380F 
+
+# CpuPei | Sandy Bridge with ME 7.xx, old SB-E/IB-E
+2BB5AFA9-FF33-417B-8497-CB773C2B93BF 10 P:800018EB050D0080:000018EB050D0000 
+
+# PpmInitialize | Broadwell-E
+3FFCAE95-23CF-4967-94F5-16352F68E43B 10 P:0FBA6C24400F:0FBA7424400F 
+
+# SiInit | Skylake
+299D6F8B-2EC9-4E40-9EC6-DDAA7EBF5FD9 10 P:75080D00800000:EB080D00800000 
+299D6F8B-2EC9-4E40-9EC6-DDAA7EBF5FD9 12 P:75080D00800000:EB080D00800000 
+
+# SiInit | Kaby Lake
+299D6F8B-2EC9-4E40-9EC6-DDAA7EBF5FD9 10 P:81E10080000033C1:9090909090909090 
+299D6F8B-2EC9-4E40-9EC6-DDAA7EBF5FD9 12 P:81E10080000033C1:9090909090909090 
+
+# PpmInitialize | Skylake-X
+3FFCAE95-23CF-4967-94F5-16352F68E43B 10 P:742CB9E2000000:752CB9E2000000 
+
+# CpuInitPei | Skylake-X
+01359D99-9446-456D-ADA4-50A711C03ADA 12 P:BE0080000023CE0B:BE0000000023CE0B 

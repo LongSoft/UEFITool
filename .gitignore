@@ -241,6 +241,7 @@ UEFIDump/UEFIDump
 UEFIExtract/UEFIExtract
 UEFIFind/UEFIFind
 UEFIReplace/UEFIReplace
+UEFIPatch/UEFIPatch
 .qmake.stash
 CMakeCache.txt
 CMakeFiles

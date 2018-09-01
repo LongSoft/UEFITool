@@ -71,6 +71,9 @@ typedef size_t USTATUS;
 #define U_INVALID_STORE_SIZE                49
 #define U_UNKNOWN_COMPRESSION_ALGORITHM     50
 #define U_NOTHING_TO_PATCH                  51
+#define U_UNKNOWN_PATCH_TYPE                52
+#define U_PATCH_OFFSET_OUT_OF_BOUNDS        53
+#define U_INVALID_SYMBOL                    54
 #define U_NOT_IMPLEMENTED                   0xFF
 
 // UDK porting definitions
