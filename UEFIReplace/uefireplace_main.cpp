@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <cstring>
 
 #include "../version.h"
 #include "uefireplace.h"
