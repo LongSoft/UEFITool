@@ -203,12 +203,12 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="bootGuardTab">
+       <widget class="QWidget" name="secTab">
         <property name="enabled">
          <bool>true</bool>
         </property>
         <attribute name="title">
-         <string>BootGuard</string>
+         <string>Security</string>
         </attribute>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="spacing">
@@ -227,45 +227,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QPlainTextEdit" name="bootGuardEdit">
-           <property name="acceptDrops">
-            <bool>false</bool>
-           </property>
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="txtTab">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <attribute name="title">
-         <string>TXT</string>
-        </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_8">
-         <property name="spacing">
-          <number>0</number>
-         </property>
-         <property name="leftMargin">
-          <number>5</number>
-         </property>
-         <property name="topMargin">
-          <number>5</number>
-         </property>
-         <property name="rightMargin">
-          <number>5</number>
-         </property>
-         <property name="bottomMargin">
-          <number>5</number>
-         </property>
-         <item>
-          <widget class="QPlainTextEdit" name="txtEdit">
+          <widget class="QPlainTextEdit" name="secEdit">
            <property name="acceptDrops">
             <bool>false</bool>
            </property>

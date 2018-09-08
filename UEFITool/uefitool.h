@@ -125,8 +125,8 @@ private slots:
     void writeSettings();
 
     void loadGuidDatabase();
-	void unloadGuidDatabase();
-	void loadDefaultGuidDatabase();
+    void unloadGuidDatabase();
+    void loadDefaultGuidDatabase();
     void generateReport();
 
     void currentTabChanged(int index);
@@ -163,6 +163,14 @@ private:
     void showFinderMessages();
     void showFitTable();
     void showBuilderMessages();
+
+    enum {
+        TAB_PARSER,
+        TAB_FIT,
+        TAB_SECURITY,
+        TAB_SEARCH,
+        TAB_BUILDER
+    };
 };
 
 #endif // UEFITOOL_H

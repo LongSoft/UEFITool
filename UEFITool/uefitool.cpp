@@ -75,7 +75,7 @@ version(tr(PROGRAM_VERSION))
     setAcceptDrops(true);
 
     // Disable Builder tab
-    ui->messagesTabWidget->setTabEnabled(6, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, false);
 
     // Set current directory
     currentDir = ".";
@@ -112,12 +112,11 @@ void UEFITool::init()
     ui->fitTableWidget->setRowCount(0);
     ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
-    ui->bootGuardEdit->clear();
-    ui->txtEdit->clear();
-    ui->messagesTabWidget->setTabEnabled(1, false);
-    ui->messagesTabWidget->setTabEnabled(2, false);
-    ui->messagesTabWidget->setTabEnabled(3, false);
-    ui->messagesTabWidget->setTabEnabled(4, false);
+    ui->secEdit->clear();
+    ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, false);
 
     // Set window title
     setWindowTitle(tr("UEFITool %1").arg(version));
@@ -1050,7 +1049,7 @@ void UEFITool::showParserMessages()
         ui->parserMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(0);
+    ui->messagesTabWidget->setCurrentIndex(TAB_PARSER);
     ui->parserMessagesListWidget->scrollToBottom();
 }
 
@@ -1068,7 +1067,8 @@ void UEFITool::showFinderMessages()
         ui->finderMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(3);
+	ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, true);
+    ui->messagesTabWidget->setCurrentIndex(TAB_SEARCH);
     ui->finderMessagesListWidget->scrollToBottom();
 }
 
@@ -1086,8 +1086,8 @@ void UEFITool::showBuilderMessages()
         ui->builderMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setTabEnabled(6, true);
-    ui->messagesTabWidget->setCurrentIndex(6);
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, true);
+    ui->messagesTabWidget->setCurrentIndex(TAB_BUILDER);
     ui->builderMessagesListWidget->scrollToBottom();
 }
 
@@ -1193,8 +1193,7 @@ void UEFITool::readSettings()
     ui->finderMessagesListWidget->setFont(currentFont);
     ui->builderMessagesListWidget->setFont(currentFont);
     ui->fitTableWidget->setFont(currentFont);
-    ui->bootGuardEdit->setFont(currentFont);
-    ui->txtEdit->setFont(currentFont);
+    ui->secEdit->setFont(currentFont);
     ui->structureTreeView->setFont(currentFont);
     searchDialog->ui->guidEdit->setFont(currentFont);
     searchDialog->ui->hexEdit->setFont(currentFont);
@@ -1228,14 +1227,14 @@ void UEFITool::showFitTable()
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable = ffsParser->getFitTable();
     if (fitTable.empty()) {
         // Disable FIT tab
-        ui->messagesTabWidget->setTabEnabled(1, false);
-        // Disable BootGuard tab
-        ui->messagesTabWidget->setTabEnabled(2, false);
+        ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
+        // Disable Security tab
+        ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
         return;
     }
 
     // Enable FIT tab
-    ui->messagesTabWidget->setTabEnabled(1, true);
+    ui->messagesTabWidget->setTabEnabled(TAB_FIT, true);
 
     // Set up the FIT table
     ui->fitTableWidget->clear();
@@ -1258,22 +1257,14 @@ void UEFITool::showFitTable()
 
     ui->fitTableWidget->resizeColumnsToContents();
     ui->fitTableWidget->resizeRowsToContents();
-    ui->messagesTabWidget->setCurrentIndex(1);
+    ui->messagesTabWidget->setCurrentIndex(TAB_FIT);
 
-    // Get BootGuard info
-    UString bgInfo = ffsParser->getBootGuardInfo();
-    if (!bgInfo.isEmpty()) {
-        ui->messagesTabWidget->setTabEnabled(2, true);
-        ui->bootGuardEdit->setPlainText(bgInfo);
-        ui->messagesTabWidget->setCurrentIndex(2);
-    }
-
-    // Get TXT ACM info
-    UString txtInfo = ffsParser->getTxtInfo();
-    if (!txtInfo.isEmpty()) {
-        ui->messagesTabWidget->setTabEnabled(3, true);
-        ui->txtEdit->setPlainText(txtInfo);
-        ui->messagesTabWidget->setCurrentIndex(3);
+    // Get BootGuard and TXT ACM info
+    UString secInfo = ffsParser->getBootGuardInfo();
+	secInfo += ffsParser->getTxtInfo();
+    if (!secInfo.isEmpty()) {
+        ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, true);
+        ui->secEdit->setPlainText(secInfo);
     }
 }
 
