@@ -1103,16 +1103,19 @@ void UEFITool::scrollTreeView(QTableWidgetItem* item)
 
 void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (ui->parserMessagesListWidget->underMouse() ||
-        ui->finderMessagesListWidget->underMouse() ||
-        ui->builderMessagesListWidget->underMouse()) {
+    // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
+    // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
+    // For this reason we reimplement this manually.
+    if (ui->parserMessagesListWidget->rect().contains(ui->parserMessagesListWidget->mapFromGlobal(event->globalPos())) ||
+        ui->finderMessagesListWidget->rect().contains(ui->finderMessagesListWidget->mapFromGlobal(event->globalPos())) ||
+        ui->builderMessagesListWidget->rect().contains(ui->builderMessagesListWidget->mapFromGlobal(event->globalPos()))) {
         ui->menuMessageActions->exec(event->globalPos());
         return;
     }
 
-    if (!ui->structureTreeView->underMouse()) {
+
+    if (!ui->structureTreeView->rect().contains(ui->structureTreeView->mapFromGlobal(event->globalPos())))
         return;
-    }
 
     QPoint pt = event->pos();
     UModelIndex index = ui->structureTreeView->indexAt(ui->structureTreeView->viewport()->mapFrom(this, pt));
@@ -1137,6 +1140,9 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::FtwStore:
     case Types::FlashMapStore:
     case Types::CmdbStore:      ui->menuStoreActions->exec(event->globalPos());        break;
+    //FIXME: Currently no actions are available for volume free space, and the menu is autoclosed immediately on macOS.
+    // Temporarily prevent it from showing in the first place. Should later explore why it disappears immediately.
+    case Types::FreeSpace:      break;
     default:                    ui->menuEntryActions->exec(event->globalPos());        break;
     }
 }
