@@ -77,9 +77,8 @@ private slots:
     void openImageFileInNewWindow();
     void saveImageFile();
 
-    void specifyPathIDA();
-    void specifyPathIDA32();
-    void specifyPathIDA64();
+    void specifyPathExternalEditor32();
+    void specifyPathExternalEditor64();
     
     void search();
     void goToOffset();
@@ -107,8 +106,8 @@ private slots:
 
     void remove();
 
-    void inspectIDA32();
-    void inspectIDA64();
+    void inspectExternalEditor32();
+    void inspectExternalEditor64();
     void inspect(const UINT8 mode);
 
     void copyMessage();
@@ -147,8 +146,8 @@ private:
     QString currentDir;
     QString currentPath;
     QString currentProgramPath;
-    QString idaPath32;
-    QString idaPath64;
+    QString externalEditorPath32;
+    QString externalEditorPath64;
     QFont currentFont;
     const QString version;
     bool markingEnabled;

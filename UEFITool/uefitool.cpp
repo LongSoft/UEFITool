@@ -39,7 +39,8 @@ version(tr(PROGRAM_VERSION))
     connect(ui->actionOpenImageFile, SIGNAL(triggered()), this, SLOT(openImageFile()));
     connect(ui->actionOpenImageFileInNewWindow, SIGNAL(triggered()), this, SLOT(openImageFileInNewWindow()));
     connect(ui->actionSaveImageFile, SIGNAL(triggered()), this, SLOT(saveImageFile()));
-    connect(ui->actionSpecifyPathIDA, SIGNAL(triggered()), this, SLOT(specifyPathIDA()));
+    connect(ui->actionSpecifyPathExternal32, SIGNAL(triggered()), this, SLOT(specifyPathExternalEditor32()));
+    connect(ui->actionSpecifyPathExternal64, SIGNAL(triggered()), this, SLOT(specifyPathExternalEditor64()));
     connect(ui->actionSearch, SIGNAL(triggered()), this, SLOT(search()));
     connect(ui->actionHexView, SIGNAL(triggered()), this, SLOT(hexView()));
     connect(ui->actionBodyHexView, SIGNAL(triggered()), this, SLOT(bodyHexView()));
@@ -53,8 +54,8 @@ version(tr(PROGRAM_VERSION))
     connect(ui->actionReplaceBody, SIGNAL(triggered()), this, SLOT(replaceBody()));
     connect(ui->actionRemove, SIGNAL(triggered()), this, SLOT(remove()));
     connect(ui->actionRebuild, SIGNAL(triggered()), this, SLOT(rebuild()));
-    connect(ui->actionInspectBodyIDA, SIGNAL(triggered()), this, SLOT(inspectIDA32()));
-    connect(ui->actionInspectBodyIDA64, SIGNAL(triggered()), this, SLOT(inspectIDA64()));
+    connect(ui->actionInspectExternal32, SIGNAL(triggered()), this, SLOT(inspectExternalEditor32()));
+    connect(ui->actionInspectExternal64, SIGNAL(triggered()), this, SLOT(inspectExternalEditor64()));
     connect(ui->actionMessagesCopy, SIGNAL(triggered()), this, SLOT(copyMessage()));
     connect(ui->actionMessagesCopyAll, SIGNAL(triggered()), this, SLOT(copyAllMessages()));
     connect(ui->actionMessagesClear, SIGNAL(triggered()), this, SLOT(clearMessages()));
@@ -234,8 +235,8 @@ void UEFITool::populateUi(const UModelIndex &current)
     ui->actionExtractBody->setDisabled(model->hasEmptyBody(current));
     ui->actionExtractBodyUncompressed->setEnabled(enableExtractBodyUncompressed(current));
 
-    ui->actionInspectBodyIDA->setDisabled(model->hasEmptyBody(current));
-    ui->actionInspectBodyIDA64->setDisabled(model->hasEmptyBody(current));
+    ui->actionInspectExternal32->setVisible(type == Types::Section && !externalEditorPath32.isEmpty());
+    ui->actionInspectExternal64->setVisible(type == Types::Section && !externalEditorPath64.isEmpty());
 
     ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     //ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
@@ -728,26 +729,26 @@ void UEFITool::extract(const UINT8 mode, UString* pathOut)
     }
 }
 
-void UEFITool::inspectIDA32()
+void UEFITool::inspectExternalEditor32()
 {
-    if(idaPath32.trimmed().isEmpty())
-        specifyPathIDA32();
+    if(externalEditorPath32.trimmed().isEmpty())
+        specifyPathExternalEditor32();
 
-    inspect(INSPECT_MODE_IDA32);
+    inspect(INSPECT_MODE_EXTERNAL32);
 }
 
-void UEFITool::inspectIDA64()
+void UEFITool::inspectExternalEditor64()
 {
-    if(idaPath64.trimmed().isEmpty())
-        specifyPathIDA64();
+    if(externalEditorPath64.trimmed().isEmpty())
+        specifyPathExternalEditor64();
 
-    inspect(INSPECT_MODE_IDA64);
+    inspect(INSPECT_MODE_EXTERNAL64);
 }
 
 void UEFITool::inspect(const UINT8 mode)
 { 
-    if((mode == INSPECT_MODE_IDA32 && idaPath32.trimmed().isEmpty()) ||
-            (mode == INSPECT_MODE_IDA64 && idaPath64.trimmed().isEmpty()))
+    if((mode == INSPECT_MODE_EXTERNAL32 && externalEditorPath32.trimmed().isEmpty()) ||
+            (mode == INSPECT_MODE_EXTERNAL64 && externalEditorPath64.trimmed().isEmpty()))
         return;
 
     UString filePath;
@@ -759,8 +760,8 @@ void UEFITool::inspect(const UINT8 mode)
     QStringList arg;
     arg << filePath;
 
-    if(!QProcess::startDetached(mode == INSPECT_MODE_IDA32 ? idaPath32 : idaPath64, arg)) {
-        QMessageBox::critical(this, tr("Inspect failed"), tr("Can't start IDA process"), QMessageBox::Ok);
+    if(!QProcess::startDetached(mode == INSPECT_MODE_EXTERNAL32 ? externalEditorPath32 : externalEditorPath64, arg)) {
+        QMessageBox::critical(this, tr("Inspect failed"), tr("Can't start external editor process"), QMessageBox::Ok);
         return;
     }
 }
@@ -919,41 +920,30 @@ void UEFITool::openImageFile(UString path)
     currentPath = path;
 }
 
-void UEFITool::specifyPathIDA()
-{
-    specifyPathIDA32();
-    specifyPathIDA64();
-}
-
-void UEFITool::specifyPathIDA32()
+void UEFITool::specifyPathExternalEditor32()
 {
     UString path;
 
 #if defined Q_OS_WIN
-    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida.exe"),  "ida.exe", tr("IDA Pro executable (ida.exe);;All files (*)"));
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to 32-bit external editor executable"),  "C:", tr("External editor executable (*.exe);;All files (*)"));
 #else
-    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida binary"),  "ida", tr("IDA Pro executable (ida);;All files (*)"));
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to 32-bit external editor binary"),  "/", tr("All files (*)"));
 #endif
 
-    if (path.trimmed().isEmpty())
-           return;
-    idaPath32 = path;
+    externalEditorPath32 = path;
 }
 
-void UEFITool::specifyPathIDA64()
+void UEFITool::specifyPathExternalEditor64()
 {
     UString path;
 
 #if defined Q_OS_WIN
-    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64.exe"),  "ida64.exe", tr("IDA Pro 64 executable (ida64.exe);;All files (*)"));
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to 64-bit external editor executable"),  "C:", tr("External editor executable (*.exe);;All files (*)"));
 #else
-    path = QFileDialog::getOpenFileName(this, tr("Specify path to ida64 binary"),  "ida64", tr("IDA Pro 64 executable (ida64);;All files (*)"));
+    path = QFileDialog::getOpenFileName(this, tr("Specify path to 64-bit external editor binary"),  "/", tr("All files (*)"));
 #endif
 
-    if (path.trimmed().isEmpty())
-           return;
-
-    idaPath64 = path;
+    externalEditorPath64 = path;
 }
 
 void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
@@ -1170,9 +1160,9 @@ void UEFITool::readSettings()
     markingEnabled = settings.value("tree/markingEnabled", true).toBool();
 	ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
 
-    // Get IDA Path
-    idaPath32 = settings.value("idaPath32").toString();
-    idaPath64 = settings.value("idaPath64").toString();
+    // Get external editor path
+    externalEditorPath32 = settings.value("externalEditorPath32").toString();
+    externalEditorPath64 = settings.value("externalEditorPath64").toString();
 
     // Set monospace font for some controls
     UString fontName;
@@ -1218,8 +1208,8 @@ void UEFITool::writeSettings()
     settings.setValue("tree/markingEnabled", markingEnabled);
     settings.setValue("mainWindow/fontName", currentFont.family());
     settings.setValue("mainWindow/fontSize", currentFont.pointSize());
-    settings.setValue("idaPath32", idaPath32);
-    settings.setValue("idaPath64", idaPath64);
+    settings.setValue("externalEditorPath32", externalEditorPath32);
+    settings.setValue("externalEditorPath64", externalEditorPath64);
 }
 
 void UEFITool::showFitTable()

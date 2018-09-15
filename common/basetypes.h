@@ -138,8 +138,8 @@ typedef ptrdiff_t    INTN;
 #define EXTRACT_MODE_BODY_UNCOMPRESSED     2
 
 // Item inspect modes
-#define INSPECT_MODE_IDA32     0
-#define INSPECT_MODE_IDA64     1
+#define INSPECT_MODE_EXTERNAL32  0
+#define INSPECT_MODE_EXTERNAL64  1
 
 // Item replace modes
 #define REPLACE_MODE_AS_IS    0

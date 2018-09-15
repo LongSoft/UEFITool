@@ -328,7 +328,8 @@
     <addaction name="actionLoadDefaultGuidDatabase"/>
     <addaction name="actionUnloadGuidDatabase"/>
     <addaction name="separator"/>
-    <addaction name="actionSpecifyPathIDA"/>
+    <addaction name="actionSpecifyPathExternal32"/>
+    <addaction name="actionSpecifyPathExternal64"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -426,9 +427,6 @@
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
      <addaction name="separator"/>
-     <addaction name="actionInspectBodyIDA"/>
-     <addaction name="actionInspectBodyIDA64"/>
-     <addaction name="separator"/>
      <addaction name="actionRebuild"/>
      <addaction name="separator"/>
      <addaction name="actionInsertInto"/>
@@ -449,6 +447,8 @@
      </property>
      <addaction name="actionHexView"/>
      <addaction name="actionBodyHexView"/>
+     <addaction name="actionInspectExternal32"/>
+     <addaction name="actionInspectExternal64"/>
      <addaction name="separator"/>
      <addaction name="actionExtract"/>
      <addaction name="actionExtractBody"/>
@@ -912,28 +912,36 @@
     <string>Ctrl+Alt+D</string>
    </property>
   </action>
-  <action name="actionSpecifyPathIDA">
+  <action name="actionSpecifyPathExternal32">
    <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Specify path to IDA Pro</string>
+    <string>Specify external editor path (32-bit)</string>
    </property>
   </action>
-  <action name="actionInspectBodyIDA">
+  <action name="actionSpecifyPathExternal64">
    <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Specify external editor path (64-bit)</string>
+   </property>
+  </action>
+  <action name="actionInspectExternal32">
+   <property name="visible">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Inspect body with IDA</string>
+    <string>External editor view (32-bit)</string>
    </property>
   </action>
-  <action name="actionInspectBodyIDA64">
-   <property name="enabled">
+  <action name="actionInspectExternal64">
+   <property name="visible">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Inspect body with IDA64</string>
+    <string>External editor view (64-bit)</string>
    </property>
   </action>
  </widget>
