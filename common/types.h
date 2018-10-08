@@ -78,7 +78,8 @@ namespace Subtypes {
         UnknownVolume = 110,
         Ffs2Volume,
         Ffs3Volume,
-        NvramVolume
+        NvramVolume,
+        MicrocodeVolume
     };
 
     enum RegionSubtypes {

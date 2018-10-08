@@ -72,11 +72,15 @@ typedef struct BG_MICROSOFT_PMDA_ENTRY_
 // Intel ACM
 //
 
-#define INTEL_ACM_MODULE_TYPE 0x00030002
-#define INTEL_ACM_MODULE_VENDOR 0x8086
+#define INTEL_ACM_MODULE_TYPE               0x2
+#define INTEL_ACM_MODULE_SUBTYPE_TXT_ACM    0x0
+#define INTEL_ACM_MODULE_SUBTYPE_S_ACM      0x1
+#define INTEL_ACM_MODULE_SUBTYPE_BOOTGUARD  0x3
+#define INTEL_ACM_MODULE_VENDOR             0x8086
 
 typedef struct INTEL_ACM_HEADER_ {
-    UINT32 ModuleType;
+    UINT16 ModuleType;
+    UINT16 ModuleSubtype;
     UINT32 HeaderType;
     UINT32 HeaderVersion;
     UINT16 ChipsetId;

@@ -536,39 +536,14 @@ Returns: (VOID)
 
 --*/
 {
-  if (mText) {
     free (mText);
-  }
-  
-  if (mLevel) {
     free (mLevel);
-  }
-  
-  if (mChildCount) {
     free (mChildCount);
-  }
-  
-  if (mPosition) {
     free (mPosition);
-  }
-  
-  if (mParent) {
     free (mParent);
-  }
-  
-  if (mPrev) {
     free (mPrev);
-  }
-  
-  if (mNext) {
     free (mNext);
-  }
-  
-  if (mBuf) {
     free (mBuf);
-  }  
-
-  return;
 }
 
 

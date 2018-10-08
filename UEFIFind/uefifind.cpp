@@ -32,16 +32,10 @@ UEFIFind::~UEFIFind()
 USTATUS UEFIFind::init(const UString & path)
 {
     USTATUS result;
-    
-    if (!isExistOnFs(path))
-        return U_FILE_OPEN;
-
-    std::ifstream inputFile(path.toLocal8Bit(), std::ios::in | std::ios::binary);
-    if (!inputFile)
-        return U_FILE_OPEN;
-    std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
-        (std::istreambuf_iterator<char>()));
-    inputFile.close();
+    UByteArray buffer;
+    result = readFileIntoBuffer(path, buffer);
+    if (result)
+        return result;
 
     result = ffsParser->parse(buffer);
     if (result)

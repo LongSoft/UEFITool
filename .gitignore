@@ -3,6 +3,7 @@
 #################
 moc_*.*
 ui_*.*
+qrc_*.*
 
 #################
 ## Qt Creator
@@ -234,6 +235,8 @@ Makefile
 
 uefitool_plugin_import.cpp
 UEFITool.app/
+UEFITool/Info.plist
+UEFITool/XCBuildData
 UEFIDump/UEFIDump
 UEFIExtract/UEFIExtract
 UEFIFind/UEFIFind
@@ -245,3 +248,4 @@ DerivedData
 *.xcodeproj
 compile_commands.json
 CMakeScripts
+UEFITool/qrc_uefitool.cpp

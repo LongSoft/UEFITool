@@ -65,7 +65,8 @@ typedef size_t USTATUS;
 #define U_INVALID_ACM                     43
 #define U_INVALID_BG_KEY_MANIFEST         44
 #define U_INVALID_BG_BOOT_POLICY          45
-#define U_ELEMENTS_NOT_FOUND              46
+#define U_INVALID_TXT_CONF                46
+#define U_ELEMENTS_NOT_FOUND              47
 #define U_NOT_IMPLEMENTED                 0xFF
 
 // UDK porting definitions
@@ -86,6 +87,10 @@ typedef ptrdiff_t    INTN;
 #define CONST  const
 #define VOID   void
 #define STATIC static
+
+#ifndef INT32_MAX
+#define INT32_MAX 0x7fffffff
+#endif
 
 #ifndef TRUE
 #define TRUE  ((BOOLEAN)(1==1))

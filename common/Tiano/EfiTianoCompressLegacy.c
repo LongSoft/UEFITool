@@ -580,39 +580,14 @@ VOID
 
   --*/
 {
-  if (mText != NULL) {
     free (mText);
-  }
-
-  if (mLevel != NULL) {
     free (mLevel);
-  }
-
-  if (mChildCount != NULL) {
     free (mChildCount);
-  }
-
-  if (mPosition != NULL) {
     free (mPosition);
-  }
-
-  if (mParent != NULL) {
     free (mParent);
-  }
-
-  if (mPrev != NULL) {
     free (mPrev);
-  }
-
-  if (mNext != NULL) {
     free (mNext);
-  }
-
-  if (mBuf != NULL) {
     free (mBuf);
-  }
-
-  return ;
 }
 
 STATIC

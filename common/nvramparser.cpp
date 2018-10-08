@@ -156,7 +156,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             hasExtendedHeader = true;
             msgUnknownExtDataFormat = true;
 
-            extendedHeaderSize = *(UINT16*)(body.constData() + body.size() - sizeof(UINT16));
+            extendedHeaderSize = readMisaligned((UINT16*)(body.constData() + body.size() - sizeof(UINT16)));
             if (extendedHeaderSize > (UINT32)body.size()) {
                 msgExtHeaderTooLong = true;
                 isInvalid = true;
@@ -203,7 +203,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                         goto parsing_done;
                     }
 
-                    timestamp = *(UINT64*)(tail.constData() + sizeof(UINT8));
+                    timestamp = readMisaligned(tail.constData() + sizeof(UINT8));
                     hasTimestamp = true;
                     msgUnknownExtDataFormat = false;
                 }
@@ -215,7 +215,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                         goto parsing_done;
                     }
 
-                    timestamp = *(UINT64*)(tail.constData() + sizeof(UINT8));
+                    timestamp = readMisaligned((UINT64*)(tail.constData()) + sizeof(UINT8));
                     hash = tail.mid(sizeof(UINT64) + sizeof(UINT8), SHA256_HASH_SIZE);
                     hasTimestamp = true;
                     hasHash = true;
@@ -272,8 +272,8 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
             // Get entry GUID
             if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_GUID) { // GUID is strored in the variable itself
-                name = guidToUString(*(EFI_GUID*)(entryHeader + 1));
-                guid = guidToUString(*(EFI_GUID*)(entryHeader + 1), false);
+                name = guidToUString(readMisaligned((EFI_GUID*)(entryHeader + 1)));
+                guid = guidToUString(readMisaligned((EFI_GUID*)(entryHeader + 1)), false);
             }
             // GUID is stored in GUID list at the end of the store
             else {
@@ -283,8 +283,8 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
                 // The list begins at the end of the store and goes backwards
                 const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
-                name = guidToUString(*guidPtr);
-                guid = guidToUString(*guidPtr, false);
+                name = guidToUString(readMisaligned(guidPtr));
+                guid = guidToUString(readMisaligned(guidPtr), false);
                 hasGuidIndex = true;
             }
 
@@ -365,7 +365,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         // Try parsing the entry data as NVAR storage if it begins with NVAR signature
         if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
-            && *(const UINT32*)body.constData() == NVRAM_NVAR_ENTRY_SIGNATURE)
+            && body.size() >= 4 && *(const UINT32*)body.constData() == NVRAM_NVAR_ENTRY_SIGNATURE)
             parseNvarStore(varIndex);
 
         // Move to next exntry
@@ -1223,55 +1223,6 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
-{
-    const UINT32 dataSize = (const UINT32)store.size();
-
-    // Check data size
-    if (dataSize < sizeof(INTEL_MICROCODE_HEADER)) {
-        msg(usprintf("%s: volume body is too small even for Intel microcode header", __FUNCTION__), parent);
-        return U_SUCCESS;
-    }
-
-    // Get Intel microcode header
-    const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)store.constData();
-
-    // Check store size
-    if (dataSize < ucodeHeader->TotalSize) {
-        msg(usprintf("%s: Intel microcode size %Xh (%u) is greater than volume body size %Xh (%u)", __FUNCTION__,
-            ucodeHeader->TotalSize, ucodeHeader->TotalSize,
-            dataSize, dataSize), parent);
-        return U_SUCCESS;
-    }
-
-    // Construct header and body
-    UByteArray header = store.left(sizeof(INTEL_MICROCODE_HEADER));
-    UByteArray body = store.mid(sizeof(INTEL_MICROCODE_HEADER), ucodeHeader->DataSize);
-
-    //TODO: recalculate microcode checksum
-
-    // Add info
-    UString name("Intel microcode");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
-        "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
-        ucodeHeader->TotalSize, ucodeHeader->TotalSize,
-        header.size(), header.size(),
-        body.size(), body.size(),
-        ucodeHeader->DateDay,
-        ucodeHeader->DateMonth,
-        ucodeHeader->DateYear,
-        ucodeHeader->CpuSignature,
-        ucodeHeader->Revision,
-        ucodeHeader->Checksum,
-        ucodeHeader->LoaderRevision,
-        ucodeHeader->CpuFlags);
-
-    // Add tree item
-    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent);
-
-    return U_SUCCESS;
-}
-
 USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
     const UINT32 dataSize = (const UINT32)store.size();
@@ -1316,7 +1267,7 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     // Intel microcode
     // Must be checked after SLIC marker because of the same *signature values
     else if (*signature == INTEL_MICROCODE_HEADER_VERSION)
-        return parseIntelMicrocodeHeader(store, localOffset, parent, index);
+        return ffsParser->parseIntelMicrocodeHeader(store, localOffset, parent, index);
 
     msg(usprintf("parseStoreHeader: don't know how to parse a header with signature %08Xh", *signature), parent);
     return U_SUCCESS;
@@ -1545,8 +1496,8 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             name = UString("Invalid");
         }
         else { // Add GUID and text for valid variables
-            name = guidToUString(*variableGuid);
-            info += UString("Variable GUID: ") + guidToUString(*variableGuid, false) + UString("\n");
+            name = guidToUString(readMisaligned(variableGuid));
+            info += UString("Variable GUID: ") + guidToUString(readMisaligned(variableGuid), false) + UString("\n");
             text = UString::fromUtf16(variableName);
         }
 

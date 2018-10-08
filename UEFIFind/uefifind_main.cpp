@@ -22,7 +22,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 int main(int argc, char *argv[])
 {
     UEFIFind w;
-    UINT8 result;
+    USTATUS result;
 
     initGuidDatabase("guids.csv");
 

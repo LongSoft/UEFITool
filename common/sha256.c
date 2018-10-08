@@ -187,7 +187,7 @@ int sha256_done(struct sha256_state *md, unsigned char *out)
     if (md->curlen >= sizeof(md->buf))
         return -1;
     /* increase the length of the message */
-    md->length += md->curlen * 8;
+    md->length += (uint64_t)md->curlen * 8;
     /* append the '1' bit */
     md->buf[md->curlen++] = (unsigned char) 0x80;
     /* if the length is currently above 56 bytes we append zeros

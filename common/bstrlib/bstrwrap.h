@@ -363,6 +363,7 @@ struct CBString : public tagbstring {
 
     // QString compatibility methods
     const char *toLocal8Bit() const { return *this; }
+    bool contains(const char *str) { return find(str) >= 0; }
     bool isEmpty() const { return slen == 0; }
     void clear() { *this = ""; }
     CBString left(int len) const { return midstr(0, len); }

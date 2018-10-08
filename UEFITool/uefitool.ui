@@ -203,12 +203,12 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="bootGuardTab">
+       <widget class="QWidget" name="securityTab">
         <property name="enabled">
          <bool>true</bool>
         </property>
         <attribute name="title">
-         <string>BootGuard</string>
+         <string>Security</string>
         </attribute>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="spacing">
@@ -227,7 +227,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QPlainTextEdit" name="bootGuardEdit">
+          <widget class="QPlainTextEdit" name="securityEdit">
            <property name="acceptDrops">
             <bool>false</bool>
            </property>

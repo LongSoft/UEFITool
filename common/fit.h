@@ -65,6 +65,14 @@ typedef struct INTEL_MICROCODE_HEADER_ {
     UINT8  Reserved[12];
 } INTEL_MICROCODE_HEADER;
 
+typedef struct {
+    UINT16 IndexRegisterAddress;
+    UINT16 DataRegisterAddress;
+    UINT8  AccessWidth;
+    UINT8  BitPosition;
+    UINT16 Index;
+} FIT_ENTRY_VERSION_0_CONFIG_POLICY;
+
 #define INTEL_MICROCODE_HEADER_VERSION 0x00000001
 #define INTEL_MICROCODE_HEADER_RESERVED_BYTE 0x00
 #define INTEL_MICROCODE_HEADER_SIZES_VALID(ptr) (((INTEL_MICROCODE_HEADER*)ptr)->TotalSize - ((INTEL_MICROCODE_HEADER*)ptr)->DataSize == sizeof(INTEL_MICROCODE_HEADER))

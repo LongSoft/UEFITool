@@ -1,6 +1,6 @@
 /* ffsdumper.cpp
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2018, LongSoft. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -90,7 +90,7 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
         return U_DIR_CHANGE;
     
     dumped = false;
-    UINT8 result = recursiveDump(model.index(0,0));
+    USTATUS result = recursiveDump(model.index(0,0));
     if (result)
         return result;
     else if (!dumped)
@@ -133,7 +133,7 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             if (!data.isEmpty()) {
                 std::ofstream file;
                 UString str = name + UString("_header.bin");
-                file.open((const char*)str, std::ios::out | std::ios::binary);
+                file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
                 file.write(data.constData(), data.size());
                 file.close();
             }
@@ -143,7 +143,7 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             if (!data.isEmpty()) {
                 std::ofstream file;
                 UString str = name + UString("_body.bin");
-                file.open((const char*)str, std::ios::out | std::ios::binary);
+                file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
                 file.write(data.constData(), data.size());
                 file.close();
             }
@@ -157,15 +157,15 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
 
         std::ofstream file;
         UString str = name + UString("_info.txt");
-        file.open((const char*)str, std::ios::out);
-        file.write((const char*)info, info.length());
+        file.open(str.toLocal8Bit(), std::ios::out);
+        file.write(info.toLocal8Bit(), info.length());
         file.close();
 
         dumped = true;
     //}
     
     // Process child items
-    UINT8 result;
+    USTATUS result;
     for (int i = 0; i < model.rowCount(index); i++) {
         result = recursiveDump(index.child(i, 0));
         if (result)

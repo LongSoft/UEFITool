@@ -55,4 +55,12 @@ BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::
 INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSize,
     const UINT8 *data, UINTN dataSize, UINTN dataOff);
 
+// Safely dereferences misaligned pointers
+template <typename T>
+inline T readMisaligned(const T *v) {
+	T tmp;
+	memcpy(&tmp, v, sizeof(T));
+	return tmp;
+}
+
 #endif // UTILITY_H

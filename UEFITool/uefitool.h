@@ -152,7 +152,16 @@ private:
     void showParserMessages();
     void showFinderMessages();
     void showFitTable();
+    void showSecurityInfo();
     void showBuilderMessages();
+
+    enum {
+        TAB_PARSER,
+        TAB_FIT,
+        TAB_SECURITY,
+        TAB_SEARCH,
+        TAB_BUILDER
+    };
 };
 
 #endif // UEFITOOL_H

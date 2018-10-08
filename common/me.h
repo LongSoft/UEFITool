@@ -22,12 +22,12 @@ const UByteArray ME_VERSION_SIGNATURE("\x24\x4D\x41\x4E", 4);  //$MAN
 const UByteArray ME_VERSION_SIGNATURE2("\x24\x4D\x4E\x32", 4); //$MN2
 
 typedef struct ME_VERSION_ {
-    UINT32 signature;
-    UINT32 reserved;
-    UINT16 major;
-    UINT16 minor;
-    UINT16 bugfix;
-    UINT16 build;
+    UINT32 Signature;
+    UINT32 Reserved;
+    UINT16 Major;
+    UINT16 Minor;
+    UINT16 Bugfix;
+    UINT16 Build;
 } ME_VERSION;
 
 // Restore previous packing rules

@@ -12,14 +12,15 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "guiddatabase.h"
 #include "ubytearray.h"
+#include "ffs.h"
 
 #if defined(U_ENABLE_GUID_DATABASE_SUPPORT)
 #include <map>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <cstdio>
 #include <vector>
+#include <cstdio>
 
 struct OperatorLessForGuids : public std::binary_function<EFI_GUID, EFI_GUID, bool>
 {
@@ -86,26 +87,8 @@ void initGuidDatabase(const UString & path, UINT32* numEntries)
             continue;
 
         EFI_GUID guid;
-
-        unsigned long p0;
-        int p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
-
-        int err = std::sscanf(lineParts[0].toLocal8Bit(), "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-            &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10);
-        if (err == 0)
+        if (!ustringToGuid(lineParts[0], guid))
             continue;
-
-        guid.Data1 = p0;
-        guid.Data2 = p1;
-        guid.Data3 = p2;
-        guid.Data4[0] = p3;
-        guid.Data4[1] = p4;
-        guid.Data4[2] = p5;
-        guid.Data4[3] = p6;
-        guid.Data4[4] = p7;
-        guid.Data4[5] = p8;
-        guid.Data4[6] = p9;
-        guid.Data4[7] = p10;
 
         gGuidToUStringMap.insert(GuidToUStringMap::value_type(guid, lineParts[1]));
     }

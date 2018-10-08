@@ -74,17 +74,6 @@ UString itemTypeToUString(const UINT8 type)
 UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
 {
     switch (type) {
-    case Types::Root:
-    case Types::FreeSpace:
-    case Types::VssStore:
-    case Types::Vss2Store:
-    case Types::FdcStore:
-    case Types::FsysStore:
-    case Types::EvsaStore:
-    case Types::FtwStore:
-    case Types::FlashMapStore:
-    case Types::CmdbStore:
-    case Types::SlicData:                                  return UString();
     case Types::Image:
         if (subtype == Subtypes::IntelImage)               return UString("Intel");
         if (subtype == Subtypes::UefiImage)                return UString("UEFI");
@@ -99,6 +88,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::Ffs2Volume)               return UString("FFSv2");
         if (subtype == Subtypes::Ffs3Volume)               return UString("FFSv3");
         if (subtype == Subtypes::NvramVolume)              return UString("NVRAM");
+        if (subtype == Subtypes::MicrocodeVolume)          return UString("Microcode");
         break;
     case Types::Capsule: 
         if (subtype == Subtypes::AptioSignedCapsule)       return UString("Aptio signed");
@@ -144,7 +134,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         break;
     }
 
-    return UString("Unknown");
+    return UString();
 }
 
 UString compressionTypeToUString(const UINT8 algorithm)

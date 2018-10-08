@@ -62,7 +62,6 @@ private:
     USTATUS parseCmdbStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseSlicPubkeyHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parseFdcStoreBody(const UModelIndex & index);
     USTATUS parseVssStoreBody(const UModelIndex & index, const UINT8 alignment);

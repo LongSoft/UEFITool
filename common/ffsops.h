@@ -20,6 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "ustring.h"
 #include "treemodel.h"
+#include "ffsparser.h"
 
 class FfsOperations
 {
@@ -32,13 +33,14 @@ public:
     void clearMessages() { messagesVector.clear(); }
 
     USTATUS extract(const UModelIndex & index, UString & name, UByteArray & extracted, const UINT8 mode);
-    USTATUS replace(const UModelIndex & index, const UString & data, const UINT8 mode);
+    USTATUS replace(const UModelIndex & index, UByteArray & data, const UINT8 mode);
     
     USTATUS remove(const UModelIndex & index);
     USTATUS rebuild(const UModelIndex & index);
 
 private:
-    TreeModel* model;
+    TreeModel * model;
+
     std::vector<std::pair<UString, UModelIndex> > messagesVector;
 
     void msg(const UString & message, const UModelIndex &index = UModelIndex()) {

@@ -23,8 +23,10 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push,1)
 
 extern UString guidToUString(const EFI_GUID& guid, bool convertToString = true);
+extern bool ustringToGuid(const UString& str, EFI_GUID& guid);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);
+
 
 //*****************************************************************************
 // EFI Capsule
@@ -113,38 +115,43 @@ typedef struct EFI_FIRMWARE_VOLUME_HEADER_ {
 } EFI_FIRMWARE_VOLUME_HEADER;
 
 // Standard file system GUIDs
-const UByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID // 7A9354D9-0468-444A-81CE-0BF617D890DF
 ("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
-const UByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
+
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID // 8C8CE578-8A3D-4F1C-9935-896185C32DD3
 ("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
-// Vendor-specific file system GUIDs
-const UByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
-("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
-const UByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID
-("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
-
-// AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0 // Intel 1
-const UByteArray EFI_INTEL_FILE_SYSTEM_GUID
-("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
-// D6A1CD70-4B33-4994-A6EA-375F2CCC5437 // Intel 2
-const UByteArray EFI_INTEL_FILE_SYSTEM2_GUID
-("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
-// 4F494156-AED6-4D64-A537-B8A5557BCEEC // Sony 1
-const UByteArray EFI_SONY_FILE_SYSTEM_GUID
-("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
-
-
-// Vector of volume GUIDs with FFSv2-compatible files
-extern const std::vector<UByteArray> FFSv2Volumes;
 
 const UByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4DCA-BD6F-1E9689E7349A
 ("\x7A\xC0\x73\x54\xCB\x3D\xCA\x4D\xBD\x6F\x1E\x96\x89\xE7\x34\x9A", 16);
+
+// Vendor-specific file system GUIDs
+const UByteArray EFI_APPLE_IMMUTABLE_FV_GUID // 04ADEEAD-61FF-4D31-B6BA-64F8BF901F5A
+("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
+
+const UByteArray EFI_APPLE_AUTHENTICATION_FV_GUID // BD001B8C-6A71-487B-A14F-0C2A2DCF7A5D
+("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
+
+const UByteArray EFI_APPLE_MICROCODE_VOLUME_GUID // 153D2197-29BD-44DC-AC59-887F70E41A6B
+("\x97\x21\x3D\x15\xBD\x29\xDC\x44\xAC\x59\x88\x7F\x70\xE4\x1A\x6B", 16);
+#define EFI_APPLE_MICROCODE_VOLUME_HEADER_SIZE 0x100
+
+const UByteArray EFI_INTEL_FILE_SYSTEM_GUID // AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0
+("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
+
+const UByteArray EFI_INTEL_FILE_SYSTEM2_GUID // D6A1CD70-4B33-4994-A6EA-375F2CCC5437
+("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
+
+const UByteArray EFI_SONY_FILE_SYSTEM_GUID // 4F494156-AED6-4D64-A537-B8A5557BCEEC
+("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
+
+// Vector of volume GUIDs with FFSv2-compatible files
+extern const std::vector<UByteArray> FFSv2Volumes;
 
 // Vector of volume GUIDs with FFSv3-compatible files
 extern const std::vector<UByteArray> FFSv3Volumes;
 
 // Firmware volume signature
-const UByteArray EFI_FV_SIGNATURE("_FVH", 4);
+#define EFI_FV_SIGNATURE 0x4856465F // _FVH
 #define EFI_FV_SIGNATURE_OFFSET 0x28
 
 // Firmware volume attributes
@@ -368,6 +375,10 @@ const UByteArray AMI_CORE_DXE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
 // EDK2 DXE code file
 const UByteArray EFI_DXE_CORE_GUID // D6A2CB7F-6A18-4E2F-B43B-9920A733700A
 ("\x7F\xCB\xA2\xD6\x18\x6A\x2F\x4E\xB4\x3B\x99\x20\xA7\x33\x70\x0A", 16);
+
+// TXT ACM
+const UByteArray EFI_TXT_ACM_GUID // 2D27C618-7DCD-41F5-BB10-21166BE7E143
+("\x18\xC6\x27\x2D\xCD\x7D\xF5\x41\xBB\x10\x21\x16\x6B\xE7\xE1\x43", 16);
 
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);

@@ -23,7 +23,7 @@ USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const Du
     if (changeDirectory(path))
         return U_DIR_ALREADY_EXIST;
 
-    UINT8 result = recursiveDump(root, path, dumpMode, sectionType, guid);
+    USTATUS result = recursiveDump(root, path, dumpMode, sectionType, guid);
     if (result)
         return result;
     else if (!dumped)
@@ -123,7 +123,7 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         dumped = true;
     }
 
-    UINT8 result;
+    USTATUS result;
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex childIndex = index.child(i, 0);
         bool useText = FALSE;
