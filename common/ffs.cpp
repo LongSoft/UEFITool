@@ -75,7 +75,7 @@ UString guidToUString(const EFI_GUID & guid, bool convertToString)
 bool ustringToGuid(const UString & str, EFI_GUID & guid)
 {
     unsigned long p0;
-    int p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
+    unsigned p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
 
     int err = std::sscanf(str.toLocal8Bit(), "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
                           &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10);
