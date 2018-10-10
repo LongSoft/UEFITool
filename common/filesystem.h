@@ -36,10 +36,10 @@ static inline bool changeDirectory(const UString & dir) {
     return (_chdir(dir.toLocal8Bit()) == 0);
 }
 
-static inline UString getAbsPath(const UString * path) {
+static inline UString getAbsPath(const UString & path) {
     char abs[1024] = {};
     if (_fullpath(abs, path.toLocal8Bit(), sizeof(abs)))
-        UString(abs);
+        return UString(abs);
     return path;
 }
 #else
