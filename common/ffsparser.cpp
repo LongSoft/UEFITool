@@ -2516,7 +2516,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
         const GUIDED_SECTION_PARSING_DATA* pdata = (const GUIDED_SECTION_PARSING_DATA*)data.constData();
-        guid = pdata->guid;
+        guid = readMisaligned(pdata).guid;
     }
 
     // Check if section requires processing
@@ -3008,8 +3008,8 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
                 if (model->hasEmptyParsingData(index) == false) {
                     UByteArray data = model->parsingData(index);
                     const TE_IMAGE_SECTION_PARSING_DATA* pdata = (const TE_IMAGE_SECTION_PARSING_DATA*)data.constData();
-                    originalImageBase = pdata->imageBase;
-                    adjustedImageBase = pdata->adjustedImageBase;
+                    originalImageBase = readMisaligned(pdata).imageBase;
+                    adjustedImageBase = readMisaligned(pdata).adjustedImageBase;
                 }
 
                 if (imageBase != 0) {

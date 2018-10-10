@@ -24,10 +24,13 @@ USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const Du
         return U_DIR_ALREADY_EXIST;
 
     USTATUS result = recursiveDump(root, path, dumpMode, sectionType, guid);
-    if (result)
+    if (result) {
         return result;
-    else if (!dumped)
+    } else if (!dumped) {
+        removeDirectory(path);
         return U_ITEM_NOT_FOUND;
+    }
+
     return U_SUCCESS;
 }
 
@@ -61,6 +64,8 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                         return U_FILE_OPEN;
                     const UByteArray &data = model->header(index);
                     file.write(data.constData(), data.size());
+
+                    dumped = true;
                 }
             }
 
@@ -77,6 +82,8 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                         return U_FILE_OPEN;
                     const UByteArray &data = model->body(index);
                     file.write(data.constData(), data.size());
+
+                    dumped = true;
                 }
             }
 
@@ -99,6 +106,8 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 file.write(headerData.constData(), headerData.size());
                 file.write(bodyData.constData(), bodyData.size());
                 file.write(tailData.constData(), tailData.size());
+
+                dumped = true;
             }
         }
 
@@ -121,9 +130,9 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             if (!file)
                 return U_FILE_OPEN;
             file << info.toLocal8Bit();
-        }
 
-        dumped = true;
+            dumped = true;
+        }
     }
 
     USTATUS result;

@@ -36,6 +36,10 @@ static inline bool changeDirectory(const UString & dir) {
     return (_chdir(dir.toLocal8Bit()) == 0);
 }
 
+static inline void removeDirectory(const UString & dir) {
+    _rmdir(dir.toLocal8Bit());
+}
+
 static inline UString getAbsPath(const UString & path) {
     char abs[1024] = {};
     if (_fullpath(abs, path.toLocal8Bit(), sizeof(abs)))
@@ -52,6 +56,10 @@ static inline bool isExistOnFs(const UString & path) {
 
 static inline bool makeDirectory(const UString & dir) {
     return (mkdir(dir.toLocal8Bit(), ACCESSPERMS) == 0);
+}
+
+static inline void removeDirectory(const UString & dir) {
+    rmdir(dir.toLocal8Bit());
 }
 
 static inline bool changeDirectory(const UString & dir) {
