@@ -59,7 +59,7 @@ static inline bool changeDirectory(const UString & dir) {
 }
 
 static inline UString getAbsPath(const UString & path) {
-	char abs[PATH_MAX] = {};
+    char abs[PATH_MAX] = {};
     // Last is a non-standard extension for non-existent files.
     if (realpath(path.toLocal8Bit(), abs) || abs[0] != '\0')
         return UString(abs);

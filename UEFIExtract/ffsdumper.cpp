@@ -72,7 +72,6 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                     else
                         filename = usprintf("%s/body_%d.bin", path.toLocal8Bit(), counterBody);
                     counterBody++;
-					errno = 0;
                     std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
                     if (!file)
                         return U_FILE_OPEN;
