@@ -22,6 +22,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #ifdef WIN32
 #include <direct.h>
+#include <stdlib.h>
 static inline bool isExistOnFs(const UString & path) {
     struct _stat buf;
     return (_stat(path.toLocal8Bit(), &buf) == 0);
@@ -34,8 +35,16 @@ static inline bool makeDirectory(const UString & dir) {
 static inline bool changeDirectory(const UString & dir) {
     return (_chdir(dir.toLocal8Bit()) == 0);
 }
+
+static inline UString getAbsPath(const UString * path) {
+    char abs[1024] = {};
+    if (_fullpath(abs, path.toLocal8Bit(), sizeof(abs)))
+        UString(abs);
+    return path;
+}
 #else
 #include <unistd.h>
+#include <stdlib.h>
 static inline bool isExistOnFs(const UString & path) {
     struct stat buf;
     return (stat(path.toLocal8Bit(), &buf) == 0);
@@ -47,6 +56,14 @@ static inline bool makeDirectory(const UString & dir) {
 
 static inline bool changeDirectory(const UString & dir) {
     return (chdir(dir.toLocal8Bit()) == 0);
+}
+
+static inline UString getAbsPath(const UString & path) {
+	char abs[PATH_MAX] = {};
+    // Last is a non-standard extension for non-existent files.
+    if (realpath(path.toLocal8Bit(), abs) || abs[0] != '\0')
+        return UString(abs);
+    return path;
 }
 #endif
 

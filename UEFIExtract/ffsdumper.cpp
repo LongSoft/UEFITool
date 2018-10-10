@@ -38,16 +38,15 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
 
     if (guid.isEmpty() ||
         (model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID &&
-        guidToUString(*(const EFI_GUID*)(model->header(index).constData() + sizeof(EFI_COMMON_SECTION_HEADER))) == guid) ||
-        guidToUString(*(const EFI_GUID*)model->header(index).constData()) == guid ||
-        guidToUString(*(const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData()) == guid) {
+        guidToUString(readMisaligned((const EFI_GUID*)(model->header(index).constData() + sizeof(EFI_COMMON_SECTION_HEADER)))) == guid) ||
+        guidToUString(readMisaligned((const EFI_GUID*)model->header(index).constData())) == guid ||
+        guidToUString(readMisaligned((const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData())) == guid) {
 
         if (!changeDirectory(path) && !makeDirectory(path))
             return U_DIR_CREATE;
 
         counterHeader = counterBody = counterRaw = counterInfo = 0;
 
-        std::ofstream file;
         if (dumpMode == DUMP_ALL || model->rowCount(index) == 0)  { // Dump if leaf item or dumpAll is true
             if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT || dumpMode == DUMP_HEADER) {
                 if (!model->header(index).isEmpty() && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
@@ -57,10 +56,11 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                     else
                         filename = usprintf("%s/header_%d.bin", path.toLocal8Bit(), counterHeader);
                     counterHeader++;
-                    file.open(filename.toLocal8Bit(), std::ofstream::binary);
+                    std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
+                    if (!file)
+                        return U_FILE_OPEN;
                     const UByteArray &data = model->header(index);
                     file.write(data.constData(), data.size());
-                    file.close();
                 }
             }
 
@@ -72,10 +72,12 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                     else
                         filename = usprintf("%s/body_%d.bin", path.toLocal8Bit(), counterBody);
                     counterBody++;
-                    file.open(filename.toLocal8Bit(), std::ofstream::binary);
+					errno = 0;
+                    std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
+                    if (!file)
+                        return U_FILE_OPEN;
                     const UByteArray &data = model->body(index);
                     file.write(data.constData(), data.size());
-                    file.close();
                 }
             }
 
@@ -89,14 +91,15 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 else
                     filename = usprintf("%s/file_%d.bin", path.toLocal8Bit(), counterRaw);
                 counterRaw++;
-                file.open(filename.toLocal8Bit(), std::ofstream::binary);
+                std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
+                if (!file)
+                    return U_FILE_OPEN;
                 const UByteArray &headerData = model->header(index);
                 const UByteArray &bodyData = model->body(index);
                 const UByteArray &tailData = model->tail(index);
                 file.write(headerData.constData(), headerData.size());
                 file.write(bodyData.constData(), bodyData.size());
                 file.write(tailData.constData(), tailData.size());
-                file.close();
             }
         }
 
@@ -115,9 +118,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             else
                 filename = usprintf("%s/info_%d.txt", path.toLocal8Bit(), counterInfo);
             counterInfo++;
-            file.open(filename.toLocal8Bit());
+            std::ofstream file(filename.toLocal8Bit());
+            if (!file)
+                return U_FILE_OPEN;
             file << info.toLocal8Bit();
-            file.close();
         }
 
         dumped = true;

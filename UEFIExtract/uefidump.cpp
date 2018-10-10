@@ -51,7 +51,7 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
         std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser.getFitTable();
         if (fitTable.size()) {
             std::cout << "-------------------------------------------------------------------------" << std::endl;
-            std::cout << "     Address     |   Size    |  Ver  | CS  |         Type / Info         " << std::endl;
+            std::cout << "     Address       |   Size    |  Ver  | CS  |         Type / Info         " << std::endl;
             std::cout << "-------------------------------------------------------------------------" << std::endl;
             for (size_t i = 0; i < fitTable.size(); i++) {
                 std::cout << fitTable[i].first[0].toLocal8Bit() << " | "

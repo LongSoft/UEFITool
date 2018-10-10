@@ -384,7 +384,7 @@ static inline int char2hex(char c) {
     if (c >= '0' && c <= '9')
         return c - '0';
     if (c >= 'A' && c <= 'F')
-        return c - 'A';
+        return c - 'A' + 10;
     if (c == '.')
         return -2;
     return -1;

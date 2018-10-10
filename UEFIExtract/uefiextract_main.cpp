@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
         // Check that input file exists
         USTATUS result;
         UByteArray buffer;
-        UString path = argv[1];
+        UString path = getAbsPath(argv[1]);
         result = readFileIntoBuffer(path, buffer);
         if (result)
             return result;
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
         std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser.getFitTable();
         if (fitTable.size()) {
             std::cout << "---------------------------------------------------------------------------" << std::endl;
-            std::cout << "     Address     |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
+            std::cout << "     Address      |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
             std::cout << "---------------------------------------------------------------------------" << std::endl;
             for (size_t i = 0; i < fitTable.size(); i++) {
                 std::cout << fitTable[i].first[0].toLocal8Bit() << " | "
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
                 if (readType == READ_INPUT) {
                     inputs.push_back(arg);
                 } else if (readType == READ_OUTPUT) {
-                    outputs.push_back(arg);
+                    outputs.push_back(getAbsPath(arg));
                 } else if (readType == READ_MODE) {
                     if (!std::strcmp(arg, "all"))
                         modes.push_back(FfsDumper::DUMP_ALL);

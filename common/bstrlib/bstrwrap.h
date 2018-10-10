@@ -361,17 +361,24 @@ struct CBString : public tagbstring {
 	int gets (bNgetc getcPtr, void * parm, char terminator = '\n');
 	int read (bNread readPtr, void * parm);
 
-    // QString compatibility methods
-    const char *toLocal8Bit() const { return *this; }
-    bool contains(const char *str) { return find(str) >= 0; }
-    bool isEmpty() const { return slen == 0; }
-    void clear() { *this = ""; }
-    CBString left(int len) const { return midstr(0, len); }
-    CBString mid(int pos, int len) const { return midstr(pos, len); }
-    static CBString fromUtf16(const unsigned short* str) { // Naive implementation assuming that only ASCII part of UCS2 is used
-        CBString msg; while (*str) { msg += *(char*)str; str++; } return msg;
-    }
-    CBString leftJustified(int length) { if (length > slen) { return *this + CBString(' ', length - slen); } return *this; }
+	// QString compatibility methods
+	const char *toLocal8Bit() const { return *this; }
+	bool contains(const char *str) { return find(str) >= 0; }
+	bool isEmpty() const { return slen == 0; }
+	void clear() { *this = ""; }
+	CBString left(int len) const { return midstr(0, len); }
+	CBString mid(int pos, int len) const { return midstr(pos, len); }
+	static CBString fromUtf16(const unsigned short* str) {
+		// Naive implementation assuming that only ASCII LE part of UCS2 is used, str may not be aligned.
+		CBString msg;
+		const char *str8 = reinterpret_cast<const char *>(str);
+		while (str8[0]) {
+			msg += str8[0];
+			str8 += 2;
+		}
+		return msg;
+	}
+	CBString leftJustified(int length) { if (length > slen) { return *this + CBString(' ', length - slen); } return *this; }
 };
 extern const CBString operator + (const char *a, const CBString& b);
 extern const CBString operator + (const unsigned char *a, const CBString& b);

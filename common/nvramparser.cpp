@@ -39,7 +39,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
     if (parentFileIndex.isValid() && model->hasEmptyParsingData(parentFileIndex) == false) {
         UByteArray data = model->parsingData(parentFileIndex);
         const FILE_PARSING_DATA* pdata = (const FILE_PARSING_DATA*)data.constData();
-        emptyByte = pdata->emptyByte;
+        emptyByte = readMisaligned(pdata).emptyByte;
     }
 
     // Rename parent file
@@ -365,7 +365,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         // Try parsing the entry data as NVAR storage if it begins with NVAR signature
         if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
-            && body.size() >= 4 && *(const UINT32*)body.constData() == NVRAM_NVAR_ENTRY_SIGNATURE)
+            && body.size() >= 4 && readMisaligned((const UINT32*)body.constData()) == NVRAM_NVAR_ENTRY_SIGNATURE)
             parseNvarStore(varIndex);
 
         // Move to next exntry

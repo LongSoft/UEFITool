@@ -2449,8 +2449,8 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
         const COMPRESSED_SECTION_PARSING_DATA* pdata = (const COMPRESSED_SECTION_PARSING_DATA*)data.constData();
-        compressionType = pdata->compressionType;
-        uncompressedSize = pdata->uncompressedSize;
+        compressionType = readMisaligned(pdata).compressionType;
+        uncompressedSize = readMisaligned(pdata).uncompressedSize;
     }
 
     // Decompress section
@@ -3449,7 +3449,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
     
     // Add FIT header
     std::vector<UString> currentStrings;
-    currentStrings.push_back(UString("_FIT_           "));
+    currentStrings.push_back(UString("_FIT_            "));
     currentStrings.push_back(usprintf("%08Xh", fitSize));
     currentStrings.push_back(usprintf("%04Xh", fitHeader->Version));
     currentStrings.push_back(usprintf("%02Xh", fitHeader->Checksum));
