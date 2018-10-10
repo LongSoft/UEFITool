@@ -93,9 +93,9 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
                 if (!file)
                     return U_FILE_OPEN;
-                const UByteArray &headerData = model->header(index);
-                const UByteArray &bodyData = model->body(index);
-                const UByteArray &tailData = model->tail(index);
+                const UByteArray &headerData = model->header(fileIndex);
+                const UByteArray &bodyData = model->body(fileIndex);
+                const UByteArray &tailData = model->tail(fileIndex);
                 file.write(headerData.constData(), headerData.size());
                 file.write(bodyData.constData(), bodyData.size());
                 file.write(tailData.constData(), tailData.size());
