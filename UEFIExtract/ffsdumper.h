@@ -44,6 +44,7 @@ public:
 private:
     USTATUS recursiveDump(const UModelIndex & root, const UString & path, const DumpMode dumpMode, const UINT8 sectionType, const UString & guid);
     TreeModel* model;
+    UString currentPath;
     bool dumped;
     int counterHeader, counterBody, counterRaw, counterInfo;
 };

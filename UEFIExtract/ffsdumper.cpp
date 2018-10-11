@@ -23,6 +23,8 @@ USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const Du
     if (changeDirectory(path))
         return U_DIR_ALREADY_EXIST;
 
+    currentPath = path;
+
     USTATUS result = recursiveDump(root, path, dumpMode, sectionType, guid);
     if (result) {
         return result;
@@ -48,7 +50,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         if (!changeDirectory(path) && !makeDirectory(path))
             return U_DIR_CREATE;
 
-        counterHeader = counterBody = counterRaw = counterInfo = 0;
+        if (currentPath != path) {
+            counterHeader = counterBody = counterRaw = counterInfo = 0;
+            currentPath = path;
+        }
 
         if (dumpMode == DUMP_ALL || model->rowCount(index) == 0)  { // Dump if leaf item or dumpAll is true
             if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT || dumpMode == DUMP_HEADER) {
@@ -88,14 +93,17 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             }
 
             if (dumpMode == DUMP_FILE && (sectionType == IgnoreSectionType || model->subtype(index) == sectionType)) {
-                UModelIndex fileIndex = model->findParentOfType(index, Types::File);
-                if (!fileIndex.isValid())
-                    fileIndex = index;
+                UModelIndex fileIndex = index;
+                if (model->type(fileIndex) != Types::File) {
+                    fileIndex = model->findParentOfType(index, Types::File);
+                    if (!fileIndex.isValid())
+                        fileIndex = index;
+                }
                 UString filename;
                 if (counterRaw == 0)
                     filename = usprintf("%s/file.ffs", path.toLocal8Bit());
                 else
-                    filename = usprintf("%s/file_%d.bin", path.toLocal8Bit(), counterRaw);
+                    filename = usprintf("%s/file_%d.ffs", path.toLocal8Bit(), counterRaw);
                 counterRaw++;
                 std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
                 if (!file)
