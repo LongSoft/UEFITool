@@ -35,7 +35,7 @@ There are some other projects that use UEFITool's engine:
 ## Alternatives
 
 Right now there are some alternatives to UEFITool that you could find useful too:
-* **[Fiano](https://github.com/linuxboot/fiano) by Google. Go-based cross-platform open source toolset for modifying UEFI firmware images.
+* **[Fiano](https://github.com/linuxboot/fiano)** by Google and Facebook. Go-based cross-platform open source toolset for modifying UEFI firmware images.
 * **[PhoenixTool](http://forums.mydigitallife.info/threads/13194-Tool-to-Insert-Replace-SLIC-in-Phoenix-Insyde-Dell-EFI-BIOSes)** by [AndyP](http://forums.mydigitallife.info/members/39295-andyp). Windows-only freeware GUI application written in C#. Used mostly for SLIC-related modifications, but it not limited to this task. Requires Microsoft .NET 3.5 to work properly. Supports unpacking firmware images from various vendor-specific formats like encrypted HP update files and Dell installers.  
 * **[uefi-firmware-parser](https://github.com/theopolis/uefi-firmware-parser)** by [Teddy Reed](https://github.com/theopolis). Cross-platform open source console application written in Python. Very tinker-friendly due to use of Python. Can be used in scripts to automate firmware patching.
 * **[Chipsec](https://github.com/chipsec/chipsec)** by Intel. Cross-platform partially open source console application written in Python and C. Can be used to test Intel-based platforms for various security-related misconfigurations, but also has NVRAM parser and other components aimed to firmware modification.
