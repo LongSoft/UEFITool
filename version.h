@@ -11,9 +11,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#ifndef __VERSION_H__
-#define __VERSION_H__
+#ifndef VERSION_H
+#define VERSION_H
 
-#define PROGRAM_VERSION "NE alpha 52"
+#define PROGRAM_VERSION "NE alpha 53" " (" __DATE__ ")"
 
-#endif
+#endif // VERSION_H
