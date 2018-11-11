@@ -14,6 +14,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef FFSDUMPER_H
 #define FFSDUMPER_H
 
+#include <set>
+
 #include "../common/basetypes.h"
 #include "../common/ustring.h"
 #include "../common/treemodel.h"
@@ -47,5 +49,6 @@ private:
     UString currentPath;
     bool dumped;
     int counterHeader, counterBody, counterRaw, counterInfo;
+    std::set<UModelIndex> fileList;
 };
 #endif // FFSDUMPER_H
