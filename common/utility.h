@@ -16,6 +16,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
+#include "../common/zlib/zlib.h"
+
 #include "basetypes.h"
 #include "ustring.h"
 #include "treemodel.h"
@@ -27,14 +29,11 @@ UString uniqueItemName(const UModelIndex & index);
 // Converts error code to UString
 UString errorCodeToUString(USTATUS errorCode);
 
-// Decompression routine
+// EFI/Tiano decompression routine
 USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
 
-// Compression routine
-//USTATUS compress(const UByteArray & decompressed, UByteArray & compressed, const UINT8 & algorithm);
-
-// CRC32 calculation routine
-UINT32 crc32(UINT32 initial, const UINT8* buffer, const UINT32 length);
+// GZIP decompression routine
+USTATUS gzipDecompress(const UByteArray & compressed, UByteArray & decompressed);
 
 // 8bit sum calculation routine
 UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize);

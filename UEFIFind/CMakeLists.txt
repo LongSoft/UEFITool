@@ -24,6 +24,21 @@ SET(PROJECT_SOURCES
  ../common/sha256.c
  ../common/bstrlib/bstrlib.c
  ../common/bstrlib/bstrwrap.cpp
+ ../common/zlib/adler32.c
+ ../common/zlib/compress.c
+ ../common/zlib/crc32.c
+ ../common/zlib/deflate.c
+ ../common/zlib/gzclose.c
+ ../common/zlib/gzlib.c
+ ../common/zlib/gzread.c
+ ../common/zlib/gzwrite.c
+ ../common/zlib/inflate.c
+ ../common/zlib/infback.c
+ ../common/zlib/inftrees.c
+ ../common/zlib/inffast.c
+ ../common/zlib/trees.c
+ ../common/zlib/uncompr.c
+ ../common/zlib/zutil.c
 )
 
 SET(PROJECT_HEADERS
@@ -52,6 +67,17 @@ SET(PROJECT_HEADERS
  ../common/filesystem.h
  ../common/bstrlib/bstrlib.h
  ../common/bstrlib/bstrwrap.h
+ ../common/zlib/zconf.h
+ ../common/zlib/zlib.h
+ ../common/zlib/crc32.h
+ ../common/zlib/deflate.h
+ ../common/zlib/gzguts.h
+ ../common/zlib/inffast.h
+ ../common/zlib/inffixed.h
+ ../common/zlib/inflate.h
+ ../common/zlib/inftrees.h
+ ../common/zlib/trees.h
+ ../common/zlib/zutil.h
  ../version.h
 )
 

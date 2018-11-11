@@ -2062,6 +2062,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     bool msgInvalidCrc = false;
     bool msgUnknownCertType = false;
     bool msgUnknownCertSubtype = false;
+    bool msgProcessingRequiredAttributeOnUnknownGuidedSection = false;
     if (baGuid == EFI_GUIDED_SECTION_CRC32) {
         if ((attributes & EFI_GUIDED_SECTION_AUTH_STATUS_VALID) == 0) { // Check that AuthStatusValid attribute is set on compressed GUIDed sections
             msgNoAuthStatusAttribute = true;
@@ -2083,7 +2084,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         }
         // No need to change dataOffset here
     }
-    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMAF86 || baGuid == EFI_GUIDED_SECTION_TIANO) {
+    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMAF86 || baGuid == EFI_GUIDED_SECTION_TIANO || baGuid == EFI_GUIDED_SECTION_GZIP) {
         if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on compressed GUIDed sections
             msgNoProcessingRequiredAttributeCompressed = true;
         }
@@ -2145,6 +2146,10 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         }
         msgSignedSectionFound = true;
     }
+    // Check that ProcessingRequired attribute is not set on GUIDed sections with unknown GUID
+    else if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == EFI_GUIDED_SECTION_PROCESSING_REQUIRED) {
+        msgProcessingRequiredAttributeOnUnknownGuidedSection = true;
+    }
 
     UByteArray header = section.left(dataOffset);
     UByteArray body = section.mid(dataOffset);
@@ -2187,6 +2192,8 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
             msg(usprintf("%s: signed GUIDed section with unknown type", __FUNCTION__), index);
         if (msgUnknownCertSubtype)
             msg(usprintf("%s: signed GUIDed section with unknown subtype", __FUNCTION__), index);
+        if (msgProcessingRequiredAttributeOnUnknownGuidedSection)
+            msg(usprintf("%s: processing required bit set for GUIDed section with unknown GUID", __FUNCTION__), index);
     }
 
     return U_SUCCESS;
@@ -2570,6 +2577,17 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
             info += UString("\nCompression algorithm: unknown");
             parseCurrentSection = false;
         }
+    }
+    // GZip compressed section
+    else if (baGuid == EFI_GUIDED_SECTION_GZIP) {
+        USTATUS result = gzipDecompress(model->body(index), processed);
+        if (result) {
+            msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+            return U_SUCCESS;
+        }
+
+        info += UString("\nCompression algorithm: GZip");
+        info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
     }
 
     // Add info

@@ -43,6 +43,17 @@ HEADERS += uefitool.h \
  ../common/ubytearray.h \
  ../common/bootguard.h \
  ../common/sha256.h \
+ ../common/zlib/zconf.h \
+ ../common/zlib/zlib.h \
+ ../common/zlib/crc32.h \
+ ../common/zlib/deflate.h \
+ ../common/zlib/gzguts.h \
+ ../common/zlib/inffast.h \
+ ../common/zlib/inffixed.h \
+ ../common/zlib/inflate.h \
+ ../common/zlib/inftrees.h \
+ ../common/zlib/trees.h \
+ ../common/zlib/zutil.h \
  ../version.h \
  qhexedit2/qhexedit.h \
  qhexedit2/chunks.h \
@@ -79,6 +90,21 @@ SOURCES += uefitool_main.cpp \
  ../common/Tiano/EfiTianoCompressLegacy.c \
  ../common/ustring.cpp \
  ../common/sha256.c \
+ ../common/zlib/adler32.c \
+ ../common/zlib/compress.c \
+ ../common/zlib/crc32.c \
+ ../common/zlib/deflate.c \
+ ../common/zlib/gzclose.c \
+ ../common/zlib/gzlib.c \
+ ../common/zlib/gzread.c \
+ ../common/zlib/gzwrite.c \
+ ../common/zlib/inflate.c \
+ ../common/zlib/infback.c \
+ ../common/zlib/inftrees.c \
+ ../common/zlib/inffast.c \
+ ../common/zlib/trees.c \
+ ../common/zlib/uncompr.c \
+ ../common/zlib/zutil.c \
  qhexedit2/qhexedit.cpp \
  qhexedit2/chunks.cpp \
  qhexedit2/commands.cpp
