@@ -1,7 +1,8 @@
 /*++ EfiTianoDecompress.c
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.<BR>
-Copyright (c) 2004 - 2010, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2018, LongSoft. All rights reserved.<BR>
+Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -16,7 +17,7 @@ Decompress.c
 
 Abstract:
 
-Decompressor. Algorithm Ported from OPSD code (Decomp.asm)
+UEFI Decompress Library implementation refer to UEFI specification.
 
 --*/
 
@@ -79,20 +80,63 @@ typedef struct {
     UINT8   mPBit;
 } SCRATCH_DATA;
 
-/*++
+STATIC
+UINT64
+EFIAPI
+LShiftU64 (
+    UINT64 Operand,
+    UINT32 Count
+    )
+{
+    return Operand << Count;
+}
 
-Routine Description:
+STATIC
+VOID *
+EFIAPI
+SetMem (
+    OUT VOID   *Buffer,
+    IN UINTN   Length,
+    IN UINT8   Value
+    )
+{
+    return memset (Buffer, Value, Length);
+}
 
-Shift mBitBuf NumOfBits left. Read in NumOfBits of bits from source.
+STATIC
+VOID *
+EFIAPI
+SetMem16 (
+    OUT VOID   *Buffer,
+    IN UINTN   Length,
+    IN UINT16  Value
+    )
+{
+    UINTN Index;
+    UINT16* Buf = (UINT16*)Buffer;
 
-Arguments:
+    if (Buffer == NULL || Length == 0) {
+        return Buffer;
+    }
 
-Sd        - The global scratch data
-NumOfBits  - The number of bits to shift and read.
+    Length /= sizeof(UINT16);
 
-Returns: (VOID)
+    for (Index = 0; Index < Length; Index++) {
+        Buf[Index] = Value;
+    }
 
---*/
+    return Buffer;
+}
+
+/**
+  Read NumOfBit of bits from source into mBitBuf.
+
+  Shift mBitBuf NumOfBits left. Read in NumOfBits of bits from source.
+
+  @param  Sd        The global scratch data.
+  @param  NumOfBits The number of bits to shift and read.
+
+**/
 STATIC
 VOID
 FillBuf (
@@ -100,17 +144,23 @@ FillBuf (
     IN  UINT16        NumOfBits
     )
 {
-    Sd->mBitBuf = (UINT32) (((UINT64)Sd->mBitBuf) << NumOfBits);
+    //
+    // Left shift NumOfBits of bits in advance
+    //
+    Sd->mBitBuf = (UINT32)LShiftU64 (((UINT64)Sd->mBitBuf), NumOfBits);
 
+    //
+    // Copy data needed in bytes into mSbuBitBuf
+    //
     while (NumOfBits > Sd->mBitCount) {
-        Sd->mBitBuf |= (UINT32) (((UINT64)Sd->mSubBitBuf) << (NumOfBits = (UINT16) (NumOfBits - Sd->mBitCount)));
+        NumOfBits = (UINT16)(NumOfBits - Sd->mBitCount);
+        Sd->mBitBuf |= (UINT32)LShiftU64 (((UINT64)Sd->mSubBitBuf), NumOfBits);
 
         if (Sd->mCompSize > 0) {
             //
             // Get 1 byte into SubBitBuf
             //
             Sd->mCompSize--;
-            Sd->mSubBitBuf = 0;
             Sd->mSubBitBuf = Sd->mSrcBase[Sd->mInBuf++];
             Sd->mBitCount = 8;
         }
@@ -123,28 +173,30 @@ FillBuf (
         }
     }
 
+    //
+    // Calculate additional bit count read to update mBitCount
+    //
     Sd->mBitCount = (UINT16)(Sd->mBitCount - NumOfBits);
+
+    //
+    // Copy NumOfBits of bits from mSubBitBuf into mBitBuf
+    //
     Sd->mBitBuf |= Sd->mSubBitBuf >> Sd->mBitCount;
 }
 
-/*++
+/**
+  Get NumOfBits of bits out from mBitBuf.
 
-Routine Description:
+  Get NumOfBits of bits out from mBitBuf. Fill mBitBuf with subsequent
+  NumOfBits of bits from source. Returns NumOfBits of bits that are
+  popped out.
 
-Get NumOfBits of bits out from mBitBuf. Fill mBitBuf with subsequent
-NumOfBits of bits from source. Returns NumOfBits of bits that are
-popped out.
+  @param  Sd        The global scratch data.
+  @param  NumOfBits The number of bits to pop and read.
 
-Arguments:
+  @return The bits that are popped out.
 
-Sd            - The global scratch data.
-NumOfBits     - The number of bits to pop and read.
-
-Returns:
-
-The bits that are popped out.
-
---*/
+**/
 STATIC
 UINT32
 GetBits (
@@ -154,33 +206,36 @@ GetBits (
 {
     UINT32  OutBits;
 
+    //
+    // Pop NumOfBits of Bits from Left
+    //
     OutBits = (UINT32)(Sd->mBitBuf >> (BITBUFSIZ - NumOfBits));
 
-    FillBuf(Sd, NumOfBits);
+    //
+    // Fill up mBitBuf from source
+    //
+    FillBuf (Sd, NumOfBits);
 
     return OutBits;
 }
 
-/*++
+/**
+  Creates Huffman Code mapping table according to code length array.
 
-Routine Description:
+  Creates Huffman Code mapping table for Extra Set, Char&Len Set
+  and Position Set according to code length array.
+  If TableBits > 16, then ASSERT ().
 
-Creates Huffman Code mapping table according to code length array.
+  @param  Sd        The global scratch data.
+  @param  NumOfChar The number of symbols in the symbol set.
+  @param  BitLen    Code length array.
+  @param  TableBits The width of the mapping table.
+  @param  Table     The table to be created.
 
-Arguments:
+  @retval  0 OK.
+  @retval  BAD_TABLE The table is corrupted.
 
-Sd        - The global scratch data
-NumOfChar - Number of symbols in the symbol set
-BitLen    - Code length array
-TableBits - The width of the mapping table
-Table     - The table
-
-Returns:
-
-0         - OK.
-BAD_TABLE - The table is corrupted.
-
---*/
+**/
 STATIC
 UINT16
 MakeTable (
@@ -189,7 +244,7 @@ MakeTable (
     IN  UINT8         *BitLen,
     IN  UINT16        TableBits,
     OUT UINT16        *Table
-)
+    )
 {
     UINT16  Count[17];
     UINT16  Weight[17];
@@ -203,9 +258,13 @@ MakeTable (
     UINT16  Avail;
     UINT16  NextCode;
     UINT16  Mask;
+    UINT16  WordOfStart;
+    UINT16  WordOfCount;
+    UINT16  MaxTableLength;
 
     //
-    // TableBits should not be greater than 16.
+    // The maximum mapping table width supported by this internal
+    // working function is 16.
     //
     if (TableBits >= (sizeof(Count) / sizeof(UINT16))) {
         return (UINT16)BAD_TABLE;
@@ -219,22 +278,19 @@ MakeTable (
     }
 
     for (Index = 0; Index < NumOfChar; Index++) {
-        //
-        // Count array index should not be greater than or equal to its size.
-        //
-        if (BitLen[Index] < (sizeof(Count) / sizeof(UINT16))) {
-            Count[BitLen[Index]]++;
-        }
-        else {
+        if (BitLen[Index] > 16) {
             return (UINT16)BAD_TABLE;
         }
+        Count[BitLen[Index]]++;
     }
 
     Start[0] = 0;
     Start[1] = 0;
 
     for (Index = 1; Index <= 16; Index++) {
-        Start[Index + 1] = (UINT16)(Start[Index] + (Count[Index] << (16 - Index)));
+        WordOfStart = Start[Index];
+        WordOfCount = Count[Index];
+        Start[Index + 1] = (UINT16)(WordOfStart + (WordOfCount << (16 - Index)));
     }
 
     if (Start[17] != 0) {
@@ -244,6 +300,7 @@ MakeTable (
 
     JuBits = (UINT16)(16 - TableBits);
 
+    Weight[0] = 0;
     for (Index = 1; Index <= TableBits; Index++) {
         Start[Index] >>= JuBits;
         Weight[Index] = (UINT16)(1U << (TableBits - Index));
@@ -258,13 +315,14 @@ MakeTable (
 
     if (Index != 0) {
         Index3 = (UINT16)(1U << TableBits);
-        while (Index != Index3) {
-            Table[Index++] = 0;
+        if (Index < Index3) {
+            SetMem16 (Table + Index, (Index3 - Index) * sizeof(*Table), 0);
         }
     }
 
     Avail = NumOfChar;
     Mask = (UINT16)(1U << (15 - TableBits));
+    MaxTableLength = (UINT16)(1U << TableBits);
 
     for (Char = 0; Char < NumOfChar; Char++) {
         Len = BitLen[Char];
@@ -275,12 +333,14 @@ MakeTable (
         NextCode = (UINT16)(Start[Len] + Weight[Len]);
 
         if (Len <= TableBits) {
+
             for (Index = Start[Len]; Index < NextCode; Index++) {
-                // Check to prevent possible heap corruption
-                if (Index >= (UINT16)(1U << TableBits))
+                if (Index >= MaxTableLength) {
                     return (UINT16)BAD_TABLE;
+                }
                 Table[Index] = Char;
             }
+
         }
         else {
             Index3 = Start[Len];
@@ -288,22 +348,18 @@ MakeTable (
             Index = (UINT16)(Len - TableBits);
 
             while (Index != 0) {
-                //
-                // Avail should be lesser than size of mRight and mLeft to prevent buffer overflow.
-                //
-                if ((*Pointer == 0) && (Avail < sizeof(Sd->mRight) / sizeof(UINT16)) && (Avail < sizeof(Sd->mLeft) / sizeof(UINT16))) {
+                if (*Pointer == 0 && Avail < (2 * NC - 1)) {
                     Sd->mRight[Avail] = Sd->mLeft[Avail] = 0;
                     *Pointer = Avail++;
                 }
 
-                //
-                // *Pointer should be lesser than size of mRight and mLeft to prevent buffer overflow.
-                //
-                if ((Index3 & Mask) && (*Pointer < (sizeof(Sd->mRight) / sizeof(UINT16)))) {
-                    Pointer = &Sd->mRight[*Pointer];
-                }
-                else if (*Pointer < (sizeof(Sd->mLeft) / sizeof(UINT16))) {
-                    Pointer = &Sd->mLeft[*Pointer];
+                if (*Pointer < (2 * NC - 1)) {
+                    if ((Index3 & Mask) != 0) {
+                        Pointer = &Sd->mRight[*Pointer];
+                    }
+                    else {
+                        Pointer = &Sd->mLeft[*Pointer];
+                    }
                 }
 
                 Index3 <<= 1;
@@ -311,6 +367,7 @@ MakeTable (
             }
 
             *Pointer = Char;
+
         }
 
         Start[Len] = NextCode;
@@ -321,22 +378,16 @@ MakeTable (
     return 0;
 }
 
-/*++
+/**
+  Decodes a position value.
 
-Routine Description:
+  Get a position value according to Position Huffman Table.
 
-Decodes a position value.
+  @param  Sd The global scratch data.
 
-Arguments:
+  @return The position value decoded.
 
-Sd      - the global scratch data
-
-Returns:
-
-The position value decoded.
-
---*/
-STATIC
+**/
 UINT32
 DecodeP (
     IN  SCRATCH_DATA  *Sd
@@ -352,7 +403,7 @@ DecodeP (
         Mask = 1U << (BITBUFSIZ - 1 - 8);
 
         do {
-            if (Sd->mBitBuf & Mask) {
+            if ((Sd->mBitBuf & Mask) != 0) {
                 Val = Sd->mRight[Val];
             }
             else {
@@ -365,35 +416,31 @@ DecodeP (
     //
     // Advance what we have read
     //
-    FillBuf(Sd, Sd->mPTLen[Val]);
+    FillBuf (Sd, Sd->mPTLen[Val]);
 
     Pos = Val;
     if (Val > 1) {
-        Pos = (UINT32)((1U << (Val - 1)) + GetBits(Sd, (UINT16)(Val - 1)));
+        Pos = (UINT32)((1U << (Val - 1)) + GetBits (Sd, (UINT16)(Val - 1)));
     }
 
     return Pos;
 }
 
-/*++
+/**
+  Reads code lengths for the Extra Set or the Position Set.
 
-Routine Description:
+  Read in the Extra Set or Position Set Length Array, then
+  generate the Huffman code mapping for them.
 
-Reads code lengths for the Extra Set or the Position Set
+  @param  Sd      The global scratch data.
+  @param  nn      The number of symbols.
+  @param  nbit    The number of bits needed to represent nn.
+  @param  Special The special symbol that needs to be taken care of.
 
-Arguments:
+  @retval  0 OK.
+  @retval  BAD_TABLE Table is corrupted.
 
-Sd        - The global scratch data
-nn        - Number of symbols
-nbit      - Number of bits needed to represent nn
-Special   - The special symbol that needs to be taken care of
-
-Returns:
-
-0         - OK.
-BAD_TABLE - Table is corrupted.
-
---*/
+**/
 STATIC
 UINT16
 ReadPTLen (
@@ -401,14 +448,18 @@ ReadPTLen (
     IN  UINT16        nn,
     IN  UINT16        nbit,
     IN  UINT16        Special
-)
+    )
 {
     UINT16  Number;
     UINT16  CharC;
     UINT16  Index;
     UINT32  Mask;
 
-    Number = (UINT16)GetBits(Sd, nbit);
+
+    //
+    // Read Extra Set Code Length Array size
+    //
+    Number = (UINT16)GetBits (Sd, nbit);
 
     if ((Number > sizeof(Sd->mPTLen)) || (nn > sizeof(Sd->mPTLen))) {
         //
@@ -418,24 +469,29 @@ ReadPTLen (
     }
 
     if (Number == 0) {
-        CharC = (UINT16)GetBits(Sd, nbit);
+        //
+        // This represents only Huffman code used
+        //
+        CharC = (UINT16)GetBits (Sd, nbit);
 
-        for (Index = 0; Index < 256; Index++) {
-            Sd->mPTTable[Index] = CharC;
-        }
+        SetMem16 (&Sd->mPTTable[0], sizeof(Sd->mPTTable), CharC);
 
-        for (Index = 0; Index < nn; Index++) {
-            Sd->mPTLen[Index] = 0;
-        }
+        SetMem (Sd->mPTLen, nn, 0);
 
         return 0;
     }
 
     Index = 0;
 
-    while (Index < Number) {
+    while (Index < Number && Index < NPT) {
+
         CharC = (UINT16)(Sd->mBitBuf >> (BITBUFSIZ - 3));
 
+        //
+        // If a code length is less than 7, then it is encoded as a 3-bit
+        // value. Or it is encoded as a series of "1"s followed by a
+        // terminating "0". The number of "1"s = Code length - 4.
+        //
         if (CharC == 7) {
             Mask = 1U << (BITBUFSIZ - 1 - 3);
             while (Mask & Sd->mBitBuf) {
@@ -448,74 +504,69 @@ ReadPTLen (
 
         Sd->mPTLen[Index++] = (UINT8)CharC;
 
+        //
+        // For Code&Len Set,
+        // After the third length of the code length concatenation,
+        // a 2-bit value is used to indicated the number of consecutive
+        // zero lengths after the third length.
+        //
         if (Index == Special) {
-            CharC = (UINT16)GetBits(Sd, 2);
-            while ((INT16)(--CharC) >= 0) {
-                if (Index >= sizeof(Sd->mPTLen)) {
-                    //
-                    // Fail if Index is greater than or equal to mPTLen
-                    //
-                    return (UINT16)BAD_TABLE;
-                }
+            CharC = (UINT16)GetBits (Sd, 2);
+            while ((INT16)(--CharC) >= 0 && Index < NPT) {
                 Sd->mPTLen[Index++] = 0;
             }
         }
     }
 
-    while (Index < nn) {
+    while (Index < nn && Index < NPT) {
         Sd->mPTLen[Index++] = 0;
     }
 
-    return MakeTable(Sd, nn, Sd->mPTLen, 8, Sd->mPTTable);
+    return MakeTable (Sd, nn, Sd->mPTLen, 8, Sd->mPTTable);
 }
 
-/*++
+/**
+  Reads code lengths for Char&Len Set.
 
-Routine Description:
+  Read in and decode the Char&Len Set Code Length Array, then
+  generate the Huffman Code mapping table for the Char&Len Set.
 
-Reads code lengths for Char&Len Set.
+  @param  Sd The global scratch data.
 
-Arguments:
-
-Sd    - the global scratch data
-
-Returns: (VOID)
-
---*/
+**/
 STATIC
 VOID
 ReadCLen (
     SCRATCH_DATA  *Sd
     )
 {
-    UINT16  Number;
-    UINT16  CharC;
-    UINT16  Index;
-    UINT32  Mask;
+    UINT16           Number;
+    UINT16           CharC;
+    UINT16           Index;
+    UINT32           Mask;
 
-    Number = (UINT16)GetBits(Sd, CBIT);
+    Number = (UINT16)GetBits (Sd, CBIT);
 
     if (Number == 0) {
-        CharC = (UINT16)GetBits(Sd, CBIT);
+        //
+        // This represents only Huffman code used
+        //
+        CharC = (UINT16)GetBits (Sd, CBIT);
 
-        for (Index = 0; Index < NC; Index++) {
-            Sd->mCLen[Index] = 0;
-        }
-
-        for (Index = 0; Index < 4096; Index++) {
-            Sd->mCTable[Index] = CharC;
-        }
+        SetMem (Sd->mCLen, NC, 0);
+        SetMem16 (&Sd->mCTable[0], sizeof(Sd->mCTable), CharC);
 
         return;
     }
 
     Index = 0;
-    while (Index < Number) {
+    while (Index < Number && Index < NC) {
         CharC = Sd->mPTTable[Sd->mBitBuf >> (BITBUFSIZ - 8)];
         if (CharC >= NT) {
             Mask = 1U << (BITBUFSIZ - 1 - 8);
 
             do {
+
                 if (Mask & Sd->mBitBuf) {
                     CharC = Sd->mRight[CharC];
                 }
@@ -524,57 +575,57 @@ ReadCLen (
                 }
 
                 Mask >>= 1;
+
             } while (CharC >= NT);
         }
         //
         // Advance what we have read
         //
-        FillBuf(Sd, Sd->mPTLen[CharC]);
+        FillBuf (Sd, Sd->mPTLen[CharC]);
 
         if (CharC <= 2) {
+
             if (CharC == 0) {
                 CharC = 1;
             }
             else if (CharC == 1) {
-                CharC = (UINT16)(GetBits(Sd, 4) + 3);
+                CharC = (UINT16)(GetBits (Sd, 4) + 3);
             }
             else if (CharC == 2) {
-                CharC = (UINT16)(GetBits(Sd, CBIT) + 20);
+                CharC = (UINT16)(GetBits (Sd, CBIT) + 20);
             }
 
-            while ((INT16)(--CharC) >= 0) {
+            while ((INT16)(--CharC) >= 0 && Index < NC) {
                 Sd->mCLen[Index++] = 0;
             }
+
         }
         else {
+
             Sd->mCLen[Index++] = (UINT8)(CharC - 2);
+
         }
     }
 
-    while (Index < NC) {
-        Sd->mCLen[Index++] = 0;
-    }
+    SetMem (Sd->mCLen + Index, NC - Index, 0);
 
-    MakeTable(Sd, NC, Sd->mCLen, 12, Sd->mCTable);
+    MakeTable (Sd, NC, Sd->mCLen, 12, Sd->mCTable);
 
     return;
 }
 
-/*++
+/**
+  Decode a character/length value.
 
-Routine Description:
+  Read one value from mBitBuf, Get one code from mBitBuf. If it is at block boundary, generates
+  Huffman code mapping table for Extra Set, Code&Len Set and
+  Position Set.
 
-Decode a character/length value.
+  @param  Sd The global scratch data.
 
-Arguments:
+  @return The value decoded.
 
-Sd    - The global scratch data.
-
-Returns:
-
-The value decoded.
-
---*/
+**/
 STATIC
 UINT16
 DecodeC (
@@ -587,21 +638,38 @@ DecodeC (
     if (Sd->mBlockSize == 0) {
         //
         // Starting a new block
+        // Read BlockSize from block header
         //
-        Sd->mBlockSize = (UINT16)GetBits(Sd, 16);
-        Sd->mBadTableFlag = ReadPTLen(Sd, NT, TBIT, 3);
+        Sd->mBlockSize = (UINT16)GetBits (Sd, 16);
+
+        //
+        // Read in the Extra Set Code Length Array,
+        // Generate the Huffman code mapping table for Extra Set.
+        //
+        Sd->mBadTableFlag = ReadPTLen (Sd, NT, TBIT, 3);
         if (Sd->mBadTableFlag != 0) {
             return 0;
         }
 
-        ReadCLen(Sd);
+        //
+        // Read in and decode the Char&Len Set Code Length Array,
+        // Generate the Huffman code mapping table for Char&Len Set.
+        //
+        ReadCLen (Sd);
 
-        Sd->mBadTableFlag = ReadPTLen(Sd, MAXNP, Sd->mPBit, (UINT16)(-1));
+        //
+        // Read in the Position Set Code Length Array,
+        // Generate the Huffman code mapping table for the Position Set.
+        //
+        Sd->mBadTableFlag = ReadPTLen (Sd, MAXNP, Sd->mPBit, (UINT16)(-1));
         if (Sd->mBadTableFlag != 0) {
             return 0;
         }
     }
 
+    //
+    // Get one code according to Code&Set Huffman Table
+    //
     Sd->mBlockSize--;
     Index2 = Sd->mCTable[Sd->mBitBuf >> (BITBUFSIZ - 12)];
 
@@ -609,7 +677,7 @@ DecodeC (
         Mask = 1U << (BITBUFSIZ - 1 - 12);
 
         do {
-            if (Sd->mBitBuf & Mask) {
+            if ((Sd->mBitBuf & Mask) != 0) {
                 Index2 = Sd->mRight[Index2];
             }
             else {
@@ -622,38 +690,38 @@ DecodeC (
     //
     // Advance what we have read
     //
-    FillBuf(Sd, Sd->mCLen[Index2]);
+    FillBuf (Sd, Sd->mCLen[Index2]);
 
     return Index2;
 }
 
-/*++
+/**
+  Decode the source data and put the resulting data into the destination buffer.
 
-Routine Description:
+  @param  Sd The global scratch data.
 
-Decode the source data and put the resulting data into the destination buffer.
-
-Arguments:
-
-Sd            - The global scratch data
-
-Returns: (VOID)
-
---*/
+**/
 STATIC
 VOID
 Decode (
     SCRATCH_DATA  *Sd
-)
+    )
 {
-    UINT16  BytesRemain = (UINT16)(-1);
-    UINT32  DataIdx = 0;
-    UINT16  CharC = 0;
+    UINT16  BytesRemain;
+    UINT32  DataIdx;
+    UINT16  CharC;
+
+    BytesRemain = (UINT16)(-1);
+
+    DataIdx = 0;
 
     for (;;) {
+        //
+        // Get one code from mBitBuf
+        //
         CharC = DecodeC(Sd);
         if (Sd->mBadTableFlag != 0) {
-            return;
+            goto Done;
         }
 
         if (CharC < 256) {
@@ -661,106 +729,151 @@ Decode (
             // Process an Original character
             //
             if (Sd->mOutBuf >= Sd->mOrigSize) {
-                return;
+                goto Done;
             }
             else {
+                //
+                // Write orignal character into mDstBase
+                //
                 Sd->mDstBase[Sd->mOutBuf++] = (UINT8)CharC;
             }
+
         }
         else {
             //
             // Process a Pointer
             //
-            CharC = (UINT16)(CharC - (UINT8_MAX + 1 - THRESHOLD));
+            CharC = (UINT16)(CharC - (0x00000100U - THRESHOLD));
 
+            //
+            // Get string length
+            //
             BytesRemain = CharC;
 
+            //
+            // Locate string position
+            //
             DataIdx = Sd->mOutBuf - DecodeP(Sd) - 1;
 
-            // Check to prevent possible heap corruption
-            if (DataIdx >= Sd->mOrigSize - BytesRemain) {
-                Sd->mBadTableFlag = 1;
-                return;
-            }
-
+            //
+            // Write BytesRemain of bytes into mDstBase
+            //
             BytesRemain--;
+
             while ((INT16)(BytesRemain) >= 0) {
-                Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
                 if (Sd->mOutBuf >= Sd->mOrigSize) {
-                    return;
+                    goto Done;
                 }
+                if (DataIdx >= Sd->mOrigSize) {
+                    Sd->mBadTableFlag = (UINT16)BAD_TABLE;
+                    goto Done;
+                }
+                Sd->mDstBase[Sd->mOutBuf++] = Sd->mDstBase[DataIdx++];
 
                 BytesRemain--;
             }
+
+            //
+            // Once mOutBuf is fully filled, directly return
+            //
+            if (Sd->mOutBuf >= Sd->mOrigSize) {
+                goto Done;
+            }
         }
     }
+
+Done:
+    return;
 }
 
-/*++
+/**
+  Given a compressed source buffer, this function retrieves the size of
+  the uncompressed buffer and the size of the scratch buffer required
+  to decompress the compressed source buffer.
 
-Routine Description:
+  Retrieves the size of the uncompressed buffer and the temporary scratch buffer
+  required to decompress the buffer specified by Source and SourceSize.
+  If the size of the uncompressed buffer or the size of the scratch buffer cannot
+  be determined from the compressed data specified by Source and SourceData,
+  then EFI_INVALID_PARAMETER is returned.  Otherwise, the size of the uncompressed
+  buffer is returned in DestinationSize, the size of the scratch buffer is returned
+  in ScratchSize, and EFI_SUCCESS is returned.
+  This function does not have scratch buffer available to perform a thorough
+  checking of the validity of the source data.  It just retrieves the "Original Size"
+  field from the beginning bytes of the source data and output it as DestinationSize.
+  And ScratchSize is specific to the decompression implementation.
 
-The internal implementation of *_DECOMPRESS_PROTOCOL.GetInfo().
+  @param  Source          The source buffer containing the compressed data.
+  @param  SourceSize      The size, in bytes, of the source buffer.
+  @param  DestinationSize A pointer to the size, in bytes, of the uncompressed buffer
+                          that will be generated when the compressed buffer specified
+                          by Source and SourceSize is decompressed.
+  @param  ScratchSize     A pointer to the size, in bytes, of the scratch buffer that
+                          is required to decompress the compressed buffer specified
+                          by Source and SourceSize.
 
-Arguments:
-
-Source      - The source buffer containing the compressed data.
-SrcSize     - The size of source buffer
-DstSize     - The size of destination buffer.
-ScratchSize - The size of scratch buffer.
-
-Returns:
-
-EFI_SUCCESS           - The size of destination buffer and the size of scratch buffer are successull retrieved.
-EFI_INVALID_PARAMETER - The source data is corrupted
-
---*/
+  @retval  EFI_SUCCESS    The size of the uncompressed data was returned
+                          in DestinationSize, and the size of the scratch
+                          buffer was returned in ScratchSize.
+  @retval  EFI_INVALID_PARAMETER
+                          The size of the uncompressed data or the size of
+                          the scratch buffer cannot be determined from
+                          the compressed data specified by Source
+                          and SourceSize.
+**/
 EFI_STATUS
-GetInfo(
-    IN      const VOID    *Source,
-    IN      UINT32        SrcSize,
-    OUT     UINT32        *DstSize,
-    OUT     UINT32        *ScratchSize
-)
+EFIAPI
+GetInfo (
+    IN  CONST VOID  *Source,
+    IN  UINT32      SourceSize,
+    OUT UINT32      *DestinationSize,
+    OUT UINT32      *ScratchSize
+    )
 {
-    const UINT8 *Src;
+    UINT32  CompressedSize;
 
-    *ScratchSize = sizeof(SCRATCH_DATA);
-
-    Src = Source;
-    if (SrcSize < 8) {
+    if (Source == NULL || DestinationSize == NULL || ScratchSize == NULL || SourceSize < 8) {
         return EFI_INVALID_PARAMETER;
     }
 
-    *DstSize = Src[4] + (Src[5] << 8) + (Src[6] << 16) + (Src[7] << 24);
+    CompressedSize = *(UINT32 *)Source;
+    if (SourceSize < (CompressedSize + 8) || (CompressedSize + 8) < 8) {
+        return EFI_INVALID_PARAMETER;
+    }
+
+    *ScratchSize = sizeof(SCRATCH_DATA);
+    *DestinationSize = *((UINT32 *)Source + 1);
+
     return EFI_SUCCESS;
 }
 
-/*++
+/**
+  Decompresses a compressed source buffer.
 
-Routine Description:
+  Extracts decompressed data to its original form.
+  This function is designed so that the decompression algorithm can be implemented
+  without using any memory services.  As a result, this function is not allowed to
+  call any memory allocation services in its implementation.  It is the caller's
+  responsibility to allocate and free the Destination and Scratch buffers.
+  If the compressed source data specified by Source is successfully decompressed
+  into Destination, then RETURN_SUCCESS is returned.  If the compressed source data
+  specified by Source is not in a valid compressed data format,
+  then RETURN_INVALID_PARAMETER is returned.
 
-The internal implementation of *_DECOMPRESS_PROTOCOL.Decompress().
+  @param  Source      The source buffer containing the compressed data.
+  @param  Destination The destination buffer to store the decompressed data.
+  @param  Scratch     A temporary scratch buffer that is used to perform the decompression.
+                      This is an optional parameter that may be NULL if the
+                      required scratch buffer size is 0.
 
-Arguments:
-
-Source      - The source buffer containing the compressed data.
-SrcSize     - The size of source buffer
-Destination - The destination buffer to store the decompressed data
-DstSize     - The size of destination buffer.
-Scratch     - The buffer used internally by the decompress routine. This  buffer is needed to store intermediate data.
-ScratchSize - The size of scratch buffer.
-Version     - The version of de/compression algorithm.
-Version 1 for EFI 1.1 de/compression algorithm.
-Version 2 for Tiano de/compression algorithm.
-
-Returns:
-
-EFI_SUCCESS           - Decompression is successful
-EFI_INVALID_PARAMETER - The source data is corrupted
-
---*/
+  @retval  EFI_SUCCESS    Decompression completed successfully, and
+                          the uncompressed buffer is returned in Destination.
+  @retval  EFI_INVALID_PARAMETER
+                          The source buffer specified by Source is corrupted
+                          (not in a valid compressed format).
+**/
 EFI_STATUS
+EFIAPI
 Decompress (
     IN      CONST VOID *Source,
     IN      UINT32     SrcSize,
@@ -769,19 +882,14 @@ Decompress (
     IN OUT  VOID       *Scratch,
     IN      UINT32     ScratchSize,
     IN      UINT8      Version
-)
+    )
 {
-    UINT32        Index;
-    UINT32        CompSize;
-    UINT32        OrigSize;
-    EFI_STATUS    Status;
-    SCRATCH_DATA  *Sd;
-    const UINT8         *Src;
-    UINT8         *Dst;
-
-    Status = EFI_SUCCESS;
-    Src = Source;
-    Dst = Destination;
+    UINT32           CompSize;
+    UINT32           OrigSize;
+    SCRATCH_DATA     *Sd;
+    CONST UINT8      *Src = Source;
+    UINT8            *Dst = Destination;
+    EFI_STATUS       Status = EFI_SUCCESS;
 
     if (ScratchSize < sizeof(SCRATCH_DATA)) {
         return EFI_INVALID_PARAMETER;
@@ -813,9 +921,7 @@ Decompress (
 
     Src = Src + 8;
 
-    for (Index = 0; Index < sizeof(SCRATCH_DATA); Index++) {
-        ((UINT8 *)Sd)[Index] = 0;
-    }
+    SetMem (Sd, sizeof(SCRATCH_DATA), 0);
     //
     // The length of the field 'Position Set Code Length Array Size' in Block Header.
     // For EFI 1.1 de/compression algorithm(Version 1), mPBit = 4
@@ -839,18 +945,21 @@ Decompress (
 
     Sd->mSrcBase = (UINT8*)Src;
     Sd->mDstBase = Dst;
+    //
+    // CompSize and OrigSize are calculated in bytes
+    //
     Sd->mCompSize = CompSize;
     Sd->mOrigSize = OrigSize;
 
     //
     // Fill the first BITBUFSIZ bits
     //
-    FillBuf(Sd, BITBUFSIZ);
+    FillBuf (Sd, BITBUFSIZ);
 
     //
     // Decompress it
     //
-    Decode(Sd);
+    Decode (Sd);
 
     if (Sd->mBadTableFlag != 0) {
         //
@@ -884,7 +993,7 @@ EFI_INVALID_PARAMETER - The source data is corrupted
 --*/
 EFI_STATUS
 EFIAPI
-EfiTianoGetInfo(
+EfiTianoGetInfo (
     IN      CONST VOID *Source,
     IN      UINT32      SrcSize,
     OUT     UINT32      *DstSize,
@@ -972,7 +1081,7 @@ TianoDecompress (
     IN      UINT32     DstSize,
     IN OUT  VOID       *Scratch,
     IN      UINT32     ScratchSize
-)
+    )
 {
     //
     // For Tiano de/compression algorithm, the version is 2.
