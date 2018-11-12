@@ -44,9 +44,9 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
 
     if (guid.isEmpty() ||
         (model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID &&
-        guidToUString(readMisaligned((const EFI_GUID*)(model->header(index).constData() + sizeof(EFI_COMMON_SECTION_HEADER)))) == guid) ||
-        guidToUString(readMisaligned((const EFI_GUID*)model->header(index).constData())) == guid ||
-        guidToUString(readMisaligned((const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData())) == guid) {
+        guidToUString(readUnaligned((const EFI_GUID*)(model->header(index).constData() + sizeof(EFI_COMMON_SECTION_HEADER)))) == guid) ||
+        guidToUString(readUnaligned((const EFI_GUID*)model->header(index).constData())) == guid ||
+        guidToUString(readUnaligned((const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData())) == guid) {
 
         if (!changeDirectory(path) && !makeDirectory(path))
             return U_DIR_CREATE;

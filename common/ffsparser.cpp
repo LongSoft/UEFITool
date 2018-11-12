@@ -1162,7 +1162,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(data.constData() + offset);
         const UINT32 restSize = dataSize - offset;
-        if (readMisaligned(currentPos) == INTEL_MICROCODE_HEADER_VERSION) {// Intel microcode
+        if (readUnaligned(currentPos) == INTEL_MICROCODE_HEADER_VERSION) {// Intel microcode
             // Check data size
             if (restSize < sizeof(INTEL_MICROCODE_HEADER))
                 continue;
@@ -1189,7 +1189,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemOffset = offset;
             break;
         }
-        else if (readMisaligned(currentPos) == EFI_FV_SIGNATURE) {
+        else if (readUnaligned(currentPos) == EFI_FV_SIGNATURE) {
             if (offset < EFI_FV_SIGNATURE_OFFSET)
                 continue;
 
@@ -1392,7 +1392,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
             // Check GUIDs for being equal
             if (currentGuid == anotherGuid) {
-                msg(usprintf("%s: file with duplicate GUID ", __FUNCTION__) + guidToUString(readMisaligned((EFI_GUID*)(anotherGuid.data()))), another);
+                msg(usprintf("%s: file with duplicate GUID ", __FUNCTION__) + guidToUString(readUnaligned((EFI_GUID*)(anotherGuid.data()))), another);
             }
         }
     }
@@ -2456,8 +2456,8 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
         const COMPRESSED_SECTION_PARSING_DATA* pdata = (const COMPRESSED_SECTION_PARSING_DATA*)data.constData();
-        compressionType = readMisaligned(pdata).compressionType;
-        uncompressedSize = readMisaligned(pdata).uncompressedSize;
+        compressionType = readUnaligned(pdata).compressionType;
+        uncompressedSize = readUnaligned(pdata).uncompressedSize;
     }
 
     // Decompress section
@@ -2523,7 +2523,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
         const GUIDED_SECTION_PARSING_DATA* pdata = (const GUIDED_SECTION_PARSING_DATA*)data.constData();
-        guid = readMisaligned(pdata).guid;
+        guid = readUnaligned(pdata).guid;
     }
 
     // Check if section requires processing
@@ -2643,7 +2643,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
             return U_SUCCESS;
         }
         guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-        parsed += UString("\nBEFORE ") + guidToUString(readMisaligned(guid));
+        parsed += UString("\nBEFORE ") + guidToUString(readUnaligned(guid));
         current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
         if (*current != EFI_DEP_END){
             msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
@@ -2656,7 +2656,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
             return U_SUCCESS;
         }
         guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-        parsed += UString("\nAFTER ") + guidToUString(readMisaligned(guid));
+        parsed += UString("\nAFTER ") + guidToUString(readUnaligned(guid));
         current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
         if (*current != EFI_DEP_END) {
             msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
@@ -2696,7 +2696,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 return U_SUCCESS;
             }
             guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-            parsed += UString("\nPUSH ") + guidToUString(readMisaligned(guid));
+            parsed += UString("\nPUSH ") + guidToUString(readUnaligned(guid));
             current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
             break;
         case EFI_DEP_AND:
@@ -2769,7 +2769,7 @@ USTATUS FfsParser::parseAprioriRawSection(const UByteArray & body, UString & par
     if (count > 0) {
         for (UINT32 i = 0; i < count; i++) {
             const EFI_GUID* guid = (const EFI_GUID*)body.constData() + i;
-            parsed += UString("\n") + guidToUString(readMisaligned(guid));
+            parsed += UString("\n") + guidToUString(readUnaligned(guid));
         }
     }
 
@@ -3026,8 +3026,8 @@ USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
                 if (model->hasEmptyParsingData(index) == false) {
                     UByteArray data = model->parsingData(index);
                     const TE_IMAGE_SECTION_PARSING_DATA* pdata = (const TE_IMAGE_SECTION_PARSING_DATA*)data.constData();
-                    originalImageBase = readMisaligned(pdata).imageBase;
-                    adjustedImageBase = readMisaligned(pdata).adjustedImageBase;
+                    originalImageBase = readUnaligned(pdata).imageBase;
+                    adjustedImageBase = readUnaligned(pdata).adjustedImageBase;
                 }
 
                 if (imageBase != 0) {

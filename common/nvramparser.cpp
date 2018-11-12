@@ -39,7 +39,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
     if (parentFileIndex.isValid() && model->hasEmptyParsingData(parentFileIndex) == false) {
         UByteArray data = model->parsingData(parentFileIndex);
         const FILE_PARSING_DATA* pdata = (const FILE_PARSING_DATA*)data.constData();
-        emptyByte = readMisaligned(pdata).emptyByte;
+        emptyByte = readUnaligned(pdata).emptyByte;
     }
 
     // Rename parent file
@@ -156,7 +156,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             hasExtendedHeader = true;
             msgUnknownExtDataFormat = true;
 
-            extendedHeaderSize = readMisaligned((UINT16*)(body.constData() + body.size() - sizeof(UINT16)));
+            extendedHeaderSize = readUnaligned((UINT16*)(body.constData() + body.size() - sizeof(UINT16)));
             if (extendedHeaderSize > (UINT32)body.size()) {
                 msgExtHeaderTooLong = true;
                 isInvalid = true;
@@ -203,7 +203,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                         goto parsing_done;
                     }
 
-                    timestamp = readMisaligned(tail.constData() + sizeof(UINT8));
+                    timestamp = readUnaligned(tail.constData() + sizeof(UINT8));
                     hasTimestamp = true;
                     msgUnknownExtDataFormat = false;
                 }
@@ -215,7 +215,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                         goto parsing_done;
                     }
 
-                    timestamp = readMisaligned((UINT64*)(tail.constData()) + sizeof(UINT8));
+                    timestamp = readUnaligned((UINT64*)(tail.constData()) + sizeof(UINT8));
                     hash = tail.mid(sizeof(UINT64) + sizeof(UINT8), SHA256_HASH_SIZE);
                     hasTimestamp = true;
                     hasHash = true;
@@ -272,8 +272,8 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
             // Get entry GUID
             if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_GUID) { // GUID is strored in the variable itself
-                name = guidToUString(readMisaligned((EFI_GUID*)(entryHeader + 1)));
-                guid = guidToUString(readMisaligned((EFI_GUID*)(entryHeader + 1)), false);
+                name = guidToUString(readUnaligned((EFI_GUID*)(entryHeader + 1)));
+                guid = guidToUString(readUnaligned((EFI_GUID*)(entryHeader + 1)), false);
             }
             // GUID is stored in GUID list at the end of the store
             else {
@@ -283,8 +283,8 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
                 // The list begins at the end of the store and goes backwards
                 const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
-                name = guidToUString(readMisaligned(guidPtr));
-                guid = guidToUString(readMisaligned(guidPtr), false);
+                name = guidToUString(readUnaligned(guidPtr));
+                guid = guidToUString(readUnaligned(guidPtr), false);
                 hasGuidIndex = true;
             }
 
@@ -365,7 +365,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         // Try parsing the entry data as NVAR storage if it begins with NVAR signature
         if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
-            && body.size() >= 4 && readMisaligned((const UINT32*)body.constData()) == NVRAM_NVAR_ENTRY_SIGNATURE)
+            && body.size() >= 4 && readUnaligned((const UINT32*)body.constData()) == NVRAM_NVAR_ENTRY_SIGNATURE)
             parseNvarStore(varIndex);
 
         // Move to next exntry
@@ -1496,8 +1496,8 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             name = UString("Invalid");
         }
         else { // Add GUID and text for valid variables
-            name = guidToUString(readMisaligned(variableGuid));
-            info += UString("Variable GUID: ") + guidToUString(readMisaligned(variableGuid), false) + UString("\n");
+            name = guidToUString(readUnaligned(variableGuid));
+            info += UString("Variable GUID: ") + guidToUString(readUnaligned(variableGuid), false) + UString("\n");
             text = UString::fromUtf16(variableName);
         }
 

@@ -56,7 +56,7 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
 
 // Safely dereferences misaligned pointers
 template <typename T>
-inline T readMisaligned(const T *v) {
+inline T readUnaligned(const T *v) {
 	T tmp;
 	memcpy(&tmp, v, sizeof(T));
 	return tmp;
