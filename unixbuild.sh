@@ -3,6 +3,12 @@
 UTARGET=$(uname)
 BINSUFFIX=""
 
+if [ "$1" = "--configure" ]; then
+  export NOBUILD=1
+elif [ "$1" = "--build" ]; then
+  export PRECONFIGURED=1
+fi
+
 if [ "$UTARGET" = "Darwin" ]; then
   export UPLATFORM="mac"
 elif [ "$UTARGET" = "Linux" ]; then

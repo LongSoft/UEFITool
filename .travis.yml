@@ -73,6 +73,6 @@ matrix:
           name: "LongSoft/UEFITool"
           description: "UEFITool"
         notification_email: $NOTIFICATION_EMAIL
-        build_command_prepend: "NOBUILD=1 ./unixbuild.sh"
-        build_command: "PRECONFIGURED=1 ./unixbuild.sh"
+        build_command_prepend: "./unixbuild.sh --configure"
+        build_command: "./unixbuild.sh --build"
         branch_pattern: new_engine
