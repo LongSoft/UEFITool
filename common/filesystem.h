@@ -37,11 +37,15 @@ static inline bool changeDirectory(const UString & dir) {
 }
 
 static inline void removeDirectory(const UString & dir) {
-    _rmdir(dir.toLocal8Bit());
+    int r = _rmdir(dir.toLocal8Bit());
+    // Hack: unlike *nix, Windows does not permit deleting current directories.
+    if (r < 0 && errno == EACCES && changeDirectory(dir + UString("/../"))) {
+        _rmdir(dir.toLocal8Bit());
+    }
 }
 
 static inline UString getAbsPath(const UString & path) {
-    char abs[1024] = {};
+    char abs[_MAX_PATH] = {};
     if (_fullpath(abs, path.toLocal8Bit(), sizeof(abs)))
         return UString(abs);
     return path;
