@@ -1,4 +1,9 @@
 language: cpp
+
+env:
+  global:
+    secure: "cWSx7cf7dOyGzqY12imfKIF0G0ImcjChHLpWuDU4dfSl+BvPh8WURhQqwpPihFzA4j+Ob9IdgJdEINW4ZKs5Fqt9NqpqTbsGlv7xMeGSNMymlwzwrY63CU8td6z/ju8Tgvi9I7aHtrYCbi4RCw2vPRzBihgwXTzQg6LWFoVT+XQ="
+
 matrix:
   include:
   - os: osx
@@ -50,3 +55,24 @@ matrix:
         secure: "WjYd93lVLKHULBpUXS/WtGrkdXyAwxHOUnLJotyDmQipAQP5Ox7Kj12JwkSJGEmVOEdcbIQJyi0QxPjn1UYbYsAt6Op8zrjnYLS4G4fMdBtcxprWzid85uTW7oAAIFs7ygMVhpzxRKpu70yNb683vbThqNmaOu6RyG9aJOLtPAg="
       on:
         tags: true
+
+  - os: linux
+    dist: trusty
+    compiler: clang
+
+    before_install:
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
+
+    script:
+      - echo "This script runs coverity..."
+
+    addons:
+      coverity_scan:
+        project:
+          name: "LongSoft/UEFITool"
+          description: "UEFITool"
+        notification_email: $NOTIFICATION_EMAIL
+        build_command_prepend: "NOBUILD=1 ./unixbuild.sh"
+        build_command: "PRECONFIGURED=1 ./unixbuild.sh"
+        branch_pattern: new_engine

@@ -70,39 +70,43 @@ build_tool() {
   cd "$1" || exit 1
 
   # Build
-  if [ "$3" != "" ]; then
-    # -flto is flawed on CI atm
-    if [ "$UPLATFORM" = "mac" ]; then
-      qmake $3 QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
-    elif [ "$UPLATFORM" = "win32" ]; then
-      qmake $3 QMAKE_CXXFLAGS="-static -flto -Os" QMAKE_LFLAGS="-static -flto -Os" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
+  if [ "$PRECONFIGURED" != "1" ]; then
+    if [ "$3" != "" ]; then
+      # -flto is flawed on CI atm
+      if [ "$UPLATFORM" = "mac" ]; then
+        qmake $3 QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
+      elif [ "$UPLATFORM" = "win32" ]; then
+        qmake $3 QMAKE_CXXFLAGS="-static -flto -Os" QMAKE_LFLAGS="-static -flto -Os" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
+      else
+        qmake $3 CONFIG+=optimize_size || exit 1
+      fi
     else
-      qmake $3 CONFIG+=optimize_size || exit 1
-    fi
-  else
-    if [ "$UPLATFORM" = "mac" ]; then
-      cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7" || exit 1
-    elif [ "$UPLATFORM" = "win32" ]; then
-      cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os" -DCMAKE_C_FLAGS="-static -Os" || exit 1
-    else
-      cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os" || exit 1
+      if [ "$UPLATFORM" = "mac" ]; then
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7" || exit 1
+      elif [ "$UPLATFORM" = "win32" ]; then
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os" -DCMAKE_C_FLAGS="-static -Os" || exit 1
+      else
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os" || exit 1
+      fi
     fi
   fi
 
-  make || exit 1
+  if [ "$NOBUILD" != "1" ]; then
+    make || exit 1
 
-  # Move the binary out of the dir
-  if [ "$UPLATFORM" = "win32" ] && [ -f "release/${1}${BINSUFFIX}" ]; then
-    mv "release/${1}${BINSUFFIX}" "${1}${BINSUFFIX}" || exit 1
-  fi
+    # Move the binary out of the dir
+    if [ "$UPLATFORM" = "win32" ] && [ -f "release/${1}${BINSUFFIX}" ]; then
+      mv "release/${1}${BINSUFFIX}" "${1}${BINSUFFIX}" || exit 1
+    fi
 
-  # Archive
-  if [ "$1" = "UEFITool" ] && [ "$UPLATFORM" = "mac" ]; then
-    strip -x UEFITool.app/Contents/MacOS/UEFITool || exit 1
-    zip -qry ../dist/"${1}_NE_${2}_${UPLATFORM}.zip" UEFITool.app ${4} || exit 1
-  else
-    strip -x "${1}${BINSUFFIX}" || exit 1
-    zip -qry ../dist/"${1}_NE_${2}_${UPLATFORM}.zip" "${1}${BINSUFFIX}" ${4} || exit 1
+    # Archive
+    if [ "$1" = "UEFITool" ] && [ "$UPLATFORM" = "mac" ]; then
+      strip -x UEFITool.app/Contents/MacOS/UEFITool || exit 1
+      zip -qry ../dist/"${1}_NE_${2}_${UPLATFORM}.zip" UEFITool.app ${4} || exit 1
+    else
+      strip -x "${1}${BINSUFFIX}" || exit 1
+      zip -qry ../dist/"${1}_NE_${2}_${UPLATFORM}.zip" "${1}${BINSUFFIX}" ${4} || exit 1
+    fi
   fi
 
   # Return to parent
