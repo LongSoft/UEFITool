@@ -215,7 +215,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                         goto parsing_done;
                     }
 
-                    timestamp = readUnaligned((UINT64*)(tail.constData()) + sizeof(UINT8));
+                    timestamp = readUnaligned((UINT64*)(tail.constData() + sizeof(UINT8)));
                     hash = tail.mid(sizeof(UINT64) + sizeof(UINT8), SHA256_HASH_SIZE);
                     hasTimestamp = true;
                     hasHash = true;

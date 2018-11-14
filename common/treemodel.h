@@ -117,7 +117,7 @@ public:
     UString data(const UModelIndex &index, int role) const;
     UString headerData(int section, int orientation, int role = 0) const;
 
-    TreeModel() {
+    TreeModel() : markingEnabledFlag(false) {
         rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE);
     }
 
