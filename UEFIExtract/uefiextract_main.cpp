@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
         if (argc == 2) {
             return (ffsDumper.dump(model.index(0, 0), path + UString(".dump")) != U_SUCCESS);
         }
-        else if (argc == 3 && !std::strcmp(argv[2], "all")) { // Dump every elementm with report
+        else if (argc == 3 && !std::strcmp(argv[2], "all")) { // Dump every element with report
             return (ffsDumper.dump(model.index(0, 0), path + UString(".dump"), FfsDumper::DUMP_ALL) != U_SUCCESS);
         }
         else if (argc == 3 && !std::strcmp(argv[2], "report")) { // Skip dumping
