@@ -218,6 +218,14 @@ UINT8 TreeModel::compression(const QModelIndex &index) const
     return item->compression();
 }
 
+UINT32 TreeModel::dictionarySize(const QModelIndex &index) const
+{
+    if (!index.isValid())
+        return 0;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->dictionarySize();
+}
+
 void TreeModel::setSubtype(const QModelIndex & index, const UINT8 subtype)
 {
     if (!index.isValid())
@@ -265,6 +273,16 @@ void TreeModel::setAction(const QModelIndex &index, const UINT8 action)
 
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     item->setAction(action);
+    emit dataChanged(this->index(0, 0), index);
+}
+
+void TreeModel::setDictionarySize(const QModelIndex &index, const UINT32 dictionarySize)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setDictionarySize(dictionarySize);
     emit dataChanged(this->index(0, 0), index);
 }
 

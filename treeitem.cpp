@@ -23,6 +23,7 @@ TreeItem::TreeItem(const UINT8 type, const UINT8 subtype, const UINT8 compressio
     itemType(type),
     itemSubtype(subtype),
     itemCompression(compression),
+    itemDictionarySize(0),
     itemName(name),
     itemText(text),
     itemInfo(info),
@@ -196,6 +197,16 @@ bool TreeItem::hasEmptyBody() const
 UINT8 TreeItem::action() const
 {
     return itemAction;
+}
+
+UINT32 TreeItem::dictionarySize() const
+{
+    return itemDictionarySize;
+}
+
+void TreeItem::setDictionarySize(const UINT32 dictionarySize)
+{
+    itemDictionarySize = dictionarySize;
 }
 
 void TreeItem::setAction(const UINT8 action)

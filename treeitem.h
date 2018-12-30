@@ -72,12 +72,16 @@ public:
 
     UINT8 compression() const;
 
+    UINT32 dictionarySize() const;
+    void setDictionarySize(const UINT32 dictionarySize);
+
 private:
     QList<TreeItem*> childItems;
     UINT8      itemAction;
     UINT8      itemType;
     UINT8      itemSubtype;
     UINT8      itemCompression;
+    UINT32     itemDictionarySize;
     QString    itemName;
     QString    itemText;
     QString    itemInfo;

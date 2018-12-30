@@ -76,7 +76,7 @@ public:
 
     // Compression routines
     UINT8 decompress(const QByteArray & compressed, const UINT8 compressionType, QByteArray & decompressedData, UINT8 * algorithm = NULL);
-    UINT8 compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData);
+    UINT8 compress(const QByteArray & data, const UINT8 algorithm, const UINT32 dictionarySize, QByteArray & compressedData);
 
     // Construction routines
     UINT8 reconstructImageFile(QByteArray &reconstructed);

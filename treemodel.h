@@ -47,7 +47,7 @@ public:
     void setSubtype(const QModelIndex &index, const UINT8 subtype);
     void setName(const QModelIndex &index, const QString &name);
     void setText(const QModelIndex &index, const QString &text);
-    void setParsingData(const QModelIndex &index, const QByteArray &data);
+    void setDictionarySize(const QModelIndex &index, const UINT32 dictionarySize);
 
     QString name(const QModelIndex &index) const;
     QString text(const QModelIndex &index) const;
@@ -58,10 +58,9 @@ public:
     bool hasEmptyHeader(const QModelIndex &index) const;
     QByteArray body(const QModelIndex &index) const;
     bool hasEmptyBody(const QModelIndex &index) const;
-    QByteArray parsingData(const QModelIndex &index) const;
-    bool hasEmptyParsingData(const QModelIndex &index) const;
     UINT8 action(const QModelIndex &index) const;
     UINT8 compression(const QModelIndex &index) const;
+    UINT32 dictionarySize(const QModelIndex &index) const;
 
     QModelIndex addItem(const UINT8 type, const UINT8 subtype = 0, const UINT8 compression = COMPRESSION_ALGORITHM_NONE,
         const QString & name = QString(), const QString & text = QString(), const QString & info = QString(),

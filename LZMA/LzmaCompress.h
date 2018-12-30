@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-#define LZMA_DICTIONARY_SIZE 0x800000
+#define DEFAULT_LZMA_DICTIONARY_SIZE 0x800000
 #define _LZMA_SIZE_OPT
 
     EFI_STATUS
@@ -30,7 +30,8 @@ extern "C" {
             const UINT8  *Source,
             UINT32       SourceSize,
             UINT8        *Destination,
-            UINT32       *DestinationSize
+            UINT32       *DestinationSize,
+            UINT32       DictionarySize
         );
 
 #ifdef __cplusplus

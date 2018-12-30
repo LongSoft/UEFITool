@@ -1590,8 +1590,16 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             .arg(compressionTypeToQString(algorithm))
             .hexarg(compressedSectionHeader->UncompressedLength).arg(compressedSectionHeader->UncompressedLength);
 
+        UINT32 dictionarySize = DEFAULT_LZMA_DICTIONARY_SIZE;
+        if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
+            // Dictionary size is stored in bytes 1-4 of LZMA-compressed data
+            dictionarySize = *(UINT32*)(body.constData() + 1);
+            info += tr("\nLZMA dictionary size: %1h").hexarg(dictionarySize);
+        }
+
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, algorithm, name, "", info, header, body, parent, mode);
+        model->setDictionarySize(index, dictionarySize);
 
         // Show message
         if (!parseCurrentSection)
@@ -1632,6 +1640,8 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
             .hexarg2(guidDefinedSectionHeader->Attributes, 4);
 
         UINT8 algorithm = COMPRESSION_ALGORITHM_NONE;
+        UINT32 dictionarySize = DEFAULT_LZMA_DICTIONARY_SIZE;
+
         // Check if section requires processing
         if (guidDefinedSectionHeader->Attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) {
             // Tiano compressed section
@@ -1664,6 +1674,10 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
                 if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
                     info += tr("\nCompression type: LZMA");
                     info += tr("\nDecompressed size: %1h (%2)").hexarg(processed.length()).arg(processed.length());
+
+                    // Dictionary size is stored in bytes 1-4 of LZMA-compressed data
+                    dictionarySize = *(UINT32*)(body.constData() + 1);
+                    info += tr("\nLZMA dictionary size: %1h").hexarg(dictionarySize);
                 }
                 else
                     info += tr("\nCompression type: unknown");
@@ -1743,6 +1757,7 @@ UINT8 FfsEngine::parseSection(const QByteArray & section, QModelIndex & index, c
 
         // Add tree item
         index = model->addItem(Types::Section, sectionHeader->Type, algorithm, name, "", info, header, body, parent, mode);
+        model->setDictionarySize(index, dictionarySize);
 
         // Show messages
         if (msgUnknownGuid)
@@ -2164,6 +2179,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
     QByteArray created;
     UINT8 result;
     QModelIndex fileIndex;
+    UINT32 defaultDictionarySize = DEFAULT_LZMA_DICTIONARY_SIZE;
 
     if (!index.isValid() || !index.parent().isValid())
         return ERR_INVALID_PARAMETER;
@@ -2344,18 +2360,21 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
             sectionHeader->UncompressedLength = body.size();
 
             // Set compression type
-            if (algorithm == COMPRESSION_ALGORITHM_NONE)
+            if (algorithm == COMPRESSION_ALGORITHM_NONE) {
                 sectionHeader->CompressionType = EFI_NOT_COMPRESSED;
-            else if (algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO)
+            }
+            else if (algorithm == COMPRESSION_ALGORITHM_EFI11 || algorithm == COMPRESSION_ALGORITHM_TIANO) {
                 sectionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
-            else if (algorithm == COMPRESSION_ALGORITHM_LZMA || algorithm == COMPRESSION_ALGORITHM_IMLZMA)
+            }
+            else if (algorithm == COMPRESSION_ALGORITHM_LZMA || algorithm == COMPRESSION_ALGORITHM_IMLZMA) {
                 sectionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
+            }
             else
                 return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
 
             // Compress body
             QByteArray compressed;
-            result = compress(body, algorithm, compressed);
+            result = compress(body, algorithm, defaultDictionarySize, compressed);
             if (result)
                 return result;
 
@@ -2381,7 +2400,7 @@ UINT8 FfsEngine::create(const QModelIndex & index, const UINT8 type, const QByte
         case EFI_SECTION_GUID_DEFINED:{
             // Compress body
             QByteArray compressed;
-            result = compress(body, algorithm, compressed);
+            result = compress(body, algorithm, defaultDictionarySize, compressed);
             if (result)
                 return result;
 
@@ -2843,7 +2862,7 @@ UINT8 FfsEngine::decompress(const QByteArray & compressedData, const UINT8 compr
     }
 }
 
-UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteArray & compressedData)
+UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, const UINT32 dictionarySize, QByteArray & compressedData)
 {
     UINT8* compressed;
 
@@ -2933,10 +2952,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
     case COMPRESSION_ALGORITHM_LZMA:
     {
         UINT32 compressedSize = 0;
-        if (LzmaCompress((const UINT8*)data.constData(), data.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+        if (LzmaCompress((const UINT8*)data.constData(), data.size(), NULL, &compressedSize, dictionarySize) != ERR_BUFFER_TOO_SMALL)
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (LzmaCompress((const UINT8*)data.constData(), data.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+        if (LzmaCompress((const UINT8*)data.constData(), data.size(), compressed, &compressedSize, dictionarySize) != ERR_SUCCESS) {
             delete[] compressed;
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         }
@@ -2953,10 +2972,10 @@ UINT8 FfsEngine::compress(const QByteArray & data, const UINT8 algorithm, QByteA
         UINT32 headerSize = sizeOfSectionHeader(sectionHeader);
         header = data.left(headerSize);
         QByteArray newData = data.mid(headerSize);
-        if (LzmaCompress((const UINT8*)newData.constData(), newData.size(), NULL, &compressedSize) != ERR_BUFFER_TOO_SMALL)
+        if (LzmaCompress((const UINT8*)newData.constData(), newData.size(), NULL, &compressedSize, dictionarySize) != ERR_BUFFER_TOO_SMALL)
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         compressed = new UINT8[compressedSize];
-        if (LzmaCompress((const UINT8*)newData.constData(), newData.size(), compressed, &compressedSize) != ERR_SUCCESS) {
+        if (LzmaCompress((const UINT8*)newData.constData(), newData.size(), compressed, &compressedSize, dictionarySize) != ERR_SUCCESS) {
             delete[] compressed;
             return ERR_CUSTOMIZED_COMPRESSION_FAILED;
         }
@@ -3919,20 +3938,28 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                 EFI_COMPRESSION_SECTION* compessionHeader = (EFI_COMPRESSION_SECTION*)header.data();
                 // Set new uncompressed size
                 compessionHeader->UncompressedLength = reconstructed.size();
-                // Compress new section body
-                QByteArray compressed;
-                result = compress(reconstructed, model->compression(index), compressed);
-                if (result)
-                    return result;
+
                 // Correct compression type
-                if (model->compression(index) == COMPRESSION_ALGORITHM_NONE)
+                if (model->compression(index) == COMPRESSION_ALGORITHM_NONE) {
                     compessionHeader->CompressionType = EFI_NOT_COMPRESSED;
-                else if (model->compression(index) == COMPRESSION_ALGORITHM_LZMA || model->compression(index) == COMPRESSION_ALGORITHM_IMLZMA)
-                    compessionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
-                else if (model->compression(index) == COMPRESSION_ALGORITHM_EFI11 || model->compression(index) == COMPRESSION_ALGORITHM_TIANO)
+                }
+                else if (model->compression(index) == COMPRESSION_ALGORITHM_EFI11 || model->compression(index) == COMPRESSION_ALGORITHM_TIANO) {
                     compessionHeader->CompressionType = EFI_STANDARD_COMPRESSION;
+                }
+                else if (model->compression(index) == COMPRESSION_ALGORITHM_LZMA) {
+                    compessionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
+                }
+                else if (model->compression(index) == COMPRESSION_ALGORITHM_IMLZMA) {
+                    compessionHeader->CompressionType = EFI_CUSTOMIZED_COMPRESSION;
+                }
                 else
                     return ERR_UNKNOWN_COMPRESSION_ALGORITHM;
+
+                // Compress new section body
+                QByteArray compressed;
+                result = compress(reconstructed, model->compression(index), model->dictionarySize(index), compressed);
+                if (result)
+                    return result;
 
                 // Replace new section body
                 reconstructed = compressed;
@@ -3941,7 +3968,7 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
                 EFI_GUID_DEFINED_SECTION* guidDefinedHeader = (EFI_GUID_DEFINED_SECTION*)header.data();
                 // Compress new section body
                 QByteArray compressed;
-                result = compress(reconstructed, model->compression(index), compressed);
+                result = compress(reconstructed, model->compression(index), model->dictionarySize(index), compressed);
                 if (result)
                     return result;
                 // Check for authentication status valid attribute
