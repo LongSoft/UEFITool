@@ -1285,81 +1285,75 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     
     while (fileOffset < volumeBodySize) {
         UINT32 fileSize = getFileSize(volumeBody, fileOffset, ffsVersion);
-        // Check file size 
-        if (fileSize < sizeof(EFI_FFS_FILE_HEADER) || fileSize > volumeBodySize - fileOffset) {
-            // Check that we are at the empty space
-            UByteArray header = volumeBody.mid(fileOffset, sizeof(EFI_FFS_FILE_HEADER));
-            if (header.count(emptyByte) == header.size()) { //Empty space
-                // Check volume usedSpace entry to be valid
-                if (usedSpace > 0 && usedSpace == fileOffset + volumeHeaderSize) {
-                    if (model->hasEmptyParsingData(index) == false) {
-                        UByteArray data = model->parsingData(index);
-                        VOLUME_PARSING_DATA* pdata = (VOLUME_PARSING_DATA*)data.data();
-                        pdata->hasValidUsedSpace = TRUE;
-                        model->setParsingData(index, data);
-                        model->setText(index, model->text(index) + "UsedSpace ");
-                    }
+
+        // Check that we are at the empty space
+        UByteArray header = volumeBody.mid(fileOffset, std::min(sizeof(EFI_FFS_FILE_HEADER), (size_t)volumeBodySize - fileOffset));
+        if (header.count(emptyByte) == header.size()) { //Empty space
+            // Check volume usedSpace entry to be valid
+            if (usedSpace > 0 && usedSpace == fileOffset + volumeHeaderSize) {
+                if (model->hasEmptyParsingData(index) == false) {
+                    UByteArray data = model->parsingData(index);
+                    VOLUME_PARSING_DATA* pdata = (VOLUME_PARSING_DATA*)data.data();
+                    pdata->hasValidUsedSpace = TRUE;
+                    model->setParsingData(index, data);
+                    model->setText(index, model->text(index) + "UsedSpace ");
                 }
-                
-                // Check free space to be actually free
-                UByteArray freeSpace = volumeBody.mid(fileOffset);
-                if (freeSpace.count(emptyByte) != freeSpace.size()) {
-                    // Search for the first non-empty byte
-                    UINT32 i;
-                    UINT32 size = freeSpace.size();
-                    const UINT8* current = (UINT8*)freeSpace.constData();
-                    for (i = 0; i < size; i++) {
-                        if (*current++ != emptyByte)
-                            break;
-                    }
+            }
 
-                    // Align found index to file alignment
-                    // It must be possible because minimum 16 bytes of empty were found before
-                    if (i != ALIGN8(i)) {
-                        i = ALIGN8(i) - 8;
-                    }
-
-                    // Add all bytes before as free space
-                    if (i > 0) {
-                        UByteArray free = freeSpace.left(i);
-
-                        // Get info
-                        UString info = usprintf("Full size: %Xh (%u)", free.size(), free.size());
-
-                        // Add free space item
-                        model->addItem(model->offset(index) + volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), free, UByteArray(), Movable, index);
-                    }
-
-                    // Parse non-UEFI data 
-                    parseVolumeNonUefiData(freeSpace.mid(i), volumeHeaderSize + fileOffset + i, index);
+            // Check free space to be actually free
+            UByteArray freeSpace = volumeBody.mid(fileOffset);
+            if (freeSpace.count(emptyByte) != freeSpace.size()) {
+                // Search for the first non-empty byte
+                UINT32 i;
+                UINT32 size = freeSpace.size();
+                const UINT8* current = (UINT8*)freeSpace.constData();
+                for (i = 0; i < size; i++) {
+                    if (*current++ != emptyByte)
+                        break;
                 }
-                else {
+
+                // Align found index to file alignment
+                // It must be possible because minimum 16 bytes of empty were found before
+                if (i != ALIGN8(i)) {
+                    i = ALIGN8(i) - 8;
+                }
+
+                // Add all bytes before as free space
+                if (i > 0) {
+                    UByteArray free = freeSpace.left(i);
+
                     // Get info
-                    UString info = usprintf("Full size: %Xh (%u)", freeSpace.size(), freeSpace.size());
+                    UString info = usprintf("Full size: %Xh (%u)", free.size(), free.size());
 
                     // Add free space item
-                    model->addItem(model->offset(index) + volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Movable, index);
+                    model->addItem(model->offset(index) + volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), free, UByteArray(), Movable, index);
                 }
-                break; // Exit from parsing loop
+
+                // Parse non-UEFI data
+                parseVolumeNonUefiData(freeSpace.mid(i), volumeHeaderSize + fileOffset + i, index);
             }
-            else { //File space
-                // Parse non-UEFI data 
-                parseVolumeNonUefiData(volumeBody.mid(fileOffset), volumeHeaderSize + fileOffset, index);
-                break; // Exit from parsing loop
+            else {
+                // Get info
+                UString info = usprintf("Full size: %Xh (%u)", freeSpace.size(), freeSpace.size());
+
+                // Add free space item
+                model->addItem(model->offset(index) + volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Movable, index);
             }
+            break; // Exit from parsing loop
         }
 
-        // Get file header
-        UByteArray file = volumeBody.mid(fileOffset, fileSize);
-        UByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
-        const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)header.constData();
-        if (ffsVersion == 3 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
-            header = file.left(sizeof(EFI_FFS_FILE_HEADER2));
+        // We aren't at the end of empty space
+        // Check that the remaining space can still have a file in it
+        if (volumeBodySize - fileOffset < sizeof(EFI_FFS_FILE_HEADER) || // Remaining space is smaller than the smallest possible file
+            volumeBodySize - fileOffset < fileSize) { // Remaining space is smaller than non-empty file size
+            // Parse non-UEFI data
+            parseVolumeNonUefiData(volumeBody.mid(fileOffset), volumeHeaderSize + fileOffset, index);
+            break; // Exit from parsing loop
         }
 
         // Parse current file's header
         UModelIndex fileIndex;
-        USTATUS result = parseFileHeader(file, volumeHeaderSize + fileOffset, index, fileIndex);
+        USTATUS result = parseFileHeader(volumeBody.mid(fileOffset, fileSize), volumeHeaderSize + fileOffset, index, fileIndex);
         if (result) {
             msg(usprintf("%s: file header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
         }
@@ -2462,9 +2456,10 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
 
     // Decompress section
     UINT8 algorithm = COMPRESSION_ALGORITHM_NONE;
+    UINT32 dictionarySize = 0;
     UByteArray decompressed;
     UByteArray efiDecompressed;
-    USTATUS result = decompress(model->body(index), compressionType, algorithm, decompressed, efiDecompressed);
+    USTATUS result = decompress(model->body(index), compressionType, algorithm, dictionarySize, decompressed, efiDecompressed);
     if (result) {
         msg(UString("parseCompressedSectionBody: decompression failed with error ") + errorCodeToUString(result), index);
         return U_SUCCESS;
@@ -2497,10 +2492,14 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
 
     // Add info
     model->addInfo(index, UString("\nCompression algorithm: ") + compressionTypeToUString(algorithm));
+    if (algorithm == COMPRESSION_ALGORITHM_LZMA || algorithm == COMPRESSION_ALGORITHM_IMLZMA) {
+        model->addInfo(index, usprintf("\nLZMA dictionary size: %Xh", dictionarySize));
+    }
 
     // Update parsing data
     COMPRESSED_SECTION_PARSING_DATA pdata;
     pdata.algorithm = algorithm;
+    pdata.dictionarySize = dictionarySize;
     pdata.compressionType = compressionType;
     pdata.uncompressedSize = uncompressedSize;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
@@ -2532,10 +2531,11 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     UString info;
     bool parseCurrentSection = true;
     UINT8 algorithm = COMPRESSION_ALGORITHM_NONE;
+    UINT32 dictionarySize = 0;
     UByteArray baGuid = UByteArray((const char*)&guid, sizeof(EFI_GUID));
     // Tiano compressed section
     if (baGuid == EFI_GUIDED_SECTION_TIANO) {
-        USTATUS result = decompress(model->body(index), EFI_STANDARD_COMPRESSION, algorithm, processed, efiDecompressed);
+        USTATUS result = decompress(model->body(index), EFI_STANDARD_COMPRESSION, algorithm, dictionarySize, processed, efiDecompressed);
         if (result) {
             msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             return U_SUCCESS;
@@ -2563,7 +2563,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     }
     // LZMA compressed section
     else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMAF86) {
-        USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION, algorithm, processed, efiDecompressed);
+        USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION, algorithm, dictionarySize, processed, efiDecompressed);
         if (result) {
             msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             return U_SUCCESS;
@@ -2572,6 +2572,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
             info += UString("\nCompression algorithm: LZMA");
             info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
+            info += usprintf("\nLZMA dictionary size: %Xh", dictionarySize);
         }
         else {
             info += UString("\nCompression algorithm: unknown");
@@ -2596,6 +2597,11 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     // Update data
     if (algorithm != COMPRESSION_ALGORITHM_NONE)
         model->setCompressed(index, true);
+
+    // Set parsing data
+    GUIDED_SECTION_PARSING_DATA pdata;
+    pdata.dictionarySize = dictionarySize;
+    model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
 
     if (!parseCurrentSection) {
         msg(usprintf("%s: GUID defined section can not be processed", __FUNCTION__), index);

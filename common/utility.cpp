@@ -136,7 +136,7 @@ UString errorCodeToUString(USTATUS errorCode)
 }
 
 // Compression routines
-USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressedData, UByteArray & efiDecompressedData)
+USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionType, UINT8 & algorithm, UINT32 & dictionarySize, UByteArray & decompressedData, UByteArray & efiDecompressedData)
 {
     const UINT8* data;
     UINT32  dataSize;
@@ -146,6 +146,9 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
     UINT8* scratch;
     UINT32  scratchSize = 0;
     const EFI_TIANO_HEADER* header;
+
+    // For all but LZMA dictionary size is 0
+    dictionarySize = 0;
 
     switch (compressionType)
     {
@@ -189,13 +192,9 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
         USTATUS EfiResult = EfiDecompress(data, dataSize, efiDecompressed, decompressedSize, scratch, scratchSize);
 
         if (decompressedSize > INT32_MAX) {
-            free(decompressed);
-            free(efiDecompressed);
-            free(scratch);
-            return U_STANDARD_DECOMPRESSION_FAILED;
+            result = U_STANDARD_DECOMPRESSION_FAILED;
         }
-
-        if (EfiResult == U_SUCCESS && TianoResult == U_SUCCESS) { // Both decompressions are OK 
+        else if (EfiResult == U_SUCCESS && TianoResult == U_SUCCESS) { // Both decompressions are OK
             algorithm = COMPRESSION_ALGORITHM_UNDECIDED;
             decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
             efiDecompressedData = UByteArray((const char*)efiDecompressed, (int)decompressedSize);
@@ -239,6 +238,9 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
         if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
             // Intel modified LZMA workaround
             // Decompress section data once again
+
+            // VERIFY: might be wrong assumption, 0.2x had a different code here
+            // See: https://github.com/LongSoft/UEFITool/blob/4bee991c949b458739ffa96b88dbc589192c7689/ffsengine.cpp#L2814-L2823
             data += sizeof(UINT32);
 
             // Get info again
@@ -258,6 +260,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
                     return U_CUSTOMIZED_DECOMPRESSION_FAILED;
                 }
                 algorithm = COMPRESSION_ALGORITHM_IMLZMA;
+                dictionarySize = readUnaligned((UINT32*)(data + 1)); // LZMA dictionary size is stored in bytes 1-4 of LZMA properties header
                 decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
             }
         }
@@ -267,6 +270,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
                 return U_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
             algorithm = COMPRESSION_ALGORITHM_LZMA;
+            dictionarySize = readUnaligned((UINT32*)(data + 1)); // LZMA dictionary size is stored in bytes 1-4 of LZMA properties header
             decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
         }
 
@@ -414,7 +418,7 @@ USTATUS gzipDecompress(const UByteArray & input, UByteArray & output)
     // 15 for the maximum history buffer, 16 for gzip only input.
     int ret = inflateInit2(&stream, 15U | 16U);
     if (ret != Z_OK)
-        return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        return U_GZIP_DECOMPRESSION_FAILED;
 
     while (ret == Z_OK) {
         Bytef out[4096];
@@ -427,5 +431,5 @@ USTATUS gzipDecompress(const UByteArray & input, UByteArray & output)
     }
 
     inflateEnd(&stream);
-    return ret == Z_STREAM_END ? U_SUCCESS : U_CUSTOMIZED_DECOMPRESSION_FAILED;
+    return ret == Z_STREAM_END ? U_SUCCESS : U_GZIP_DECOMPRESSION_FAILED;
 }

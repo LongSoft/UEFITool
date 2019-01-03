@@ -29,8 +29,8 @@ UString uniqueItemName(const UModelIndex & index);
 // Converts error code to UString
 UString errorCodeToUString(USTATUS errorCode);
 
-// EFI/Tiano decompression routine
-USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UByteArray & decompressed, UByteArray & efiDecompressed);
+// EFI/Tiano/LZMA decompression routine
+USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, UINT8 & algorithm, UINT32 & dictionarySize, UByteArray & decompressed, UByteArray & efiDecompressed);
 
 // GZIP decompression routine
 USTATUS gzipDecompress(const UByteArray & compressed, UByteArray & decompressed);

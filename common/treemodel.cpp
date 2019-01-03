@@ -296,11 +296,13 @@ void TreeModel::setFixed(const UModelIndex &index, const bool fixed)
         return;
 
     if (fixed) {
+        // Special handling for uncompressed to compressed boundary
         if (item->compressed() && item->parent()->compressed() == FALSE) {
             item->setFixed(item->parent()->fixed());
             return;
         }
 
+        // Propagate fixed flag until root
         if (item->parent()->type() != Types::Root)
             item->parent()->setFixed(fixed);
     }

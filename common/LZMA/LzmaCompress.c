@@ -64,7 +64,8 @@ LzmaCompress (
     CONST UINT8  *Source,
     UINT32       SourceSize,
     UINT8        *Destination,
-    UINT32       *DestinationSize
+    UINT32       *DestinationSize,
+    UINT32       DictionarySize
 )
 {
     SRes              LzmaResult;
@@ -79,8 +80,7 @@ LzmaCompress (
     }
 
     LzmaEncProps_Init(&props);
-    // TODO: need to detect this instead of hardcoding
-    props.dictSize = LZMA_DICTIONARY_SIZE;
+    props.dictSize = DictionarySize;
     props.level = 9;
     props.fb = 273;
 
