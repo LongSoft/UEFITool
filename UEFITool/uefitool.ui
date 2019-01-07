@@ -913,7 +913,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Export discovered GUIDs</string>
+    <string>Export discovered GUIDs...</string>
    </property>
   </action>
  </widget>

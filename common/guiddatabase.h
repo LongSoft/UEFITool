@@ -35,6 +35,6 @@ typedef std::map<EFI_GUID, UString, OperatorLessForGuids> GuidDatabase;
 UString guidDatabaseLookup(const EFI_GUID & guid);
 void initGuidDatabase(const UString & path = "", UINT32* numEntries = NULL);
 GuidDatabase guidDatabaseFromTreeRecursive(TreeModel * model, const UModelIndex index);
-USTATUS guidDatabseExportToFile(const UString & outPath, GuidDatabase & db);
+USTATUS guidDatabaseExportToFile(const UString & outPath, GuidDatabase & db);
 
 #endif // GUID_DATABASE_H

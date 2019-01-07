@@ -1017,9 +1017,9 @@ void UEFITool::exportDiscoveredGuids()
 {
     GuidDatabase db = guidDatabaseFromTreeRecursive(model, model->index(0, 0));
     if (!db.empty()) {
-        QString path = QFileDialog::getSaveFileName(this, tr("Save parsed GUIDs to datavase"), currentPath + ".guids.csv", tr("Comma-separated values files (*.csv);;All files (*)"));
+        QString path = QFileDialog::getSaveFileName(this, tr("Save parsed GUIDs to database"), currentPath + ".guids.csv", tr("Comma-separated values files (*.csv);;All files (*)"));
         if (!path.isEmpty())
-            guidDatabseExportToFile(path, db);
+            guidDatabaseExportToFile(path, db);
     }
 }
 

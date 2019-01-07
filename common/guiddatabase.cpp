@@ -126,7 +126,7 @@ GuidDatabase guidDatabaseFromTreeRecursive(TreeModel * model, const UModelIndex 
     return db;
 }
 
-USTATUS guidDatabseExportToFile(const UString & outPath, GuidDatabase & db)
+USTATUS guidDatabaseExportToFile(const UString & outPath, GuidDatabase & db)
 {
     std::ofstream outputFile(outPath.toLocal8Bit(), std::ios::out | std::ios::trunc);
     if (!outputFile)
