@@ -12,6 +12,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
+//TODO: relax fixed restrictions once NVRAM builder is ready
+
 // A workaround for compilers not supporting c++11 and c11
 // for using PRIX64.
 #define __STDC_FORMAT_MACROS
@@ -46,7 +48,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
     model->setText(parentFileIndex, UString("NVAR store"));
 
     // Get local offset
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -101,7 +103,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
             if ((UINT32)padding.count(emptyByte) == unparsedSize) { // Free space
                 // Add tree item
-                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             }
             else {
                 // Nothing is parsed yet, but the file is not empty 
@@ -228,7 +230,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
         if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_DATA_ONLY) { // Data-only attribute is set
             isInvalidLink = true;
             UModelIndex nvarIndex;
-            // Search prevously added entries for a link to this variable
+            // Search previously added entries for a link to this variable
             // WARNING: O(n^2), may be very slow
             for (int i = model->rowCount(index) - 1; i >= 0; i--) {
                 nvarIndex = index.child(i, 0);
@@ -251,7 +253,6 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                     subtype = Subtypes::DataNvarEntry;
             }
 
-            //isDataOnly = true;
             // Do not parse further
             goto parsing_done;
         }
@@ -351,7 +352,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
         }
 
         // Add tree item
-        UModelIndex varIndex = model->addItem(localOffset + offset, Types::NvarEntry, subtype, name, text, info, header, body, tail, Movable, index);
+        UModelIndex varIndex = model->addItem(localOffset + offset, Types::NvarEntry, subtype, name, text, info, header, body, tail, Fixed, index);
 
         // Set parsing data for created entry
         model->setParsingData(varIndex, UByteArray((const char*)&pdata, sizeof(pdata)));
@@ -390,7 +391,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
     }
 
     // Get local offset
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
 
     // Get item data
     UByteArray data = model->body(index);
@@ -483,7 +484,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
         if (padding.count(emptyByte) == padding.size()) { // Free space
             // Add tree item
-            model->addItem(localOffset + storeOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Movable, index);
+            model->addItem(localOffset + storeOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
         }
         else {
             // Nothing is parsed yet, but the file is not empty 
@@ -1283,7 +1284,7 @@ USTATUS NvramParser::parseFdcStoreBody(const UModelIndex & index)
     const UByteArray data = model->body(index);
 
     // Get local offset
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
 
     // The body is a firmware volume with either a VSS or VSS2 store
     UModelIndex volumeIndex;
@@ -1332,7 +1333,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
     }
 
     // Get local offset
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -1472,7 +1473,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
 
             if (padding.count(emptyByte) == padding.size()) { // Free space
                 // Add tree item
-                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             }
             else { // Padding
                 // Nothing is parsed yet, but the store is not empty 
@@ -1531,7 +1532,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         }
 
         // Add tree item
-        model->addItem(localOffset + offset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Movable, index);
+        model->addItem(localOffset + offset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Fixed, index);
 
         // Apply alignment, if needed
         if (alignment) {
@@ -1552,7 +1553,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
 
     // Get local offset
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -1594,7 +1595,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
                 info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
 
                 // Add free space tree item
-                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
                 return U_SUCCESS;
             }
@@ -1630,7 +1631,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
             body.size(), body.size());
 
         // Add tree item
-        model->addItem(localOffset + offset, Types::FsysEntry, valid ? Subtypes::NormalFsysEntry : Subtypes::InvalidFsysEntry, UString(name.constData()), UString(), info, header, body, UByteArray(), Movable, index);
+        model->addItem(localOffset + offset, Types::FsysEntry, valid ? Subtypes::NormalFsysEntry : Subtypes::InvalidFsysEntry, UString(name.constData()), UString(), info, header, body, UByteArray(), Fixed, index);
 
         // Move to next variable
         offset += variableSize;
@@ -1655,7 +1656,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
     }
 
     // Get local offset
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -1688,7 +1689,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
-                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
             }
             else {
                 // Add padding tree item
@@ -1780,7 +1781,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
-                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Movable, index);
+                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
             }
             else {
                 // Add padding tree item
@@ -1793,7 +1794,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
         }
 
         // Add tree item
-        model->addItem(localOffset + offset, Types::EvsaEntry, subtype, name, UString(), info, header, body, UByteArray(), Movable, index);
+        model->addItem(localOffset + offset, Types::EvsaEntry, subtype, name, UString(), info, header, body, UByteArray(), Fixed, index);
 
         // Move to next variable
         offset += variableSize;
@@ -1854,7 +1855,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
 
     // Get parsing data for the current item
-    UINT32 localOffset = model->offset(index) + model->header(index).size();
+    UINT32 localOffset = model->header(index).size();
     const UByteArray data = model->body(index);
 
 
@@ -1908,7 +1909,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         }
 
         // Add tree item
-        model->addItem(localOffset + offset, Types::FlashMapEntry, subtype, name, flashMapGuidToUString(entryHeader->Guid), info, header, UByteArray(), UByteArray(), Movable, index);
+        model->addItem(localOffset + offset, Types::FlashMapEntry, subtype, name, flashMapGuidToUString(entryHeader->Guid), info, header, UByteArray(), UByteArray(), Fixed, index);
 
         // Move to next variable
         offset += sizeof(PHOENIX_FLASH_MAP_ENTRY);

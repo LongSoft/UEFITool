@@ -519,7 +519,7 @@
      <addaction name="actionReplace"/>
      <addaction name="actionReplaceBody"/>
     </widget>
-    <addaction name="actionGoToOffset"/>
+    <addaction name="actionGoToBase"/>
     <addaction name="actionGoToAddress"/>
     <addaction name="actionSearch"/>
     <addaction name="separator"/>
@@ -822,12 +822,12 @@
     <string>Ctrl+D</string>
    </property>
   </action>
-  <action name="actionGoToOffset">
+  <action name="actionGoToBase">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>&amp;Go to offset...</string>
+    <string>&amp;Select item at base...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+G</string>
@@ -857,7 +857,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Go to &amp;address...</string>
+    <string>Select item at &amp;address...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>

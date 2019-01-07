@@ -33,7 +33,7 @@ std::vector<UString> FfsReport::generate()
     }
 
     // Generate report recursive
-    report.push_back(UString("      Type       |        Subtype        |  Offset  |   Size   |  CRC32   |   Name "));
+    report.push_back(UString("      Type       |        Subtype        |   Base   |   Size   |  CRC32   |   Name "));
     USTATUS result = generateRecursive(report, root);
     if (result) {
         report.push_back(usprintf("%s: generateRecursive returned ", __FUNCTION__) + errorCodeToUString(result));
@@ -55,7 +55,7 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
     UString text = model->text(index);
     UString offset = "|   N/A    ";
     if ((!model->compressed(index)) || (index.parent().isValid() && !model->compressed(index.parent()))) {
-        offset = usprintf("| %08X ", model->offset(index));
+        offset = usprintf("| %08X ", model->base(index));
     }
 
     report.push_back(

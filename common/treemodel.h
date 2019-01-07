@@ -142,34 +142,46 @@ public:
     int rowCount(const UModelIndex &parent = UModelIndex()) const;
     int columnCount(const UModelIndex &parent = UModelIndex()) const;
 
+    UINT8 action(const UModelIndex &index) const;
     void setAction(const UModelIndex &index, const UINT8 action);
+
+    UINT32 base(const UModelIndex &index) const;
+    UINT32 offset(const UModelIndex &index) const;
     void setOffset(const UModelIndex &index, const UINT32 offset);
+
+    UINT8 type(const UModelIndex &index) const;
     void setType(const UModelIndex &index, const UINT8 type);
+
+    UINT8 subtype(const UModelIndex &index) const;
     void setSubtype(const UModelIndex &index, const UINT8 subtype);
+
+    UString name(const UModelIndex &index) const;
     void setName(const UModelIndex &index, const UString &name);
+
+    UString text(const UModelIndex &index) const;
     void setText(const UModelIndex &index, const UString &text);
+
+    UString info(const UModelIndex &index) const;
     void setInfo(const UModelIndex &index, const UString &info);
     void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
+
+    bool fixed(const UModelIndex &index) const;
     void setFixed(const UModelIndex &index, const bool fixed);
+
+    bool compressed(const UModelIndex &index) const;
     void setCompressed(const UModelIndex &index, const bool compressed);
+
+    UINT8 marking(const UModelIndex &index) const;
     void setMarking(const UModelIndex &index, const UINT8 marking);
-    
-    UINT32 offset(const UModelIndex &index) const;
-    UINT8 type(const UModelIndex &index) const;
-    UINT8 subtype(const UModelIndex &index) const;
-    UString name(const UModelIndex &index) const;
-    UString text(const UModelIndex &index) const;
-    UString info(const UModelIndex &index) const;
+
     UByteArray header(const UModelIndex &index) const;
     bool hasEmptyHeader(const UModelIndex &index) const;
+
     UByteArray body(const UModelIndex &index) const;
     bool hasEmptyBody(const UModelIndex &index) const;
+
     UByteArray tail(const UModelIndex &index) const;
     bool hasEmptyTail(const UModelIndex &index) const;
-    bool fixed(const UModelIndex &index) const;
-    bool compressed(const UModelIndex &index) const;
-    UINT8 marking(const UModelIndex &index) const;
-    UINT8 action(const UModelIndex &index) const;
 
     UByteArray parsingData(const UModelIndex &index) const;
     bool hasEmptyParsingData(const UModelIndex &index) const;
@@ -183,7 +195,7 @@ public:
 
     UModelIndex findParentOfType(const UModelIndex & index, UINT8 type) const;
     UModelIndex findLastParentOfType(const UModelIndex & index, UINT8 type) const;
-    UModelIndex findByOffset(UINT32 offset) const;
+    UModelIndex findByBase(UINT32 base) const;
 };
 
 #if defined(QT_CORE_LIB)

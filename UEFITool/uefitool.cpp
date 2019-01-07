@@ -27,8 +27,8 @@ markingEnabled(true)
     ui->setupUi(this);
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
-    goToOffsetDialog = new GoToOffsetDialog(this);
     goToAddressDialog = new GoToAddressDialog(this);
+    goToBaseDialog = new GoToBaseDialog(this);
     model = NULL;
     ffsParser = NULL;
     ffsFinder = NULL;
@@ -60,7 +60,7 @@ markingEnabled(true)
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     connect(ui->actionGoToData, SIGNAL(triggered()), this, SLOT(goToData()));
-    connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
+    connect(ui->actionGoToBase, SIGNAL(triggered()), this, SLOT(goToBase()));
     connect(ui->actionGoToAddress, SIGNAL(triggered()), this, SLOT(goToAddress()));
     connect(ui->actionLoadGuidDatabase, SIGNAL(triggered()), this, SLOT(loadGuidDatabase()));
     connect(ui->actionUnloadGuidDatabase, SIGNAL(triggered()), this, SLOT(unloadGuidDatabase()));
@@ -121,7 +121,7 @@ void UEFITool::init()
 
     // Disable menus
     ui->actionSearch->setEnabled(false);
-    ui->actionGoToOffset->setEnabled(false);
+    ui->actionGoToBase->setEnabled(false);
     ui->actionGoToAddress->setEnabled(false);
     ui->menuCapsuleActions->setEnabled(false);
     ui->menuImageActions->setEnabled(false);
@@ -316,15 +316,15 @@ void UEFITool::bodyHexView()
     hexViewDialog->exec();
 }
 
-void UEFITool::goToOffset()
+void UEFITool::goToBase()
 {
-    goToOffsetDialog->ui->hexSpinBox->setFocus();
-    goToOffsetDialog->ui->hexSpinBox->selectAll();
-    if (goToOffsetDialog->exec() != QDialog::Accepted)
+    goToBaseDialog->ui->hexSpinBox->setFocus();
+    goToBaseDialog->ui->hexSpinBox->selectAll();
+    if (goToBaseDialog->exec() != QDialog::Accepted)
         return;
 
-    UINT32 offset = (UINT32)goToOffsetDialog->ui->hexSpinBox->value();
-    QModelIndex index = model->findByOffset(offset);
+    UINT32 offset = (UINT32)goToBaseDialog->ui->hexSpinBox->value();
+    QModelIndex index = model->findByBase(offset);
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -339,7 +339,7 @@ void UEFITool::goToAddress()
         return;
 
     UINT32 address = (UINT32)goToAddressDialog->ui->hexSpinBox->value();
-    QModelIndex index = model->findByOffset(address - (UINT32)ffsParser->getAddressDiff());
+    QModelIndex index = model->findByBase(address - (UINT32)ffsParser->getAddressDiff());
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -646,9 +646,9 @@ void UEFITool::openImageFile(QString path)
     delete ffsReport;
     ffsReport = new FfsReport(model);
 
-    // Enable goToOffset and goToAddress
-    ui->actionGoToOffset->setEnabled(true);
-    if (ffsParser->getAddressDiff() < 0xFFFFFFFFUL)
+    // Enable goToBase and goToAddress
+    ui->actionGoToBase->setEnabled(true);
+    if (ffsParser->getAddressDiff() <= 0xFFFFFFFFUL)
         ui->actionGoToAddress->setEnabled(true);
 
     // Enable generateReport
@@ -673,7 +673,7 @@ void UEFITool::copyMessage()
 {
     clipboard->clear();
     if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) // Parser tab
-      clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
+        clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
     else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) // Search tab
         clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
     else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) // Builder tab
@@ -903,8 +903,8 @@ void UEFITool::readSettings()
     searchDialog->ui->guidEdit->setFont(currentFont);
     searchDialog->ui->hexEdit->setFont(currentFont);
     hexViewDialog->setFont(currentFont);
-    goToOffsetDialog->ui->hexSpinBox->setFont(currentFont);
     goToAddressDialog->ui->hexSpinBox->setFont(currentFont);
+    goToBaseDialog->ui->hexSpinBox->setFont(currentFont);
 }
 
 void UEFITool::writeSettings()

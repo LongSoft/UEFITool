@@ -86,7 +86,7 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
     // Reset global parser state
     openedImage = buffer;
     imageBase = 0;
-    addressDiff = 0x10000000ULL;
+    addressDiff = 0x100000000ULL;
     bgAcmFound = false;
     bgKeyManifestFound = false;
     bgBootPolicyFound = false;
@@ -105,18 +105,16 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
 
     // Parse input buffer
     USTATUS result = performFirstPass(buffer, root);
-    addOffsetsRecursive(root);
-    if (result) {
-        return result;
+    if (result == U_SUCCESS) {
+        if (lastVtf.isValid()) {
+            result = performSecondPass(root);
+        }
+        else {
+            msg(usprintf("%s: not a single Volume Top File is found, the image may be corrupted", __FUNCTION__));
+        }
     }
 
-    if (lastVtf.isValid()) {
-        result = performSecondPass(root);
-    }
-    else {
-        msg(usprintf("%s: not a single Volume Top File is found, the image may be corrupted", __FUNCTION__));
-    }
-    
+    addInfoRecursive(root);
     return result;
 }
 
@@ -152,10 +150,10 @@ USTATUS FfsParser::parseGenericImage(const UByteArray & buffer, const UINT32 loc
     UString info = usprintf("Full size: %Xh (%u)", buffer.size(), buffer.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Image, Subtypes::UefiImage, name, UString(), info, UByteArray(), buffer, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Image, Subtypes::UefiImage, name, UString(), info, UByteArray(), buffer, UByteArray(), Fixed, parent);
 
     // Parse the image as raw area
-    bgProtectedRegionsBase = imageBase = model->offset(parent) + localOffset;
+    bgProtectedRegionsBase = imageBase = model->base(parent) + localOffset;
     return parseRawArea(index);
 }
 
@@ -202,7 +200,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
                  capsuleHeader->Flags);
 
         // Add tree item
-        index = model->addItem(model->offset(parent) + localOffset, Types::Capsule, Subtypes::UefiCapsule, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+        index = model->addItem(localOffset, Types::Capsule, Subtypes::UefiCapsule, name, UString(), info, header, body, UByteArray(), Fixed, parent);
     }
     // Check buffer for being Toshiba capsule header
     else if (capsule.startsWith(TOSHIBA_CAPSULE_GUID)) {
@@ -234,7 +232,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
                  capsuleHeader->Flags);
 
         // Add tree item
-        index = model->addItem(model->offset(parent) + localOffset, Types::Capsule, Subtypes::ToshibaCapsule, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+        index = model->addItem(localOffset, Types::Capsule, Subtypes::ToshibaCapsule, name, UString(), info, header, body, UByteArray(), Fixed, parent);
     }
     // Check buffer for being extended Aptio capsule header
     else if (capsule.startsWith(APTIO_SIGNED_CAPSULE_GUID)
@@ -275,7 +273,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
                  capsuleHeader->CapsuleHeader.Flags);
 
         // Add tree item
-        index = model->addItem(model->offset(parent) + localOffset, Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+        index = model->addItem(localOffset, Types::Capsule, signedCapsule ? Subtypes::AptioSignedCapsule : Subtypes::AptioUnsignedCapsule, name, UString(), info, header, body, UByteArray(), Fixed, parent);
 
         // Show message about possible Aptio signature break
         if (signedCapsule) {
@@ -481,10 +479,10 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         descriptorMap->NumberOfProcStraps);
 
     // Set image base
-    imageBase = model->offset(parent) + localOffset;
+    imageBase = model->base(parent) + localOffset;
 
     // Add Intel image tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Image, Subtypes::IntelImage, name, UString(), info, UByteArray(), intelImage, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Image, Subtypes::IntelImage, name, UString(), info, UByteArray(), intelImage, UByteArray(), Fixed, parent);
 
     // Descriptor
     // Get descriptor info
@@ -592,7 +590,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     }
 
     // Add descriptor tree item
-    UModelIndex regionIndex = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
+    UModelIndex regionIndex = model->addItem(localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
 
     // Parse regions
@@ -638,7 +636,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                 padding.size(), padding.size());
 
             // Add tree item
-            regionIndex = model->addItem(model->offset(parent) + region.offset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+            regionIndex = model->addItem(region.offset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             result = U_SUCCESS;
             } break;
         default:
@@ -674,7 +672,7 @@ USTATUS FfsParser::parseGbeRegion(const UByteArray & gbe, const UINT32 localOffs
         version->minor);
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::GbeRegion, name, UString(), info, UByteArray(), gbe, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Region, Subtypes::GbeRegion, name, UString(), info, UByteArray(), gbe, UByteArray(), Fixed, parent);
 
     return U_SUCCESS;
 }
@@ -726,7 +724,7 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     }
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::MeRegion, name, UString(), info, UByteArray(), me, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Region, Subtypes::MeRegion, name, UString(), info, UByteArray(), me, UByteArray(), Fixed, parent);
 
     // Show messages
     if (emptyRegion) {
@@ -753,7 +751,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     UString info = usprintf("Full size: %Xh (%u)", pdr.size(), pdr.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::PdrRegion, name, UString(), info, UByteArray(), pdr, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Region, Subtypes::PdrRegion, name, UString(), info, UByteArray(), pdr, UByteArray(), Fixed, parent);
 
     // Parse PDR region as BIOS space
     USTATUS result = parseRawArea(index);
@@ -774,7 +772,7 @@ USTATUS FfsParser::parseGenericRegion(const UINT8 subtype, const UByteArray & re
     UString info = usprintf("Full size: %Xh (%u)", region.size(), region.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, subtype, name, UString(), info, UByteArray(), region, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Region, subtype, name, UString(), info, UByteArray(), region, UByteArray(), Fixed, parent);
 
     return U_SUCCESS;
 }
@@ -790,7 +788,7 @@ USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 localOf
     UString info = usprintf("Full size: %Xh (%u)", bios.size(), bios.size());
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Region, Subtypes::BiosRegion, name, UString(), info, UByteArray(), bios, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Region, Subtypes::BiosRegion, name, UString(), info, UByteArray(), bios, UByteArray(), Fixed, parent);
 
     return parseRawArea(index);
 }
@@ -804,7 +802,6 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
     // Get item data
     UByteArray data = model->body(index);
     UINT32 headerSize = model->header(index).size();
-    UINT32 offset = model->offset(index) + headerSize;
 
     USTATUS result;
     UString name;
@@ -824,8 +821,9 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
 
     // Set base of protected regions to be the first volume
     if (model->type(index) == Types::Region
-        && model->subtype(index) == Subtypes::BiosRegion)
-        bgProtectedRegionsBase = (UINT64)model->offset(index) + prevItemOffset;
+        && model->subtype(index) == Subtypes::BiosRegion) {
+        bgProtectedRegionsBase = (UINT64)model->base(index) + prevItemOffset;
+    }
 
     // First item is not at the beginning of this raw area
     if (prevItemOffset > 0) {
@@ -835,7 +833,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
         info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
         // Add tree item
-        model->addItem(offset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+        model->addItem(headerSize, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
     }
 
     // Search for and parse all items
@@ -856,7 +854,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
             // Add tree item
-            model->addItem(offset + paddingOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+            model->addItem(headerSize + paddingOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
         }
         
         // Check that item is fully present in input
@@ -869,7 +867,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
             // Add tree item
-            UModelIndex paddingIndex = model->addItem(offset + itemOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+            UModelIndex paddingIndex = model->addItem(headerSize + itemOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             msg(usprintf("%s: one of volumes inside overlaps the end of data", __FUNCTION__), paddingIndex);
 
             // Update variables
@@ -925,7 +923,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
         info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
         // Add tree item
-        model->addItem(offset + itemOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+        model->addItem(headerSize + itemOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
     }
 
     // Parse bodies
@@ -1041,7 +1039,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         // Acquire alignment
         alignment = (UINT32)(1UL << ((volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16));
         // Check alignment
-        if (!isUnknown && !model->compressed(parent) && ((model->offset(parent) + localOffset - imageBase) % alignment))
+        if (!isUnknown && !model->compressed(parent) && ((model->base(parent) + localOffset - imageBase) % alignment))
             msgUnaligned = true;
     }
     else {
@@ -1119,7 +1117,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         else if (isMicrocodeVolume)
             subtype = Subtypes::MicrocodeVolume;
     }
-    index = model->addItem(model->offset(parent) + localOffset, Types::Volume, subtype, name, text, info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Volume, subtype, name, text, info, header, body, UByteArray(), Movable, parent);
 
     // Set parsing data for created volume
     VOLUME_PARSING_DATA pdata;
@@ -1238,7 +1236,7 @@ USTATUS FfsParser::parseVolumeNonUefiData(const UByteArray & data, const UINT32 
     UString info = usprintf("Full size: %Xh (%u)", data.size(), data.size());
 
     // Add padding tree item
-    UModelIndex paddingIndex = model->addItem(model->offset(index) + localOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), data, UByteArray(), Fixed, index);
+    UModelIndex paddingIndex = model->addItem(localOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), data, UByteArray(), Fixed, index);
     msg(usprintf("%s: non-UEFI data found in volume's free space", __FUNCTION__), paddingIndex);
 
     // Parse contents as RAW area
@@ -1326,7 +1324,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
                     UString info = usprintf("Full size: %Xh (%u)", free.size(), free.size());
 
                     // Add free space item
-                    model->addItem(model->offset(index) + volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), free, UByteArray(), Movable, index);
+                    model->addItem(volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), free, UByteArray(), Movable, index);
                 }
 
                 // Parse non-UEFI data
@@ -1337,7 +1335,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
                 UString info = usprintf("Full size: %Xh (%u)", freeSpace.size(), freeSpace.size());
 
                 // Add free space item
-                model->addItem(model->offset(index) + volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Movable, index);
+                model->addItem(volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Movable, index);
             }
             break; // Exit from parsing loop
         }
@@ -1580,7 +1578,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     ItemFixedState fixed = (ItemFixedState)((fileHeader->Attributes & FFS_ATTRIB_FIXED) != 0);
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::File, fileHeader->Type, name, text, info, header, body, tail, fixed, parent);
+    index = model->addItem(localOffset, Types::File, fileHeader->Type, name, text, info, header, body, tail, fixed, parent);
 
     // Set parsing data for created file
     FILE_PARSING_DATA pdata;
@@ -1706,6 +1704,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     }
 
     // Add all bytes before as free space...
+    UINT32 headerSize = model->header(index).size();
     if (nonEmptyByteOffset >= 8) {
         // Align free space to 8 bytes boundary
         if (nonEmptyByteOffset != ALIGN8(nonEmptyByteOffset))
@@ -1717,7 +1716,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
         UString info = usprintf("Full size: %Xh (%u)", free.size(), free.size());
 
         // Add tree item
-        model->addItem(model->offset(index) + model->header(index).size(), Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), free, UByteArray(), Movable, index);
+        model->addItem(headerSize, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), free, UByteArray(), Movable, index);
     }
     else {
         nonEmptyByteOffset = 0;
@@ -1730,7 +1729,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
     // Add tree item
-    UModelIndex dataIndex = model->addItem(model->offset(index) + model->header(index).size() + nonEmptyByteOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+    UModelIndex dataIndex = model->addItem(headerSize + nonEmptyByteOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
 
     // Show message
     msg(usprintf("%s: non-UEFI data found in pad-file", __FUNCTION__), dataIndex);
@@ -1778,7 +1777,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
                 UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
 
                 // Add tree item
-                UModelIndex dataIndex = model->addItem(model->offset(index) + headerSize + sectionOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+                UModelIndex dataIndex = model->addItem(headerSize + sectionOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
 
                 // Show message
                 msg(usprintf("%s: non-UEFI data found in sections area", __FUNCTION__), dataIndex);
@@ -1911,7 +1910,7 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
     }
 
     return U_SUCCESS;
@@ -1981,7 +1980,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
 
         // Set section parsing data
         COMPRESSED_SECTION_PARSING_DATA pdata;
@@ -2164,7 +2163,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
 
         // Set parsing data
         GUIDED_SECTION_PARSING_DATA pdata;
@@ -2255,7 +2254,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
 
         // Set parsing data
         FREEFORM_GUIDED_SECTION_PARSING_DATA pdata;
@@ -2329,7 +2328,7 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
     }
 
     return U_SUCCESS;
@@ -2395,7 +2394,7 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
 
     // Add tree item
     if (insertIntoTree) {
-        index = model->addItem(model->offset(parent) + localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
+        index = model->addItem(localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
     }
 
     return U_SUCCESS;
@@ -2985,7 +2984,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     
     // Calculate address difference
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size();
-    addressDiff = 0xFFFFFFFFULL - model->offset(lastVtf) - vtfSize + 1;
+    addressDiff = 0xFFFFFFFFULL - model->base(lastVtf) - vtfSize + 1;
 
     // Find and parse FIT
     parseFit(index);
@@ -2993,128 +2992,111 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     // Check protected ranges
     checkProtectedRanges(index);
 
-    // Apply address information to index and all it's child items
-    addMemoryAddressesRecursive(index);
-
-    // Add fixed and compressed
-    addFixedAndCompressedRecursive(index);
+    // Check TE files to have original or adjusted base
+    checkTeImageBase(index);
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::addMemoryAddressesRecursive(const UModelIndex & index)
+USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
         return U_SUCCESS;
 
-    // Set address value for non-compressed data
-    if (!model->compressed(index)) {
-        // Check address sanity
-        UINT64 address = addressDiff + model->offset(index);
-        if (address <= 0xFFFFFFFFUL)  {
-            // Update info
-            UINT32 headerSize = model->header(index).size();
-            if (headerSize) {
-                model->addInfo(index, usprintf("\nHeader memory address: %08Xh", address));
-                model->addInfo(index, usprintf("\nData memory address: %08Xh", address + headerSize));
+    // Determine relocation type of uncompressed TE image sections
+    if (model->compressed(index) == false 
+        && model->type(index) == Types::Section 
+        && model->subtype(index) == EFI_SECTION_TE) {
+        // Obtain required values from parsing data
+        UINT32 originalImageBase = 0;
+        UINT32 adjustedImageBase = 0;
+        UINT8  imageBaseType = EFI_IMAGE_TE_BASE_OTHER;
+        if (model->hasEmptyParsingData(index) == false) {
+            UByteArray data = model->parsingData(index);
+            const TE_IMAGE_SECTION_PARSING_DATA* pdata = (const TE_IMAGE_SECTION_PARSING_DATA*)data.constData();
+            originalImageBase = readUnaligned(pdata).imageBase;
+            adjustedImageBase = readUnaligned(pdata).adjustedImageBase;
+        }
+
+        if (imageBase != 0) {
+            // Check data memory address to be equal to either ImageBase or AdjustedImageBase
+            UINT64 address = addressDiff + model->base(index);
+            UINT32 base = (UINT32)address + model->header(index).size();
+
+            if (imageBase == base) {
+                imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
+            }
+            else if (adjustedImageBase == base) {
+                imageBaseType = EFI_IMAGE_TE_BASE_ADJUSTED;
             }
             else {
-                model->addInfo(index, usprintf("\nMemory address: %08Xh", address));
-            }
-
-            // Determine relocation type of uncompressed TE image sections
-            if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_TE) {
-                // Obtain required values from parsing data
-                UINT32 originalImageBase = 0;
-                UINT32 adjustedImageBase = 0;
-                UINT8  imageBaseType = EFI_IMAGE_TE_BASE_OTHER;
-                if (model->hasEmptyParsingData(index) == false) {
-                    UByteArray data = model->parsingData(index);
-                    const TE_IMAGE_SECTION_PARSING_DATA* pdata = (const TE_IMAGE_SECTION_PARSING_DATA*)data.constData();
-                    originalImageBase = readUnaligned(pdata).imageBase;
-                    adjustedImageBase = readUnaligned(pdata).adjustedImageBase;
+                // Check for one-bit difference
+                UINT32 xored = base ^ imageBase; // XOR result can't be zero
+                if ((xored & (xored - 1)) == 0) { // Check that XOR result is a power of 2, i.e. has exactly one bit set
+                    imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
                 }
-
-                if (imageBase != 0) {
-                    // Check data memory address to be equal to either ImageBase or AdjustedImageBase
-                    UINT32 base = (UINT32)address + headerSize;
-
-                    if (imageBase == base) {
-                        imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
-                    }
-                    else if (adjustedImageBase == base) {
+                else { // The same check for adjustedImageBase
+                    xored = base ^ adjustedImageBase;
+                    if ((xored & (xored - 1)) == 0) {
                         imageBaseType = EFI_IMAGE_TE_BASE_ADJUSTED;
                     }
-                    else {
-                        // Check for one-bit difference
-                        UINT32 xored = base ^ imageBase; // XOR result can't be zero
-                        if ((xored & (xored - 1)) == 0) { // Check that XOR result is a power of 2, i.e. has exactly one bit set
-                            imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
-                        }
-                        else { // The same check for adjustedImageBase
-                            xored = base ^ adjustedImageBase;
-                            if ((xored & (xored - 1)) == 0) {
-                                imageBaseType = EFI_IMAGE_TE_BASE_ADJUSTED;
-                            }
-                        }
-                    }
-
-                    // Show message if imageBaseType is still unknown
-                    if (imageBaseType == EFI_IMAGE_TE_BASE_OTHER)
-                        msg(usprintf("%s: TE image base is neither zero, nor original, nor adjusted, nor top-swapped", __FUNCTION__), index);
-
-                    // Update parsing data
-                    TE_IMAGE_SECTION_PARSING_DATA pdata;
-                    pdata.imageBaseType = imageBaseType;
-                    pdata.imageBase = originalImageBase;
-                    pdata.adjustedImageBase = adjustedImageBase;
-                    model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
                 }
             }
+
+            // Show message if imageBaseType is still unknown
+            if (imageBaseType == EFI_IMAGE_TE_BASE_OTHER)
+                msg(usprintf("%s: TE image base is neither zero, nor original, nor adjusted, nor top-swapped", __FUNCTION__), index);
+
+            // Update parsing data
+            TE_IMAGE_SECTION_PARSING_DATA pdata;
+            pdata.imageBaseType = imageBaseType;
+            pdata.imageBase = originalImageBase;
+            pdata.adjustedImageBase = adjustedImageBase;
+            model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
         }
     }
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-        addMemoryAddressesRecursive(index.child(i, 0));
+        checkTeImageBase(index.child(i, 0));
     }
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::addOffsetsRecursive(const UModelIndex & index)
+USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
-    // Add current offset if the element is not compressed
+    // Add offset
+    model->addInfo(index, usprintf("Offset: %Xh\n", model->offset(index)), false);
+
+    // Add current base if the element is not compressed
     // or it's compressed, but it's parent isn't
     if ((!model->compressed(index)) || (index.parent().isValid() && !model->compressed(index.parent()))) {
-        model->addInfo(index, usprintf("Offset: %Xh\n", model->offset(index)), false);
+        // Add physical address of the whole item or it's header and data portions separately
+        UINT64 address = addressDiff + model->base(index);
+        if (address <= 0xFFFFFFFFUL) {
+            UINT32 headerSize = model->header(index).size();
+            if (headerSize) {
+                model->addInfo(index, usprintf("Data address: %08Xh\n", address + headerSize),false);
+                model->addInfo(index, usprintf("Header address: %08Xh\n", address), false);
+            }
+            else {
+                model->addInfo(index, usprintf("Address: %08Xh\n", address), false);
+            }
+        }
+        // Add base
+        model->addInfo(index, usprintf("Base: %Xh\n", model->base(index)), false);
     }
+    model->addInfo(index, usprintf("Fixed: %s\n", model->fixed(index) ? "Yes" : "No"), false);
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-        addOffsetsRecursive(index.child(i, 0));
-    }
-
-    return U_SUCCESS;
-}
-
-USTATUS FfsParser::addFixedAndCompressedRecursive(const UModelIndex & index) {
-    // Sanity check
-    if (!index.isValid())
-        return U_INVALID_PARAMETER;
-
-    // Add fixed and compressed info
-    model->addInfo(index, usprintf("\nCompressed: %s", model->compressed(index) ? "Yes" : "No"));
-    model->addInfo(index, usprintf("\nFixed: %s", model->fixed(index) ? "Yes" : "No"));
-
-    // Process child items
-    for (int i = 0; i < model->rowCount(index); i++) {
-        addFixedAndCompressedRecursive(index.child(i, 0));
+        addInfoRecursive(index.child(i, 0));
     }
 
     return U_SUCCESS;
@@ -3164,7 +3146,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     msg(usprintf("%s: can't determine DXE volume offset, old AMI protected range hash can't be checked", __FUNCTION__), index);
                 }
                 else {
-                    bgProtectedRanges[i].Offset = model->offset(dxeRootVolumeIndex);
+                    bgProtectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
                     protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
                     UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
@@ -3173,7 +3155,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     if (digest != bgProtectedRanges[i].Hash) {
                         msg(usprintf("%s: old AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
                             bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                            model->findByOffset(bgProtectedRanges[i].Offset));
+                            model->findByBase(bgProtectedRanges[i].Offset));
                     }
 
                     markProtectedRangeRecursive(index, bgProtectedRanges[i]);
@@ -3192,7 +3174,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 }
                 else
                 {
-                    bgProtectedRanges[i].Offset = model->offset(dxeRootVolumeIndex);
+                    bgProtectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
                     bgProtectedRanges[i].Size = model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size();
                     protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
@@ -3202,7 +3184,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     if (digest != bgProtectedRanges[i].Hash) {
                         msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
                             bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                            model->findByOffset(bgProtectedRanges[i].Offset));
+                            model->findByBase(bgProtectedRanges[i].Offset));
                     }
 
                     markProtectedRangeRecursive(index, bgProtectedRanges[i]);
@@ -3222,7 +3204,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("%s: AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
                     bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                    model->findByOffset(bgProtectedRanges[i].Offset));
+                    model->findByBase(bgProtectedRanges[i].Offset));
             }
 
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
@@ -3239,7 +3221,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("%s: Phoenix protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
                     bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                    model->findByOffset(bgProtectedRanges[i].Offset));
+                    model->findByBase(bgProtectedRanges[i].Offset));
             }
 
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
@@ -3256,7 +3238,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
             if (digest != bgProtectedRanges[i].Hash) {
                 msg(usprintf("%s: Microsoft protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
                     bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                    model->findByOffset(bgProtectedRanges[i].Offset));
+                    model->findByBase(bgProtectedRanges[i].Offset));
             }
 
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
@@ -3278,7 +3260,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
     }
     // Mark normal items
     else {
-        UINT32 currentOffset = model->offset(index);
+        UINT32 currentOffset = model->base(index);
         UINT32 currentSize = model->header(index).size() + model->body(index).size() + model->tail(index).size();
 
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
@@ -3335,7 +3317,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 }
 
                 if (protectedRangesFound) {
-                    securityInfo += usprintf("Phoenix hash file found at offset %Xh\nProtected ranges:", model->offset(index));
+                    securityInfo += usprintf("Phoenix hash file found at base %Xh\nProtected ranges:", model->base(index));
                     for (UINT32 i = 0; i < header->NumEntries; i++) {
                         const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
                         securityInfo += usprintf("\nRelativeOffset: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
@@ -3374,7 +3356,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 }
 
                 if (protectedRangesFound) {
-                    securityInfo += usprintf("New AMI hash file found at offset %Xh\nProtected ranges:", model->offset(fileIndex));
+                    securityInfo += usprintf("New AMI hash file found at base %Xh\nProtected ranges:", model->base(fileIndex));
                     for (UINT32 i = 0; i < NumEntries; i++) {
                         const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(model->body(index).constData()) + i;
                         securityInfo += usprintf("\nAddress: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
@@ -3388,7 +3370,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 msg(usprintf("%s: new AMI hash file found", __FUNCTION__), fileIndex);
             }
             else if (size == sizeof(BG_VENDOR_HASH_FILE_HEADER_AMI_OLD)) {
-                securityInfo += usprintf("Old AMI hash file found at offset %Xh\nProtected range:", model->offset(fileIndex));
+                securityInfo += usprintf("Old AMI hash file found at base %Xh\nProtected range:", model->base(fileIndex));
                 const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD* entry = (const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD*)(model->body(index).constData());
                 securityInfo += usprintf("\nSize: %Xh\nHash: ", entry->Size);
                 for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
@@ -3444,7 +3426,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
     if (!fitIndex.isValid())
         return U_SUCCESS;
 
-    // Explicitly set the item as fixed
+    // Explicitly set the item containing FIT as fixed
     model->setFixed(fitIndex, true);
 
     // Special case of FIT header
@@ -3491,7 +3473,6 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
         UModelIndex itemIndex;
         const FIT_ENTRY* currentEntry = fitHeader + i;
         UINT32 currentEntrySize = currentEntry->Size;
-        UINT32 currentEntryOffset;
 
         // Check sanity
         if (currentEntry->Type == FIT_TYPE_HEADER) {
@@ -3510,12 +3491,12 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
                 policy->IndexRegisterAddress);
         }
         else if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) { // Only elements in the image need to be parsed
-            currentEntryOffset = (UINT32)(currentEntry->Address - addressDiff);
-            itemIndex = model->findByOffset(currentEntryOffset);
+            UINT32 currentEntryBase = (UINT32)(currentEntry->Address - addressDiff);
+            itemIndex = model->findByBase(currentEntryBase);
             if (itemIndex.isValid()) {
                 USTATUS status = U_INVALID_FIT;
                 UByteArray item = model->header(itemIndex) + model->body(itemIndex) + model->tail(itemIndex);
-                UINT32 localOffset = currentEntryOffset - model->offset(itemIndex);
+                UINT32 localOffset = currentEntryBase - model->base(itemIndex);
 
                 switch (currentEntry->Type) {
                 case FIT_TYPE_MICROCODE:
@@ -3549,6 +3530,12 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
             else {
                 msg(usprintf("%s: FIT entry #%d not found in the image", __FUNCTION__, i), fitIndex);
             }
+        }
+
+        if (itemIndex.isValid()) {
+            // Explicitly set the item referenced by FIT as fixed
+            // TODO: lift this restriction after FIT builder is ready
+            model->setFixed(itemIndex, true);
         }
 
         // Add entry to fitTable
@@ -3602,7 +3589,7 @@ USTATUS FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & fou
         offset >= 0;
         offset = model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
         // FIT candidate found, calculate it's physical address
-        UINT32 fitAddress = model->offset(index) + (UINT32)addressDiff + model->header(index).size() + (UINT32)offset;
+        UINT32 fitAddress = model->base(index) + (UINT32)addressDiff + model->header(index).size() + (UINT32)offset;
 
         // Check FIT address to be stored in the last VTF
         if (fitAddress == storedFitAddress) {
@@ -3646,8 +3633,7 @@ USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UI
     }
 
     // Valid microcode found
-    info = usprintf("LocalOffset: %08Xh, CPUID: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
-                    localOffset,
+    info = usprintf("CPUID: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
                     header->CpuSignature,
                     header->Revision,
                     header->DateDay,
@@ -3688,14 +3674,14 @@ USTATUS FfsParser::parseFitEntryAcm(const UByteArray & acm, const UINT32 localOf
     // Add ACM header info
     UString acmInfo;
     acmInfo += usprintf(
-                              " found at offset %Xh\n"
+                              " found at base %Xh\n"
                               "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08Xh\n"
                               "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
                               "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08Xh\n"
                               "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
                               "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
                               "SegSel: %08Xh         KeySize: %08Xh       Unknown3: %08Xh",
-                              model->offset(parent) + localOffset,
+                              model->base(parent) + localOffset,
                               header->ModuleType,
                               header->ModuleSubtype,
                               header->ModuleSize * sizeof(UINT32),
@@ -3766,9 +3752,9 @@ USTATUS FfsParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
 
     // Add KM header info
     securityInfo += usprintf(
-                              "Intel BootGuard Key manifest found at offset %Xh\n"
+                              "Intel BootGuard Key manifest found at base %Xh\n"
                               "Tag: __KEYM__ Version: %02Xh KmVersion: %02Xh KmSvn: %02Xh KmId: %02Xh",
-                              model->offset(parent) + localOffset,
+                              model->base(parent) + localOffset,
                               header->Version,
                               header->KmVersion,
                               header->KmSvn,
@@ -3874,10 +3860,10 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
 
     // Add BP header info
     securityInfo += usprintf(
-                              "Intel BootGuard Boot Policy Manifest found at offset %Xh\n"
+                              "Intel BootGuard Boot Policy Manifest found at base %Xh\n"
                               "Tag: __ACBP__ Version: %02Xh HeaderVersion: %02Xh\n"
                               "PMBPMVersion: %02Xh PBSVN: %02Xh ACMSVN: %02Xh NEMDataStack: %04Xh\n",
-                              model->offset(parent) + localOffset,
+                              model->base(parent) + localOffset,
                               header->Version,
                               header->HeaderVersion,
                               header->PMBPMVersion,
@@ -3896,11 +3882,11 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
             const BG_IBB_ELEMENT* elementHeader = (const BG_IBB_ELEMENT*)currentPos;
             // Valid IBB element found
             securityInfo += usprintf(
-                                      "\nInitial Boot Block Element found at offset %Xh\n"
+                                      "\nInitial Boot Block Element found at base %Xh\n"
                                       "Tag: __IBBS__       Version: %02Xh         Unknown: %02Xh\n"
                                       "Flags: %08Xh    IbbMchBar: %08Xh VtdBar: %08Xh\n"
                                       "PmrlBase: %08Xh PmrlLimit: %08Xh  EntryPoint: %08Xh",
-                                      model->offset(parent) + localOffset + elementOffset,
+                                      model->base(parent) + localOffset + elementOffset,
                                       elementHeader->Version,
                                       elementHeader->Unknown,
                                       elementHeader->Flags,
@@ -3951,9 +3937,9 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
         else if (*currentPos == BG_BOOT_POLICY_MANIFEST_PLATFORM_MANUFACTURER_ELEMENT_TAG) {
             const BG_PLATFORM_MANUFACTURER_ELEMENT* elementHeader = (const BG_PLATFORM_MANUFACTURER_ELEMENT*)currentPos;
             securityInfo += usprintf(
-                                      "\nPlatform Manufacturer Data Element found at offset %Xh\n"
+                                      "\nPlatform Manufacturer Data Element found at base %Xh\n"
                                       "Tag: __PMDA__ Version: %02Xh DataSize: %02Xh",
-                                      model->offset(parent) + localOffset + elementOffset,
+                                      model->base(parent) + localOffset + elementOffset,
                                       elementHeader->Version,
                                       elementHeader->DataSize
                                       );
@@ -3995,9 +3981,9 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
         else if (*currentPos == BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT_TAG) {
             const BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT* elementHeader = (const BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT*)currentPos;
             securityInfo += usprintf(
-                                      "\nBoot Policy Signature Element found at offset %Xh\n"
+                                      "\nBoot Policy Signature Element found at base %Xh\n"
                                       "Tag: __PMSG__ Version: %02Xh",
-                                      model->offset(parent) + localOffset + elementOffset,
+                                      model->base(parent) + localOffset + elementOffset,
                                       elementHeader->Version
                                       );
 
@@ -4065,7 +4051,7 @@ USTATUS FfsParser::parseMicrocodeVolumeBody(const UModelIndex & index)
                 UString info = usprintf("Full size: %Xh (%u)", ucode.size(), ucode.size());
 
                 // Add tree item
-                model->addItem(model->offset(index) + headerSize + offset, Types::Padding, getPaddingType(ucode), name, UString(), info, UByteArray(), ucode, UByteArray(), Fixed, index);
+                model->addItem(headerSize + offset, Types::Padding, getPaddingType(ucode), name, UString(), info, UByteArray(), ucode, UByteArray(), Fixed, index);
             }
             return U_SUCCESS;
         }
@@ -4138,7 +4124,7 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
         ucodeHeader->CpuFlags);
 
     // Add tree item
-    index = model->addItem(model->offset(parent) + localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent);
 
     // No need to parse body further for now
     return U_SUCCESS;

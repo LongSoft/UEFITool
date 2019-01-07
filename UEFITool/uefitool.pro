@@ -10,7 +10,7 @@ DEFINES += "U_ENABLE_GUID_DATABASE_SUPPORT"
 HEADERS += uefitool.h \
  searchdialog.h \
  hexviewdialog.h \
- gotooffsetdialog.h \
+ gotobasedialog.h \
  gotoaddressdialog.h \
  guidlineedit.h \
  ffsfinder.h \
@@ -112,7 +112,7 @@ SOURCES += uefitool_main.cpp \
 FORMS += uefitool.ui \
  searchdialog.ui \
  hexviewdialog.ui \
- gotooffsetdialog.ui \
+ gotobasedialog.ui \
  gotoaddressdialog.ui
 
 RESOURCES += uefitool.qrc

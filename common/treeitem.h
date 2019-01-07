@@ -45,7 +45,7 @@ public:
     TreeItem *parent() { return parentItem; }
 
     // Getters and setters for item parameters
-    UINT32 offset() const  { return itemOffset; }
+    UINT32 offset() const { return itemOffset; }
     void setOffset(const UINT32 offset) { itemOffset = offset; }
 
     UINT8 type() const  { return itemType; }

@@ -139,9 +139,8 @@ private:
 
     // Second pass
     USTATUS performSecondPass(const UModelIndex & index);
-    USTATUS addOffsetsRecursive(const UModelIndex & index);
-    USTATUS addMemoryAddressesRecursive(const UModelIndex & index);
-    USTATUS addFixedAndCompressedRecursive(const UModelIndex & index);
+    USTATUS addInfoRecursive(const UModelIndex & index);
+    USTATUS checkTeImageBase(const UModelIndex & index);
     USTATUS checkProtectedRanges(const UModelIndex & index);
     USTATUS markProtectedRangeRecursive(const UModelIndex & index, const BG_PROTECTED_RANGE & range);
 

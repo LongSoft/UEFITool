@@ -46,7 +46,7 @@
 #include "../common/guiddatabase.h"
 
 #include "searchdialog.h"
-#include "gotooffsetdialog.h"
+#include "gotobasedialog.h"
 #include "gotoaddressdialog.h"
 #include "hexviewdialog.h"
 #include "ffsfinder.h"
@@ -78,7 +78,7 @@ private slots:
     void saveImageFile();
     
     void search();
-    void goToOffset();
+    void goToBase();
     void goToAddress();
 
     void hexView();
@@ -133,7 +133,7 @@ private:
     FfsBuilder* ffsBuilder;
     SearchDialog* searchDialog;
     HexViewDialog* hexViewDialog;
-    GoToOffsetDialog* goToOffsetDialog;
+    GoToBaseDialog* goToBaseDialog;
     GoToAddressDialog* goToAddressDialog;
     QClipboard* clipboard;
     QString currentDir;
