@@ -327,6 +327,7 @@
     <addaction name="actionLoadGuidDatabase"/>
     <addaction name="actionLoadDefaultGuidDatabase"/>
     <addaction name="actionUnloadGuidDatabase"/>
+    <addaction name="actionExportDiscoveredGuids"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -905,6 +906,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+D</string>
+   </property>
+  </action>
+  <action name="actionExportDiscoveredGuids">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export discovered GUIDs</string>
    </property>
   </action>
  </widget>

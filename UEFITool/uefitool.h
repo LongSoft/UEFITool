@@ -117,8 +117,9 @@ private slots:
     void writeSettings();
 
     void loadGuidDatabase();
-	void unloadGuidDatabase();
-	void loadDefaultGuidDatabase();
+    void unloadGuidDatabase();
+    void loadDefaultGuidDatabase();
+    void exportDiscoveredGuids();
     void generateReport();
 
     void currentTabChanged(int index);

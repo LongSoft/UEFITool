@@ -65,6 +65,7 @@ markingEnabled(true)
     connect(ui->actionLoadGuidDatabase, SIGNAL(triggered()), this, SLOT(loadGuidDatabase()));
     connect(ui->actionUnloadGuidDatabase, SIGNAL(triggered()), this, SLOT(unloadGuidDatabase()));
     connect(ui->actionLoadDefaultGuidDatabase, SIGNAL(triggered()), this, SLOT(loadDefaultGuidDatabase()));
+    connect(ui->actionExportDiscoveredGuids, SIGNAL(triggered()), this, SLOT(exportDiscoveredGuids()));
     connect(ui->actionGenerateReport, SIGNAL(triggered()), this, SLOT(generateReport()));
     connect(ui->actionToggleBootGuardMarking, SIGNAL(toggled(bool)), this, SLOT(toggleBootGuardMarking(bool)));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
@@ -654,6 +655,9 @@ void UEFITool::openImageFile(QString path)
     // Enable generateReport
     ui->actionGenerateReport->setEnabled(true);
 
+    // Enable saving GUIDs
+    ui->actionExportDiscoveredGuids->setEnabled(true);
+
     // Set current directory
     currentDir = fileInfo.absolutePath();
 
@@ -1007,6 +1011,16 @@ void UEFITool::loadDefaultGuidDatabase()
     initGuidDatabase(":/guids.csv");
     if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("Default GUID database loaded"), tr("Apply default GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
         openImageFile(currentPath);
+}
+
+void UEFITool::exportDiscoveredGuids()
+{
+    GuidDatabase db = guidDatabaseFromTreeRecursive(model, model->index(0, 0));
+    if (!db.empty()) {
+        QString path = QFileDialog::getSaveFileName(this, tr("Save parsed GUIDs to datavase"), currentPath + ".guids.csv", tr("Comma-separated values files (*.csv);;All files (*)"));
+        if (!path.isEmpty())
+            guidDatabseExportToFile(path, db);
+    }
 }
 
 void UEFITool::generateReport()

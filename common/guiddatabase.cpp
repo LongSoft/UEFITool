@@ -14,24 +14,15 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "ffs.h"
 
-#if defined(U_ENABLE_GUID_DATABASE_SUPPORT)
-#include <map>
 #include <fstream>
-#include <sstream>
 #include <string>
+
+#if defined(U_ENABLE_GUID_DATABASE_SUPPORT)
+#include <sstream>
 #include <vector>
 #include <cstdio>
 
-struct OperatorLessForGuids : public std::binary_function<EFI_GUID, EFI_GUID, bool>
-{
-    bool operator()(const EFI_GUID& lhs, const EFI_GUID& rhs) const
-    {
-        return (memcmp(&lhs, &rhs, sizeof(EFI_GUID)) < 0);
-    }
-};
-
-typedef std::map<EFI_GUID, UString, OperatorLessForGuids> GuidToUStringMap;
-static GuidToUStringMap gGuidToUStringMap;
+static GuidDatabase gLocalGuidDatabase;
 
 #ifdef QT_CORE_LIB
 
@@ -61,7 +52,7 @@ static std::string readGuidDatabase(const UString &path) {
 
 void initGuidDatabase(const UString & path, UINT32* numEntries)
 {
-    gGuidToUStringMap.clear();
+    gLocalGuidDatabase.clear();
 
     std::stringstream file(readGuidDatabase(path));
 
@@ -90,16 +81,16 @@ void initGuidDatabase(const UString & path, UINT32* numEntries)
         if (!ustringToGuid(lineParts[0], guid))
             continue;
 
-        gGuidToUStringMap.insert(GuidToUStringMap::value_type(guid, lineParts[1]));
+        gLocalGuidDatabase[guid] = lineParts[1];
     }
 
     if (numEntries)
-        *numEntries = (UINT32)gGuidToUStringMap.size();
+        *numEntries = (UINT32)gLocalGuidDatabase.size();
 }
 
 UString guidDatabaseLookup(const EFI_GUID & guid)
 {
-    return gGuidToUStringMap[guid];
+    return gLocalGuidDatabase[guid];
 }
 
 #else
@@ -116,3 +107,35 @@ UString guidDatabaseLookup(const EFI_GUID & guid)
     return UString();
 }
 #endif
+
+GuidDatabase guidDatabaseFromTreeRecursive(TreeModel * model, const UModelIndex index)
+{
+    GuidDatabase db;
+
+    if (!index.isValid())
+        return db;
+
+    for (int i = 0; i < model->rowCount(index); i++) {
+        GuidDatabase tmpDb = guidDatabaseFromTreeRecursive(model, index.child(i, index.column()));
+        db.insert(tmpDb.begin(), tmpDb.end());
+    }
+
+    if (model->type(index) == Types::File && !model->text(index).isEmpty())
+        db[readUnaligned((const EFI_GUID*)model->header(index).left(16).constData())] = model->text(index);
+
+    return db;
+}
+
+USTATUS guidDatabseExportToFile(const UString & outPath, GuidDatabase & db)
+{
+    std::ofstream outputFile(outPath.toLocal8Bit(), std::ios::out | std::ios::trunc);
+    if (!outputFile)
+        return U_FILE_OPEN;
+    for (GuidDatabase::iterator it = db.begin(); it != db.end(); it++) {
+        std::string guid(guidToUString (it->first, false).toLocal8Bit());
+        std::string name(it->second.toLocal8Bit());
+        outputFile << guid << ',' << name << '\n';
+    }
+
+    return U_SUCCESS;
+}
