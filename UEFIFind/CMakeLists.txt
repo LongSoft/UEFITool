@@ -13,6 +13,7 @@ SET(PROJECT_SOURCES
  ../common/nvramparser.cpp
  ../common/ffsparser.cpp
  ../common/ffsreport.cpp
+ ../common/ffsutils.cpp
  ../common/peimage.cpp
  ../common/treeitem.cpp
  ../common/treemodel.cpp
@@ -53,6 +54,7 @@ SET(PROJECT_HEADERS
  ../common/nvramparser.h
  ../common/ffsparser.h
  ../common/ffsreport.h
+ ../common/ffsutils.h
  ../common/peimage.h
  ../common/types.h
  ../common/treeitem.h

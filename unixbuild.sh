@@ -88,11 +88,11 @@ build_tool() {
       fi
     else
       if [ "$UPLATFORM" = "mac" ]; then
-        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7" || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7" . || exit 1
       elif [ "$UPLATFORM" = "win32" ]; then
-        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os" -DCMAKE_C_FLAGS="-static -Os" || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os" -DCMAKE_C_FLAGS="-static -Os" . || exit 1
       else
-        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os" || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os" . || exit 1
       fi
     fi
   fi

@@ -167,6 +167,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
     UINT32 capsuleHeaderSize = 0;
     // Check buffer for being normal EFI capsule header
     if (capsule.startsWith(EFI_CAPSULE_GUID)
+        || capsule.startsWith(EFI_FMP_CAPSULE_GUID)
         || capsule.startsWith(INTEL_CAPSULE_GUID)
         || capsule.startsWith(LENOVO_CAPSULE_GUID)
         || capsule.startsWith(LENOVO2_CAPSULE_GUID)) {

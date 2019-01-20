@@ -34,6 +34,7 @@ HEADERS += uefitool.h \
  ../common/ffsparser.h \
  ../common/ffsreport.h \
  ../common/treeitem.h \
+ ../common/ffsutils.h \
  ../common/treemodel.h \
  ../common/LZMA/LzmaCompress.h \
  ../common/LZMA/LzmaDecompress.h \
@@ -78,6 +79,7 @@ SOURCES += uefitool_main.cpp \
  ../common/ffsbuilder.cpp \
  ../common/ffsparser.cpp \
  ../common/ffsreport.cpp \
+ ../common/ffsutils.cpp \
  ../common/treeitem.cpp \
  ../common/treemodel.cpp \
  ../common/LZMA/LzmaCompress.c \

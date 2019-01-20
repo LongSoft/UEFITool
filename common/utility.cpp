@@ -38,7 +38,6 @@ UString uniqueItemName(const UModelIndex & index)
     UString itemText = model->text(index);
 
     // Default name
-
     UString name = itemName;
     switch (model->type(index)) {
     case Types::NvarEntry:
@@ -70,10 +69,21 @@ UString uniqueItemName(const UModelIndex & index)
         + (subtypeString.length() ? ('_' + subtypeString) : UString())
         + '_' + name;
 
-    // Replace some symbols with underscopes for better readability
-    name.findreplace(' ', '_');
-    name.findreplace('/', '_');
-    name.findreplace('\\', '_');
+    // Replace some symbols with underscores for compatibility
+    const char table[] = {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, // ASCII control characters, banned in Windows, hard to work with in *nix
+        '/', // Banned in *nix and Windows
+        '<', '>', ':', '\"', '\\', '|', '?', '*', // Banned in Windows
+        ' ' // Provides better readability
+    };
+    int nameLength = name.length(); // Note: Qt uses int for whatever reason.
+    for (int i = 0; i < nameLength; i++) {
+        for (size_t j = 0; j < sizeof(table); j++) {
+            if (name[i] == table[j]) {
+                name[i] = '_';
+            }
+        }
+    }
 
     return name;
 }

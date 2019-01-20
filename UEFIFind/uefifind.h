@@ -34,9 +34,6 @@ public:
     USTATUS find(const UINT8 mode, const bool count, const UString & hexPattern, UString & result);
 
 private:
-    USTATUS findFileRecursive(const UModelIndex index, const UString & hexPattern, const UINT8 mode, std::set<std::pair<UModelIndex, UModelIndex> > & files);
-    UString guidToQString(const UINT8* guid);
-
     FfsParser* ffsParser;
     TreeModel* model;
     bool initDone;

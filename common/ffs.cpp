@@ -46,7 +46,7 @@ VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 
 UINT32 uint24ToUint32(const UINT8* ffsSize)
 {
-    return *(UINT32*)ffsSize & 0x00FFFFFF;
+    return readUnaligned((UINT32*)ffsSize) & 0x00FFFFFF;
 }
 
 UString guidToUString(const EFI_GUID & guid, bool convertToString)
