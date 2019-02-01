@@ -3419,9 +3419,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
     // Search for FIT
     UModelIndex fitIndex;
     UINT32 fitOffset;
-    USTATUS result = findFitRecursive(index, fitIndex, fitOffset);
-    if (result)
-        return result;
+    findFitRecursive(index, fitIndex, fitOffset);
 
     // FIT not found
     if (!fitIndex.isValid())
@@ -3569,18 +3567,18 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset)
+void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset)
 {
     // Sanity check
     if (!index.isValid()) {
-        return U_SUCCESS;
+        return;
     }
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
         findFitRecursive(index.child(i, 0), found, fitOffset);
         if (found.isValid())
-            return U_SUCCESS;
+            return;
     }
 
     // Check for all FIT signatures in item's body
@@ -3597,13 +3595,11 @@ USTATUS FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & fou
             found = index;
             fitOffset = offset;
             msg(usprintf("%s: real FIT table found at physical address %08Xh", __FUNCTION__, fitAddress), found);
-            return U_SUCCESS;
+            break;
         }
         else if (model->rowCount(index) == 0) // Show messages only to leaf items
             msg(usprintf("%s: FIT table candidate found, but not referenced from the last VTF", __FUNCTION__), index);
     }
-
-    return U_SUCCESS;
 }
 
 USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)

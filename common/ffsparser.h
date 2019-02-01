@@ -149,7 +149,7 @@ private:
     USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
 #ifdef U_ENABLE_FIT_PARSING_SUPPORT
-    USTATUS findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
+    void findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
 
     // FIT entries
     USTATUS parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);

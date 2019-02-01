@@ -761,6 +761,8 @@ USTATUS NvramParser::getStoreSize(const UByteArray & data, const UINT32 storeOff
     else if (*signature == INTEL_MICROCODE_HEADER_VERSION) { // Intel microcode, must be checked after SLIC marker because of the same *signature values
         const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)signature;
         storeSize = ucodeHeader->TotalSize;
+    } else {
+        return U_INVALID_PARAMETER; // Unreachable
     }
     return U_SUCCESS;
 }
