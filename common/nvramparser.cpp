@@ -44,9 +44,6 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
         emptyByte = readUnaligned(pdata).emptyByte;
     }
 
-    // Rename parent file
-    model->setText(parentFileIndex, UString("NVAR store"));
-
     // Get local offset
     UINT32 localOffset = model->header(index).size();
 
@@ -539,7 +536,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
     UINT32 offset = storeOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(volume.constData() + offset);
-        if (*currentPos == NVRAM_VSS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_SVS_STORE_SIGNATURE) { //$VSS or $SVS signatures found, perform checks
+        if (*currentPos == NVRAM_VSS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_SVS_STORE_SIGNATURE) { // $VSS or $SVS signatures found, perform checks
             const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)currentPos;
             if (vssHeader->Format != NVRAM_VSS_VARIABLE_STORE_FORMATTED) {
                 msg(usprintf("%s: VSS store candidate at offset %Xh skipped, has invalid format %02Xh", __FUNCTION__, localOffset + offset, vssHeader->Format), index);
@@ -552,7 +549,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             // All checks passed, store found
             break;
         }
-        else if (*currentPos == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *currentPos == NVRAM_VSS2_STORE_GUID_PART1) { //VSS2 store signatures found, perform checks
+        else if (*currentPos == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *currentPos == NVRAM_VSS2_STORE_GUID_PART1) { // VSS2 store signatures found, perform checks
             UByteArray guid = UByteArray(volume.constData() + offset, sizeof(EFI_GUID));
             if (guid != NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID && guid != NVRAM_VSS2_STORE_GUID) // Check the whole signature
                 continue;
@@ -569,7 +566,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             // All checks passed, store found
             break;
         }
-        else if (*currentPos == NVRAM_FDC_VOLUME_SIGNATURE) { //FDC signature found
+        else if (*currentPos == NVRAM_FDC_VOLUME_SIGNATURE) { // FDC signature found
             const FDC_VOLUME_HEADER* fdcHeader = (const FDC_VOLUME_HEADER*)currentPos;
             if (fdcHeader->Size == 0 || fdcHeader->Size == 0xFFFFFFFF) {
                 msg(usprintf("%s: FDC store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, fdcHeader->Size), index);
@@ -578,7 +575,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             // All checks passed, store found
             break;
         }
-        else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_GAID_STORE_SIGNATURE) { //Fsys or Gaid signature found
+        else if (*currentPos == NVRAM_APPLE_FSYS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_GAID_STORE_SIGNATURE) { // Fsys or Gaid signature found
             const APPLE_FSYS_STORE_HEADER* fsysHeader = (const APPLE_FSYS_STORE_HEADER*)currentPos;
             if (fsysHeader->Size == 0 || fsysHeader->Size == 0xFFFF) {
                 msg(usprintf("%s: Fsys store candidate at offset %Xh skipped, has invalid size %Xh", __FUNCTION__, localOffset + offset, fsysHeader->Size), index);
@@ -604,7 +601,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             offset -= sizeof(UINT32);
             break;
         }
-        else if (*currentPos == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *currentPos == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) { //Possible FTW block signature found
+        else if (*currentPos == NVRAM_MAIN_STORE_VOLUME_GUID_DATA1 || *currentPos == EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1) { // Possible FTW block signature found
             UByteArray guid = UByteArray(volume.constData() + offset, sizeof(EFI_GUID));
             if (guid != NVRAM_MAIN_STORE_VOLUME_GUID && guid != EDKII_WORKING_BLOCK_SIGNATURE_GUID && guid != VSS2_WORKING_BLOCK_SIGNATURE_GUID) // Check the whole signature
                 continue;

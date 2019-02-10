@@ -34,6 +34,10 @@ const UByteArray NVRAM_NVAR_STORE_FILE_GUID
 const UByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID
 ("\x5B\x31\x21\x92\xBB\x30\xB5\x46\x81\x3E\x1B\x1B\xF4\x71\x2B\xD3", 16);
 
+// 77D3DC50-D42B-4916-AC80-8F469035D150
+const UByteArray NVRAM_NVAR_PEI_EXTERNAL_DEFAULTS_FILE_GUID
+("\x50\xDC\xD3\x77\x2B\xD4\x16\x49\xAC\x80\x8F\x46\x90\x35\xD1\x50", 16);
+
 extern UString nvarAttributesToUString(const UINT8 attributes);
 extern UString nvarExtendedAttributesToUString(const UINT8 attributes);
 extern UString efiTimeToUString(const EFI_TIME & time);
@@ -41,7 +45,7 @@ extern UString efiTimeToUString(const EFI_TIME & time);
 typedef struct NVAR_ENTRY_HEADER_ {
     UINT32 Signature;      // NVAR
     UINT16 Size;           // Size of the entry including header
-    UINT32 Next : 24;      // Offset to the next entry in a list, or empty if latest in the list
+    UINT32 Next : 24;      // Offset to the next entry in a list, or empty if the latest in the list
     UINT32 Attributes : 8; // Attributes
 } NVAR_ENTRY_HEADER;
 
@@ -49,14 +53,14 @@ typedef struct NVAR_ENTRY_HEADER_ {
 #define NVRAM_NVAR_ENTRY_SIGNATURE         0x5241564E
 
 // Attributes
-#define NVRAM_NVAR_ENTRY_RUNTIME         0x01
-#define NVRAM_NVAR_ENTRY_ASCII_NAME      0x02
-#define NVRAM_NVAR_ENTRY_GUID            0x04
-#define NVRAM_NVAR_ENTRY_DATA_ONLY       0x08
-#define NVRAM_NVAR_ENTRY_EXT_HEADER      0x10
-#define NVRAM_NVAR_ENTRY_HW_ERROR_RECORD 0x20 
-#define NVRAM_NVAR_ENTRY_AUTH_WRITE      0x40
-#define NVRAM_NVAR_ENTRY_VALID           0x80
+#define NVRAM_NVAR_ENTRY_RUNTIME           0x01
+#define NVRAM_NVAR_ENTRY_ASCII_NAME        0x02
+#define NVRAM_NVAR_ENTRY_GUID              0x04
+#define NVRAM_NVAR_ENTRY_DATA_ONLY         0x08
+#define NVRAM_NVAR_ENTRY_EXT_HEADER        0x10
+#define NVRAM_NVAR_ENTRY_HW_ERROR_RECORD   0x20
+#define NVRAM_NVAR_ENTRY_AUTH_WRITE        0x40
+#define NVRAM_NVAR_ENTRY_VALID             0x80
 
 // Extended attributes
 #define NVRAM_NVAR_ENTRY_EXT_CHECKSUM      0x01

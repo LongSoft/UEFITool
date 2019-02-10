@@ -1659,12 +1659,20 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
         UByteArray fileGuid = UByteArray(model->header(index).constData(), sizeof(EFI_GUID));
 
         // Parse NVAR store
-        if (fileGuid == NVRAM_NVAR_STORE_FILE_GUID)
+        if (fileGuid == NVRAM_NVAR_STORE_FILE_GUID) {
+            model->setText(index, UString("NVAR store"));
             return nvramParser->parseNvarStore(index);
+        }
+
+        if (fileGuid == NVRAM_NVAR_PEI_EXTERNAL_DEFAULTS_FILE_GUID) {
+            model->setText(index, UString("NVRAM external defaults"));
+            return nvramParser->parseNvarStore(index);
+        }
 
         // Parse vendor hash file
-        else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX)
+        else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
             return parseVendorHashFile(fileGuid, index);
+        }
 
         return parseRawArea(index);
     }
@@ -2796,39 +2804,34 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
     // Get parent file parsing data
     UByteArray parentFileGuid(model->header(parentFile).constData(), sizeof(EFI_GUID));
     if (parentFileGuid == EFI_PEI_APRIORI_FILE_GUID) { // PEI apriori file
-        // Parse apriori file list
-        UString str;
-        USTATUS result = parseAprioriRawSection(model->body(index), str);
-        if (!result && !str.isEmpty())
-            model->addInfo(index, UString("\nFile list:") + str);
-
         // Set parent file text
         model->setText(parentFile, UString("PEI apriori file"));
-
-        return U_SUCCESS;
-    }
-    else if (parentFileGuid == EFI_DXE_APRIORI_FILE_GUID) { // DXE apriori file
         // Parse apriori file list
         UString str;
         USTATUS result = parseAprioriRawSection(model->body(index), str);
         if (!result && !str.isEmpty())
             model->addInfo(index, UString("\nFile list:") + str);
-
-        // Set parent file text
+        return result;
+    }
+    else if (parentFileGuid == EFI_DXE_APRIORI_FILE_GUID) { // DXE apriori file
+        // Rename parent file
         model->setText(parentFile, UString("DXE apriori file"));
-
-        return U_SUCCESS;
+        // Parse apriori file list
+        UString str;
+        USTATUS result = parseAprioriRawSection(model->body(index), str);
+        if (!result && !str.isEmpty())
+            model->addInfo(index, UString("\nFile list:") + str);
+        return result;
     }
     else if (parentFileGuid == NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID) { // AMI NVRAM external defaults
-        // Parse NVAR area
-       nvramParser->parseNvarStore(index);
-
-        // Set parent file text
+        // Rename parent file
         model->setText(parentFile, UString("NVRAM external defaults"));
+        // Parse NVAR area
+        return nvramParser->parseNvarStore(index);
     }
     else if (parentFileGuid == BG_VENDOR_HASH_FILE_GUID_AMI) { // AMI vendor hash file
         // Parse AMI vendor hash file
-        parseVendorHashFile(parentFileGuid, index);
+        return parseVendorHashFile(parentFileGuid, index);
     }
 
     // Parse as raw area
