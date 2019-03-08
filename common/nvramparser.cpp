@@ -233,8 +233,8 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 nvarIndex = index.child(i, 0);
                 if (model->hasEmptyParsingData(nvarIndex) == false) {
                     UByteArray nvarData = model->parsingData(nvarIndex);
-                    const NVAR_ENTRY_PARSING_DATA* nvarPdata = (const NVAR_ENTRY_PARSING_DATA*)nvarData.constData();
-                    if (nvarPdata->isValid && nvarPdata->next + model->offset(nvarIndex) - localOffset == offset) { // Previous link is present and valid
+                    const NVAR_ENTRY_PARSING_DATA nvarPdata = readUnaligned((const NVAR_ENTRY_PARSING_DATA*)nvarData.constData());
+                    if (nvarPdata.isValid && nvarPdata.next + model->offset(nvarIndex) - localOffset == offset) { // Previous link is present and valid
                         isInvalidLink = false;
                         break;
                     }

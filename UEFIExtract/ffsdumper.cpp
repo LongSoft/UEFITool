@@ -165,6 +165,7 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
     }
 
     USTATUS result;
+
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex childIndex = index.child(i, 0);
         bool useText = FALSE;
@@ -172,9 +173,13 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             useText = !model->text(childIndex).isEmpty();
 
         UString childPath = path;
-        if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT)
+        if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT) {
+            if (!changeDirectory(path) && !makeDirectory(path))
+                return U_DIR_CREATE;
+
             childPath = usprintf("%s/%d %s", path.toLocal8Bit(), i,
                 (useText ? model->text(childIndex) : model->name(childIndex)).toLocal8Bit());
+        }
         result = recursiveDump(childIndex, childPath, dumpMode, sectionType, guid);
         if (result)
             return result;
