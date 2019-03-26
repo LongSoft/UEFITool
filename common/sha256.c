@@ -90,7 +90,7 @@ static const unsigned long K[64] = {
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 /* compress 512-bits */
-static int sha256_compress(struct sha256_state *md, unsigned char *buf)
+static void sha256_compress(struct sha256_state *md, unsigned char *buf)
 {
     uint32_t S[8], W[64], t0, t1;
     uint32_t t;
@@ -122,7 +122,6 @@ h  = t0 + t1;
     for (i = 0; i < 8; i++) {
         md->state[i] = md->state[i] + S[i];
     }
-    return 0;
 }
 /* Initialize the hash state */
 void sha256_init(struct sha256_state *md)
@@ -154,8 +153,7 @@ int sha256_process(struct sha256_state *md, const unsigned char *in,
         return -1;
     while (inlen > 0) {
         if (md->curlen == 0 && inlen >= block_size) {
-            if (sha256_compress(md, (unsigned char *) in) < 0)
-                return -1;
+            sha256_compress(md, (unsigned char *) in);
             md->length += block_size * 8;
             in += block_size;
             inlen -= block_size;
@@ -166,8 +164,7 @@ int sha256_process(struct sha256_state *md, const unsigned char *in,
             in += n;
             inlen -= n;
             if (md->curlen == block_size) {
-                if (sha256_compress(md, md->buf) < 0)
-                    return -1;
+                sha256_compress(md, md->buf);
                 md->length += 8 * block_size;
                 md->curlen = 0;
             }

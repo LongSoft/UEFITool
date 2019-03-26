@@ -2399,7 +2399,10 @@ int i, c, v;
 		v = (bl->qty - 1) * len;
 		if ((bl->qty > 512 || len > 127) &&
 		    v / len != bl->qty - 1) return NULL; /* Overflow */
-		if (v > INT_MAX - c) return NULL;	/* Overflow */
+		if (v > INT_MAX - c) {
+			bstr__free (b);
+			return NULL;	/* Overflow */
+		}
 		c += v;
 		p = b->data = (unsigned char *) bstr__alloc (c);
 		if (p == NULL) {
@@ -2542,6 +2545,7 @@ int bssplitstrcb (struct bStream * s, const_bstring splitStr,
 			}
 			buff->slen = 0;
 		}
+		bdestroy (buff);
 		return BSTR_OK;
 	} else {
 		for (;;) {
