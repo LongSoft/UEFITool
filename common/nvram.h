@@ -38,6 +38,10 @@ const UByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID
 const UByteArray NVRAM_NVAR_PEI_EXTERNAL_DEFAULTS_FILE_GUID
 ("\x50\xDC\xD3\x77\x2B\xD4\x16\x49\xAC\x80\x8F\x46\x90\x35\xD1\x50", 16);
 
+// AF516361-B4C5-436E-A7E3-A149A31B1461
+const UByteArray NVRAM_NVAR_BB_DEFAULTS_FILE_GUID
+("\x61\x63\x51\xAF\xC5\xB4\x6E\x43\xA7\xE3\xA1\x49\xA3\x1B\x14\x61", 16);
+
 extern UString nvarAttributesToUString(const UINT8 attributes);
 extern UString nvarExtendedAttributesToUString(const UINT8 attributes);
 extern UString efiTimeToUString(const EFI_TIME & time);

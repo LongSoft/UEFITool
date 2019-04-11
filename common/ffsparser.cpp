@@ -1669,8 +1669,13 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
             return nvramParser->parseNvarStore(index);
         }
 
+        if (fileGuid == NVRAM_NVAR_BB_DEFAULTS_FILE_GUID) {
+            model->setText(index, UString("NVAR bb defaults"));
+            return nvramParser->parseNvarStore(index);
+        }
+
         // Parse vendor hash file
-        else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
+        if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
             return parseVendorHashFile(fileGuid, index);
         }
 
