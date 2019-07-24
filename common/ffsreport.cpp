@@ -49,7 +49,7 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
     
     // Calculate item CRC32
     UByteArray data = model->header(index) + model->body(index) + model->tail(index);
-    UINT32 crc = crc32(0, (const UINT8*)data.constData(), data.size());
+    UINT32 crc = (UINT32)crc32(0, (const UINT8*)data.constData(), data.size());
 
     // Information on current item
     UString text = model->text(index);

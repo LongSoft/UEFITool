@@ -571,6 +571,21 @@ typedef struct POSTCODE_SECTION_ {
 ///
 #define EFI_DEP_SOR           0x09
 
+//*****************************************************************************
+// X86 Reset Vector Data
+//*****************************************************************************
+typedef struct X86_RESET_VECTOR_DATA_ {
+    UINT8  ApEntryVector[8];   // Base: 0xffffffd0
+    UINT8  Reserved0[8];
+    UINT32 PeiCoreEntryPoint;  // Base: 0xffffffe0
+    UINT8  Reserved1[12];
+    UINT8  ResetVector[8];     // Base: 0xfffffff0
+    UINT32 ApStartupSegment;   // Base: 0xfffffff8
+    UINT32 BootFvBaseAddress;  // Base: 0xfffffffc
+} X86_RESET_VECTOR_DATA;
+
+#define X86_RESET_VECTOR_DATA_UNPOPULATED 0x12345678
+
 // Restore previous packing rules
 #pragma pack(pop)
 

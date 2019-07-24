@@ -280,6 +280,9 @@ z_size_t ZEXPORT gzfwrite(buf, size, nitems, file)
     z_size_t len;
     gz_statep state;
 
+    if (nitems == 0 || size == 0)
+        return 0;
+    
     /* get internal structure */
     if (file == NULL)
         return 0;

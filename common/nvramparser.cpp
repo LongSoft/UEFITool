@@ -536,7 +536,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
     UINT32 offset = storeOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(volume.constData() + offset);
-        if (*currentPos == NVRAM_VSS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_SVS_STORE_SIGNATURE) { // $VSS or $SVS signatures found, perform checks
+        if (*currentPos == NVRAM_VSS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_SVS_STORE_SIGNATURE || *currentPos == NVRAM_APPLE_NSS_STORE_SIGNATURE) { // $VSS, $SVS or $NSS signatures found, perform checks
             const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)currentPos;
             if (vssHeader->Format != NVRAM_VSS_VARIABLE_STORE_FORMATTED) {
                 msg(usprintf("%s: VSS store candidate at offset %Xh skipped, has invalid format %02Xh", __FUNCTION__, localOffset + offset, vssHeader->Format), index);
@@ -645,20 +645,27 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             // All checks passed, store found
             break;
         }
-        else if (*currentPos == INTEL_MICROCODE_HEADER_VERSION) {// Intel microcode
-            if (!INTEL_MICROCODE_HEADER_SIZES_VALID(currentPos)) // Check header sizes
-                continue;
-
+        else if (*currentPos == INTEL_MICROCODE_HEADER_VERSION_1) {// Intel microcode
             // Check reserved bytes
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
             bool reservedBytesValid = true;
             for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++)
-                if (ucodeHeader->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
+                if (ucodeHeader->Reserved[i] != 0x00) {
                     reservedBytesValid = false;
                     break;
                 }
             if (!reservedBytesValid)
                 continue;
+            
+            // Data size is multiple of 4
+            if (ucodeHeader->DataSize % 4 != 0) {
+                continue;
+            }
+            
+            // TotalSize is greater then DataSize and is multiple of 1024
+            if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+                continue;
+            }
 
             // All checks passed, store found
             break;
@@ -710,7 +717,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
 USTATUS NvramParser::getStoreSize(const UByteArray & data, const UINT32 storeOffset, UINT32 & storeSize)
 {
     const UINT32* signature = (const UINT32*)(data.constData() + storeOffset);
-    if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
+    if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE || *signature == NVRAM_APPLE_NSS_STORE_SIGNATURE) {
         const VSS_VARIABLE_STORE_HEADER* vssHeader = (const VSS_VARIABLE_STORE_HEADER*)signature;
         storeSize = vssHeader->Size;
     }
@@ -755,7 +762,7 @@ USTATUS NvramParser::getStoreSize(const UByteArray & data, const UINT32 storeOff
         const OEM_ACTIVATION_MARKER* markerHeader = (const OEM_ACTIVATION_MARKER*)signature;
         storeSize = markerHeader->Size;
     }
-    else if (*signature == INTEL_MICROCODE_HEADER_VERSION) { // Intel microcode, must be checked after SLIC marker because of the same *signature values
+    else if (*signature == INTEL_MICROCODE_HEADER_VERSION_1) { // Intel microcode, must be checked after SLIC marker because of the same *signature values
         const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)signature;
         storeSize = ucodeHeader->TotalSize;
     } else {
@@ -796,10 +803,19 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
     UByteArray body = store.mid(sizeof(VSS_VARIABLE_STORE_HEADER), storeSize - sizeof(VSS_VARIABLE_STORE_HEADER));
 
     // Add info
-    bool isSvsStore = (vssStoreHeader->Signature == NVRAM_APPLE_SVS_STORE_SIGNATURE);
-    UString name = isSvsStore ? UString("SVS store") : UString("VSS store");
-    UString info = usprintf("Signature: %s\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
-        isSvsStore ? "$SVS" : "$VSS",
+    UString name;
+    if (vssStoreHeader->Signature == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
+        name = UString("SVS store");
+    }
+    else if (vssStoreHeader->Signature == NVRAM_APPLE_NSS_STORE_SIGNATURE) {
+        name = UString("NSS store");
+    }
+    else {
+        name = UString("VSS store");
+    }
+    
+    UString info = usprintf("Signature: %Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
+        vssStoreHeader->Signature,
         storeSize, storeSize,
         header.size(), header.size(),
         body.size(), body.size(),
@@ -912,7 +928,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
     EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* crcFtwBlockHeader = (EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)header.data();
     crcFtwBlockHeader->Crc = emptyByte ? 0xFFFFFFFF : 0;
     crcFtwBlockHeader->State = emptyByte ? 0xFF : 0;
-    UINT32 calculatedCrc = crc32(0, (const UINT8*)crcFtwBlockHeader, headerSize);
+    UINT32 calculatedCrc = (UINT32)crc32(0, (const UINT8*)crcFtwBlockHeader, headerSize);
 
     // Add info
     UString name("FTW store");
@@ -996,7 +1012,7 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
 
     // Check store checksum
     UINT32 storedCrc = *(UINT32*)store.right(sizeof(UINT32)).constData();
-    UINT32 calculatedCrc = crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
+    UINT32 calculatedCrc = (UINT32)crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
 
     // Add info
     bool isGaidStore = (fsysStoreHeader->Signature == NVRAM_APPLE_GAID_STORE_SIGNATURE);
@@ -1234,8 +1250,8 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
     }
 
     // Check signature and run parser function needed
-    // VSS/SVS store
-    if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE)
+    // VSS/SVS/NSS store
+    if (*signature == NVRAM_VSS_STORE_SIGNATURE || *signature == NVRAM_APPLE_SVS_STORE_SIGNATURE || *signature == NVRAM_APPLE_NSS_STORE_SIGNATURE)
         return parseVssStoreHeader(store, localOffset, false, parent, index);
     // VSS2 store
     if (*signature == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1 || *signature == NVRAM_VSS2_STORE_GUID_PART1)
@@ -1266,7 +1282,7 @@ USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 loc
         return parseSlicMarkerHeader(store, localOffset, parent, index);
     // Intel microcode
     // Must be checked after SLIC marker because of the same *signature values
-    else if (*signature == INTEL_MICROCODE_HEADER_VERSION)
+    else if (*signature == INTEL_MICROCODE_HEADER_VERSION_1)
         return ffsParser->parseIntelMicrocodeHeader(store, localOffset, parent, index);
 
     msg(usprintf("parseStoreHeader: don't know how to parse a header with signature %08Xh", *signature), parent);
@@ -1393,7 +1409,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
 
                     // Calculate CRC32 of the variable data
                     storedCrc32 = appleVariableHeader->DataCrc32;
-                    calculatedCrc32 = crc32(0, (const UINT8*)body.constData(), body.size());
+                    calculatedCrc32 = (UINT32)crc32(0, (const UINT8*)body.constData(), body.size());
                 }
             }
 

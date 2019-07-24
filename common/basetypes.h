@@ -68,6 +68,19 @@ typedef size_t USTATUS;
 #define U_INVALID_BG_BOOT_POLICY          46
 #define U_INVALID_TXT_CONF                47
 #define U_ELEMENTS_NOT_FOUND              48
+#define U_PEI_CORE_ENTRY_POINT_NOT_FOUND  49
+#define U_INVALID_STORE_SIZE              50
+#define U_UNKNOWN_COMPRESSION_ALGORITHM   51
+#define U_NOTHING_TO_PATCH                52
+#define U_UNKNOWN_PATCH_TYPE              53
+#define U_PATCH_OFFSET_OUT_OF_BOUNDS      54
+#define U_INVALID_SYMBOL                  55
+
+#define U_INVALID_MANIFEST                251
+#define U_UNKNOWN_MANIFEST_HEADER_VERSION 252
+#define U_INVALID_ME_PARTITION_TABLE      253
+#define U_INVALID_ME_PARTITION            254
+
 #define U_NOT_IMPLEMENTED                 0xFF
 
 // EDK2 porting definitions

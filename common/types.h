@@ -58,6 +58,20 @@ namespace Types {
         FlashMapEntry,
         Microcode,
         SlicData,
+        // ME-specific
+        IfwiHeader,
+        IfwiPartition,
+        FptStore,
+        FptEntry,
+        FptPartition,
+        BpdtStore,
+        BpdtEntry,
+        BpdtPartition,
+        CpdStore,
+        CpdEntry,
+        CpdPartition,
+        CpdExtension,
+        CpdSpiEntry
     };
 }
 
@@ -149,6 +163,30 @@ namespace Subtypes {
     enum SlicDataSubtypes {
         PubkeySlicData = 190,
         MarkerSlicData
+    };
+
+    // ME-specific
+    enum IfwiPartitionSubtypes {
+        DataIfwiPartition = 200,
+        BootIfwiPartition
+    };
+
+    enum FptEntrySubtypes {
+        ValidFptEntry = 210,
+        InvalidFptEntry
+    };
+
+    enum FptPartitionSubtypes {
+        CodeFptPartition = 220,
+        DataFptPartition,
+        GlutFptPartition
+    };
+	
+    enum CpdPartitionSubtypes {
+        ManifestCpdPartition = 230,
+        MetadataCpdPartition,
+        KeyCpdPartition,
+        CodeCpdPartition
     };
 }
 

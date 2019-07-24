@@ -141,6 +141,7 @@ UString errorCodeToUString(USTATUS errorCode)
     case U_TRUNCATED_IMAGE:                 return UString("Image is truncated");
     case U_INVALID_CAPSULE:                 return UString("Invalid capsule");
     case U_STORES_NOT_FOUND:                return UString("Stores not found");
+    case U_INVALID_STORE_SIZE:              return UString("Invalid store size");
     default:                                return usprintf("Unknown error %02X", errorCode);
     }
 }
@@ -149,12 +150,12 @@ UString errorCodeToUString(USTATUS errorCode)
 USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionType, UINT8 & algorithm, UINT32 & dictionarySize, UByteArray & decompressedData, UByteArray & efiDecompressedData)
 {
     const UINT8* data;
-    UINT32  dataSize;
+    UINT32 dataSize;
     UINT8* decompressed;
     UINT8* efiDecompressed;
-    UINT32  decompressedSize = 0;
+    UINT32 decompressedSize = 0;
     UINT8* scratch;
-    UINT32  scratchSize = 0;
+    UINT32 scratchSize = 0;
     const EFI_TIANO_HEADER* header;
 
     // For all but LZMA dictionary size is 0
@@ -331,6 +332,24 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize)
     }
 
     return (UINT16)(0x10000 - counter);
+}
+
+// 32bit checksum calculation routine
+UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize)
+{
+    if (!buffer)
+        return 0;
+    
+    UINT32 counter = 0;
+    UINT32 index = 0;
+    
+    bufferSize /= sizeof(UINT32);
+    
+    for (; index < bufferSize; index++) {
+        counter = (UINT32)(counter + buffer[index]);
+    }
+    
+    return (UINT32)(0x100000000ULL - counter);
 }
 
 // Get padding type for a given padding

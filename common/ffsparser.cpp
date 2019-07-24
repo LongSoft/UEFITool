@@ -120,7 +120,7 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
 
 USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & index)
 {
-   // Sanity check
+    // Sanity check
     if (buffer.isEmpty()) {
         return EFI_INVALID_PARAMETER;
     }
@@ -756,7 +756,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
 
     // Parse PDR region as BIOS space
     USTATUS result = parseRawArea(index);
-    if (result && result != U_VOLUMES_NOT_FOUND && result != U_INVALID_VOLUME)
+    if (result && result != U_VOLUMES_NOT_FOUND && result != U_INVALID_VOLUME && result != U_STORES_NOT_FOUND)
         return result;
 
     return U_SUCCESS;
@@ -910,8 +910,8 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
         prevItemType = itemType;
         result = findNextRawAreaItem(index, itemOffset + prevItemSize, itemType, itemOffset, itemSize, itemAltSize);
 
-		// Silence value not used after assignment warning
-		(void)prevItemType;
+        // Silence value not used after assignment warning
+        (void)prevItemType;
     }
 
     // Padding at the end of RAW area
@@ -1058,7 +1058,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     UINT32 usedSpace = *(UINT32*)(volume.constData() + 12);
     if (appleCrc32 != 0) {
         // Calculate CRC32 of the volume body
-        UINT32 crc = crc32(0, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
+        UINT32 crc = (UINT32)crc32(0, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
         if (crc == appleCrc32) {
             hasAppleCrc32 = true;
         }
@@ -1161,26 +1161,34 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(data.constData() + offset);
         const UINT32 restSize = dataSize - offset;
-        if (readUnaligned(currentPos) == INTEL_MICROCODE_HEADER_VERSION) {// Intel microcode
+        if (readUnaligned(currentPos) == INTEL_MICROCODE_HEADER_VERSION_1) {// Intel microcode
             // Check data size
             if (restSize < sizeof(INTEL_MICROCODE_HEADER))
                 continue;
 
             // Check microcode size
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
-            if (!INTEL_MICROCODE_HEADER_SIZES_VALID(currentPos) || restSize < ucodeHeader->TotalSize) //TODO: needs a separate checking function
-                continue;
 
             // Check reserved bytes
             bool reservedBytesValid = true;
             for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++)
-                if (ucodeHeader->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
+                if (ucodeHeader->Reserved[i] != 0x00) {
                     reservedBytesValid = false;
                     break;
                 }
             if (!reservedBytesValid)
                 continue;
 
+            // Data size is multiple of 4
+            if (ucodeHeader->DataSize % 4 != 0) {
+                continue;
+            }
+            
+            // TotalSize is greater then DataSize and is multiple of 1024
+            if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+                continue;
+            }
+            
             // All checks passed, microcode found
             nextItemType = Types::Microcode;
             nextItemSize = ucodeHeader->TotalSize;
@@ -1442,7 +1450,6 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (file.isEmpty()) {
         return U_INVALID_PARAMETER;
     }
-
     if ((UINT32)file.size() < sizeof(EFI_FFS_FILE_HEADER)) {
         return U_INVALID_FILE;
     }
@@ -1480,14 +1487,16 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     }  
        
     UINT32 alignment = (UINT32)(1UL << alignmentPower);
-    if ((localOffset + header.size()) % alignment)
+    if ((localOffset + header.size()) % alignment) {
         msgUnalignedFile = true;
-
+    }
+    
     // Check file alignment agains volume alignment
     bool msgFileAlignmentIsGreaterThanVolumeAlignment = false;
-    if (!isWeakAligned && volumeAlignment < alignment)
+    if (!isWeakAligned && volumeAlignment < alignment) {
         msgFileAlignmentIsGreaterThanVolumeAlignment = true;
-
+    }
+    
     // Get file body
     UByteArray body = file.mid(header.size());
 
@@ -1508,9 +1517,10 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     // Check header checksum
     UINT8 calculatedHeader = 0x100 - (calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->IntegrityCheck.Checksum.Header - fileHeader->IntegrityCheck.Checksum.File - fileHeader->State);
     bool msgInvalidHeaderChecksum = false;
-    if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader)
+    if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader) {
         msgInvalidHeaderChecksum = true;
-
+    }
+    
     // Check data checksum
     // Data checksum must be calculated
     bool msgInvalidDataChecksum = false;
@@ -1526,9 +1536,10 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         calculatedData = FFS_FIXED_CHECKSUM2;
     }
 
-    if (fileHeader->IntegrityCheck.Checksum.File != calculatedData)
+    if (fileHeader->IntegrityCheck.Checksum.File != calculatedData) {
         msgInvalidDataChecksum = true;
-
+    }
+    
     // Check file type
     bool msgUnknownType = false;
     if (fileHeader->Type > EFI_FV_FILETYPE_MM_CORE_STANDALONE && fileHeader->Type != EFI_FV_FILETYPE_PAD) {
@@ -1663,19 +1674,16 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
             model->setText(index, UString("NVAR store"));
             return nvramParser->parseNvarStore(index);
         }
-
-        if (fileGuid == NVRAM_NVAR_PEI_EXTERNAL_DEFAULTS_FILE_GUID) {
+        else if (fileGuid == NVRAM_NVAR_PEI_EXTERNAL_DEFAULTS_FILE_GUID) {
             model->setText(index, UString("NVRAM external defaults"));
             return nvramParser->parseNvarStore(index);
         }
-
-        if (fileGuid == NVRAM_NVAR_BB_DEFAULTS_FILE_GUID) {
+        else if (fileGuid == NVRAM_NVAR_BB_DEFAULTS_FILE_GUID) {
             model->setText(index, UString("NVAR bb defaults"));
             return nvramParser->parseNvarStore(index);
         }
-
         // Parse vendor hash file
-        if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
+        else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
             return parseVendorHashFile(fileGuid, index);
         }
 
@@ -2081,7 +2089,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         UINT32 crc = *(UINT32*)(section.constData() + headerSize);
         additionalInfo += UString("\nChecksum type: CRC32");
         // Calculate CRC32 of section data
-        UINT32 calculated = crc32(0, (const UINT8*)section.constData() + dataOffset, section.size() - dataOffset);
+        UINT32 calculated = (UINT32)crc32(0, (const UINT8*)section.constData() + dataOffset, section.size() - dataOffset);
         if (crc == calculated) {
             additionalInfo += usprintf("\nChecksum: %08Xh, valid", crc);
         }
@@ -2995,6 +3003,9 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size();
     addressDiff = 0xFFFFFFFFULL - model->base(lastVtf) - vtfSize + 1;
 
+    // Parse reset vector data
+    parseResetVectorData();
+
     // Find and parse FIT
     parseFit(index);
 
@@ -3004,6 +3015,37 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     // Check TE files to have original or adjusted base
     checkTeImageBase(index);
 
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseResetVectorData()
+{
+    // Sanity check
+    if (!lastVtf.isValid())
+        return U_SUCCESS;
+
+    // Check VTF to have enough space at the end to fit Reset Vector Data
+    UByteArray vtf = model->header(lastVtf) + model->body(lastVtf) + model->tail(lastVtf);
+    if ((UINT32)vtf.size() < sizeof(X86_RESET_VECTOR_DATA))
+        return U_SUCCESS;
+
+    const X86_RESET_VECTOR_DATA* resetVectorData = (const X86_RESET_VECTOR_DATA*)(vtf.constData() + vtf.size() - sizeof(X86_RESET_VECTOR_DATA));
+
+    // Add info
+    UString info = usprintf("\nAP entry vector: %02X %02X %02X %02X %02X %02X %02X %02X\n"
+                            "Reset vector: %02X %02X %02X %02X %02X %02X %02X %02X\n"
+                            "PEI core entry point: %08Xh\n"
+                            "AP startup segment: %08X\n"
+                            "BootFV base address: %08X\n",
+        resetVectorData->ApEntryVector[0], resetVectorData->ApEntryVector[1], resetVectorData->ApEntryVector[2], resetVectorData->ApEntryVector[3],
+        resetVectorData->ApEntryVector[4], resetVectorData->ApEntryVector[5], resetVectorData->ApEntryVector[6], resetVectorData->ApEntryVector[7],
+        resetVectorData->ResetVector[0], resetVectorData->ResetVector[1], resetVectorData->ResetVector[2], resetVectorData->ResetVector[3],
+        resetVectorData->ResetVector[4], resetVectorData->ResetVector[5], resetVectorData->ResetVector[6], resetVectorData->ResetVector[7],
+        resetVectorData->PeiCoreEntryPoint,
+        resetVectorData->ApStartupSegment,
+        resetVectorData->BootFvBaseAddress);
+
+    model->addInfo(lastVtf, info);
     return U_SUCCESS;
 }
 
@@ -3618,13 +3660,13 @@ USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UI
     }
 
     const INTEL_MICROCODE_HEADER* header = (const INTEL_MICROCODE_HEADER*)(microcode.constData() + localOffset);
-    if (header->Version != INTEL_MICROCODE_HEADER_VERSION) {
+    if (header->Version != INTEL_MICROCODE_HEADER_VERSION_1) {
         return U_INVALID_MICROCODE;
     }
 
     bool reservedBytesValid = true;
     for (UINT8 i = 0; i < sizeof(header->Reserved); i++)
-        if (header->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
+        if (header->Reserved[i] != 0x00) {
             reservedBytesValid = false;
             break;
         }
@@ -3632,13 +3674,21 @@ USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UI
         return U_INVALID_MICROCODE;
     }
 
+    if (header->DataSize % 4 != 0) {
+        return U_INVALID_MICROCODE;
+    }
+    
+    if (header->TotalSize <= header->DataSize || header->TotalSize % 1024 != 0) {
+        return U_INVALID_MICROCODE;
+    }
+    
     UINT32 mcSize = header->TotalSize;
     if ((UINT32)microcode.size() < localOffset + mcSize) {
         return U_INVALID_MICROCODE;
     }
 
     // Valid microcode found
-    info = usprintf("CPUID: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
+    info = usprintf("CpuSignature: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
                     header->CpuSignature,
                     header->Revision,
                     header->DateDay,
@@ -3678,34 +3728,33 @@ USTATUS FfsParser::parseFitEntryAcm(const UByteArray & acm, const UINT32 localOf
 
     // Add ACM header info
     UString acmInfo;
-    acmInfo += usprintf(
-                              " found at base %Xh\n"
-                              "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08Xh\n"
-                              "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
-                              "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08Xh\n"
-                              "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
-                              "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
-                              "SegSel: %08Xh         KeySize: %08Xh       Unknown3: %08Xh",
-                              model->base(parent) + localOffset,
-                              header->ModuleType,
-                              header->ModuleSubtype,
-                              header->ModuleSize * sizeof(UINT32),
-                              header->HeaderVersion,
-                              header->ChipsetId,
-                              header->Flags,
-                              header->ModuleVendor,
-                              header->DateDay, header->DateMonth, header->DateYear,
-                              header->ModuleSize * sizeof(UINT32),
-                              header->EntryPoint,
-                              header->AcmSvn,
-                              header->Unknown1,
-                              header->Unknown2,
-                              header->GdtBase,
-                              header->GdtMax,
-                              header->SegmentSel,
-                              header->KeySize * sizeof(UINT32),
-                              header->Unknown4 * sizeof(UINT32)
-                              );
+    acmInfo += usprintf(" found at base %Xh\n"
+                        "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08Xh\n"
+                        "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
+                        "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08Xh\n"
+                        "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
+                        "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
+                        "SegSel: %08Xh         KeySize: %08Xh       Unknown3: %08Xh",
+                        model->base(parent) + localOffset,
+                        header->ModuleType,
+                        header->ModuleSubtype,
+                        header->ModuleSize * sizeof(UINT32),
+                        header->HeaderVersion,
+                        header->ChipsetId,
+                        header->Flags,
+                        header->ModuleVendor,
+                        header->DateDay, header->DateMonth, header->DateYear,
+                        header->ModuleSize * sizeof(UINT32),
+                        header->EntryPoint,
+                        header->AcmSvn,
+                        header->Unknown1,
+                        header->Unknown2,
+                        header->GdtBase,
+                        header->GdtMax,
+                        header->SegmentSel,
+                        header->KeySize * sizeof(UINT32),
+                        header->Unknown4 * sizeof(UINT32)
+                        );
     // Add PubKey
     acmInfo += usprintf("\n\nACM RSA Public Key (Exponent: %Xh):", header->RsaPubExp);
     for (UINT16 i = 0; i < sizeof(header->RsaPubKey); i++) {
@@ -4071,66 +4120,134 @@ USTATUS FfsParser::parseMicrocodeVolumeBody(const UModelIndex & index)
 
 USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)microcode.size();
-
-    if (dataSize <  sizeof(INTEL_MICROCODE_HEADER)) {
-        //msg(usprintf("%s: input is too small even for Intel microcode header", __FUNCTION__), parent);
+    // We have enough data to fit the header
+    if ((UINT32)microcode.size() <  sizeof(INTEL_MICROCODE_HEADER)) {
         return U_INVALID_MICROCODE;
     }
 
     const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)microcode.constData();
-    if (ucodeHeader->Version != INTEL_MICROCODE_HEADER_VERSION) {
-        //msg(usprintf("%s: input has invalid Intel microcode header", __FUNCTION__), parent);
+    
+    // Header version is 1
+    if (ucodeHeader->Version != INTEL_MICROCODE_HEADER_VERSION_1) {
         return U_INVALID_MICROCODE;
     }
 
-    if (!INTEL_MICROCODE_HEADER_SIZES_VALID(ucodeHeader)) {
-        //msg(usprintf("%s: input has invalid Intel microcode header", __FUNCTION__), parent);
-        return U_INVALID_MICROCODE;
-    }
-
+    // Reserved bytes are all zeroes
     bool reservedBytesValid = true;
-    for (UINT8 i = 0; i < sizeof(ucodeHeader->Reserved); i++)
-        if (ucodeHeader->Reserved[i] != INTEL_MICROCODE_HEADER_RESERVED_BYTE) {
+    for (UINT8 i = 0; i < sizeof(ucodeHeader->Reserved); i++) {
+        if (ucodeHeader->Reserved[i] != 0x00) {
             reservedBytesValid = false;
             break;
         }
+    }
     if (!reservedBytesValid) {
-        //msg(usprintf("%s: input has invalid Intel microcode header", __FUNCTION__), parent);
         return U_INVALID_MICROCODE;
     }
 
-    if (dataSize < ucodeHeader->TotalSize) {
-        //msg(usprintf("%s: input is too small for the whole Intel microcode", __FUNCTION__), parent);
+    // Data size is multiple of 4
+    if (ucodeHeader->DataSize % 4 != 0) {
+        return U_INVALID_MICROCODE;
+    }
+    
+    // TotalSize is greater then DataSize and is multiple of 1024
+    if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+        return U_INVALID_MICROCODE;
+    }
+    
+    // We have enough data to fit the whole TotalSize
+    if ((UINT32)microcode.size() < ucodeHeader->TotalSize) {
         return U_INVALID_MICROCODE;
     }
 
     // Valid microcode found
-    // Construct header and body
+    UINT32 dataSize = ucodeHeader->DataSize;
+    if (dataSize == 0)
+        dataSize = INTEL_MICROCODE_REAL_DATA_SIZE_ON_ZERO;
+    
+    // Recalculate the whole microcode checksum
+    UByteArray tempMicrocode = microcode;
+    INTEL_MICROCODE_HEADER* tempUcodeHeader = (INTEL_MICROCODE_HEADER*)(tempMicrocode.data());
+    tempUcodeHeader->Checksum = 0;
+    UINT32 calculated = calculateChecksum32((const UINT32*)tempMicrocode.constData(), tempUcodeHeader->TotalSize);
+    bool msgInvalidChecksum = (ucodeHeader->Checksum != calculated);
+    
+    // Construct header, body and tail
     UByteArray header = microcode.left(sizeof(INTEL_MICROCODE_HEADER));
-    UByteArray body = microcode.mid(sizeof(INTEL_MICROCODE_HEADER), ucodeHeader->DataSize);
-
-    //TODO: recalculate microcode checksum
-
+    UByteArray body = microcode.mid(sizeof(INTEL_MICROCODE_HEADER), dataSize);
+    UByteArray tail = microcode.mid(sizeof(INTEL_MICROCODE_HEADER) + dataSize);
+    
+    // Check if we have extended header in the tail
+    UString extendedHeaderInfo;
+    if ((UINT32)tail.size() >= sizeof(INTEL_MICROCODE_EXTENDED_HEADER)) {
+        const INTEL_MICROCODE_EXTENDED_HEADER* extendedHeader = (const INTEL_MICROCODE_EXTENDED_HEADER*)tail.constData();
+        
+        // Reserved bytes are all zeroes
+        bool extendedReservedBytesValid = true;
+        for (UINT8 i = 0; i < sizeof(extendedHeader->Reserved); i++) {
+            if (extendedHeader->Reserved[i] != 0x00) {
+                extendedReservedBytesValid = false;
+                break;
+            }
+        }
+        
+        // We have more than 0 entries and they are all in the tail
+        if (extendedReservedBytesValid
+            && extendedHeader->EntryCount > 0
+            && (UINT32)tail.size() >= sizeof(INTEL_MICROCODE_EXTENDED_HEADER) + extendedHeader->EntryCount * sizeof(INTEL_MICROCODE_EXTENDED_HEADER_ENTRY)) {
+            // Recalculate extended header checksum
+            INTEL_MICROCODE_EXTENDED_HEADER* tempExtendedHeader = (INTEL_MICROCODE_EXTENDED_HEADER*)(tempMicrocode.data() + sizeof(INTEL_MICROCODE_HEADER) + dataSize);
+            tempExtendedHeader->Checksum = 0;
+            UINT32 extendedCalculated = calculateChecksum32((const UINT32*)tempExtendedHeader, sizeof(INTEL_MICROCODE_EXTENDED_HEADER) + extendedHeader->EntryCount * sizeof(INTEL_MICROCODE_EXTENDED_HEADER_ENTRY));
+            
+            extendedHeaderInfo = usprintf("\nExtended header entries: %u\nExtended header checksum: %08Xh, ",
+                                          extendedHeader->EntryCount,
+                                          extendedHeader->Checksum)
+                               + (extendedHeader->Checksum == extendedCalculated ? UString("valid") : usprintf("invalid, should be %08Xh", extendedCalculated));
+            
+            const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY* firstEntry = (const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY*)(extendedHeader + 1);
+            for (UINT8 i = 0; i < extendedHeader->EntryCount; i++) {
+                const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY* entry = (const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY*)(firstEntry + i);
+                
+                // Recalculate checksum after patching
+                tempUcodeHeader->Checksum = 0;
+                tempUcodeHeader->CpuFlags = entry->CpuFlags;
+                tempUcodeHeader->CpuSignature = entry->CpuSignature;
+                UINT32 entryCalculated = calculateChecksum32((const UINT32*)tempMicrocode.constData(), sizeof(INTEL_MICROCODE_HEADER) + dataSize);
+                
+                
+                extendedHeaderInfo += usprintf("\nCPU signature #%u: %08Xh\nCPU flags #%u: %08Xh\nChecksum #%u: %08Xh, ",
+                                               i + 1, entry->CpuSignature,
+                                               i + 1, entry->CpuFlags,
+                                               i + 1, entry->Checksum)
+                                    + (entry->Checksum == entryCalculated ? UString("valid") : usprintf("invalid, should be %08Xh", entryCalculated));
+            }
+        }
+    }
+    
     // Add info
     UString name("Intel microcode");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
-        "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nChecksum: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh",
-        ucodeHeader->TotalSize, ucodeHeader->TotalSize,
-        header.size(), header.size(),
-        body.size(), body.size(),
-        ucodeHeader->DateDay,
-        ucodeHeader->DateMonth,
-        ucodeHeader->DateYear,
-        ucodeHeader->CpuSignature,
-        ucodeHeader->Revision,
-        ucodeHeader->Checksum,
-        ucodeHeader->LoaderRevision,
-        ucodeHeader->CpuFlags);
-
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\n"
+                            "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh\nChecksum: %08Xh, ",
+                            dataSize, dataSize,
+                            header.size(), header.size(),
+                            body.size(), body.size(),
+                            tail.size(), tail.size(),
+                            ucodeHeader->DateDay,
+                            ucodeHeader->DateMonth,
+                            ucodeHeader->DateYear,
+                            ucodeHeader->CpuSignature,
+                            ucodeHeader->Revision,
+                            ucodeHeader->LoaderRevision,
+                            ucodeHeader->CpuFlags,
+                            ucodeHeader->Checksum)
+                 + (ucodeHeader->Checksum == calculated ? UString("valid") : usprintf("invalid, should be %08Xh", calculated))
+                 + extendedHeaderInfo;
+    
     // Add tree item
-    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, UByteArray(), Fixed, parent);
-
-    // No need to parse body further for now
+    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, tail, Fixed, parent);
+    if (msgInvalidChecksum)
+        msg(usprintf("%s: invalid microcode checksum %08Xh, should be %08Xh", __FUNCTION__, ucodeHeader->Checksum, calculated), index);
+    
+    // No need to parse the body further for now
     return U_SUCCESS;
 }

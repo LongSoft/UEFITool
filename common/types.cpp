@@ -66,6 +66,20 @@ UString itemTypeToUString(const UINT8 type)
     case Types::FlashMapEntry:  return UString("FlashMap entry");
     case Types::Microcode:      return UString("Microcode");
     case Types::SlicData:       return UString("SLIC data");
+    // ME-specific
+    case Types::FptStore:       return UString("FPT store");
+    case Types::FptEntry:       return UString("FPT entry");
+    case Types::IfwiHeader:     return UString("IFWI header");
+    case Types::IfwiPartition:  return UString("IFWI partition");
+    case Types::FptPartition:   return UString("FPT partition");
+    case Types::BpdtStore:      return UString("BPDT store");
+    case Types::BpdtEntry:      return UString("BPDT entry");
+    case Types::BpdtPartition:  return UString("BPDT partition");
+    case Types::CpdStore:       return UString("CPD store");
+    case Types::CpdEntry:       return UString("CPD entry");
+    case Types::CpdPartition:   return UString("CPD partition");
+    case Types::CpdExtension:   return UString("CPD extension");
+    case Types::CpdSpiEntry:    return UString("CPD SPI entry");
     }
 
     return  UString("Unknown");
@@ -131,6 +145,26 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
     case Types::Microcode:
         if (subtype == Subtypes::IntelMicrocode)           return UString("Intel");
         if (subtype == Subtypes::AmdMicrocode)             return UString("AMD");
+        break;
+	// ME-specific
+    case Types::FptEntry:
+        if (subtype == Subtypes::ValidFptEntry)            return UString("Valid");
+        if (subtype == Subtypes::InvalidFptEntry)          return UString("Invalid");
+        break;
+    case Types::FptPartition:
+        if (subtype == Subtypes::CodeFptPartition)         return UString("Code");
+        if (subtype == Subtypes::DataFptPartition)         return UString("Data");
+        if (subtype == Subtypes::GlutFptPartition)         return UString("GLUT");
+        break;
+    case Types::IfwiPartition:
+        if (subtype == Subtypes::BootIfwiPartition)         return UString("Boot");
+        if (subtype == Subtypes::DataIfwiPartition)         return UString("Data");
+        break;
+    case Types::CpdPartition:
+        if (subtype == Subtypes::ManifestCpdPartition)         return UString("Manifest");
+        if (subtype == Subtypes::MetadataCpdPartition)         return UString("Metadata");
+        if (subtype == Subtypes::KeyCpdPartition)              return UString("Key");
+        if (subtype == Subtypes::CodeCpdPartition)             return UString("Code");
         break;
     }
 

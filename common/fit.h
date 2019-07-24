@@ -50,21 +50,6 @@ typedef struct FIT_ENTRY_ {
     UINT8  Checksum;
 } FIT_ENTRY;
 
-typedef struct INTEL_MICROCODE_HEADER_ {
-    UINT32 Version;
-    UINT32 Revision;
-    UINT16 DateYear;
-    UINT8  DateDay;
-    UINT8  DateMonth;
-    UINT32 CpuSignature;
-    UINT32 Checksum;
-    UINT32 LoaderRevision;
-    UINT32 CpuFlags;
-    UINT32 DataSize;
-    UINT32 TotalSize;
-    UINT8  Reserved[12];
-} INTEL_MICROCODE_HEADER;
-
 typedef struct {
     UINT16 IndexRegisterAddress;
     UINT16 DataRegisterAddress;
@@ -73,9 +58,51 @@ typedef struct {
     UINT16 Index;
 } FIT_ENTRY_VERSION_0_CONFIG_POLICY;
 
-#define INTEL_MICROCODE_HEADER_VERSION 0x00000001
-#define INTEL_MICROCODE_HEADER_RESERVED_BYTE 0x00
-#define INTEL_MICROCODE_HEADER_SIZES_VALID(ptr) (((INTEL_MICROCODE_HEADER*)ptr)->TotalSize - ((INTEL_MICROCODE_HEADER*)ptr)->DataSize == sizeof(INTEL_MICROCODE_HEADER))
+// This scructure is described in Section 9.11.1 of the Intel Software Developer manual Volume 3A Part 1
+typedef struct INTEL_MICROCODE_HEADER_ {
+    UINT32 Version;
+    UINT32 Revision;
+    UINT16 DateYear;
+    UINT8  DateDay;
+    UINT8  DateMonth;
+    UINT32 CpuSignature;
+    UINT32 Checksum; // Checksum of Update Data and Header. Used to verify the integrity of the update header and data.
+                     // Checksum is correct when the summation of all the DWORDs (including the extended Processor Signature Table)
+                     // that comprise the microcode update result in 00000000H.
+
+    UINT32 LoaderRevision;
+    UINT32 CpuFlags;
+    UINT32 DataSize; // Specifies the size of the encrypted data in bytes, and must be a multiple of DWORDs.
+                     // If this value is 00000000H, then the microcode update encrypted data is 2000 bytes (or 500 DWORDs).
+    
+    UINT32 TotalSize;// Specifies the total size of the microcode update in bytes.
+                     // It is the summation of the header size, the encrypted data size and the size of the optional extended signature table.
+                     // This value is always a multiple of 1024.
+
+    UINT8  Reserved[12];
+} INTEL_MICROCODE_HEADER;
+
+#define INTEL_MICROCODE_REAL_DATA_SIZE_ON_ZERO 2000
+
+typedef struct INTEL_MICROCODE_EXTENDED_HEADER_ {
+    UINT32 EntryCount;
+    UINT32 Checksum; // Checksum of extended processor signature table.
+                     // Used to verify the integrity of the extended processor signature table.
+                     // Checksum is correct when the summation of the DWORDs that comprise the extended processor signature table results in 00000000H.
+
+    UINT8  Reserved[12];
+    // INTEL_MICROCODE_EXTENDED_HEADER_ENTRY Entries[EntryCount];
+} INTEL_MICROCODE_EXTENDED_HEADER;
+
+typedef struct INTEL_MICROCODE_EXTENDED_HEADER_ENTRY_ {
+    UINT32 CpuSignature;
+    UINT32 CpuFlags;
+    UINT32 Checksum; // To calculate the Checksum, substitute the Primary Processor Signature entry and the Processor Flags entry with the corresponding Extended Patch entry.
+                     // Delete the Extended Processor Signature Table entries.
+                     // Checksum is correct when the summation of all DWORDs that comprise the created Extended Processor Patch results in 00000000H.
+} INTEL_MICROCODE_EXTENDED_HEADER_ENTRY;
+
+#define INTEL_MICROCODE_HEADER_VERSION_1 0x00000001
 
 #pragma pack(pop)
 

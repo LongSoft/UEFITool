@@ -711,10 +711,6 @@ Decode (
     UINT32  DataIdx;
     UINT16  CharC;
 
-    BytesRemain = (UINT16)(-1);
-
-    DataIdx = 0;
-
     for (;;) {
         //
         // Get one code from mBitBuf

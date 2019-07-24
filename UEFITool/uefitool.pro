@@ -5,6 +5,7 @@ TARGET = UEFITool
 TEMPLATE = app
 DEFINES += "U_ENABLE_FIT_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
+DEFINES += "U_ENABLE_ME_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_GUID_DATABASE_SUPPORT"
 
 HEADERS += uefitool.h \
@@ -70,6 +71,7 @@ SOURCES += uefitool_main.cpp \
  ../common/guiddatabase.cpp \
  ../common/nvram.cpp \
  ../common/nvramparser.cpp \
+ ../common/meparser.cpp \
  ../common/ffsops.cpp \
  ../common/types.cpp \
  ../common/descriptor.cpp \

@@ -39,16 +39,16 @@ const UINT8 ffsAlignment2Table[] =
 
 VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 {
-    ffsSize[2] = (UINT8)((size) >> 16);
-    ffsSize[1] = (UINT8)((size) >> 8);
+    ffsSize[2] = (UINT8)((size) >> 16U);
+    ffsSize[1] = (UINT8)((size) >> 8U);
     ffsSize[0] = (UINT8)((size));
 }
 
 UINT32 uint24ToUint32(const UINT8* ffsSize)
 {
     return (UINT32) ffsSize[0]
-        + ((UINT32) ffsSize[1] << 8U)
-        + ((UINT32) ffsSize[2] << 16U);
+    + ((UINT32) ffsSize[1] << 8U)
+    + ((UINT32) ffsSize[2] << 16U);
 }
 
 UString guidToUString(const EFI_GUID & guid, bool convertToString)
@@ -84,17 +84,17 @@ bool ustringToGuid(const UString & str, EFI_GUID & guid)
     if (err == 0)
         return false;
 
-    guid.Data1 = p0;
-    guid.Data2 = p1;
-    guid.Data3 = p2;
-    guid.Data4[0] = p3;
-    guid.Data4[1] = p4;
-    guid.Data4[2] = p5;
-    guid.Data4[3] = p6;
-    guid.Data4[4] = p7;
-    guid.Data4[5] = p8;
-    guid.Data4[6] = p9;
-    guid.Data4[7] = p10;
+    guid.Data1 = (UINT32)p0;
+    guid.Data2 = (UINT16)p1;
+    guid.Data3 = (UINT16)p2;
+    guid.Data4[0] = (UINT8)p3;
+    guid.Data4[1] = (UINT8)p4;
+    guid.Data4[2] = (UINT8)p5;
+    guid.Data4[3] = (UINT8)p6;
+    guid.Data4[4] = (UINT8)p7;
+    guid.Data4[5] = (UINT8)p8;
+    guid.Data4[6] = (UINT8)p9;
+    guid.Data4[7] = (UINT8)p10;
 
     return true;
 }

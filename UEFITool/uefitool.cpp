@@ -192,11 +192,24 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
-    ui->menuEntryActions->setEnabled(type == Types::NvarEntry 
+    ui->menuEntryActions->setEnabled(type == Types::Microcode
+	    || type == Types::SlicData
+        || type == Types::NvarEntry
         || type == Types::VssEntry 
         || type == Types::FsysEntry
         || type == Types::EvsaEntry 
-        || type == Types::FlashMapEntry);
+        || type == Types::FlashMapEntry
+        || type == Types::IfwiHeader
+        || type == Types::IfwiPartition
+        || type == Types::FptPartition
+        || type == Types::FptEntry
+        || type == Types::BpdtPartition
+        || type == Types::BpdtEntry
+        || type == Types::CpdPartition
+        || type == Types::CpdEntry
+        || type == Types::CpdExtension
+        || type == Types::CpdSpiEntry
+        );
     ui->menuStoreActions->setEnabled(type == Types::VssStore 
         || type == Types::Vss2Store
         || type == Types::FdcStore 
@@ -204,9 +217,11 @@ void UEFITool::populateUi(const QModelIndex &current)
         || type == Types::EvsaStore 
         || type == Types::FtwStore 
         || type == Types::FlashMapStore 
-        || type == Types::CmdbStore
-        || type == Types::Microcode 
-        || type == Types::SlicData);
+        || type == Types::CmdbStore 
+        || type == Types::FptStore
+        || type == Types::BpdtStore
+        || type == Types::CpdStore
+        );
     
     // Enable actions
     ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
@@ -481,7 +496,7 @@ void UEFITool::extract(const UINT8 mode)
             if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey to file"), name + ".spk", tr("SLIC pubkey files (*.spk *.bin);;All files (*)"));
             else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker to file"), name + ".smk", tr("SLIC marker files (*.smk *.bin);;All files (*)"));
             break;
-        default:                   path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+        default:                    path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
     else if (mode == EXTRACT_MODE_BODY || mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
@@ -553,7 +568,7 @@ void UEFITool::remove()
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2018, LongSoft.<br>"
+        "Copyright (c) 2019, Nikolaj Schlej.<br>"
         "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br>"
         "The program uses QHexEdit2 library made by <a href=https://github.com/Simsys/>Simsys</a>.<br>"
         "Qt-less engine is using Bstrlib made by <a href=https://github.com/websnarf/>Paul Hsieh</a>.<br><br>"
@@ -858,8 +873,11 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::EvsaStore:
     case Types::FtwStore:
     case Types::FlashMapStore:
-    case Types::CmdbStore:      ui->menuStoreActions->exec(event->globalPos());        break;
-    case Types::FreeSpace:      break;
+    case Types::CmdbStore:
+    case Types::FptStore:
+    case Types::CpdStore:
+    case Types::BpdtStore:      ui->menuStoreActions->exec(event->globalPos());        break;
+    case Types::FreeSpace:      break; // No menu needed for FreeSpace item
     default:                    ui->menuEntryActions->exec(event->globalPos());        break;
     }
 }

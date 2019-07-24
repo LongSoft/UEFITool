@@ -144,6 +144,7 @@ private:
     USTATUS checkProtectedRanges(const UModelIndex & index);
     USTATUS markProtectedRangeRecursive(const UModelIndex & index, const BG_PROTECTED_RANGE & range);
 
+    USTATUS parseResetVectorData();
     USTATUS parseFit(const UModelIndex & index);
     USTATUS parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index);
     USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
