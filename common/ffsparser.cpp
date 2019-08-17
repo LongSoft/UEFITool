@@ -133,6 +133,12 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
         return result;
     }
 
+    // Try parsing as Mac EFI
+    result = parseMacImage(buffer, 0, UModelIndex(), index);;
+    if (result != U_ITEM_NOT_FOUND) {
+        return result;
+    }
+
     // Try parsing as Intel image
     result = parseIntelImage(buffer, 0, UModelIndex(), index);
     if (result != U_ITEM_NOT_FOUND) {
@@ -295,6 +301,37 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
 
         // Parse as generic image
         return parseGenericImage(image, capsuleHeaderSize, index, imageIndex);
+    }
+
+    return U_ITEM_NOT_FOUND;
+}
+
+USTATUS FfsParser::parseMacImage(const UByteArray & macImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+{
+    // Check buffer size to be more than or equal to size of MAC_IMAGE_HEADER
+    if ((UINT32)macImage.size() < sizeof(MAC_IMAGE_HEADER)) {
+        return U_ITEM_NOT_FOUND;
+    }
+
+    // Check buffer for being normal Mac Image header
+    if (macImage.startsWith(MAC_IMAGE_MAGIC)) {
+        UByteArray header = macImage.left(sizeof(MAC_IMAGE_HEADER));
+        UByteArray body = macImage.mid(sizeof(MAC_IMAGE_HEADER));
+        UString name("Mac image");
+
+        // Add tree item
+        index = model->addItem(localOffset, Types::MacImage, Subtypes::MacGenericImage, name, UString(), UString(), header, body, UByteArray(), Fixed, parent);
+
+        UModelIndex imageIndex;
+
+        // Try parsing as Intel image
+        USTATUS result = parseIntelImage(body, sizeof(MAC_IMAGE_HEADER), index, imageIndex);
+        if (result != U_ITEM_NOT_FOUND) {
+            return result;
+        }
+
+        // Parse as generic image
+        return parseGenericImage(body, sizeof(MAC_IMAGE_HEADER), index, imageIndex);
     }
 
     return U_ITEM_NOT_FOUND;

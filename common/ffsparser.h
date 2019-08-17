@@ -94,6 +94,7 @@ private:
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
     USTATUS parseCapsule(const UByteArray & capsule, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseMacImage(const UByteArray & macImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 

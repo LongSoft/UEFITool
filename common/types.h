@@ -36,6 +36,7 @@ namespace Types {
     enum ItemTypes {
         Root = 60,
         Capsule,
+        MacImage,
         Image,
         Region,
         Padding,
@@ -88,8 +89,12 @@ namespace Subtypes {
         ToshibaCapsule
     };
 
+    enum MacImageSubtypes {
+        MacGenericImage = 110,
+    };
+
     enum VolumeSubtypes {
-        UnknownVolume = 110,
+        UnknownVolume = 120,
         Ffs2Volume,
         Ffs3Volume,
         NvramVolume,
@@ -116,13 +121,13 @@ namespace Subtypes {
     };
 
     enum PaddingSubtypes {
-        ZeroPadding = 120,
+        ZeroPadding = 130,
         OnePadding,
         DataPadding
     };
 
     enum NvarEntrySubtypes {
-        InvalidNvarEntry = 130,
+        InvalidNvarEntry = 140,
         InvalidLinkNvarEntry,
         LinkNvarEntry,
         DataNvarEntry,
@@ -130,7 +135,7 @@ namespace Subtypes {
     };
 
     enum VssEntrySubtypes {
-        InvalidVssEntry = 140,
+        InvalidVssEntry = 150,
         StandardVssEntry,
         AppleVssEntry,
         AuthVssEntry,
@@ -138,12 +143,12 @@ namespace Subtypes {
     };
 
     enum FsysEntrySubtypes {
-        InvalidFsysEntry = 150,
+        InvalidFsysEntry = 160,
         NormalFsysEntry
     };
     
     enum EvsaEntrySubtypes {
-        InvalidEvsaEntry = 160,
+        InvalidEvsaEntry = 170,
         UnknownEvsaEntry,
         GuidEvsaEntry,
         NameEvsaEntry,
@@ -151,39 +156,39 @@ namespace Subtypes {
     };
 
     enum FlashMapEntrySubtypes {
-        VolumeFlashMapEntry = 170,
+        VolumeFlashMapEntry = 180,
         DataFlashMapEntry
     };
 
     enum MicrocodeSubtypes {
-        IntelMicrocode = 180,
+        IntelMicrocode = 190,
         AmdMicrocode
     };
 
     enum SlicDataSubtypes {
-        PubkeySlicData = 190,
+        PubkeySlicData = 200,
         MarkerSlicData
     };
 
     // ME-specific
     enum IfwiPartitionSubtypes {
-        DataIfwiPartition = 200,
+        DataIfwiPartition = 210,
         BootIfwiPartition
     };
 
     enum FptEntrySubtypes {
-        ValidFptEntry = 210,
+        ValidFptEntry = 220,
         InvalidFptEntry
     };
 
     enum FptPartitionSubtypes {
-        CodeFptPartition = 220,
+        CodeFptPartition = 230,
         DataFptPartition,
         GlutFptPartition
     };
 	
     enum CpdPartitionSubtypes {
-        ManifestCpdPartition = 230,
+        ManifestCpdPartition = 240,
         MetadataCpdPartition,
         KeyCpdPartition,
         CodeCpdPartition
