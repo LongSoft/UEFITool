@@ -315,23 +315,41 @@ USTATUS FfsParser::parseMacImage(const UByteArray & macImage, const UINT32 local
 
     // Check buffer for being normal Mac Image header
     if (macImage.startsWith(MAC_IMAGE_MAGIC)) {
+        // Get info
+        const MAC_IMAGE_HEADER* macImageHeader = (const MAC_IMAGE_HEADER*)macImage.constData();
+
+        if (macImageHeader->FirstImage >= macImage.size() - sizeof(MAC_IMAGE_HEADER)
+            || macImageHeader->SecondImage >= macImage.size() - sizeof(MAC_IMAGE_HEADER)
+            || macImageHeader->FirstImage >= macImageHeader->SecondImage) {
+            msg(usprintf("%s: unsupported image combination %Xh %Xh", __FUNCTION__, macImageHeader->FirstImage, macImageHeader->SecondImage));
+            return U_INVALID_FLASH_DESCRIPTOR;
+        }
+
         UByteArray header = macImage.left(sizeof(MAC_IMAGE_HEADER));
-        UByteArray body = macImage.mid(sizeof(MAC_IMAGE_HEADER));
+        UByteArray fullBody = macImage.mid(sizeof(MAC_IMAGE_HEADER));
+        UByteArray firstBody = macImage.mid(sizeof(MAC_IMAGE_HEADER) + macImageHeader->FirstImage, macImageHeader->SecondImage);
+        UByteArray secondBody = macImage.mid(sizeof(MAC_IMAGE_HEADER) + macImageHeader->SecondImage);
+
         UString name("Mac image");
+        UString info = usprintf("Mac image:\nFirst image: %Xh\nSecond image: %08Xh",
+                                macImageHeader->FirstImage, macImageHeader->SecondImage);
 
         // Add tree item
-        index = model->addItem(localOffset, Types::MacImage, Subtypes::MacGenericImage, name, UString(), UString(), header, body, UByteArray(), Fixed, parent);
+        index = model->addItem(localOffset, Types::MacImage, Subtypes::MacGenericImage, name, UString(), info, header, fullBody, UByteArray(), Fixed, parent);
 
         UModelIndex imageIndex;
 
         // Try parsing as Intel image
-        USTATUS result = parseIntelImage(body, sizeof(MAC_IMAGE_HEADER), index, imageIndex);
+        USTATUS result = parseIntelImage(firstBody, sizeof(MAC_IMAGE_HEADER) + macImageHeader->FirstImage, index, imageIndex);
+        if (result == U_SUCCESS) {
+            result = parseIntelImage(secondBody, sizeof(MAC_IMAGE_HEADER) + macImageHeader->SecondImage, index, imageIndex);
+        }
         if (result != U_ITEM_NOT_FOUND) {
             return result;
         }
 
         // Parse as generic image
-        return parseGenericImage(body, sizeof(MAC_IMAGE_HEADER), index, imageIndex);
+        return parseGenericImage(fullBody, sizeof(MAC_IMAGE_HEADER), index, imageIndex);
     }
 
     return U_ITEM_NOT_FOUND;
