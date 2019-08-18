@@ -133,12 +133,6 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
         return result;
     }
 
-    // Try parsing as Mac EFI
-    result = parseMacImage(buffer, 0, UModelIndex(), index);;
-    if (result != U_ITEM_NOT_FOUND) {
-        return result;
-    }
-
     // Try parsing as Intel image
     result = parseIntelImage(buffer, 0, UModelIndex(), index);
     if (result != U_ITEM_NOT_FOUND) {
@@ -301,55 +295,6 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
 
         // Parse as generic image
         return parseGenericImage(image, capsuleHeaderSize, index, imageIndex);
-    }
-
-    return U_ITEM_NOT_FOUND;
-}
-
-USTATUS FfsParser::parseMacImage(const UByteArray & macImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
-{
-    // Check buffer size to be more than or equal to size of MAC_IMAGE_HEADER
-    if ((UINT32)macImage.size() < sizeof(MAC_IMAGE_HEADER)) {
-        return U_ITEM_NOT_FOUND;
-    }
-
-    // Check buffer for being normal Mac Image header
-    if (macImage.startsWith(MAC_IMAGE_MAGIC)) {
-        // Get info
-        const MAC_IMAGE_HEADER* macImageHeader = (const MAC_IMAGE_HEADER*)macImage.constData();
-
-        if (macImageHeader->FirstImage >= macImage.size() - sizeof(MAC_IMAGE_HEADER)
-            || macImageHeader->SecondImage >= macImage.size() - sizeof(MAC_IMAGE_HEADER)
-            || macImageHeader->FirstImage >= macImageHeader->SecondImage) {
-            msg(usprintf("%s: unsupported image combination %Xh %Xh", __FUNCTION__, macImageHeader->FirstImage, macImageHeader->SecondImage));
-            return U_INVALID_FLASH_DESCRIPTOR;
-        }
-
-        UByteArray header = macImage.left(sizeof(MAC_IMAGE_HEADER));
-        UByteArray fullBody = macImage.mid(sizeof(MAC_IMAGE_HEADER));
-        UByteArray firstBody = macImage.mid(sizeof(MAC_IMAGE_HEADER) + macImageHeader->FirstImage, macImageHeader->SecondImage);
-        UByteArray secondBody = macImage.mid(sizeof(MAC_IMAGE_HEADER) + macImageHeader->SecondImage);
-
-        UString name("Mac image");
-        UString info = usprintf("Mac image:\nFirst image: %Xh\nSecond image: %08Xh",
-                                macImageHeader->FirstImage, macImageHeader->SecondImage);
-
-        // Add tree item
-        index = model->addItem(localOffset, Types::MacImage, Subtypes::MacGenericImage, name, UString(), info, header, fullBody, UByteArray(), Fixed, parent);
-
-        UModelIndex imageIndex;
-
-        // Try parsing as Intel image
-        USTATUS result = parseIntelImage(firstBody, sizeof(MAC_IMAGE_HEADER) + macImageHeader->FirstImage, index, imageIndex);
-        if (result == U_SUCCESS) {
-            result = parseIntelImage(secondBody, sizeof(MAC_IMAGE_HEADER) + macImageHeader->SecondImage, index, imageIndex);
-        }
-        if (result != U_ITEM_NOT_FOUND) {
-            return result;
-        }
-
-        // Parse as generic image
-        return parseGenericImage(fullBody, sizeof(MAC_IMAGE_HEADER), index, imageIndex);
     }
 
     return U_ITEM_NOT_FOUND;
@@ -1010,7 +955,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         return U_INVALID_PARAMETER;
 
     // Check that there is space for the volume header
-    if ((UINT32)volume.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
+        if ((UINT32)volume.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
         msg(usprintf("%s: input volume size %Xh (%u) is smaller than volume header size 40h (64)", __FUNCTION__, volume.size(), volume.size()));
         return U_INVALID_VOLUME;
     }
@@ -1279,17 +1224,6 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemType = Types::Volume;
             nextItemSize = (UINT32)volumeHeader->FvLength;
             nextItemOffset = offset - EFI_FV_SIGNATURE_OFFSET;
-
-            // Hack for Apple images with an extra zero typo in NVRAM volume size.
-            uint32_t appleWrongSize = 0x2F0000;
-            uint32_t appleRightSize = 0x2EFC0;
-            if ((volumeHeader->FvLength == appleWrongSize)
-                && UByteArray((const char *)&volumeHeader->FileSystemGuid, sizeof(EFI_GUID)) == NVRAM_MAIN_STORE_VOLUME_GUID
-                && UByteArray((const char *)volumeHeader + appleRightSize + sizeof(EFI_GUID), sizeof(EFI_GUID)) == APPLE_UNKNOWN_STORE_VOLUME_GUID) {
-                msg(usprintf("%s: hack, fixing up NVRAM volume size from %Xh to %Xh", __FUNCTION__, volumeHeader->FvLength, appleRightSize), index);
-                nextItemSize = appleRightSize;
-            }
-
             break;
         }
     }

@@ -110,9 +110,6 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::UefiCapsule)              return UString("UEFI 2.0");
         if (subtype == Subtypes::ToshibaCapsule)           return UString("Toshiba");
         break;
-    case Types::MacImage:
-        if (subtype == Subtypes::MacGenericImage)          return UString("Mac 1.0");
-        break;
     case Types::Region:                                    return regionTypeToUString(subtype);
     case Types::File:                                      return fileTypeToUString(subtype);
     case Types::Section:                                   return sectionTypeToUString(subtype);

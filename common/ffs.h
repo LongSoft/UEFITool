@@ -27,27 +27,6 @@ extern bool ustringToGuid(const UString& str, EFI_GUID& guid);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);
 
-//*****************************************************************************
-// Mac Image
-//*****************************************************************************
-typedef struct MAC_IMAGE_HEADER_ {
-    UINT64    Magic;         // _MEFIBIN
-    UINT32    FirstImage;    // 0x00000000
-    UINT32    SecondImage;   // 0x00080000
-    // Region numbers?
-    UINT32    Unk1;          // 1
-    UINT32    Unk2;          // 0/4/5
-    UINT32    Unk3;          // 2/7
-    // Region image choices?
-    UINT32    UnkOff1;       // 0x00080000
-    UINT32    UnkOff2;       // 0x00080000
-    UINT32    UnkOff3;       // 0x0
-    UINT8     Zero[0x100 - sizeof (UINT64) - sizeof (UINT32)*8];
-} MAC_IMAGE_HEADER;
-
-// Mac Image magic
-const UByteArray MAC_IMAGE_MAGIC
-("\x5F\x4D\x45\x46\x49\x42\x49\x4E", 8);
 
 //*****************************************************************************
 // EFI Capsule
