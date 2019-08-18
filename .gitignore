@@ -235,7 +235,6 @@ Makefile
 
 uefitool_plugin_import.cpp
 UEFITool.app/
-UEFITool/Info.plist
 UEFITool/XCBuildData
 UEFIDump/UEFIDump
 UEFIExtract/UEFIExtract

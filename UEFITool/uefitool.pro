@@ -122,4 +122,7 @@ FORMS += uefitool.ui \
 RESOURCES += uefitool.qrc
 RC_FILE = uefitool.rc
 ICON = icons/uefitool.icns
-
+ICONFILE.files = icons/uefitool.icns
+ICONFILE.path = Contents/Resources
+QMAKE_BUNDLE_DATA += ICONFILE
+QMAKE_INFO_PLIST = Info.plist

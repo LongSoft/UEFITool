@@ -15,18 +15,41 @@
 #include <QString>
 #include "uefitool.h"
 
+class UEFIToolApplication : public QApplication
+{
+    UEFITool  tool;
+public:
+    UEFIToolApplication(int &argc, char **argv)
+        : QApplication(argc, argv)
+    {
+        setOrganizationName("LongSoft");
+        setOrganizationDomain("longsoft.org");
+        setApplicationName("UEFITool");
+    }
+
+    int startup()
+    {
+        tool.setProgramPath(arguments().at(0));
+        if (arguments().length() > 1)
+            tool.openImageFile(arguments().at(1));
+        tool.show();
+
+        return exec();
+    }
+
+    bool event(QEvent *event)
+    {
+        if (event->type() == QEvent::FileOpen) {
+            QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
+            tool.openImageFile(openEvent->file());
+        }
+
+        return QApplication::event(event);
+    }
+};
+
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    a.setOrganizationName("LongSoft");
-    a.setOrganizationDomain("longsoft.org");
-    a.setApplicationName("UEFITool");
-
-    UEFITool w;
-    w.setProgramPath(a.arguments().at(0));
-    if (a.arguments().length() > 1)
-        w.openImageFile(a.arguments().at(1));
-    w.show();
-
-    return a.exec();
+    UEFIToolApplication a(argc, argv);
+    return a.startup();
 }
