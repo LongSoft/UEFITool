@@ -102,7 +102,7 @@ static int snapUpSize (int i) {
 
 /*  int balloc (bstring b, int len)
  *
- *  Increase the size of the memory backing the bstring b to at least len.
+ *  Increase the size of the memory backing the bstring b to at least olen + 1.
  */
 int balloc (bstring b, int olen) {
 	int len;
@@ -124,14 +124,14 @@ int balloc (bstring b, int olen) {
 
 			reallocStrategy:;
 
-			x = (unsigned char *) bstr__realloc (b->data, (size_t) len);
+			x = (unsigned char *) bstr__realloc (b->data, (size_t) len + 1);
 			if (x == NULL) {
 
 				/* Since we failed, try allocating the tighest possible
 				   allocation */
 
 				len = olen;
-				x = (unsigned char *) bstr__realloc (b->data, (size_t) olen);
+				x = (unsigned char *) bstr__realloc (b->data, (size_t) len + 1);
 				if (NULL == x) {
 					return BSTR_ERR;
 				}
@@ -142,7 +142,7 @@ int balloc (bstring b, int olen) {
 			   the extra bytes that are allocated, but not considered part of
 			   the string */
 
-			if (NULL == (x = (unsigned char *) bstr__alloc ((size_t) len))) {
+			if (NULL == (x = (unsigned char *) bstr__alloc ((size_t) len + 1))) {
 
 				/* Perhaps there is no available memory for the two
 				   allocations to be in memory at once */
@@ -2398,13 +2398,13 @@ int i, c, v;
 	} else {
 		v = (bl->qty - 1) * len;
 		if ((bl->qty > 512 || len > 127) &&
-		    v / len != bl->qty - 1) {
+			v / len != bl->qty - 1) {
 			bstr__free (b);
 			return NULL; /* Overflow */
 		}
 		if (v > INT_MAX - c) {
 			bstr__free (b);
-			return NULL;	/* Overflow */
+			return NULL;    /* Overflow */
 		}
 		c += v;
 		p = b->data = (unsigned char *) bstr__alloc (c);

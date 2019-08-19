@@ -86,6 +86,11 @@ public:
         return UByteArray(hex);
     }
 
+    std::basic_string<char>::iterator begin() {return d.begin();}
+    std::basic_string<char>::iterator end() {return d.end();}
+    std::basic_string<char>::const_iterator begin() const {return d.begin();}
+    std::basic_string<char>::const_iterator end() const {return d.end();}
+    
 private:
     std::basic_string<char> d;
 };
@@ -97,3 +102,4 @@ inline const UByteArray operator+(const UByteArray &a1, const UByteArray &a2)
 
 #endif // QT_CORE_LIB
 #endif // UBYTEARRAY_H
+

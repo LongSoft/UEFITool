@@ -39,13 +39,14 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 namespace Qt {
     enum GlobalColor {
         red = 7,
+        green = 8,
         cyan = 10,
         yellow = 12,
     };
 }
 #endif
 
-// Region info structure definition
+// Region info
 struct REGION_INFO {
     UINT32 offset;
     UINT32 length;
@@ -54,12 +55,28 @@ struct REGION_INFO {
     friend bool operator< (const REGION_INFO & lhs, const REGION_INFO & rhs){ return lhs.offset < rhs.offset; }
 };
 
+// BPDT partition info
+struct BPDT_PARTITION_INFO {
+    BPDT_ENTRY ptEntry;
+    UINT8 type;
+    UModelIndex index;
+    friend bool operator< (const BPDT_PARTITION_INFO & lhs, const BPDT_PARTITION_INFO & rhs){ return lhs.ptEntry.Offset < rhs.ptEntry.Offset; }
+};
+
+// CPD partition info
+struct CPD_PARTITION_INFO {
+    CPD_ENTRY ptEntry;
+    UINT8 type;
+    UModelIndex index;
+    friend bool operator< (const CPD_PARTITION_INFO & lhs, const CPD_PARTITION_INFO & rhs){ return lhs.ptEntry.Offset.Offset < rhs.ptEntry.Offset.Offset; }
+};
+
 // Constructor
 FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
 imageBase(0), addressDiff(0x100000000ULL),
 bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgProtectedRegionsBase(0) {
     nvramParser = new NvramParser(treeModel, this); 
-    meParser = new MeParser(treeModel);
+    meParser = new MeParser(treeModel, this);
 }
 
 // Destructor
@@ -790,7 +807,7 @@ USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 localOf
 
     // Add tree item
     index = model->addItem(localOffset, Types::Region, Subtypes::BiosRegion, name, UString(), info, UByteArray(), bios, UByteArray(), Fixed, parent);
-
+    
     return parseRawArea(index);
 }
 
@@ -900,6 +917,23 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
                 msg(usprintf("%s: microcode header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             }
         }
+        else if (itemType == Types::BpdtStore) {
+            UByteArray bpdtStore = data.mid(itemOffset, itemSize);
+            
+            // Get info
+            name = UString("BPDT region");
+            info = usprintf("Full size: %Xh (%u)", bpdtStore.size(), bpdtStore.size());
+            
+            // Add tree item
+            UModelIndex bpdtIndex = model->addItem(headerSize + itemOffset, Types::BpdtStore, 0, name, UString(), info, UByteArray(), bpdtStore, UByteArray(), Fixed, index);
+
+            // Parse BPDT region
+            UModelIndex bpdtPtIndex;
+            result = parseBpdtRegion(bpdtStore, 0, 0, bpdtIndex, bpdtPtIndex);
+            if (result) {
+                msg(usprintf("%s: BPDT store parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+            }
+        }
         else {
             return U_UNKNOWN_ITEM_TYPE;
         }
@@ -935,6 +969,12 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             parseVolumeBody(current);
             break;
         case Types::Microcode:
+            // Parsing already done
+            break;
+        case Types::BpdtStore:
+            // Parsing already done
+            break;
+        case Types::BpdtPartition:
             // Parsing already done
             break;
         case Types::Padding:
@@ -1226,6 +1266,48 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemOffset = offset - EFI_FV_SIGNATURE_OFFSET;
             break;
         }
+        else if (readUnaligned(currentPos) == BPDT_GREEN_SIGNATURE || readUnaligned(currentPos) == BPDT_YELLOW_SIGNATURE) {
+            // Check data size
+            if (restSize < sizeof(BPDT_HEADER))
+                continue;
+            
+            const BPDT_HEADER *bpdtHeader = (const BPDT_HEADER *)currentPos;
+            // Check version
+            if (bpdtHeader->HeaderVersion != BPDT_HEADER_VERSION_1) // IFWI 2.0 only for now
+                continue;
+            
+            UINT32 ptBodySize = bpdtHeader->NumEntries * sizeof(BPDT_ENTRY);
+            UINT32 ptSize = sizeof(BPDT_HEADER) + ptBodySize;
+            // Check data size again
+            if (restSize < ptSize)
+                continue;
+            
+            UINT32 sizeCandidate = 0;
+            // Parse partition table
+            const BPDT_ENTRY* firstPtEntry = (const BPDT_ENTRY*)((const UINT8*)bpdtHeader + sizeof(BPDT_HEADER));
+            for (UINT16 i = 0; i < bpdtHeader->NumEntries; i++) {
+                // Populate entry header
+                const BPDT_ENTRY* ptEntry = firstPtEntry + i;
+                // Check that entry is present in the image
+                if (ptEntry->Offset != 0
+                    && ptEntry->Offset != 0xFFFFFFFF
+                    && ptEntry->Size != 0
+                    && sizeCandidate < ptEntry->Offset + ptEntry->Size) {
+                        sizeCandidate = ptEntry->Offset + ptEntry->Size;
+                }
+            }
+            
+            // Check size candidate
+            if (sizeCandidate == 0)
+                continue;
+            
+             // All checks passed, BPDT found
+            nextItemType = Types::BpdtStore;
+            nextItemSize = sizeCandidate;
+            nextItemAlternativeSize = sizeCandidate;
+            nextItemOffset = offset;
+            break;
+        }
     }
 
     // No more stores found
@@ -1294,7 +1376,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
         UINT32 fileSize = getFileSize(volumeBody, fileOffset, ffsVersion);
 
         // Check that we are at the empty space
-        UByteArray header = volumeBody.mid(fileOffset, std::min(sizeof(EFI_FFS_FILE_HEADER), (size_t)volumeBodySize - fileOffset));
+        UByteArray header = volumeBody.mid(fileOffset, (int)std::min(sizeof(EFI_FFS_FILE_HEADER), (size_t)volumeBodySize - fileOffset));
         if (header.count(emptyByte) == header.size()) { //Empty space
             // Check volume usedSpace entry to be valid
             if (usedSpace > 0 && usedSpace == fileOffset + volumeHeaderSize) {
@@ -3316,7 +3398,12 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
 
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
-                model->setMarking(index, range.Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB ? Qt::red : Qt::cyan);
+                if (range.Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
+                    model->setMarking(index, Qt::red);
+                }
+                else {
+                    model->setMarking(index, Qt::cyan);
+                }
             }
             else { // Mark as partially in range
                 model->setMarking(index, Qt::yellow);
@@ -4249,5 +4336,748 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
         msg(usprintf("%s: invalid microcode checksum %08Xh, should be %08Xh", __FUNCTION__, ucodeHeader->Checksum, calculated), index);
     
     // No need to parse the body further for now
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 localOffset, const UINT32 sbpdtOffsetFixup, const UModelIndex & parent, UModelIndex & index)
+{
+    UINT32 regionSize = (UINT32)region.size();
+    
+    // Check region size
+    if (regionSize < sizeof(BPDT_HEADER)) {
+        msg(usprintf("%s: BPDT region too small to fit BPDT partition table header", __FUNCTION__), parent);
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
+    
+    // Populate partition table header
+    const BPDT_HEADER* ptHeader = (const BPDT_HEADER*)(region.constData());
+    
+    // Check region size again
+    UINT32 ptBodySize = ptHeader->NumEntries * sizeof(BPDT_ENTRY);
+    UINT32 ptSize = sizeof(BPDT_HEADER) + ptBodySize;
+    if (regionSize < ptSize) {
+        msg(usprintf("%s: BPDT region too small to fit BPDT partition table", __FUNCTION__), parent);
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
+    
+    // Get info
+    UByteArray header = region.left(sizeof(BPDT_HEADER));
+    UByteArray body = region.mid(sizeof(BPDT_HEADER), ptBodySize);
+    
+    UString name = UString("BPDT partition table");
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\nVersion: %2Xh\n"
+                            "IFWI version: %Xh\nFITC version: %u.%u.%u.%u",
+                            ptSize, ptSize,
+                            header.size(), header.size(),
+                            ptBodySize, ptBodySize,
+                            ptHeader->NumEntries,
+                            ptHeader->HeaderVersion,
+                            ptHeader->IfwiVersion,
+                            ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild);
+    
+    // Add tree item
+    index = model->addItem(localOffset, Types::BpdtStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    
+    // Adjust offset
+    UINT32 offset = sizeof(BPDT_HEADER);
+    
+    // Add partition table entries
+    std::vector<BPDT_PARTITION_INFO> partitions;
+    const BPDT_ENTRY* firstPtEntry = (const BPDT_ENTRY*)((const UINT8*)ptHeader + sizeof(BPDT_HEADER));
+    for (UINT16 i = 0; i < ptHeader->NumEntries; i++) {
+        // Populate entry header
+        const BPDT_ENTRY* ptEntry = firstPtEntry + i;
+        
+        // Get info
+        name = bpdtEntryTypeToUString(ptEntry->Type);
+        info = usprintf("Full size: %Xh (%u)\nType: %Xh\nPartition offset: %Xh\nPartition length: %Xh",
+                        sizeof(BPDT_ENTRY), sizeof(BPDT_ENTRY),
+                        ptEntry->Type,
+                        ptEntry->Offset,
+                        ptEntry->Size) +
+        UString("\nSplit sub-partition first part: ") + (ptEntry->SplitSubPartitionFirstPart ? "Yes" : "No") +
+        UString("\nSplit sub-partition second part: ") + (ptEntry->SplitSubPartitionSecondPart ? "Yes" : "No") +
+        UString("\nCode sub-partition: ") + (ptEntry->CodeSubPartition ? "Yes" : "No") +
+        UString("\nUMA cachable: ") + (ptEntry->UmaCachable ? "Yes" : "No");
+        
+        // Add tree item
+        UModelIndex entryIndex = model->addItem(localOffset + offset, Types::BpdtEntry, 0, name, UString(), info, UByteArray(), UByteArray((const char*)ptEntry, sizeof(BPDT_ENTRY)), UByteArray(), Fixed, index);
+        
+        // Adjust offset
+        offset += sizeof(BPDT_ENTRY);
+        
+        if (ptEntry->Offset != 0 && ptEntry->Offset != 0xFFFFFFFF && ptEntry->Size != 0) {
+            // Add to partitions vector
+            BPDT_PARTITION_INFO partition;
+            partition.type = Types::BpdtPartition;
+            partition.ptEntry = *ptEntry;
+            partition.ptEntry.Offset -= sbpdtOffsetFixup;
+            partition.index = entryIndex;
+            partitions.push_back(partition);
+        }
+    }
+    
+    // Add padding if there's no partions to add
+    if (partitions.size() == 0) {
+        UByteArray partition = region.mid(ptSize);
+        
+        // Get info
+        name = UString("Padding");
+        info = usprintf("Full size: %Xh (%u)",
+                        partition.size(), partition.size());
+        
+        // Add tree item
+        model->addItem(localOffset + ptSize, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+        return U_SUCCESS;
+    }
+    
+make_partition_table_consistent:
+    // Sort partitions by offset
+    std::sort(partitions.begin(), partitions.end());
+    
+    // Check for intersections and paddings between partitions
+    BPDT_PARTITION_INFO padding;
+    
+    // Check intersection with the partition table header
+    if (partitions.front().ptEntry.Offset < ptSize) {
+        msg(usprintf("%s: BPDT partition has intersection with BPDT partition table, skipped", __FUNCTION__),
+            partitions.front().index);
+        partitions.erase(partitions.begin());
+        goto make_partition_table_consistent;
+    }
+    // Check for padding between partition table and the first partition
+    else if (partitions.front().ptEntry.Offset > ptSize) {
+        padding.ptEntry.Offset = ptSize;
+        padding.ptEntry.Size = partitions.front().ptEntry.Offset - padding.ptEntry.Offset;
+        padding.type = Types::Padding;
+        partitions.insert(partitions.begin(), padding);
+    }
+    // Check for intersections/paddings between partitions
+    for (size_t i = 1; i < partitions.size(); i++) {
+        UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
+        
+        // Check that partition is fully present in the image
+        if ((UINT64)partitions[i].ptEntry.Offset + (UINT64)partitions[i].ptEntry.Size > regionSize) {
+            if ((UINT64)partitions[i].ptEntry.Offset >= (UINT64)region.size()) {
+                msg(usprintf("%s: BPDT partition is located outside of the opened image, skipped", __FUNCTION__), partitions[i].index);
+                partitions.erase(partitions.begin() + i);
+                goto make_partition_table_consistent;
+            }
+            else {
+                msg(usprintf("%s: BPDT partition can't fit into it's region, truncated", __FUNCTION__), partitions[i].index);
+                partitions[i].ptEntry.Size = regionSize - (UINT32)partitions[i].ptEntry.Offset;
+            }
+        }
+        
+        // Check for intersection with previous partition
+        if (partitions[i].ptEntry.Offset < previousPartitionEnd) {
+            // Check if current partition is located inside previous one
+            if (partitions[i].ptEntry.Offset + partitions[i].ptEntry.Size <= previousPartitionEnd) {
+                msg(usprintf("%s: BPDT partition is located inside another BPDT partition, skipped", __FUNCTION__),
+                    partitions[i].index);
+                partitions.erase(partitions.begin() + i);
+                goto make_partition_table_consistent;
+            }
+            else {
+                msg(usprintf("%s: BPDT partition intersects with prevous one, skipped", __FUNCTION__),
+                    partitions[i].index);
+                partitions.erase(partitions.begin() + i);
+                goto make_partition_table_consistent;
+            }
+        }
+        
+        // Check for padding between current and previous partitions
+        else if (partitions[i].ptEntry.Offset > previousPartitionEnd) {
+            padding.ptEntry.Offset = previousPartitionEnd;
+            padding.ptEntry.Size = partitions[i].ptEntry.Offset - previousPartitionEnd;
+            padding.type = Types::Padding;
+            std::vector<BPDT_PARTITION_INFO>::iterator iter = partitions.begin();
+            std::advance(iter, i);
+            partitions.insert(iter, padding);
+        }
+    }
+    
+    // Partition map is consistent
+    for (size_t i = 0; i < partitions.size(); i++) {
+        if (partitions[i].type == Types::BpdtPartition) {
+            // Get info
+            UString name = bpdtEntryTypeToUString(partitions[i].ptEntry.Type);
+            UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
+            UByteArray signature = partition.left(sizeof(UINT32));
+            
+            UString info = usprintf("Full size: %Xh (%u)\nType: %Xh",
+                                    partition.size(), partition.size(),
+                                    partitions[i].ptEntry.Type) +
+            UString("\nSplit sub-partition first part: ") + (partitions[i].ptEntry.SplitSubPartitionFirstPart ? "Yes" : "No") +
+            UString("\nSplit sub-partition second part: ") + (partitions[i].ptEntry.SplitSubPartitionSecondPart ? "Yes" : "No") +
+            UString("\nCode sub-partition: ") + (partitions[i].ptEntry.CodeSubPartition ? "Yes" : "No") +
+            UString("\nUMA cachable: ") + (partitions[i].ptEntry.UmaCachable ? "Yes" : "No");
+            
+            UString text = bpdtEntryTypeToUString(partitions[i].ptEntry.Type);
+            
+            // Add tree item
+            UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::BpdtPartition, 0, name, text, info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            
+            // Special case of S-BPDT
+            if (partitions[i].ptEntry.Type == BPDT_ENTRY_TYPE_SBPDT) {
+                UModelIndex sbpdtIndex;
+                parseBpdtRegion(partition, 0, partitions[i].ptEntry.Offset, partitionIndex, sbpdtIndex); // Third parameter is a fixup for S-BPDT offset entries, because they are calculated from the start of BIOS region
+            }
+            
+            // Parse code partitions
+            if (readUnaligned((const UINT32*)partition.constData()) == CPD_SIGNATURE) {
+                // Parse code partition contents
+                UModelIndex cpdIndex;
+                parseCpdRegion(partition, localOffset, partitionIndex, cpdIndex);
+            }
+            
+            if (partitions[i].ptEntry.Type > BPDT_LAST_KNOWN_ENTRY_TYPE) {
+                msg(usprintf("%s: BPDT entry of unknown type found", __FUNCTION__), partitionIndex);
+            }
+        }
+        else if (partitions[i].type == Types::Padding) {
+            UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
+            
+            // Get info
+            name = UString("Padding");
+            info = usprintf("Full size: %Xh (%u)",
+                            partition.size(), partition.size());
+            
+            // Add tree item
+            model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+        }
+    }
+    
+    // Add padding after the last region
+    if ((UINT64)partitions.back().ptEntry.Offset + (UINT64)partitions.back().ptEntry.Size < regionSize) {
+        UByteArray partition = region.mid(partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, regionSize - padding.ptEntry.Offset);
+        
+        // Get info
+        name = UString("Padding");
+        info = usprintf("Full size: %Xh (%u)",
+                        partition.size(), partition.size());
+        
+        // Add tree item
+        model->addItem(localOffset + partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+    }
+    
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+{
+    // Check directory size
+    if ((UINT32)region.size() < sizeof(CPD_REV1_HEADER)) {
+        msg(usprintf("%s: CPD too small to fit rev1 partition table header", __FUNCTION__), parent);
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
+    
+    // Populate partition table header
+    const CPD_REV1_HEADER* cpdHeader = (const CPD_REV1_HEADER*)region.constData();
+    
+    // Check header version to be known
+    UINT32 ptHeaderSize = 0;
+    if (cpdHeader->HeaderVersion == 2) {
+        if ((UINT32)region.size() < sizeof(CPD_REV2_HEADER)) {
+            msg(usprintf("%s: CPD too small to fit rev2 partition table header", __FUNCTION__), parent);
+            return U_INVALID_ME_PARTITION_TABLE;
+        }
+        
+        ptHeaderSize = sizeof(CPD_REV2_HEADER);
+    }
+    else if (cpdHeader->HeaderVersion == 1) {
+        ptHeaderSize = sizeof(CPD_REV1_HEADER);
+    }
+    
+    // Check directory size again
+    UINT32 ptBodySize = cpdHeader->NumEntries * sizeof(CPD_ENTRY);
+    UINT32 ptSize = ptHeaderSize + ptBodySize;
+    if ((UINT32)region.size() < ptSize) {
+        msg(usprintf("%s: CPD too small to fit the whole partition table", __FUNCTION__), parent);
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
+    
+    // Get info
+    UByteArray header = region.left(ptHeaderSize);
+    UByteArray body = region.mid(ptHeaderSize);
+    UString name = usprintf("CPD partition table");
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\n"
+                            "Header version: %02X\nEntry version: %02X",
+                            region.size(), region.size(),
+                            header.size(), header.size(),
+                            body.size(), body.size(),
+                            cpdHeader->NumEntries,
+                            cpdHeader->HeaderVersion,
+                            cpdHeader->EntryVersion);
+    
+    // Add tree item
+    index = model->addItem(localOffset, Types::CpdStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    
+    // Add partition table entries
+    std::vector<CPD_PARTITION_INFO> partitions;
+    UINT32 offset = ptHeaderSize;
+    const CPD_ENTRY* firstCpdEntry = (const CPD_ENTRY*)(body.constData());
+    for (UINT32 i = 0; i < cpdHeader->NumEntries; i++) {
+        // Populate entry header
+        const CPD_ENTRY* cpdEntry = firstCpdEntry + i;
+        UByteArray entry((const char*)cpdEntry, sizeof(CPD_ENTRY));
+        
+        // Get info
+        name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
+                        cpdEntry->EntryName[0], cpdEntry->EntryName[1], cpdEntry->EntryName[2], cpdEntry->EntryName[3],
+                        cpdEntry->EntryName[4], cpdEntry->EntryName[5], cpdEntry->EntryName[6], cpdEntry->EntryName[7],
+                        cpdEntry->EntryName[8], cpdEntry->EntryName[9], cpdEntry->EntryName[10], cpdEntry->EntryName[11]);
+        info = usprintf("Full size: %Xh (%u)\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
+                        entry.size(), entry.size(),
+                        cpdEntry->Offset.Offset,
+                        cpdEntry->Length)
+        + (cpdEntry->Offset.HuffmanCompressed ? "Yes" : "No");
+        
+        // Add tree item
+        UModelIndex entryIndex = model->addItem(offset, Types::CpdEntry, 0, name, UString(), info, UByteArray(), entry, UByteArray(), Fixed, index);
+        
+        // Adjust offset
+        offset += sizeof(CPD_ENTRY);
+        
+        if (cpdEntry->Offset.Offset != 0 && cpdEntry->Length != 0) {
+            // Add to partitions vector
+            CPD_PARTITION_INFO partition;
+            partition.type = Types::CpdPartition;
+            partition.ptEntry = *cpdEntry;
+            partition.index = entryIndex;
+            partitions.push_back(partition);
+        }
+    }
+    
+    // Add padding if there's no partions to add
+    if (partitions.size() == 0) {
+        UByteArray partition = region.mid(ptSize);
+        
+        // Get info
+        name = UString("Padding");
+        info = usprintf("Full size: %Xh (%u)",
+                        partition.size(), partition.size());
+        
+        // Add tree item
+        model->addItem(localOffset + ptSize, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+        
+        return U_SUCCESS;
+    }
+    
+    // Sort partitions by offset
+    std::sort(partitions.begin(), partitions.end());
+    
+    // Because lenghts for all Huffmann-compressed partitions mean nothing at all, we need to split all partitions into 2 classes:
+    // 1. CPD manifest (should be the first)
+    // 2. Metadata entries (should begin right after partition manifest and end before any code partition)
+    UINT32 i = 1;
+    while (i < partitions.size()) {
+        name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
+                        partitions[i].ptEntry.EntryName[0], partitions[i].ptEntry.EntryName[1], partitions[i].ptEntry.EntryName[2],  partitions[i].ptEntry.EntryName[3],
+                        partitions[i].ptEntry.EntryName[4], partitions[i].ptEntry.EntryName[5], partitions[i].ptEntry.EntryName[6],  partitions[i].ptEntry.EntryName[7],
+                        partitions[i].ptEntry.EntryName[8], partitions[i].ptEntry.EntryName[9], partitions[i].ptEntry.EntryName[10], partitions[i].ptEntry.EntryName[11]);
+        
+        // Check if the current entry is metadata entry
+        if (!name.contains(".met")) {
+            // No need to parse further, all metadata partitions are parsed
+            break;
+        }
+        
+        // Parse into data block, find Module Attributes extension, and get compressed size from there
+        UINT32 offset = 0;
+        UINT32 length = 0xFFFFFFFF; // Special guardian value
+        UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
+        while (offset < (UINT32)partition.size()) {
+            const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (partition.constData() + offset);
+            if (extHeader->Length <= ((UINT32)partition.size() - offset)) {
+                if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
+                    const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)(partition.constData() + offset);
+                    length = attrHeader->CompressedSize;
+                }
+                offset += extHeader->Length;
+            }
+            else break;
+        }
+        
+        // Search down for corresponding code partition
+        // Construct it's name by replacing last 4 non-zero butes of the name with zeros
+        UINT32 j = 0;
+        for (UINT32 k = 11; k > 0 && j < 4; k--) {
+            if (name[k] != '\x00') {
+                name[k] = '\x00';
+                j++;
+            }
+        }
+        
+        // Search
+        j = i + 1;
+        while (j < partitions.size()) {
+            if (name == usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
+                                 partitions[j].ptEntry.EntryName[0], partitions[j].ptEntry.EntryName[1], partitions[j].ptEntry.EntryName[2],  partitions[j].ptEntry.EntryName[3],
+                                 partitions[j].ptEntry.EntryName[4], partitions[j].ptEntry.EntryName[5], partitions[j].ptEntry.EntryName[6],  partitions[j].ptEntry.EntryName[7],
+                                 partitions[j].ptEntry.EntryName[8], partitions[j].ptEntry.EntryName[9], partitions[j].ptEntry.EntryName[10], partitions[j].ptEntry.EntryName[11])) {
+                // Found it, update it's Length if needed
+                if (partitions[j].ptEntry.Offset.HuffmanCompressed) {
+                    partitions[j].ptEntry.Length = length;
+                }
+                else if (length != 0xFFFFFFFF && partitions[j].ptEntry.Length != length) {
+                    msg(usprintf("%s: partition size mismatch between partition table (%Xh) and partition metadata (%Xh)", __FUNCTION__,
+                                 partitions[j].ptEntry.Length, length), partitions[j].index);
+                    partitions[j].ptEntry.Length = length; // Believe metadata
+                }
+                // No need to search further
+                break;
+            }
+            // Check the next partition
+            j++;
+        }
+        // Check the next partition
+        i++;
+    }
+    
+make_partition_table_consistent:
+    // Sort partitions by offset
+    std::sort(partitions.begin(), partitions.end());
+    
+    // Check for intersections and paddings between partitions
+    CPD_PARTITION_INFO padding;
+    
+    // Check intersection with the partition table header
+    if (partitions.front().ptEntry.Offset.Offset < ptSize) {
+        msg(usprintf("%s: CPD partition has intersection with CPD partition table, skipped", __FUNCTION__),
+            partitions.front().index);
+        partitions.erase(partitions.begin());
+        goto make_partition_table_consistent;
+    }
+    // Check for padding between partition table and the first partition
+    else if (partitions.front().ptEntry.Offset.Offset > ptSize) {
+        padding.ptEntry.Offset.Offset = ptSize;
+        padding.ptEntry.Length = partitions.front().ptEntry.Offset.Offset - padding.ptEntry.Offset.Offset;
+        padding.type = Types::Padding;
+        partitions.insert(partitions.begin(), padding);
+    }
+    // Check for intersections/paddings between partitions
+    for (size_t i = 1; i < partitions.size(); i++) {
+        UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset.Offset + partitions[i - 1].ptEntry.Length;
+        
+        // Check that current region is fully present in the image
+        if ((UINT64)partitions[i].ptEntry.Offset.Offset + (UINT64)partitions[i].ptEntry.Length > (UINT64)region.size()) {
+            if ((UINT64)partitions[i].ptEntry.Offset.Offset >= (UINT64)region.size()) {
+                msg(usprintf("%s: CPD partition is located outside of the opened image, skipped", __FUNCTION__), partitions[i].index);
+                partitions.erase(partitions.begin() + i);
+                goto make_partition_table_consistent;
+            }
+            else {
+                msg(usprintf("%s: CPD partition can't fit into it's region, truncated", __FUNCTION__), partitions[i].index);
+                partitions[i].ptEntry.Length = (UINT32)region.size() - (UINT32)partitions[i].ptEntry.Offset.Offset;
+            }
+        }
+        
+        // Check for intersection with previous partition
+        if (partitions[i].ptEntry.Offset.Offset < previousPartitionEnd) {
+            // Check if current partition is located inside previous one
+            if (partitions[i].ptEntry.Offset.Offset + partitions[i].ptEntry.Length <= previousPartitionEnd) {
+                msg(usprintf("%s: CPD partition is located inside another CPD partition, skipped", __FUNCTION__),
+                    partitions[i].index);
+                partitions.erase(partitions.begin() + i);
+                goto make_partition_table_consistent;
+            }
+            else {
+                msg(usprintf("%s: CPD partition intersects with previous one, skipped", __FUNCTION__),
+                    partitions[i].index);
+                partitions.erase(partitions.begin() + i);
+                goto make_partition_table_consistent;
+            }
+        }
+        // Check for padding between current and previous partitions
+        else if (partitions[i].ptEntry.Offset.Offset > previousPartitionEnd) {
+            padding.ptEntry.Offset.Offset = previousPartitionEnd;
+            padding.ptEntry.Length = partitions[i].ptEntry.Offset.Offset - previousPartitionEnd;
+            padding.type = Types::Padding;
+            std::vector<CPD_PARTITION_INFO>::iterator iter = partitions.begin();
+            std::advance(iter, i);
+            partitions.insert(iter, padding);
+        }
+    }
+    // Check for padding after the last region
+    if ((UINT64)partitions.back().ptEntry.Offset.Offset + (UINT64)partitions.back().ptEntry.Length < (UINT64)region.size()) {
+        padding.ptEntry.Offset.Offset = partitions.back().ptEntry.Offset.Offset + partitions.back().ptEntry.Length;
+        padding.ptEntry.Length = (UINT32)region.size() - padding.ptEntry.Offset.Offset;
+        padding.type = Types::Padding;
+        partitions.push_back(padding);
+    }
+    
+    // Partition map is consistent
+    for (size_t i = 0; i < partitions.size(); i++) {
+        if (partitions[i].type == Types::CpdPartition) {
+            UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
+            
+            // Get info
+            name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
+                            partitions[i].ptEntry.EntryName[0], partitions[i].ptEntry.EntryName[1], partitions[i].ptEntry.EntryName[2], partitions[i].ptEntry.EntryName[3],
+                            partitions[i].ptEntry.EntryName[4], partitions[i].ptEntry.EntryName[5], partitions[i].ptEntry.EntryName[6], partitions[i].ptEntry.EntryName[7],
+                            partitions[i].ptEntry.EntryName[8], partitions[i].ptEntry.EntryName[9], partitions[i].ptEntry.EntryName[10], partitions[i].ptEntry.EntryName[11]);
+            
+            // It's a manifest
+            if (name.contains(".man")) {
+                if (!partitions[i].ptEntry.Offset.HuffmanCompressed
+                    && partitions[i].ptEntry.Length >= sizeof(CPD_MANIFEST_HEADER)) {
+                    const CPD_MANIFEST_HEADER* manifestHeader = (const CPD_MANIFEST_HEADER*) partition.constData();
+                    if (manifestHeader->HeaderId == ME_MANIFEST_HEADER_ID) {
+                        UByteArray header = partition.left(manifestHeader->HeaderLength * sizeof(UINT32));
+                        UByteArray body = partition.mid(header.size());
+                        
+                        info += usprintf(
+                                         "\nHeader type: %u\nHeader length: %Xh (%u)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
+                                         "Date: %Xh\nSize: %Xh (%u)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %Xh (%u)\nExponent size: %Xh (%u)",
+                                         manifestHeader->HeaderType,
+                                         manifestHeader->HeaderLength * sizeof(UINT32), manifestHeader->HeaderLength * sizeof(UINT32),
+                                         manifestHeader->HeaderVersion,
+                                         manifestHeader->Flags,
+                                         manifestHeader->Vendor,
+                                         manifestHeader->Date,
+                                         manifestHeader->Size * sizeof(UINT32), manifestHeader->Size * sizeof(UINT32),
+                                         manifestHeader->VersionMajor, manifestHeader->VersionMinor, manifestHeader->VersionBugfix, manifestHeader->VersionBuild,
+                                         manifestHeader->SecurityVersion,
+                                         manifestHeader->ModulusSize * sizeof(UINT32), manifestHeader->ModulusSize * sizeof(UINT32),
+                                         manifestHeader->ExponentSize * sizeof(UINT32), manifestHeader->ExponentSize * sizeof(UINT32));
+                        
+                        // Add tree item
+                        UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::ManifestCpdPartition, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+                        
+                        // Parse data as extensions area
+                        parseCpdExtensionsArea(partitionIndex);
+                    }
+                }
+            }
+            // It's a metadata
+            else if (name.contains(".met")) {
+                info = usprintf("Full size: %Xh (%u)\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
+                                partition.size(), partition.size(),
+                                partitions[i].ptEntry.Offset.Offset,
+                                partitions[i].ptEntry.Length)
+                + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
+                
+                // Calculate SHA256 hash over the metadata and add it to it's info
+                UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
+                sha256(partition.constData(), partition.size(), hash.data());
+                info += UString("\nMetadata hash: ") + UString(hash.toHex().constData());
+                
+                // Add three item
+                UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition,  Subtypes::MetadataCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+                
+                // Parse data as extensions area
+                parseCpdExtensionsArea(partitionIndex);
+            }
+            // It's a key
+            else if (name.contains(".key")) {
+                info = usprintf("Full size: %Xh (%u)\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
+                                partition.size(), partition.size(),
+                                partitions[i].ptEntry.Offset.Offset,
+                                partitions[i].ptEntry.Length)
+                + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
+                
+                // Calculate SHA256 hash over the key and add it to it's info
+                UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
+                sha256(partition.constData(), partition.size(), hash.data());
+                info += UString("\nHash: ") + UString(hash.toHex().constData());
+                
+                // Add three item
+                UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition,  Subtypes::KeyCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+                
+                // Parse data as extensions area
+                parseCpdExtensionsArea(partitionIndex);
+            }
+            // It's a code
+            else {
+                info = usprintf("Full size: %Xh (%u)\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
+                                partition.size(), partition.size(),
+                                partitions[i].ptEntry.Offset.Offset,
+                                partitions[i].ptEntry.Length)
+                + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
+                
+                // Calculate SHA256 hash over the code and add it to it's info
+                UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
+                sha256(partition.constData(), partition.size(), hash.data());
+                info += UString("\nHash: ") + UString(hash.toHex().constData());
+                
+                UModelIndex codeIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::CodeCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+                parseRawArea(codeIndex);
+            }
+        }
+        else if (partitions[i].type == Types::Padding) {
+            UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
+            
+            // Get info
+            name = UString("Padding");
+            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
+            
+            // Add tree item
+            model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+        }
+        else {
+            msg(usprintf("%s: CPD partition of unknown type found", __FUNCTION__), parent);
+            return U_INVALID_ME_PARTITION_TABLE;
+        }
+    }
+    
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
+{
+    if (!index.isValid()) {
+        return U_INVALID_PARAMETER;
+    }
+    
+    UByteArray body = model->body(index);
+    UINT32 offset = 0;
+    while (offset < (UINT32)body.size()) {
+        const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (body.constData() + offset);
+        if (extHeader->Length <= ((UINT32)body.size() - offset)) {
+            UByteArray partition = body.mid(offset, extHeader->Length);
+            
+            UString name = cpdExtensionTypeToUstring(extHeader->Type);
+            UString info = usprintf("Full size: %Xh (%u)\nType: %Xh", partition.size(), partition.size(), extHeader->Type);
+            
+            // Parse Signed Package Info a bit further
+            UModelIndex extIndex;
+            if (extHeader->Type == CPD_EXT_TYPE_SIGNED_PACKAGE_INFO) {
+                UByteArray header = partition.left(sizeof(CPD_EXT_SIGNED_PACKAGE_INFO));
+                UByteArray data = partition.mid(header.size());
+                
+                const CPD_EXT_SIGNED_PACKAGE_INFO* infoHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO*)header.constData();
+                
+                info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
+                                "Package name: %c%c%c%c\nVersion control number: %Xh\nSecurity version number: %Xh\n"
+                                "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                                partition.size(), partition.size(),
+                                header.size(), header.size(),
+                                body.size(), body.size(),
+                                infoHeader->ExtensionType,
+                                infoHeader->PackageName[0], infoHeader->PackageName[1], infoHeader->PackageName[2], infoHeader->PackageName[3],
+                                infoHeader->Vcn,
+                                infoHeader->Svn,
+                                infoHeader->UsageBitmap[0],  infoHeader->UsageBitmap[1],  infoHeader->UsageBitmap[2],  infoHeader->UsageBitmap[3],
+                                infoHeader->UsageBitmap[4],  infoHeader->UsageBitmap[5],  infoHeader->UsageBitmap[6],  infoHeader->UsageBitmap[7],
+                                infoHeader->UsageBitmap[8],  infoHeader->UsageBitmap[9],  infoHeader->UsageBitmap[10], infoHeader->UsageBitmap[11],
+                                infoHeader->UsageBitmap[12], infoHeader->UsageBitmap[13], infoHeader->UsageBitmap[14], infoHeader->UsageBitmap[15]);
+                
+                // Add tree item
+                extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, header, data, UByteArray(), Fixed, index);
+                parseSignedPackageInfoData(extIndex);
+            }
+            // Parse IFWI Partition Manifest a bit further
+            else if (extHeader->Type == CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST) {
+                const CPD_EXT_IFWI_PARTITION_MANIFEST* attrHeader = (const CPD_EXT_IFWI_PARTITION_MANIFEST*)partition.constData();
+                
+                // This hash is stored reversed
+                // Need to reverse it back to normal
+                UByteArray hash((const char*)&attrHeader->CompletePartitionHash, sizeof(attrHeader->CompletePartitionHash));
+                std::reverse(hash.begin(), hash.end());
+                
+                info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
+                                "Partition name: %c%c%c%c\nPartition length: %Xh\nPartition version major: %Xh\nPartition version minor: %Xh\n"
+                                "Data format version: %Xh\nInstance ID: %Xh\nHash algorithm: %Xh\nHash size: %Xh\nAction on update: %Xh",
+                                partition.size(), partition.size(),
+                                attrHeader->ExtensionType,
+                                attrHeader->PartitionName[0], attrHeader->PartitionName[1], attrHeader->PartitionName[2], attrHeader->PartitionName[3],
+                                attrHeader->CompletePartitionLength,
+                                attrHeader->PartitionVersionMajor, attrHeader->PartitionVersionMinor,
+                                attrHeader->DataFormatVersion,
+                                attrHeader->InstanceId,
+                                attrHeader->HashAlgorithm,
+                                attrHeader->HashSize,
+                                attrHeader->ActionOnUpdate)
+                + UString("\nSupport multiple instances: ") + (attrHeader->SupportMultipleInstances ? "Yes" : "No")
+                + UString("\nSupport API version based update: ") + (attrHeader->SupportApiVersionBasedUpdate ? "Yes" : "No")
+                + UString("\nObey full update rules: ") + (attrHeader->ObeyFullUpdateRules ? "Yes" : "No")
+                + UString("\nIFR enable only: ") + (attrHeader->IfrEnableOnly ? "Yes" : "No")
+                + UString("\nAllow cross point update: ") + (attrHeader->AllowCrossPointUpdate ? "Yes" : "No")
+                + UString("\nAllow cross hotfix update: ") + (attrHeader->AllowCrossHotfixUpdate ? "Yes" : "No")
+                + UString("\nPartial update only: ") + (attrHeader->PartialUpdateOnly ? "Yes" : "No")
+                + UString("\nPartition hash: ") +  UString(hash.toHex().constData());
+                
+                // Add tree item
+                extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
+            }
+            // Parse Module Attributes a bit further
+            else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
+                const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)partition.constData();
+                
+                // This hash is stored reversed
+                // Need to reverse it back to normal
+                UByteArray hash((const char*)&attrHeader->ImageHash, sizeof(attrHeader->ImageHash));
+                std::reverse(hash.begin(), hash.end());
+                
+                info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
+                                "Compression type: %Xh\nUncompressed size: %Xh (%u)\nCompressed size: %Xh (%u)\nGlobal module ID: %Xh\nImage hash: ",
+                                partition.size(), partition.size(),
+                                attrHeader->ExtensionType,
+                                attrHeader->CompressionType,
+                                attrHeader->UncompressedSize, attrHeader->UncompressedSize,
+                                attrHeader->CompressedSize, attrHeader->CompressedSize,
+                                attrHeader->GlobalModuleId) + UString(hash.toHex().constData());
+                
+                // Add tree item
+                extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
+            }
+            // Parse everything else
+            else {
+                // Add tree item, if needed
+                extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
+            }
+            
+            if (extHeader->Type > CPD_LAST_KNOWN_EXT_TYPE) {
+                msg(usprintf("%s: CPD extention of unknown type found", __FUNCTION__), extIndex);
+            }
+            
+            offset += extHeader->Length;
+        }
+        else break;
+        // TODO: add padding at the end
+    }
+    
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
+{
+    if (!index.isValid()) {
+        return U_INVALID_PARAMETER;
+    }
+    
+    UByteArray body = model->body(index);
+    UINT32 offset = 0;
+    while (offset < (UINT32)body.size()) {
+        const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
+        if (sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) <= ((UINT32)body.size() - offset)) {
+            UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE));
+            
+            UString name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
+                                    moduleHeader->Name[0], moduleHeader->Name[1], moduleHeader->Name[2], moduleHeader->Name[3],
+                                    moduleHeader->Name[4], moduleHeader->Name[5], moduleHeader->Name[6], moduleHeader->Name[7],
+                                    moduleHeader->Name[8], moduleHeader->Name[9], moduleHeader->Name[10],moduleHeader->Name[11]);
+            
+            // This hash is stored reversed
+            // Need to reverse it back to normal
+            UByteArray hash((const char*)&moduleHeader->MetadataHash, sizeof(moduleHeader->MetadataHash));
+            std::reverse(hash.begin(), hash.end());
+            
+            UString info = usprintf("Full size: %X (%u)\nType: %Xh\nHash algorithm: %Xh\nHash size: %Xh (%u)\nMetadata size: %Xh (%u)\nMetadata hash: ",
+                                    module.size(), module.size(),
+                                    moduleHeader->Type,
+                                    moduleHeader->HashAlgorithm,
+                                    moduleHeader->HashSize, moduleHeader->HashSize,
+                                    moduleHeader->MetadataSize, moduleHeader->MetadataSize) + UString(hash.toHex().constData());
+            // Add tree otem
+            model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
+            
+            offset += module.size();
+        }
+        else break;
+        // TODO: add padding at the end
+    }
+    
     return U_SUCCESS;
 }

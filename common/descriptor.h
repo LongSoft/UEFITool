@@ -15,6 +15,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "basetypes.h"
 #include "ustring.h"
+#include "ubytearray.h"
 
 // Make sure we use right packing rules
 #pragma pack(push,1)

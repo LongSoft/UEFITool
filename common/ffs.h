@@ -26,8 +26,8 @@ extern UString guidToUString(const EFI_GUID& guid, bool convertToString = true);
 extern bool ustringToGuid(const UString& str, EFI_GUID& guid);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);
-
-
+extern UString bpdtEntryTypeToUString(const UINT16 type);
+extern UString cpdExtensionTypeToUstring(const UINT32 type);
 //*****************************************************************************
 // EFI Capsule
 //*****************************************************************************
@@ -585,6 +585,220 @@ typedef struct X86_RESET_VECTOR_DATA_ {
 } X86_RESET_VECTOR_DATA;
 
 #define X86_RESET_VECTOR_DATA_UNPOPULATED 0x12345678
+
+//*****************************************************************************
+// IFWI
+//*****************************************************************************
+
+// BPDT
+#define BPDT_GREEN_SIGNATURE  0x000055AA
+#define BPDT_YELLOW_SIGNATURE 0x00AA55AA
+
+typedef struct BPDT_HEADER_ {
+    UINT32 Signature;
+    UINT16 NumEntries;
+    UINT8  HeaderVersion;
+    UINT8  RedundancyFlag; // Reserved zero in version 1
+    UINT32 Checksum;
+    UINT32 IfwiVersion;
+    UINT16 FitcMajor;
+    UINT16 FitcMinor;
+    UINT16 FitcHotfix;
+    UINT16 FitcBuild;
+} BPDT_HEADER;
+
+#define BPDT_HEADER_VERSION_1 1
+#define BPDT_HEADER_VERSION_2 2
+
+typedef struct BPDT_ENTRY_ {
+    UINT32 Type : 16;
+    UINT32 SplitSubPartitionFirstPart : 1;
+    UINT32 SplitSubPartitionSecondPart : 1;
+    UINT32 CodeSubPartition : 1;
+    UINT32 UmaCachable : 1;
+    UINT32 Reserved: 12;
+    UINT32 Offset;
+    UINT32 Size;
+} BPDT_ENTRY;
+
+#define BPDT_ENTRY_TYPE_OEM_SMIP         0
+#define BPDT_ENTRY_TYPE_OEM_RBE          1
+#define BPDT_ENTRY_TYPE_CSE_BUP          2
+#define BPDT_ENTRY_TYPE_UCODE            3
+#define BPDT_ENTRY_TYPE_IBB              4
+#define BPDT_ENTRY_TYPE_SBPDT            5
+#define BPDT_ENTRY_TYPE_OBB              6
+#define BPDT_ENTRY_TYPE_CSE_MAIN         7
+#define BPDT_ENTRY_TYPE_ISH              8
+#define BPDT_ENTRY_TYPE_CSE_IDLM         9
+#define BPDT_ENTRY_TYPE_IFP_OVERRIDE     10
+#define BPDT_ENTRY_TYPE_DEBUG_TOKENS     11
+#define BPDT_ENTRY_TYPE_USF_PHY_CONFIG   12
+#define BPDT_ENTRY_TYPE_USB_GPP_LUN_ID   13
+#define BPDT_ENTRY_TYPE_PMC              14
+#define BPDT_ENTRY_TYPE_IUNIT            15
+#define BPDT_ENTRY_TYPE_NVM_CONFIG       16
+#define BPDT_ENTRY_TYPE_UEP              17
+#define BPDT_ENTRY_TYPE_WLAN_UCODE       18
+#define BPDT_ENTRY_TYPE_LOCL_SPRITES     19
+#define BPDT_ENTRY_TYPE_OEM_KEY_MANIFEST 20
+#define BPDT_ENTRY_TYPE_DEFAULTS         21
+#define BPDT_ENTRY_TYPE_PAVP             22
+#define BPDT_ENTRY_TYPE_TCSS_FW_IOM      23
+#define BPDT_ENTRY_TYPE_TCSS_FW_PHY      24
+#define BPDT_ENTRY_TYPE_TBT              25
+#define BPDT_LAST_KNOWN_ENTRY_TYPE       BPDT_ENTRY_TYPE_TBT
+
+// CPD
+#define CPD_SIGNATURE 0x44504324 //$CPD
+
+typedef struct CPD_REV1_HEADER_ {
+    UINT32 Signature;
+    UINT32 NumEntries;
+    UINT8  HeaderVersion; // 1
+    UINT8  EntryVersion;
+    UINT8  HeaderLength;
+    UINT8  HeaderChecksum;
+    UINT8  ShortName[4];
+} CPD_REV1_HEADER;
+
+typedef struct CPD_REV2_HEADER_ {
+    UINT32 Signature;
+    UINT32 NumEntries;
+    UINT8  HeaderVersion; // 2
+    UINT8  EntryVersion;
+    UINT8  HeaderLength;
+    UINT8  Reserved;
+    UINT8  ShortName[4];
+    UINT32 Checksum;
+} CPD_REV2_HEADER;
+
+typedef struct CPD_ENTRY_ {
+    UINT8  EntryName[12];
+    struct {
+        UINT32 Offset : 25;
+        UINT32 HuffmanCompressed : 1;
+        UINT32 Reserved : 6;
+    } Offset;
+    UINT32 Length;
+    UINT32 Reserved;
+} CPD_ENTRY;
+
+typedef struct CPD_MANIFEST_HEADER_ {
+    UINT32 HeaderType;
+    UINT32 HeaderLength;
+    UINT32 HeaderVersion;
+    UINT32 Flags;
+    UINT32 Vendor;
+    UINT32 Date;
+    UINT32 Size;
+    UINT32 HeaderId;
+    UINT32 Reserved1;
+    UINT16 VersionMajor;
+    UINT16 VersionMinor;
+    UINT16 VersionBugfix;
+    UINT16 VersionBuild;
+    UINT32 SecurityVersion;
+    UINT8  Reserved2[8];
+    UINT8  Reserved3[64];
+    UINT32 ModulusSize;
+    UINT32 ExponentSize;
+    //manifest_rsa_key_t public_key;
+    //manifest_signature_t signature;
+} CPD_MANIFEST_HEADER;
+
+typedef struct CPD_EXTENTION_HEADER_ {
+    UINT32 Type;
+    UINT32 Length;
+} CPD_EXTENTION_HEADER;
+
+#define CPD_EXT_TYPE_SYSTEM_INFO             0
+#define CPD_EXT_TYPE_INIT_SCRIPT             1
+#define CPD_EXT_TYPE_FEATURE_PERMISSIONS     2
+#define CPD_EXT_TYPE_PARTITION_INFO          3
+#define CPD_EXT_TYPE_SHARED_LIB_ATTRIBUTES   4
+#define CPD_EXT_TYPE_PROCESS_ATTRIBUTES      5
+#define CPD_EXT_TYPE_THREAD_ATTRIBUTES       6
+#define CPD_EXT_TYPE_DEVICE_TYPE             7
+#define CPD_EXT_TYPE_MMIO_RANGE              8
+#define CPD_EXT_TYPE_SPEC_FILE_PRODUCER      9
+#define CPD_EXT_TYPE_MODULE_ATTRIBUTES       10
+#define CPD_EXT_TYPE_LOCKED_RANGES           11
+#define CPD_EXT_TYPE_CLIENT_SYSTEM_INFO      12
+#define CPD_EXT_TYPE_USER_INFO               13
+#define CPD_EXT_TYPE_KEY_MANIFEST            14
+#define CPD_EXT_TYPE_SIGNED_PACKAGE_INFO     15
+#define CPD_EXT_TYPE_ANTI_CLONING_SKU_ID     16
+#define CPD_EXT_TYPE_CAVS                    17
+#define CPD_EXT_TYPE_IMR_INFO                18
+#define CPD_EXT_TYPE_BOOT_POLICY             19
+#define CPD_EXT_TYPE_RCIP_INFO               20
+#define CPD_EXT_TYPE_SECURE_TOKEN            21
+#define CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST 22
+#define CPD_EXT_TYPE_FD_HASH                 23
+#define CPD_EXT_TYPE_IOM_METADATA            24
+#define CPD_EXT_TYPE_MGP_METADATA            25
+#define CPD_EXT_TYPE_TBT_METADATA            26
+#define CPD_LAST_KNOWN_EXT_TYPE              CPD_EXT_TYPE_TBT_METADATA
+
+typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_MODULE_ {
+    UINT8  Name[12];
+    UINT8  Type;
+    UINT8  HashAlgorithm;
+    UINT16 HashSize;
+    UINT32 MetadataSize;
+    UINT8  MetadataHash[32];
+} CPD_EXT_SIGNED_PACKAGE_INFO_MODULE;
+
+typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_ {
+    UINT32 ExtensionType;
+    UINT32 ExtensionLength;
+    UINT8  PackageName[4];
+    UINT32 Vcn;
+    UINT8  UsageBitmap[16];
+    UINT32 Svn;
+    UINT8  Reserved[16];
+    // EXT_SIGNED_PACKAGE_INFO_MODULE Modules[];
+} CPD_EXT_SIGNED_PACKAGE_INFO;
+
+typedef struct CPD_EXT_MODULE_ATTRIBUTES_ {
+    UINT32 ExtensionType;
+    UINT32 ExtensionLength;
+    UINT8  CompressionType;
+    UINT8  Reserved[3];
+    UINT32 UncompressedSize;
+    UINT32 CompressedSize;
+    UINT32 GlobalModuleId;
+    UINT8  ImageHash[32];
+} CPD_EXT_MODULE_ATTRIBUTES;
+
+#define CPD_EXT_MODULE_COMPRESSION_TYPE_UNCOMPRESSED 0
+#define CPD_EXT_MODULE_COMPRESSION_TYPE_HUFFMAN 1
+#define CPD_EXT_MODULE_COMPRESSION_TYPE_LZMA 2
+
+typedef struct CPD_EXT_IFWI_PARTITION_MANIFEST_ {
+    UINT32 ExtensionType;
+    UINT32 ExtensionLength;
+    UINT8  PartitionName[4];
+    UINT32 CompletePartitionLength;
+    UINT16 PartitionVersionMinor;
+    UINT16 PartitionVersionMajor;
+    UINT32 DataFormatVersion;
+    UINT32 InstanceId;
+    UINT32 SupportMultipleInstances : 1;
+    UINT32 SupportApiVersionBasedUpdate : 1;
+    UINT32 ActionOnUpdate : 2;
+    UINT32 ObeyFullUpdateRules : 1;
+    UINT32 IfrEnableOnly : 1;
+    UINT32 AllowCrossPointUpdate : 1;
+    UINT32 AllowCrossHotfixUpdate : 1;
+    UINT32 PartialUpdateOnly : 1;
+    UINT32 ReservedFlags : 23;
+    UINT32 HashAlgorithm : 8;
+    UINT32 HashSize : 24;
+    UINT8  CompletePartitionHash[32];
+    UINT8  Reserved[20];
+} CPD_EXT_IFWI_PARTITION_MANIFEST;
 
 // Restore previous packing rules
 #pragma pack(pop)

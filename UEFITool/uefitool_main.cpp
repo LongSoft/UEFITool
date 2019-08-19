@@ -17,34 +17,41 @@
 
 class UEFIToolApplication : public QApplication
 {
-    UEFITool  tool;
+    UEFITool* tool;
+
 public:
     UEFIToolApplication(int &argc, char **argv)
         : QApplication(argc, argv)
     {
         setOrganizationName("LongSoft");
         setOrganizationDomain("longsoft.org");
-        setApplicationName("UEFITool");
+        setApplicationName("UEFITool NE");
+        
+        tool = new UEFITool();
     }
-
-    int startup()
-    {
-        tool.setProgramPath(arguments().at(0));
-        if (arguments().length() > 1)
-            tool.openImageFile(arguments().at(1));
-        tool.show();
-
-        return exec();
+    
+    virtual ~UEFIToolApplication() {
+        delete tool;
     }
-
-    bool event(QEvent *event)
+    
+    virtual bool event(QEvent *event)
     {
         if (event->type() == QEvent::FileOpen) {
             QFileOpenEvent *openEvent = static_cast<QFileOpenEvent *>(event);
-            tool.openImageFile(openEvent->file());
+            tool->openImageFile(openEvent->file());
         }
 
         return QApplication::event(event);
+    }
+    
+    int startup()
+    {
+        tool->setProgramPath(arguments().at(0));
+        if (arguments().length() > 1)
+            tool->openImageFile(arguments().at(1));
+        tool->show();
+        
+        return exec();
     }
 };
 

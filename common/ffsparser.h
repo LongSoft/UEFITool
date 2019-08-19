@@ -97,6 +97,11 @@ private:
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
+    USTATUS parseBpdtRegion(const UByteArray & region, const UINT32 localOffset, const UINT32 sbpdtOffsetFixup, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseCpdRegion(const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseCpdExtensionsArea(const UModelIndex & index);
+    USTATUS parseSignedPackageInfoData(const UModelIndex & index);
+    
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseVolumeBody(const UModelIndex & index);
@@ -162,6 +167,10 @@ private:
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
     friend class NvramParser; // Make FFS parsing routines accessible to NvramParser
+#endif
+    
+#ifdef U_ENABLE_ME_PARSING_SUPPORT
+    friend class MeParser; // Make FFS parsing routines accessible to MeParser
 #endif
 };
 
