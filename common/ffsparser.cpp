@@ -1280,12 +1280,15 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         ucodeHeader->DateYear > 0x2049) {
         return FALSE;
     }
-
-    // Check LoaderRevision to be less than 0x100
-    if (ucodeHeader->LoaderRevision > 0xFF) {
+    // Check UpdateVersion to be 1.
+    if (ucodeHeader->UpdateVersion != 1) {
         return FALSE;
     }
-    
+    // Check LoaderVersion to be 1.
+    if (ucodeHeader->LoaderVersion != 1) {
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -4356,7 +4359,7 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
     // Add info
     UString name("Intel microcode");
     UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\n"
-                            "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nLoader revision: %08Xh\nCPU flags: %02Xh\nChecksum: %08Xh, ",
+                            "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nCPU flags: %02Xh\nChecksum: %08Xh, ",
                             dataSize, dataSize,
                             header.size(), header.size(),
                             body.size(), body.size(),
@@ -4366,7 +4369,6 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
                             ucodeHeader->DateYear,
                             ucodeHeader->CpuSignature,
                             ucodeHeader->Revision,
-                            ucodeHeader->LoaderRevision,
                             ucodeHeader->CpuFlags,
                             ucodeHeader->Checksum)
                  + (ucodeHeader->Checksum == calculated ? UString("valid") : usprintf("invalid, should be %08Xh", calculated))

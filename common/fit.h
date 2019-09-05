@@ -60,7 +60,7 @@ typedef struct {
 
 // This scructure is described in Section 9.11.1 of the Intel Software Developer manual Volume 3A Part 1
 typedef struct INTEL_MICROCODE_HEADER_ {
-    UINT32 Version;             // 0x00000001
+    UINT32 UpdateVersion;       // 0x00000001
     UINT32 Revision;
     UINT16 DateYear;            // BCD
     UINT8  DateDay;             // BCD
@@ -69,7 +69,7 @@ typedef struct INTEL_MICROCODE_HEADER_ {
     UINT32 Checksum;            // Checksum of Update Data and Header. Used to verify the integrity of the update header and data.
                                 // Checksum is correct when the summation of all the DWORDs (including the extended Processor Signature Table)
                                 // that comprise the microcode update result in 00000000H.
-    UINT32 LoaderRevision;      // Sane values are less than 0x100
+    UINT32 LoaderVersion;       // 0x00000001
     UINT8  CpuFlags;
     UINT8  CpuFlagsReserved[3]; // Zeroes
     UINT32 DataSize;            // Specifies the size of the encrypted data in bytes, and must be a multiple of DWORDs.
