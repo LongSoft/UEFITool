@@ -71,7 +71,8 @@ typedef struct INTEL_MICROCODE_HEADER_ {
                      // that comprise the microcode update result in 00000000H.
 
     UINT32 LoaderRevision;
-    UINT32 CpuFlags;
+    UINT8  CpuFlags;
+    UINT8  CpuFlagsReserved[3];
     UINT32 DataSize; // Specifies the size of the encrypted data in bytes, and must be a multiple of DWORDs.
                      // If this value is 00000000H, then the microcode update encrypted data is 2000 bytes (or 500 DWORDs).
     
@@ -102,7 +103,8 @@ typedef struct INTEL_MICROCODE_EXTENDED_HEADER_ENTRY_ {
                      // Checksum is correct when the summation of all DWORDs that comprise the created Extended Processor Patch results in 00000000H.
 } INTEL_MICROCODE_EXTENDED_HEADER_ENTRY;
 
-#define INTEL_MICROCODE_HEADER_VERSION_1 0x00000001
+#define INTEL_MICROCODE_HEADER_VERSION_1    0x00000001
+#define INTEL_MICROCODE_MAX_LOADER_REVISION 0x00000010
 
 #pragma pack(pop)
 

@@ -630,6 +630,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             result = parsePdrRegion(region.data, region.offset, index, regionIndex);
             break;
         case Subtypes::DevExp1Region:
+            result = parseDevExp1Region(region.data, region.offset, index, regionIndex);
+            break;
         case Subtypes::Bios2Region:
         case Subtypes::MicrocodeRegion:
         case Subtypes::EcRegion:
@@ -776,6 +778,33 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     if (result && result != U_VOLUMES_NOT_FOUND && result != U_INVALID_VOLUME && result != U_STORES_NOT_FOUND)
         return result;
 
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseDevExp1Region(const UByteArray & devExp1, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+{
+    // Check sanity
+    if (devExp1.isEmpty())
+        return U_EMPTY_REGION;
+    
+    // Get info
+    UString name("DevExp1 region");
+    UString info = usprintf("Full size: %Xh (%u)", devExp1.size(), devExp1.size());
+    
+    bool emptyRegion = false;
+    // Check for empty region
+    if (devExp1.size() == devExp1.count('\xFF') || devExp1.size() == devExp1.count('\x00')) {
+        // Further parsing not needed
+        emptyRegion = true;
+        info += ("\nState: empty");
+    }
+    
+    // Add tree item
+    index = model->addItem(localOffset, Types::Region, Subtypes::DevExp1Region, name, UString(), info, UByteArray(), devExp1, UByteArray(), Fixed, parent);
+    
+    if (!emptyRegion) {
+        meParser->parseMeRegionBody(index);
+    }
     return U_SUCCESS;
 }
 
@@ -1189,6 +1218,75 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     return U_SUCCESS;
 }
 
+BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader)
+{
+    // Check main reserved bytes to be zero
+    bool reservedBytesValid = true;
+    for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++) {
+        if (ucodeHeader->Reserved[i] != 0x00) {
+            reservedBytesValid = false;
+            break;
+        }
+    }
+    if (!reservedBytesValid) {
+        return FALSE;
+    }
+    
+    // Check CpuFlags reserved bytes to be zero
+    for (UINT32 i = 0; i < sizeof(ucodeHeader->CpuFlagsReserved); i++) {
+        if (ucodeHeader->CpuFlagsReserved[i] != 0x00) {
+            reservedBytesValid = false;
+            break;
+        }
+    }
+    if (!reservedBytesValid) {
+        return FALSE;
+    }
+    
+    // Check data size to be multiple of 4
+    if (ucodeHeader->DataSize % 4 != 0) {
+        return FALSE;
+    }
+    
+    // Check TotalSize to be greater then DataSize and multiple of 1024
+    if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+        return FALSE;
+    }
+    
+    // Check date to be sane
+    // Check day to be in 0x01-0x09, 0x10-0x19, 0x20-0x29, 0x30-0x31
+    if (ucodeHeader->DateDay < 0x01 ||
+        (ucodeHeader->DateDay > 0x09 && ucodeHeader->DateDay < 0x10) ||
+        (ucodeHeader->DateDay > 0x19 && ucodeHeader->DateDay < 0x20) ||
+        (ucodeHeader->DateDay > 0x29 && ucodeHeader->DateDay < 0x30) ||
+        ucodeHeader->DateDay > 0x31) {
+        return FALSE;
+    }
+    // Check month to be in 0x01-0x09, 0x10-0x12
+    if (ucodeHeader->DateMonth < 0x01 ||
+        (ucodeHeader->DateMonth > 0x09 && ucodeHeader->DateMonth < 0x10) ||
+        ucodeHeader->DateMonth > 0x12) {
+        return FALSE;
+    }
+    // Check year to be in 0x1990-0x1999, 0x2000-0x2009, 0x2010-0x2019, 0x2020-0x2029, 0x2030-0x2030, 0x2040-0x2049
+    if (ucodeHeader->DateYear < 0x1990 ||
+        (ucodeHeader->DateYear > 0x1999 && ucodeHeader->DateYear < 0x2000) ||
+        (ucodeHeader->DateYear > 0x2009 && ucodeHeader->DateYear < 0x2010) ||
+        (ucodeHeader->DateYear > 0x2019 && ucodeHeader->DateYear < 0x2020) ||
+        (ucodeHeader->DateYear > 0x2029 && ucodeHeader->DateYear < 0x2030) ||
+        (ucodeHeader->DateYear > 0x2039 && ucodeHeader->DateYear < 0x2040) ||
+        ucodeHeader->DateYear > 0x2049) {
+        return FALSE;
+    }
+    
+    // Check loader revision to be sane
+    if (ucodeHeader->LoaderRevision > INTEL_MICROCODE_MAX_LOADER_REVISION) {
+        return FALSE;
+    }
+    
+    return TRUE;
+}
+
 USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize)
 {
     UByteArray data = model->body(index);
@@ -1203,29 +1301,14 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
         const UINT32 restSize = dataSize - offset;
         if (readUnaligned(currentPos) == INTEL_MICROCODE_HEADER_VERSION_1) {// Intel microcode
             // Check data size
-            if (restSize < sizeof(INTEL_MICROCODE_HEADER))
-                continue;
-
-            // Check microcode size
-            const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
-
-            // Check reserved bytes
-            bool reservedBytesValid = true;
-            for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++)
-                if (ucodeHeader->Reserved[i] != 0x00) {
-                    reservedBytesValid = false;
-                    break;
-                }
-            if (!reservedBytesValid)
-                continue;
-
-            // Data size is multiple of 4
-            if (ucodeHeader->DataSize % 4 != 0) {
+            if (restSize < sizeof(INTEL_MICROCODE_HEADER)) {
                 continue;
             }
             
-            // TotalSize is greater then DataSize and is multiple of 1024
-            if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+            // Check microcode header candidate
+            const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
+            
+            if (FALSE == microcodeHeaderValid(ucodeHeader)) {
                 continue;
             }
             
@@ -3742,47 +3825,27 @@ void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
 USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)
 {
     U_UNUSED_PARAMETER(parent);
-    if ((UINT32)microcode.size() < localOffset + sizeof(INTEL_MICROCODE_HEADER)) {
+    if ((UINT32)microcode.size() - localOffset < sizeof(INTEL_MICROCODE_HEADER)) {
         return U_INVALID_MICROCODE;
     }
 
-    const INTEL_MICROCODE_HEADER* header = (const INTEL_MICROCODE_HEADER*)(microcode.constData() + localOffset);
-    if (header->Version != INTEL_MICROCODE_HEADER_VERSION_1) {
-        return U_INVALID_MICROCODE;
-    }
-
-    bool reservedBytesValid = true;
-    for (UINT8 i = 0; i < sizeof(header->Reserved); i++)
-        if (header->Reserved[i] != 0x00) {
-            reservedBytesValid = false;
-            break;
-        }
-    if (!reservedBytesValid) {
-        return U_INVALID_MICROCODE;
-    }
-
-    if (header->DataSize % 4 != 0) {
+    const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)(microcode.constData() + localOffset);
+    if (!microcodeHeaderValid(ucodeHeader)) {
         return U_INVALID_MICROCODE;
     }
     
-    if (header->TotalSize <= header->DataSize || header->TotalSize % 1024 != 0) {
+    if ((UINT32)microcode.size() - localOffset < ucodeHeader->TotalSize) {
         return U_INVALID_MICROCODE;
     }
     
-    UINT32 mcSize = header->TotalSize;
-    if ((UINT32)microcode.size() < localOffset + mcSize) {
-        return U_INVALID_MICROCODE;
-    }
-
     // Valid microcode found
     info = usprintf("CpuSignature: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
-                    header->CpuSignature,
-                    header->Revision,
-                    header->DateDay,
-                    header->DateMonth,
-                    header->DateYear
-                    );
-    realSize = mcSize;
+                    ucodeHeader->CpuSignature,
+                    ucodeHeader->Revision,
+                    ucodeHeader->DateDay,
+                    ucodeHeader->DateMonth,
+                    ucodeHeader->DateYear);
+    realSize = ucodeHeader->TotalSize;
     return U_SUCCESS;
 }
 
@@ -4214,38 +4277,15 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
 
     const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)microcode.constData();
     
-    // Header version is 1
-    if (ucodeHeader->Version != INTEL_MICROCODE_HEADER_VERSION_1) {
+    if (!microcodeHeaderValid(ucodeHeader)) {
         return U_INVALID_MICROCODE;
     }
 
-    // Reserved bytes are all zeroes
-    bool reservedBytesValid = true;
-    for (UINT8 i = 0; i < sizeof(ucodeHeader->Reserved); i++) {
-        if (ucodeHeader->Reserved[i] != 0x00) {
-            reservedBytesValid = false;
-            break;
-        }
-    }
-    if (!reservedBytesValid) {
-        return U_INVALID_MICROCODE;
-    }
-
-    // Data size is multiple of 4
-    if (ucodeHeader->DataSize % 4 != 0) {
-        return U_INVALID_MICROCODE;
-    }
-    
-    // TotalSize is greater then DataSize and is multiple of 1024
-    if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
-        return U_INVALID_MICROCODE;
-    }
-    
     // We have enough data to fit the whole TotalSize
     if ((UINT32)microcode.size() < ucodeHeader->TotalSize) {
         return U_INVALID_MICROCODE;
     }
-
+    
     // Valid microcode found
     UINT32 dataSize = ucodeHeader->DataSize;
     if (dataSize == 0)
@@ -4301,8 +4341,7 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
                 tempUcodeHeader->CpuSignature = entry->CpuSignature;
                 UINT32 entryCalculated = calculateChecksum32((const UINT32*)tempMicrocode.constData(), sizeof(INTEL_MICROCODE_HEADER) + dataSize);
                 
-                
-                extendedHeaderInfo += usprintf("\nCPU signature #%u: %08Xh\nCPU flags #%u: %08Xh\nChecksum #%u: %08Xh, ",
+                extendedHeaderInfo += usprintf("\nCPU signature #%u: %08Xh\nCPU flags #%u: %02Xh\nChecksum #%u: %08Xh, ",
                                                i + 1, entry->CpuSignature,
                                                i + 1, entry->CpuFlags,
                                                i + 1, entry->Checksum)
@@ -4314,7 +4353,7 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
     // Add info
     UString name("Intel microcode");
     UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\n"
-                            "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nLoader revision: %08Xh\nCPU flags: %08Xh\nChecksum: %08Xh, ",
+                            "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nLoader revision: %08Xh\nCPU flags: %02Xh\nChecksum: %08Xh, ",
                             dataSize, dataSize,
                             header.size(), header.size(),
                             body.size(), body.size(),

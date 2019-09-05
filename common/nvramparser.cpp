@@ -533,6 +533,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
     if (dataSize < sizeof(UINT32))
         return U_STORES_NOT_FOUND;
 
+	// TODO: add checks for restSize
     UINT32 offset = storeOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(volume.constData() + offset);
@@ -646,24 +647,10 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             break;
         }
         else if (*currentPos == INTEL_MICROCODE_HEADER_VERSION_1) {// Intel microcode
-            // Check reserved bytes
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
-            bool reservedBytesValid = true;
-            for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++)
-                if (ucodeHeader->Reserved[i] != 0x00) {
-                    reservedBytesValid = false;
-                    break;
-                }
-            if (!reservedBytesValid)
-                continue;
-            
-            // Data size is multiple of 4
-            if (ucodeHeader->DataSize % 4 != 0) {
-                continue;
-            }
             
             // TotalSize is greater then DataSize and is multiple of 1024
-            if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+            if (FALSE == ffsParser->microcodeHeaderValid(ucodeHeader)) {
                 continue;
             }
 

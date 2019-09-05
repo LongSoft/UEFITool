@@ -115,6 +115,7 @@ private:
     USTATUS parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseDevExp1Region(const UByteArray & devExp1, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parsePadFileBody(const UModelIndex & index);
@@ -141,6 +142,9 @@ private:
     USTATUS findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize);
     UINT32  getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
+    
+    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    BOOLEAN microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader);
 
     // Second pass
     USTATUS performSecondPass(const UModelIndex & index);
@@ -152,7 +156,7 @@ private:
     USTATUS parseResetVectorData();
     USTATUS parseFit(const UModelIndex & index);
     USTATUS parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index);
-    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+
 
 #ifdef U_ENABLE_FIT_PARSING_SUPPORT
     void findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
