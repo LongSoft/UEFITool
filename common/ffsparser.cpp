@@ -1280,12 +1280,7 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         ucodeHeader->DateYear > 0x2049) {
         return FALSE;
     }
-    
-    // Check Revision to be less than 0x100
-    if (ucodeHeader->Revision > 0xFF) {
-        return FALSE;
-    }
-    
+
     // Check LoaderRevision to be less than 0x100
     if (ucodeHeader->LoaderRevision > 0xFF) {
         return FALSE;
