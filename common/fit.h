@@ -61,7 +61,7 @@ typedef struct {
 // This scructure is described in Section 9.11.1 of the Intel Software Developer manual Volume 3A Part 1
 typedef struct INTEL_MICROCODE_HEADER_ {
     UINT32 Version;             // 0x00000001
-    UINT32 Revision;            // Sane values are less than 0x100
+    UINT32 Revision;
     UINT16 DateYear;            // BCD
     UINT8  DateDay;             // BCD
     UINT8  DateMonth;           // BCD

@@ -1249,8 +1249,8 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         return FALSE;
     }
     
-    // Check TotalSize to be greater then DataSize snd less than 0x1000000
-    if (ucodeHeader->TotalSize <= ucodeHeader->DataSize ||
+    // Check TotalSize to be greater or equal than DataSize and less than 0x1000000
+    if (ucodeHeader->TotalSize < ucodeHeader->DataSize ||
         ucodeHeader->TotalSize > 0xFFFFFF) {
         return FALSE;
     }
