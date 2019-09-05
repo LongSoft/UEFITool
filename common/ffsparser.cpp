@@ -1243,13 +1243,15 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         return FALSE;
     }
     
-    // Check data size to be multiple of 4
-    if (ucodeHeader->DataSize % 4 != 0) {
+    // Check data size to be multiple of 4 and less than 0x1000000
+    if (ucodeHeader->DataSize % 4 != 0 ||
+        ucodeHeader->DataSize > 0xFFFFFF) {
         return FALSE;
     }
     
-    // Check TotalSize to be greater then DataSize and multiple of 1024
-    if (ucodeHeader->TotalSize <= ucodeHeader->DataSize || ucodeHeader->TotalSize % 1024 != 0) {
+    // Check TotalSize to be greater then DataSize snd less than 0x1000000
+    if (ucodeHeader->TotalSize <= ucodeHeader->DataSize ||
+        ucodeHeader->TotalSize > 0xFFFFFF) {
         return FALSE;
     }
     
@@ -1279,8 +1281,13 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         return FALSE;
     }
     
-    // Check loader revision to be sane
-    if (ucodeHeader->LoaderRevision > INTEL_MICROCODE_MAX_LOADER_REVISION) {
+    // Check Revision to be less than 0x100
+    if (ucodeHeader->Revision > 0xFF) {
+        return FALSE;
+    }
+    
+    // Check LoaderRevision to be less than 0x100
+    if (ucodeHeader->LoaderRevision > 0xFF) {
         return FALSE;
     }
     
@@ -4288,8 +4295,9 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
     
     // Valid microcode found
     UINT32 dataSize = ucodeHeader->DataSize;
-    if (dataSize == 0)
+    if (dataSize == 0) {
         dataSize = INTEL_MICROCODE_REAL_DATA_SIZE_ON_ZERO;
+    }
     
     // Recalculate the whole microcode checksum
     UByteArray tempMicrocode = microcode;

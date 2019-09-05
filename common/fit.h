@@ -60,27 +60,26 @@ typedef struct {
 
 // This scructure is described in Section 9.11.1 of the Intel Software Developer manual Volume 3A Part 1
 typedef struct INTEL_MICROCODE_HEADER_ {
-    UINT32 Version;
-    UINT32 Revision;
-    UINT16 DateYear;
-    UINT8  DateDay;
-    UINT8  DateMonth;
+    UINT32 Version;             // 0x00000001
+    UINT32 Revision;            // Sane values are less than 0x100
+    UINT16 DateYear;            // BCD
+    UINT8  DateDay;             // BCD
+    UINT8  DateMonth;           // BCD
     UINT32 CpuSignature;
-    UINT32 Checksum; // Checksum of Update Data and Header. Used to verify the integrity of the update header and data.
-                     // Checksum is correct when the summation of all the DWORDs (including the extended Processor Signature Table)
-                     // that comprise the microcode update result in 00000000H.
-
-    UINT32 LoaderRevision;
+    UINT32 Checksum;            // Checksum of Update Data and Header. Used to verify the integrity of the update header and data.
+                                // Checksum is correct when the summation of all the DWORDs (including the extended Processor Signature Table)
+                                // that comprise the microcode update result in 00000000H.
+    UINT32 LoaderRevision;      // Sane values are less than 0x100
     UINT8  CpuFlags;
-    UINT8  CpuFlagsReserved[3];
-    UINT32 DataSize; // Specifies the size of the encrypted data in bytes, and must be a multiple of DWORDs.
-                     // If this value is 00000000H, then the microcode update encrypted data is 2000 bytes (or 500 DWORDs).
-    
-    UINT32 TotalSize;// Specifies the total size of the microcode update in bytes.
-                     // It is the summation of the header size, the encrypted data size and the size of the optional extended signature table.
-                     // This value is always a multiple of 1024.
-
-    UINT8  Reserved[12];
+    UINT8  CpuFlagsReserved[3]; // Zeroes
+    UINT32 DataSize;            // Specifies the size of the encrypted data in bytes, and must be a multiple of DWORDs.
+                                // If this value is 00000000H, then the microcode update encrypted data is 2000 bytes (or 500 DWORDs).
+                                // Sane values are less than 0x1000000
+    UINT32 TotalSize;           // Specifies the total size of the microcode update in bytes.
+                                // It is the summation of the header size, the encrypted data size and the size of the optional extended signature table.
+                                // This value is always a multiple of 1024 according to the spec, but Intel already breached it several times.
+                                // Sane values are less than 0x1000000
+    UINT8  Reserved[12];        // Zeroes
 } INTEL_MICROCODE_HEADER;
 
 #define INTEL_MICROCODE_REAL_DATA_SIZE_ON_ZERO 2000
@@ -104,7 +103,6 @@ typedef struct INTEL_MICROCODE_EXTENDED_HEADER_ENTRY_ {
 } INTEL_MICROCODE_EXTENDED_HEADER_ENTRY;
 
 #define INTEL_MICROCODE_HEADER_VERSION_1    0x00000001
-#define INTEL_MICROCODE_MAX_LOADER_REVISION 0x00000010
 
 #pragma pack(pop)
 
