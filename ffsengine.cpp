@@ -3032,7 +3032,7 @@ UINT8 FfsEngine::reconstructIntelImage(const QModelIndex& index, QByteArray& rec
     UINT8 result;
 
     // No action
-    if (model->action(index) == Actions::NoAction) {
+    if (model->action(index) == Actions::NoAction || model->action(index) == Actions::DoNotRebuild) {
         reconstructed = model->header(index).append(model->body(index));
         return ERR_SUCCESS;
     }
@@ -3219,7 +3219,7 @@ UINT8 FfsEngine::reconstructRegion(const QModelIndex& index, QByteArray& reconst
     UINT8 result;
 
     // No action
-    if (model->action(index) == Actions::NoAction) {
+    if (model->action(index) == Actions::NoAction || model->action(index) == Actions::DoNotRebuild) {
         reconstructed = model->header(index).append(model->body(index));
         return ERR_SUCCESS;
     }
@@ -3276,7 +3276,7 @@ UINT8 FfsEngine::reconstructPadding(const QModelIndex& index, QByteArray& recons
         return ERR_SUCCESS;
 
     // No action
-    if (model->action(index) == Actions::NoAction) {
+    if (model->action(index) == Actions::NoAction || model->action(index) == Actions::DoNotRebuild) {
         reconstructed = model->body(index);
         return ERR_SUCCESS;
     }
@@ -3321,7 +3321,7 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
     UINT8 result;
 
     // No action
-    if (model->action(index) == Actions::NoAction) {
+    if (model->action(index) == Actions::NoAction || model->action(index) == Actions::DoNotRebuild) {
         reconstructed = model->header(index).append(model->body(index));
         return ERR_SUCCESS;
     }
@@ -3691,7 +3691,7 @@ UINT8 FfsEngine::reconstructFile(const QModelIndex& index, const UINT8 revision,
     UINT8 result;
 
     // No action
-    if (model->action(index) == Actions::NoAction) {
+    if (model->action(index) == Actions::NoAction || model->action(index) == Actions::DoNotRebuild) {
         reconstructed = model->header(index).append(model->body(index));
         const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)model->header(index).constData();
         // Append tail, if needed
@@ -3881,7 +3881,7 @@ UINT8 FfsEngine::reconstructSection(const QModelIndex& index, const UINT32 base,
     UINT8 result;
 
     // No action
-    if (model->action(index) == Actions::NoAction) {
+    if (model->action(index) == Actions::NoAction || model->action(index) == Actions::DoNotRebuild) {
         reconstructed = model->header(index).append(model->body(index));
         return ERR_SUCCESS;
     }
