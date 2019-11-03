@@ -141,7 +141,7 @@ UINT8 UEFIPatch::patchFromArg(const QString & path, const QString & patch, const
     if (result)
         return result;
 
-    if (patch != nullptr && !patch.isEmpty()) {
+    if (patch != NULL && !patch.isEmpty()) {
         QByteArray line = patch.toUtf8();
 
         QList<QByteArray> list = line.split(' ');
