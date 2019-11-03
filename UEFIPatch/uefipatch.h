@@ -34,6 +34,7 @@ public:
     ~UEFIPatch();
 
     UINT8 patchFromFile(const QString & path, const QString & patches, const QString & outputPath);
+    UINT8 patchFromArg(const QString & path, const QString & patch, const QString & outputPath);
 private:
     UINT8 patchFile(const QModelIndex & index, const QByteArray & fileGuid, const UINT8 sectionType, const QVector<PatchData> & patches);
     FfsEngine* ffsEngine;

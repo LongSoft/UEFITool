@@ -127,6 +127,10 @@ typedef size_t       UINTN;
 #define PATCH_MODE_HEADER     0
 #define PATCH_MODE_BODY       1
 
+// Patch from
+#define PATCH_FROM_FILE       0
+#define PATCH_FROM_ARG        1
+
 // Patch types
 #define PATCH_TYPE_OFFSET    'O'
 #define PATCH_TYPE_PATTERN   'P'

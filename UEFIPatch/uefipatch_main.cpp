@@ -33,7 +33,8 @@ int main(int argc, char *argv[])
 
     if (argumentsCount < 2) {
         std::cout << "UEFIPatch " PROGRAM_VERSION " - UEFI image file patching utility" << std::endl << std::endl <<
-            "Usage: UEFIPatch image_file [patches.txt] [-o output]" << std::endl << std::endl <<
+            "Usage: UEFIPatch image_file [patches.txt] [-o output]" << std::endl <<
+            "Usage: UEFIPatch image_file [-p \"Guid SectionType Patch\"] [-o output]" << std::endl << std::endl <<
             "Patches will be read from patches.txt file by default\n";
         return ERR_SUCCESS;
     }
@@ -41,8 +42,13 @@ int main(int argc, char *argv[])
     QString inputPath = a.arguments().at(1);
     QString patches = "patches.txt";
     QString outputPath = inputPath + ".patched";
+    int patchFrom = PATCH_FROM_FILE;
     for (UINT32 i = 2; i < argumentsCount; i++) {
-        if ((args.at(i) == "-o" || args.at(i) == "--output") && i + 1 < argumentsCount) {
+        if ((args.at(i) == "-p" || args.at(i) == "--patch") && i + 1 < argumentsCount) {
+            patchFrom = PATCH_FROM_ARG;
+            patches = args.at(i+1);
+            i++;
+        } else if ((args.at(i) == "-o" || args.at(i) == "--output") && i + 1 < argumentsCount) {
             outputPath = args.at(i+1);
             i++;
         } else if (patches == "patches.txt") {
@@ -53,7 +59,11 @@ int main(int argc, char *argv[])
     }
 
     if (result == ERR_SUCCESS) {
-        result = w.patchFromFile(inputPath, patches, outputPath);
+        if (patchFrom == PATCH_FROM_FILE) {
+            result = w.patchFromFile(inputPath, patches, outputPath);
+        } else if (patchFrom == PATCH_FROM_ARG) {
+            result = w.patchFromArg(inputPath, patches, outputPath);
+        }
     }
 
     switch (result) {
