@@ -1312,10 +1312,13 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             
             // Check microcode header candidate
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
-            
             if (FALSE == microcodeHeaderValid(ucodeHeader)) {
                 continue;
             }
+
+            // Check size candidate
+            if (ucodeHeader->TotalSize == 0)
+                continue;
             
             // All checks passed, microcode found
             nextItemType = Types::Microcode;
@@ -1399,8 +1402,9 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
     }
 
     // No more stores found
-    if (offset >= dataSize - sizeof(UINT32))
+    if (offset >= dataSize - sizeof(UINT32)) {
         return U_STORES_NOT_FOUND;
+    }
 
     return U_SUCCESS;
 }
@@ -2683,7 +2687,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
 
     // Add info
     model->addInfo(index, UString("\nCompression algorithm: ") + compressionTypeToUString(algorithm));
-    if (algorithm == COMPRESSION_ALGORITHM_LZMA || algorithm == COMPRESSION_ALGORITHM_IMLZMA) {
+    if (algorithm == COMPRESSION_ALGORITHM_LZMA || algorithm == COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY) {
         model->addInfo(index, usprintf("\nLZMA dictionary size: %Xh", dictionarySize));
     }
 
@@ -3146,7 +3150,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
     // Update parsing data
     TE_IMAGE_SECTION_PARSING_DATA pdata;
     pdata.imageBaseType = EFI_IMAGE_TE_BASE_OTHER; // Will be determined later
-    pdata.imageBase = (UINT32)teHeader->ImageBase;
+    pdata.originalImageBase = (UINT32)teHeader->ImageBase;
     pdata.adjustedImageBase = (UINT32)(teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER));
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
 
@@ -3236,16 +3240,16 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
         if (model->hasEmptyParsingData(index) == false) {
             UByteArray data = model->parsingData(index);
             const TE_IMAGE_SECTION_PARSING_DATA* pdata = (const TE_IMAGE_SECTION_PARSING_DATA*)data.constData();
-            originalImageBase = readUnaligned(pdata).imageBase;
+            originalImageBase = readUnaligned(pdata).originalImageBase;
             adjustedImageBase = readUnaligned(pdata).adjustedImageBase;
         }
 
-        if (imageBase != 0) {
-            // Check data memory address to be equal to either ImageBase or AdjustedImageBase
+        if (originalImageBase != 0 || adjustedImageBase != 0) {
+            // Check data memory address to be equal to either OriginalImageBase or AdjustedImageBase
             UINT64 address = addressDiff + model->base(index);
             UINT32 base = (UINT32)address + model->header(index).size();
 
-            if (imageBase == base) {
+            if (originalImageBase == base) {
                 imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
             }
             else if (adjustedImageBase == base) {
@@ -3253,7 +3257,7 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
             }
             else {
                 // Check for one-bit difference
-                UINT32 xored = base ^ imageBase; // XOR result can't be zero
+                UINT32 xored = base ^ originalImageBase; // XOR result can't be zero
                 if ((xored & (xored - 1)) == 0) { // Check that XOR result is a power of 2, i.e. has exactly one bit set
                     imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
                 }
@@ -3266,13 +3270,14 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
             }
 
             // Show message if imageBaseType is still unknown
-            if (imageBaseType == EFI_IMAGE_TE_BASE_OTHER)
+            if (imageBaseType == EFI_IMAGE_TE_BASE_OTHER) {
                 msg(usprintf("%s: TE image base is neither zero, nor original, nor adjusted, nor top-swapped", __FUNCTION__), index);
+            }
 
             // Update parsing data
             TE_IMAGE_SECTION_PARSING_DATA pdata;
             pdata.imageBaseType = imageBaseType;
-            pdata.imageBase = originalImageBase;
+            pdata.originalImageBase = originalImageBase;
             pdata.adjustedImageBase = adjustedImageBase;
             model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
         }

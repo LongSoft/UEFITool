@@ -174,12 +174,12 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
 UString compressionTypeToUString(const UINT8 algorithm)
 {
     switch (algorithm) {
-    case COMPRESSION_ALGORITHM_NONE:         return UString("None");
-    case COMPRESSION_ALGORITHM_EFI11:        return UString("EFI 1.1");
-    case COMPRESSION_ALGORITHM_TIANO:        return UString("Tiano");
-    case COMPRESSION_ALGORITHM_UNDECIDED:    return UString("Undecided Tiano/EFI 1.1");
-    case COMPRESSION_ALGORITHM_LZMA:         return UString("LZMA");
-    case COMPRESSION_ALGORITHM_IMLZMA:       return UString("Intel LZMA");
+    case COMPRESSION_ALGORITHM_NONE:                    return UString("None");
+    case COMPRESSION_ALGORITHM_EFI11:                   return UString("EFI 1.1");
+    case COMPRESSION_ALGORITHM_TIANO:                   return UString("Tiano");
+    case COMPRESSION_ALGORITHM_UNDECIDED:               return UString("Undecided Tiano/EFI 1.1");
+    case COMPRESSION_ALGORITHM_LZMA:                    return UString("LZMA");
+    case COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY:       return UString("Intel legacy LZMA");
     }
 
     return UString("Unknown");

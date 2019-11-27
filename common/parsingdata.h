@@ -54,7 +54,7 @@ typedef struct COMPRESSED_SECTION_PARSING_DATA_ {
 } COMPRESSED_SECTION_PARSING_DATA;
 
 typedef struct TE_IMAGE_SECTION_PARSING_DATA_ {
-    UINT32 imageBase;
+    UINT32 originalImageBase;
     UINT32 adjustedImageBase;
     UINT8  imageBaseType;
 } TE_IMAGE_SECTION_PARSING_DATA;

@@ -235,56 +235,39 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
         data = (const UINT8*)compressedData.constData();
         dataSize = compressedData.size();
 
-        // Get info
-        if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize))
-            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        // Get info as normal LZMA section
+        if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
+            // Get info as Intel legacy LZMA section
+            data += sizeof(UINT32);
+            if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
+                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+            }
+            else {
+                algorithm = COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY;
+            }
+        }
+        else {
+            algorithm = COMPRESSION_ALGORITHM_LZMA;
+        }
 
         // Allocate memory
         decompressed = (UINT8*)malloc(decompressedSize);
         if (!decompressed) {
-            return U_STANDARD_DECOMPRESSION_FAILED;
+            return U_OUT_OF_MEMORY;
         }
 
         // Decompress section data
         if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
-            // Intel modified LZMA workaround
-            // Decompress section data once again
-
-            // VERIFY: might be wrong assumption, 0.2x had a different code here
-            // See: https://github.com/LongSoft/UEFITool/blob/4bee991c949b458739ffa96b88dbc589192c7689/ffsengine.cpp#L2814-L2823
-            data += sizeof(UINT32);
-
-            // Get info again
-            if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
-                free(decompressed);
-                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
-            }
-
-            // Decompress section data again
-            if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
-                free(decompressed);
-                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
-            }
-            else {
-                if (decompressedSize > INT32_MAX) {
-                    free(decompressed);
-                    return U_CUSTOMIZED_DECOMPRESSION_FAILED;
-                }
-                algorithm = COMPRESSION_ALGORITHM_IMLZMA;
-                dictionarySize = readUnaligned((UINT32*)(data + 1)); // LZMA dictionary size is stored in bytes 1-4 of LZMA properties header
-                decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
-            }
-        }
-        else {
-            if (decompressedSize > INT32_MAX) {
-                free(decompressed);
-                return U_CUSTOMIZED_DECOMPRESSION_FAILED;
-            }
-            algorithm = COMPRESSION_ALGORITHM_LZMA;
-            dictionarySize = readUnaligned((UINT32*)(data + 1)); // LZMA dictionary size is stored in bytes 1-4 of LZMA properties header
-            decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
         }
 
+        if (decompressedSize > INT32_MAX) {
+            free(decompressed);
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        }
+
+        dictionarySize = readUnaligned((UINT32*)(data + 1)); // LZMA dictionary size is stored in bytes 1-4 of LZMA properties header
+        decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
         free(decompressed);
         return U_SUCCESS;
     default:
