@@ -258,6 +258,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
 
         // Decompress section data
         if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
+            free(decompressed);
             return U_CUSTOMIZED_DECOMPRESSION_FAILED;
         }
 
