@@ -20,16 +20,16 @@ routines without the need of backward traversal
 #include "basetypes.h"
 
 typedef struct VOLUME_PARSING_DATA_ {
-    UINT8    ffsVersion;
-    UINT8    emptyByte;
     EFI_GUID extendedHeaderGuid;
     UINT32   alignment;
+    UINT32   usedSpace;
+    BOOLEAN  hasValidUsedSpace;
+    UINT8    ffsVersion;
+    UINT8    emptyByte;
     UINT8    revision;
     BOOLEAN  hasExtendedHeader;
     BOOLEAN  hasAppleCrc32;
     BOOLEAN  isWeakAligned;
-    BOOLEAN  hasValidUsedSpace;
-    UINT32   usedSpace;
 } VOLUME_PARSING_DATA;
 
 typedef struct FILE_PARSING_DATA_ {
@@ -37,18 +37,24 @@ typedef struct FILE_PARSING_DATA_ {
     EFI_GUID guid;
 } FILE_PARSING_DATA;
 
-typedef struct GUID_PARSING_DATA_ {
+typedef struct GUIDED_SECTION_PARSING_DATA_ {
     EFI_GUID guid;
-} GUIDED_SECTION_PARSING_DATA, FREEFORM_GUIDED_SECTION_PARSING_DATA;
+    UINT32   dictionarySize;
+} GUIDED_SECTION_PARSING_DATA;
+
+typedef struct FREEFORM_GUIDED_SECTION_PARSING_DATA_ {
+    EFI_GUID guid;
+} FREEFORM_GUIDED_SECTION_PARSING_DATA;
 
 typedef struct COMPRESSED_SECTION_PARSING_DATA_ {
     UINT32 uncompressedSize;
     UINT8  compressionType;
     UINT8  algorithm;
+    UINT32 dictionarySize;
 } COMPRESSED_SECTION_PARSING_DATA;
 
 typedef struct TE_IMAGE_SECTION_PARSING_DATA_ {
-    UINT32 imageBase;
+    UINT32 originalImageBase;
     UINT32 adjustedImageBase;
     UINT8  imageBaseType;
 } TE_IMAGE_SECTION_PARSING_DATA;

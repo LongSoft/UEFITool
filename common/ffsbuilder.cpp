@@ -1,4 +1,4 @@
-﻿/* fssbuilder.cpp
+/* fssbuilder.cpp
 
 Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
@@ -16,6 +16,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffs.h"
 #include "peimage.h"
 #include "utility.h"
+#include "nvram.h"
+
+#include <cstring>
 
 USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
 {
@@ -36,7 +39,7 @@ USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
         }
     }
 
-    erased = QByteArray(model->header(index).size() + model->body(index).size() + model->tail(index).size(), emptyByte);
+    erased = UByteArray(model->header(index).size() + model->body(index).size() + model->tail(index).size(), emptyByte);
 
     return U_SUCCESS;
 }
@@ -112,7 +115,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
                     return result;
                 }
                 else
-                    capsule.append(imageData);
+                    capsule += imageData;
             }
             else {
                 msg(UString("buildCapsule: unexpected item type ") + itemTypeToUString(model->type(imageIndex)), imageIndex);
@@ -176,7 +179,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             UINT8 type = model->type(currentRegion);
             if (type == Types::Padding) {
                 // Add padding as is
-                intelImage.append(model->header(currentRegion) + model->body(currentRegion) + model->tail(currentRegion));
+                intelImage += model->header(currentRegion) + model->body(currentRegion) + model->tail(currentRegion);
                 continue;
             }
 
@@ -207,7 +210,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             case Subtypes::Reserved2Region:
             case Subtypes::PttRegion:
                 // Add region as is
-                region = model->header(currentRegion).append(model->body(currentRegion));
+                region = model->header(currentRegion) + model->body(currentRegion);
                 break;
             default:
                 msg(UString("buildIntelImage: unknown region type"), currentRegion);
@@ -215,7 +218,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             }
 
             // Append the resulting region
-            intelImage.append(region);
+            intelImage += region;
         }
         
         // Check size of new image, it must be same as old one
@@ -285,7 +288,7 @@ USTATUS FfsBuilder::buildRawArea(const UModelIndex & index, UByteArray & rawArea
                     return result;
                 }
                 // Append current data
-                rawArea.append(currentData);
+                rawArea += currentData;
             }
 
             // Check size of new raw area, it must be same as original one

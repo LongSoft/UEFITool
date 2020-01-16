@@ -11,13 +11,15 @@
 
   */
 
+#include "../version.h"
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
-version(tr("NE alpha 45"))
+version(tr(PROGRAM_VERSION)),
+markingEnabled(true)
 {
     clipboard = QApplication::clipboard();
 
@@ -25,13 +27,14 @@ version(tr("NE alpha 45"))
     ui->setupUi(this);
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
-    goToOffsetDialog = new GoToOffsetDialog(this);
     goToAddressDialog = new GoToAddressDialog(this);
+    goToBaseDialog = new GoToBaseDialog(this);
     model = NULL;
     ffsParser = NULL;
     ffsFinder = NULL;
     ffsOps = NULL;
     ffsBuilder = NULL;
+    ffsReport = NULL;
 
     // Connect signals to slots
     connect(ui->actionOpenImageFile, SIGNAL(triggered()), this, SLOT(openImageFile()));
@@ -57,37 +60,24 @@ version(tr("NE alpha 45"))
     connect(ui->actionAboutQt, SIGNAL(triggered()), this, SLOT(aboutQt()));
     connect(ui->actionQuit, SIGNAL(triggered()), this, SLOT(exit()));
     connect(ui->actionGoToData, SIGNAL(triggered()), this, SLOT(goToData()));
-    connect(ui->actionGoToOffset, SIGNAL(triggered()), this, SLOT(goToOffset()));
+    connect(ui->actionGoToBase, SIGNAL(triggered()), this, SLOT(goToBase()));
     connect(ui->actionGoToAddress, SIGNAL(triggered()), this, SLOT(goToAddress()));
     connect(ui->actionLoadGuidDatabase, SIGNAL(triggered()), this, SLOT(loadGuidDatabase()));
+    connect(ui->actionUnloadGuidDatabase, SIGNAL(triggered()), this, SLOT(unloadGuidDatabase()));
+    connect(ui->actionLoadDefaultGuidDatabase, SIGNAL(triggered()), this, SLOT(loadDefaultGuidDatabase()));
+    connect(ui->actionExportDiscoveredGuids, SIGNAL(triggered()), this, SLOT(exportDiscoveredGuids()));
+    connect(ui->actionGenerateReport, SIGNAL(triggered()), this, SLOT(generateReport()));
     connect(ui->actionToggleBootGuardMarking, SIGNAL(toggled(bool)), this, SLOT(toggleBootGuardMarking(bool)));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
 
     // Enable Drag-and-Drop actions
     setAcceptDrops(true);
 
+    // Disable Builder tab, doesn't work right now
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, false);
+
     // Set current directory
     currentDir = ".";
-
-    // Set monospace font for some controls
-    QFont font("Courier New", 10);
-#if defined Q_OS_OSX
-    font = QFont("Menlo", 10);
-#elif defined Q_OS_WIN
-    font = QFont("Consolas", 9);
-#endif
-    ui->infoEdit->setFont(font);
-    ui->parserMessagesListWidget->setFont(font);
-    ui->finderMessagesListWidget->setFont(font);
-    ui->builderMessagesListWidget->setFont(font);
-    ui->fitTableWidget->setFont(font);
-    ui->bootGuardEdit->setFont(font);
-    ui->structureTreeView->setFont(font);
-    searchDialog->ui->guidEdit->setFont(font);
-    searchDialog->ui->hexEdit->setFont(font);
-    hexViewDialog->setFont(font);
-    goToOffsetDialog->ui->hexSpinBox->setFont(font);
-    goToAddressDialog->ui->hexSpinBox->setFont(font);
 
     // Load built-in GUID database
     initGuidDatabase(":/guids.csv");
@@ -105,6 +95,7 @@ UEFITool::~UEFITool()
     delete ffsOps;
     delete ffsFinder;
     delete ffsParser;
+    delete ffsReport;
     delete model;
     delete hexViewDialog;
     delete searchDialog;
@@ -120,16 +111,18 @@ void UEFITool::init()
     ui->fitTableWidget->setRowCount(0);
     ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
-    ui->bootGuardEdit->clear();
-    ui->messagesTabWidget->setTabEnabled(1, false);
-    ui->messagesTabWidget->setTabEnabled(2, false);
+    ui->securityEdit->clear();
+    ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, false);
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, false);
 
     // Set window title
     setWindowTitle(tr("UEFITool %1").arg(version));
 
     // Disable menus
     ui->actionSearch->setEnabled(false);
-    ui->actionGoToOffset->setEnabled(false);
+    ui->actionGoToBase->setEnabled(false);
     ui->actionGoToAddress->setEnabled(false);
     ui->menuCapsuleActions->setEnabled(false);
     ui->menuImageActions->setEnabled(false);
@@ -171,8 +164,9 @@ void UEFITool::init()
 
 void UEFITool::populateUi(const QItemSelection &selected)
 {
-    if (selected.isEmpty())
+    if (selected.isEmpty()) {
         return;
+    }
 
     populateUi(selected.indexes().at(0));
 }
@@ -180,8 +174,9 @@ void UEFITool::populateUi(const QItemSelection &selected)
 void UEFITool::populateUi(const QModelIndex &current)
 {
     // Check sanity
-    if (!current.isValid())
+    if (!current.isValid()) {
         return;
+    }
 
     UINT8 type = model->type(current);
     UINT8 subtype = model->subtype(current);
@@ -197,11 +192,24 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
-    ui->menuEntryActions->setEnabled(type == Types::NvarEntry 
+    ui->menuEntryActions->setEnabled(type == Types::Microcode
+	    || type == Types::SlicData
+        || type == Types::NvarEntry
         || type == Types::VssEntry 
         || type == Types::FsysEntry
         || type == Types::EvsaEntry 
-        || type == Types::FlashMapEntry);
+        || type == Types::FlashMapEntry
+        || type == Types::IfwiHeader
+        || type == Types::IfwiPartition
+        || type == Types::FptPartition
+        || type == Types::FptEntry
+        || type == Types::BpdtPartition
+        || type == Types::BpdtEntry
+        || type == Types::CpdPartition
+        || type == Types::CpdEntry
+        || type == Types::CpdExtension
+        || type == Types::CpdSpiEntry
+        );
     ui->menuStoreActions->setEnabled(type == Types::VssStore 
         || type == Types::Vss2Store
         || type == Types::FdcStore 
@@ -209,9 +217,11 @@ void UEFITool::populateUi(const QModelIndex &current)
         || type == Types::EvsaStore 
         || type == Types::FtwStore 
         || type == Types::FlashMapStore 
-        || type == Types::CmdbStore
-        || type == Types::Microcode 
-        || type == Types::SlicData);
+        || type == Types::CmdbStore 
+        || type == Types::FptStore
+        || type == Types::BpdtStore
+        || type == Types::CpdStore
+        );
     
     // Enable actions
     ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
@@ -242,25 +252,6 @@ bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
 {
     // TODO: rewrite based on model->compressed()
     U_UNUSED_PARAMETER(current);
-    /*if (current.isValid() && model->type(current) == Types::Section &&
-       (model->subtype(current) == EFI_SECTION_COMPRESSION || model->subtype(current) == EFI_SECTION_GUID_DEFINED)) {
-        // Get parsing data
-        PARSING_DATA pdata = parsingDataFromUModelIndex(current);
-
-        if (model->subtype(current) == EFI_SECTION_COMPRESSION && 
-            pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_NONE &&
-            pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_UNKNOWN &&
-            pdata.section.compressed.algorithm != COMPRESSION_ALGORITHM_UNDECIDED) { //Compressed section
-            return true;
-        }
-        else if (model->subtype(current) == EFI_SECTION_GUID_DEFINED) {
-            QByteArray guid = QByteArray((const char*)&pdata.section.guidDefined.guid, sizeof(EFI_GUID));
-            if (guid == EFI_GUIDED_SECTION_TIANO || guid == EFI_GUIDED_SECTION_LZMA) {
-                return true;
-            }
-        }
-    }*/
-        
     return false;
 }
 
@@ -341,15 +332,15 @@ void UEFITool::bodyHexView()
     hexViewDialog->exec();
 }
 
-void UEFITool::goToOffset()
+void UEFITool::goToBase()
 {
-    goToOffsetDialog->ui->hexSpinBox->setFocus();
-    goToOffsetDialog->ui->hexSpinBox->selectAll();
-    if (goToOffsetDialog->exec() != QDialog::Accepted)
+    goToBaseDialog->ui->hexSpinBox->setFocus();
+    goToBaseDialog->ui->hexSpinBox->selectAll();
+    if (goToBaseDialog->exec() != QDialog::Accepted)
         return;
 
-    UINT32 offset = (UINT32)goToOffsetDialog->ui->hexSpinBox->value();
-    QModelIndex index = model->findByOffset(offset);
+    UINT32 offset = (UINT32)goToBaseDialog->ui->hexSpinBox->value();
+    QModelIndex index = model->findByBase(offset);
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -364,7 +355,7 @@ void UEFITool::goToAddress()
         return;
 
     UINT32 address = (UINT32)goToAddressDialog->ui->hexSpinBox->value();
-    QModelIndex index = model->findByOffset(address - ffsParser->getAddressDiff());
+    QModelIndex index = model->findByBase(address - (UINT32)ffsParser->getAddressDiff());
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -384,8 +375,8 @@ void UEFITool::goToData()
         if (model->hasEmptyParsingData(index))
             continue;
 
-        UByteArray data = model->parsingData(index);
-        const NVAR_ENTRY_PARSING_DATA* pdata = (const NVAR_ENTRY_PARSING_DATA*)data.constData();
+        UByteArray rdata = model->parsingData(index);
+        const NVAR_ENTRY_PARSING_DATA* pdata = (const NVAR_ENTRY_PARSING_DATA*)rdata.constData();
         UINT32 lastVariableFlag = pdata->emptyByte ? 0xFFFFFF : 0;
         UINT32 offset = model->offset(index);
         if (pdata->next == lastVariableFlag) {
@@ -409,57 +400,6 @@ void UEFITool::goToData()
 void UEFITool::insert(const UINT8 mode)
 {
     U_UNUSED_PARAMETER(mode);
-    
-    /*QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
-
-    UINT8 type;
-
-    if (mode == CREATE_MODE_BEFORE || mode == CREATE_MODE_AFTER)
-        type = model->type(index.parent());
-    else
-        type = model->type(index);
-
-    QString path;
-    switch (type) {
-    case Types::Volume:
-        path = QFileDialog::getOpenFileName(this, tr("Select FFS file to insert"), currentDir, "FFS files (*.ffs *.bin);;All files (*)");
-        break;
-    case Types::File:
-    case Types::Section:
-        path = QFileDialog::getOpenFileName(this, tr("Select section file to insert"), currentDir, "Section files (*.sct *.bin);;All files (*)");
-        break;
-    default:
-        return;
-    }
-
-    if (path.trimmed().isEmpty())
-        return;
-
-    QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists()) {
-        ui->statusBar->showMessage(tr("Please select existing file"));
-        return;
-    }
-
-    QFile inputFile;
-    inputFile.setFileName(path);
-
-    if (!inputFile.open(QFile::ReadOnly)) {
-        QMessageBox::critical(this, tr("Insertion failed"), tr("Can't open output file for reading"), QMessageBox::Ok);
-        return;
-    }
-
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
-
-    UINT8 result = ffsEngine->insert(index, buffer, mode);
-    if (result) {
-        QMessageBox::critical(this, tr("Insertion failed"), errorMessage(result), QMessageBox::Ok);
-        return;
-    }
-    ui->actionSaveImageFile->setEnabled(true);*/
 }
 
 void UEFITool::insertInto()
@@ -491,97 +431,6 @@ void UEFITool::replace(const UINT8 mode)
 {
     U_UNUSED_PARAMETER(mode);
 
-    /*
-    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
-
-    QString path;
-    if (model->type(index) == Types::Region) {
-        if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select region file to replace %1").arg(model->name(index)), currentDir, "Region files (*.rgn *.bin);;All files (*)");
-        }
-        else
-            return;
-    }
-    else if (model->type(index) == Types::Volume) {
-        if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace selected volume"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
-        }
-        else if (mode == REPLACE_MODE_BODY) {
-            path = QFileDialog::getOpenFileName(this, tr("Select volume body file to replace the body of selected volume"), currentDir, "Volume body files (*.vbd *.bin);;All files (*)");
-        }
-        else
-            return;
-    }
-    else if (model->type(index) == Types::File) {
-        if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select FFS file to replace %1 file").arg(model->text(index).isEmpty() ? model->name(index) : model->text(index)), 
-                currentDir, "FFS files (*.ffs *.bin);;All files (*)");
-        }
-        else if (mode == REPLACE_MODE_BODY) {
-            if (model->subtype(index) == EFI_FV_FILETYPE_ALL || model->subtype(index) == EFI_FV_FILETYPE_RAW)
-                path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace the body of %1 file").arg(model->text(index).isEmpty() ? model->name(index) : model->text(index)),
-                currentDir, "Raw files (*.raw *.bin);;All files (*)");
-            else if (model->subtype(index) == EFI_FV_FILETYPE_PAD) // Pad file body can't be replaced
-                //!TODO: handle non-empty pad files
-                return;
-            else
-                path = QFileDialog::getOpenFileName(this, tr("Select FFS file body to replace the body of %1 file").arg(model->text(index).isEmpty() ? model->name(index) : model->text(index)),
-                currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
-        }
-        else
-            return;
-    }
-    else if (model->type(index) == Types::Section) {
-        if (mode == REPLACE_MODE_AS_IS) {
-            path = QFileDialog::getOpenFileName(this, tr("Select section file to replace selected section"), currentDir, "Section files (*.sct *.bin);;All files (*)");
-        }
-        else if (mode == REPLACE_MODE_BODY) {
-            if (model->subtype(index) == EFI_SECTION_COMPRESSION || model->subtype(index) == EFI_SECTION_GUID_DEFINED || model->subtype(index) == EFI_SECTION_DISPOSABLE)
-                path = QFileDialog::getOpenFileName(this, tr("Select FFS file body file to replace the body of selected section"), currentDir, "FFS file body files (*.fbd *.bin);;All files (*)");
-            else if (model->subtype(index) == EFI_SECTION_FIRMWARE_VOLUME_IMAGE)
-                path = QFileDialog::getOpenFileName(this, tr("Select volume file to replace the body of selected section"), currentDir, "Volume files (*.vol *.bin);;All files (*)");
-            else if (model->subtype(index) == EFI_SECTION_RAW)
-                path = QFileDialog::getOpenFileName(this, tr("Select raw file to replace the body of selected section"), currentDir, "Raw files (*.raw *.bin);;All files (*)");
-            else if (model->subtype(index) == EFI_SECTION_PE32 || model->subtype(index) == EFI_SECTION_TE || model->subtype(index) == EFI_SECTION_PIC)
-                path = QFileDialog::getOpenFileName(this, tr("Select EFI executable file to replace the body of selected section"), currentDir, "EFI executable files (*.efi *.dxe *.pei *.bin);;All files (*)");
-            else
-                path = QFileDialog::getOpenFileName(this, tr("Select file to replace the body of selected section"), currentDir, "Binary files (*.bin);;All files (*)");
-        }
-        else
-            return;
-    }
-    else
-        return;
-
-    if (path.trimmed().isEmpty())
-        return;
-
-    QFileInfo fileInfo = QFileInfo(path);
-    if (!fileInfo.exists()) {
-        ui->statusBar->showMessage(tr("Please select an existing file"));
-        return;
-    }
-
-    QFile inputFile;
-    inputFile.setFileName(path);
-
-    if (!inputFile.open(QFile::ReadOnly)) {
-        QMessageBox::critical(this, tr("Replacing failed"), tr("Can't open input file for reading"), QMessageBox::Ok);
-        return;
-    }
-
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
-
-    UINT8 result = ffsOps->replace(index, buffer, mode);
-    if (result) {
-        QMessageBox::critical(this, tr("Replacing failed"), errorCodeToUString(result), QMessageBox::Ok);
-        return;
-    }
-    ui->actionSaveImageFile->setEnabled(true);
-    */
 }
 
 void UEFITool::extractAsIs()
@@ -607,7 +456,7 @@ void UEFITool::extract(const UINT8 mode)
 
     QByteArray extracted;
     QString name;
-    UINT8 result = ffsOps->extract(index, name, extracted, mode);
+    USTATUS result = ffsOps->extract(index, name, extracted, mode);
     if (result) {
         QMessageBox::critical(this, tr("Extraction failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
@@ -622,75 +471,75 @@ void UEFITool::extract(const UINT8 mode)
     QString path;
     if (mode == EXTRACT_MODE_AS_IS) {
         switch (type) {
-        case Types::Capsule:        path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),          name + ".cap",  "Capsule files (*.cap *.bin);;All files (*)");          break;
-        case Types::Image:          path = QFileDialog::getSaveFileName(this, tr("Save image to file"),            name + ".rom",  "Image files (*.rom *.bin);;All files (*)");            break;
-        case Types::Region:         path = QFileDialog::getSaveFileName(this, tr("Save region to file"),           name + ".rgn",  "Region files (*.rgn *.bin);;All files (*)");           break;
-        case Types::Padding:        path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),          name + ".pad",  "Padding files (*.pad *.bin);;All files (*)");          break;
-        case Types::Volume:         path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),           name + ".vol",  "Volume files (*.vol *.bin);;All files (*)");           break;
-        case Types::File:           path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),         name + ".ffs",  "FFS files (*.ffs *.bin);;All files (*)");              break;
-        case Types::Section:        path = QFileDialog::getSaveFileName(this, tr("Save section to file"),          name + ".sct",  "Section files (*.sct *.bin);;All files (*)");          break;
-        case Types::NvarEntry:      path = QFileDialog::getSaveFileName(this, tr("Save NVAR entry to file"),       name + ".nvar", "NVAR entry files (*.nvar *.bin);;All files (*)");      break;
-        case Types::VssEntry:       path = QFileDialog::getSaveFileName(this, tr("Save VSS entry to file"),        name + ".vss",  "VSS entry files (*.vss *.bin);;All files (*)");        break;
-        case Types::FsysEntry:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys entry to file"),       name + ".fse",  "Fsys entry files (*.fse *.bin);;All files (*)");       break;
-        case Types::EvsaEntry:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA entry to file"),       name + ".evse", "EVSA entry files (*.evse *.bin);;All files (*)");      break;
-        case Types::FlashMapEntry:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap entry to file"),   name + ".fme",  "FlashMap entry files (*.fme *.bin);;All files (*)");   break;
-        case Types::VssStore:       path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  "VSS store files (*.vss *.bin);;All files (*)");        break;
-        case Types::Vss2Store:      path = QFileDialog::getSaveFileName(this, tr("Save VSS2 store to file"),       name + ".vss2", "VSS2 store files (*.vss2 *.bin);;All files (*)");      break;
-        case Types::FdcStore:       path = QFileDialog::getSaveFileName(this, tr("Save FDC store to file"),        name + ".fdc",  "FDC store files (*.fdc *.bin);;All files (*)");        break;
-        case Types::FsysStore:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"),       name + ".fsys", "Fsys store files (*.fsys *.bin);;All files (*)");      break;
-        case Types::EvsaStore:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"),       name + ".evsa", "EVSA store files (*.evsa *.bin);;All files (*)");      break;
-        case Types::FtwStore:       path = QFileDialog::getSaveFileName(this, tr("Save FTW store to file"),        name + ".ftw",  "FTW store files (*.ftw *.bin);;All files (*)");        break;
-        case Types::FlashMapStore:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap store to file"),   name + ".fmap", "FlashMap store files (*.fmap *.bin);;All files (*)");  break;
-        case Types::CmdbStore:      path = QFileDialog::getSaveFileName(this, tr("Save CMDB store to file"),       name + ".cmdb", "CMDB store files (*.cmdb *.bin);;All files (*)");      break;
-        case Types::Microcode:      path = QFileDialog::getSaveFileName(this, tr("Save microcode binary to file"), name + ".ucd",  "Microcode binary files (*.ucd *.bin);;All files (*)"); break;
+        case Types::Capsule:        path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),          name + ".cap",  tr("Capsule files (*.cap *.bin);;All files (*)"));          break;
+        case Types::Image:          path = QFileDialog::getSaveFileName(this, tr("Save image to file"),            name + ".rom",  tr("Image files (*.rom *.bin);;All files (*)"));            break;
+        case Types::Region:         path = QFileDialog::getSaveFileName(this, tr("Save region to file"),           name + ".rgn",  tr("Region files (*.rgn *.bin);;All files (*)"));           break;
+        case Types::Padding:        path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),          name + ".pad",  tr("Padding files (*.pad *.bin);;All files (*)"));          break;
+        case Types::Volume:         path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),           name + ".vol",  tr("Volume files (*.vol *.bin);;All files (*)"));           break;
+        case Types::File:           path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),         name + ".ffs",  tr("FFS files (*.ffs *.bin);;All files (*)"));              break;
+        case Types::Section:        path = QFileDialog::getSaveFileName(this, tr("Save section to file"),          name + ".sct",  tr("Section files (*.sct *.bin);;All files (*)"));          break;
+        case Types::NvarEntry:      path = QFileDialog::getSaveFileName(this, tr("Save NVAR entry to file"),       name + ".nvar", tr("NVAR entry files (*.nvar *.bin);;All files (*)"));      break;
+        case Types::VssEntry:       path = QFileDialog::getSaveFileName(this, tr("Save VSS entry to file"),        name + ".vss",  tr("VSS entry files (*.vss *.bin);;All files (*)"));        break;
+        case Types::FsysEntry:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys entry to file"),       name + ".fse",  tr("Fsys entry files (*.fse *.bin);;All files (*)"));       break;
+        case Types::EvsaEntry:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA entry to file"),       name + ".evse", tr("EVSA entry files (*.evse *.bin);;All files (*)"));      break;
+        case Types::FlashMapEntry:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap entry to file"),   name + ".fme",  tr("FlashMap entry files (*.fme *.bin);;All files (*)"));   break;
+        case Types::VssStore:       path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  tr("VSS store files (*.vss *.bin);;All files (*)"));        break;
+        case Types::Vss2Store:      path = QFileDialog::getSaveFileName(this, tr("Save VSS2 store to file"),       name + ".vss2", tr("VSS2 store files (*.vss2 *.bin);;All files (*)"));      break;
+        case Types::FdcStore:       path = QFileDialog::getSaveFileName(this, tr("Save FDC store to file"),        name + ".fdc",  tr("FDC store files (*.fdc *.bin);;All files (*)"));        break;
+        case Types::FsysStore:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"),       name + ".fsys", tr("Fsys store files (*.fsys *.bin);;All files (*)"));      break;
+        case Types::EvsaStore:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"),       name + ".evsa", tr("EVSA store files (*.evsa *.bin);;All files (*)"));      break;
+        case Types::FtwStore:       path = QFileDialog::getSaveFileName(this, tr("Save FTW store to file"),        name + ".ftw",  tr("FTW store files (*.ftw *.bin);;All files (*)"));        break;
+        case Types::FlashMapStore:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap store to file"),   name + ".fmap", tr("FlashMap store files (*.fmap *.bin);;All files (*)"));  break;
+        case Types::CmdbStore:      path = QFileDialog::getSaveFileName(this, tr("Save CMDB store to file"),       name + ".cmdb", tr("CMDB store files (*.cmdb *.bin);;All files (*)"));      break;
+        case Types::Microcode:      path = QFileDialog::getSaveFileName(this, tr("Save microcode binary to file"), name + ".ucd",  tr("Microcode binary files (*.ucd *.bin);;All files (*)")); break;
         case Types::SlicData:
-            if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey to file"), name + ".spk", "SLIC pubkey files (*.spk *.bin);;All files (*)");
-            else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker to file"), name + ".smk", "SLIC marker files (*.smk *.bin);;All files (*)");
+            if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey to file"), name + ".spk", tr("SLIC pubkey files (*.spk *.bin);;All files (*)"));
+            else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker to file"), name + ".smk", tr("SLIC marker files (*.smk *.bin);;All files (*)"));
             break;
-        default:                   path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", "Binary files (*.bin);;All files (*)");
+        default:                    path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
     else if (mode == EXTRACT_MODE_BODY || mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
         switch (type) {
-        case Types::Capsule:                         path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", "Image files (*.rom *.bin);;All files (*)");       break;
-        case Types::Volume:                          path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", "Volume body files (*.vbd *.bin);;All files (*)"); break;
+        case Types::Capsule:                         path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", tr("Image files (*.rom *.bin);;All files (*)"));       break;
+        case Types::Volume:                          path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", tr("Volume body files (*.vbd *.bin);;All files (*)")); break;
         case Types::File: 
             if (subtype    == EFI_FV_FILETYPE_ALL
-                || subtype == EFI_FV_FILETYPE_RAW)   path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),  name + ".raw", "Raw files (*.raw *.bin);;All files (*)");
-            else                                     path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", "FFS file body files (*.fbd *.bin);;All files (*)");
+                || subtype == EFI_FV_FILETYPE_RAW)   path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),  name + ".raw", tr("Raw files (*.raw *.bin);;All files (*)"));
+            else                                     path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
             break;
         case Types::Section: 
             if (subtype    == EFI_SECTION_COMPRESSION
                 || subtype == EFI_SECTION_GUID_DEFINED
-                || subtype == EFI_SECTION_DISPOSABLE)              path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), name + ".fbd", "FFS file body files (*.fbd *.bin);;All files (*)");
-            else if (subtype == EFI_SECTION_FIRMWARE_VOLUME_IMAGE) path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"),                 name + ".vol", "Volume files (*.vol *.bin);;All files (*)");
-            else if (subtype == EFI_SECTION_RAW)                   path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"),                    name + ".raw", "Raw files (*.raw *.bin);;All files (*)");
+                || subtype == EFI_SECTION_DISPOSABLE)              path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
+            else if (subtype == EFI_SECTION_FIRMWARE_VOLUME_IMAGE) path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"),                 name + ".vol", tr("Volume files (*.vol *.bin);;All files (*)"));
+            else if (subtype == EFI_SECTION_RAW)                   path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"),                    name + ".raw", tr("Raw files (*.raw *.bin);;All files (*)"));
             else if (subtype == EFI_SECTION_PE32
                 || subtype == EFI_SECTION_TE
-                || subtype == EFI_SECTION_PIC)                     path = QFileDialog::getSaveFileName(this, tr("Save section body to EFI executable file"),         name + ".efi", "EFI executable files (*.efi *.bin);;All files (*)");
-            else                                                   path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),                        name + ".bin", "Binary files (*.bin);;All files (*)");
+                || subtype == EFI_SECTION_PIC)                     path = QFileDialog::getSaveFileName(this, tr("Save section body to EFI executable file"),         name + ".efi", tr("EFI executable files (*.efi *.bin);;All files (*)"));
+            else                                                   path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),                        name + ".bin", tr("Binary files (*.bin);;All files (*)"));
            break;
         case Types::NvarEntry:
         case Types::VssEntry:
         case Types::EvsaEntry:
         case Types::FlashMapEntry:
-        case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", "Binary files (*.bin);;All files (*)"); break;
+        case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
         case Types::VssStore:
         case Types::Vss2Store:
         case Types::FtwStore:
         case Types::FdcStore:
         case Types::FsysStore:
         case Types::FlashMapStore:
-        case Types::CmdbStore:                       path = QFileDialog::getSaveFileName(this, tr("Save store body to file"),       name + ".bin", "Binary files (*.bin);;All files (*)");                   break;
-        case Types::Microcode:                       path = QFileDialog::getSaveFileName(this, tr("Save microcode body to file"),   name + ".ucb", "Microcode body files (*.ucb *.bin);;All files (*)"); break;
+        case Types::CmdbStore:                       path = QFileDialog::getSaveFileName(this, tr("Save store body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
+        case Types::Microcode:                       path = QFileDialog::getSaveFileName(this, tr("Save microcode body to file"),   name + ".ucb", tr("Microcode body files (*.ucb *.bin);;All files (*)")); break;
         case Types::SlicData:
-            if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey body to file"), name + ".spb", "SLIC pubkey body files (*.spb *.bin);;All files (*)");
-            else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker body to file"), name + ".smb", "SLIC marker body files (*.smb *.bin);;All files (*)");
+            if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey body to file"), name + ".spb", tr("SLIC pubkey body files (*.spb *.bin);;All files (*)"));
+            else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker body to file"), name + ".smb", tr("SLIC marker body files (*.smb *.bin);;All files (*)"));
             break;
-        default:                                     path = QFileDialog::getSaveFileName(this, tr("Save object to file"),           name + ".bin", "Binary files (*.bin);;All files (*)");
+        default:                                     path = QFileDialog::getSaveFileName(this, tr("Save object to file"),           name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
-    else                                             path = QFileDialog::getSaveFileName(this, tr("Save object to file"),           name + ".bin", "Binary files (*.bin);;All files (*)");
+    else                                             path = QFileDialog::getSaveFileName(this, tr("Save object to file"),           name + ".bin", tr("Binary files (*.bin);;All files (*)"));
 
     if (path.trimmed().isEmpty())
         return;
@@ -708,32 +557,18 @@ void UEFITool::extract(const UINT8 mode)
 
 void UEFITool::rebuild()
 {
-    /*
-    UModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
 
-    if (U_SUCCESS == ffsOps->rebuild(index))
-        ui->actionSaveImageFile->setEnabled(true);
-    */
 }
 
 void UEFITool::remove()
 {
-    /*
-    UModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
-    if (!index.isValid())
-        return;
 
-    if (U_SUCCESS == ffsOps->remove(index))
-        ui->actionSaveImageFile->setEnabled(true);
-    */
 }
 
 void UEFITool::about()
 {
     QMessageBox::about(this, tr("About UEFITool"), tr(
-        "Copyright (c) 2016, Nikolaj Schlej aka <b>CodeRush</b>.<br>"
+        "Copyright (c) 2019, Nikolaj Schlej.<br>"
         "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br>"
         "The program uses QHexEdit2 library made by <a href=https://github.com/Simsys/>Simsys</a>.<br>"
         "Qt-less engine is using Bstrlib made by <a href=https://github.com/websnarf/>Paul Hsieh</a>.<br><br>"
@@ -757,46 +592,18 @@ void UEFITool::exit()
 
 void UEFITool::saveImageFile()
 {
-    /*QString path = QFileDialog::getSaveFileName(this, tr("Save BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *.scap *.bio *.fd *.wph *.dec);;All files (*)");
 
-    if (path.isEmpty())
-        return;
-
-    QByteArray reconstructed;
-    // Create ffsBuilder
-    delete ffsBuilder;
-    ffsBuilder = new FfsBuilder(model);
-    USTATUS result = ffsBuilder->build(model->index(0,0), reconstructed);
-    showBuilderMessages();
-    if (result) {
-        QMessageBox::critical(this, tr("Image build failed"), errorCodeToUString(result), QMessageBox::Ok);
-        return;
-    }
-
-    QFile outputFile;
-    outputFile.setFileName(path);
-    if (!outputFile.open(QFile::WriteOnly)) {
-        QMessageBox::critical(this, tr("Image build failed"), tr("Can't open output file for rewriting"), QMessageBox::Ok);
-        return;
-    }
-
-    outputFile.resize(0);
-    outputFile.write(reconstructed);
-    outputFile.close();
-    if (QMessageBox::Yes == QMessageBox::information(this, tr("Image build successful"), tr("Open the resulting file?"), QMessageBox::Yes, QMessageBox::No))
-        openImageFile(path);
-    */
 }
 
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, "BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, tr("BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)"));
     openImageFile(path);
 }
 
 void UEFITool::openImageFileInNewWindow()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, "BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, tr("BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)"));
     if (path.trimmed().isEmpty())
         return;
     QProcess::startDetached(currentProgramPath, QStringList(path));
@@ -829,7 +636,7 @@ void UEFITool::openImageFile(QString path)
     setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
 
     // Parse the image
-    UINT8 result = ffsParser->parse(buffer);
+    USTATUS result = ffsParser->parse(buffer);
     showParserMessages();
     if (result) {
         QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToUString(result), QMessageBox::Ok);
@@ -841,6 +648,9 @@ void UEFITool::openImageFile(QString path)
     // Enable or disable FIT tab
     showFitTable();
 
+    // Enable or disable Security tab
+    showSecurityInfo();
+
     // Enable search ...
     delete ffsFinder;
     ffsFinder = new FfsFinder(model);
@@ -848,11 +658,20 @@ void UEFITool::openImageFile(QString path)
     // ... and other operations
     delete ffsOps;
     ffsOps = new FfsOperations(model);
+    // ... and reports
+    delete ffsReport;
+    ffsReport = new FfsReport(model);
 
-    // Enable goToOffset and goToAddress
-    ui->actionGoToOffset->setEnabled(true);
-    if (ffsParser->getAddressDiff() < 0xFFFFFFFFUL)
+    // Enable goToBase and goToAddress
+    ui->actionGoToBase->setEnabled(true);
+    if (ffsParser->getAddressDiff() <= 0xFFFFFFFFUL)
         ui->actionGoToAddress->setEnabled(true);
+
+    // Enable generateReport
+    ui->actionGenerateReport->setEnabled(true);
+
+    // Enable saving GUIDs
+    ui->actionExportDiscoveredGuids->setEnabled(true);
 
     // Set current directory
     currentDir = fileInfo.absolutePath();
@@ -872,11 +691,11 @@ void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
 void UEFITool::copyMessage()
 {
     clipboard->clear();
-    if (ui->messagesTabWidget->currentIndex() == 0) // Parser tab
-      clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == 3) // Search tab
+    if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) // Parser tab
+        clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
+    else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) // Search tab
         clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == 4) // Builder tab
+    else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) // Builder tab
         clipboard->setText(ui->builderMessagesListWidget->currentItem()->text());
 }
 
@@ -884,17 +703,17 @@ void UEFITool::copyAllMessages()
 {
     QString text;
     clipboard->clear();
-    if (ui->messagesTabWidget->currentIndex() == 0) { // Parser tab 
+    if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) { // Parser tab
         for (INT32 i = 0; i < ui->parserMessagesListWidget->count(); i++)
             text.append(ui->parserMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (ui->messagesTabWidget->currentIndex() == 3) {  // Search tab
+    else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) {  // Search tab
         for (INT32 i = 0; i < ui->finderMessagesListWidget->count(); i++)
             text.append(ui->finderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (ui->messagesTabWidget->currentIndex() == 4) {  // Builder tab
+    else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) {  // Builder tab
         for (INT32 i = 0; i < ui->builderMessagesListWidget->count(); i++)
             text.append(ui->builderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
@@ -903,15 +722,15 @@ void UEFITool::copyAllMessages()
 
 void UEFITool::clearMessages()
 {
-    if (ui->messagesTabWidget->currentIndex() == 0) { // Parser tab 
+    if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) { // Parser tab
         if (ffsParser) ffsParser->clearMessages();
         ui->parserMessagesListWidget->clear();
     }
-    else if (ui->messagesTabWidget->currentIndex() == 3) {  // Search tab
+    else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) {  // Search tab
         if (ffsFinder) ffsFinder->clearMessages();
         ui->finderMessagesListWidget->clear();
     }
-    else if (ui->messagesTabWidget->currentIndex() == 4) {  // Builder tab
+    else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) {  // Builder tab
         if (ffsBuilder) ffsBuilder->clearMessages();
         ui->builderMessagesListWidget->clear();
     }
@@ -954,7 +773,7 @@ void UEFITool::showParserMessages()
         ui->parserMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(0);
+    ui->messagesTabWidget->setCurrentIndex(TAB_PARSER);
     ui->parserMessagesListWidget->scrollToBottom();
 }
 
@@ -972,7 +791,8 @@ void UEFITool::showFinderMessages()
         ui->finderMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(3);
+    ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, true);
+    ui->messagesTabWidget->setCurrentIndex(TAB_SEARCH);
     ui->finderMessagesListWidget->scrollToBottom();
 }
 
@@ -990,7 +810,8 @@ void UEFITool::showBuilderMessages()
         ui->builderMessagesListWidget->addItem(item);
     }
 
-    ui->messagesTabWidget->setCurrentIndex(4);
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, true);
+    ui->messagesTabWidget->setCurrentIndex(TAB_BUILDER);
     ui->builderMessagesListWidget->scrollToBottom();
 }
 
@@ -1016,35 +837,35 @@ void UEFITool::scrollTreeView(QTableWidgetItem* item)
 
 void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 {
-    if (ui->parserMessagesListWidget->underMouse() ||
-        ui->finderMessagesListWidget->underMouse() ||
-        ui->builderMessagesListWidget->underMouse()) {
+    // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
+    // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
+    // For this reason we reimplement this manually.
+    if (ui->parserMessagesListWidget->rect().contains(ui->parserMessagesListWidget->mapFromGlobal(event->globalPos())) ||
+        ui->finderMessagesListWidget->rect().contains(ui->finderMessagesListWidget->mapFromGlobal(event->globalPos())) ||
+        ui->builderMessagesListWidget->rect().contains(ui->builderMessagesListWidget->mapFromGlobal(event->globalPos()))) {
         ui->menuMessageActions->exec(event->globalPos());
         return;
     }
 
-    if (!ui->structureTreeView->underMouse())
+
+    if (!ui->structureTreeView->rect().contains(ui->structureTreeView->mapFromGlobal(event->globalPos())))
         return;
 
     QPoint pt = event->pos();
     QModelIndex index = ui->structureTreeView->indexAt(ui->structureTreeView->viewport()->mapFrom(this, pt));
-    if (!index.isValid())
+    if (!index.isValid()) {
         return;
+    }
 
     switch (model->type(index))
     {
-    case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());        break;
+    case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
     case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
-    case Types::Region:         ui->menuRegionActions->exec(event->globalPos());        break;
-    case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());        break;
-    case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());        break;
-    case Types::File:           ui->menuFileActions->exec(event->globalPos());        break;
-    case Types::Section:        ui->menuSectionActions->exec(event->globalPos());        break;
-    case Types::NvarEntry:
-    case Types::VssEntry:
-    case Types::FsysEntry:
-    case Types::EvsaEntry:
-    case Types::FlashMapEntry:  ui->menuEntryActions->exec(event->globalPos());        break;
+    case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
+    case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());      break;
+    case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());       break;
+    case Types::File:           ui->menuFileActions->exec(event->globalPos());         break;
+    case Types::Section:        ui->menuSectionActions->exec(event->globalPos());      break;
     case Types::VssStore:
     case Types::Vss2Store:
     case Types::FdcStore:
@@ -1053,8 +874,11 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
     case Types::FtwStore:
     case Types::FlashMapStore:
     case Types::CmdbStore:
-    case Types::Microcode:
-    case Types::SlicData:       ui->menuStoreActions->exec(event->globalPos());        break;
+    case Types::FptStore:
+    case Types::CpdStore:
+    case Types::BpdtStore:      ui->menuStoreActions->exec(event->globalPos());        break;
+    case Types::FreeSpace:      break; // No menu needed for FreeSpace item
+    default:                    ui->menuEntryActions->exec(event->globalPos());        break;
     }
 }
 
@@ -1075,6 +899,34 @@ void UEFITool::readSettings()
     ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
     ui->structureTreeView->setColumnWidth(3, settings.value("tree/columnWidth3", ui->structureTreeView->columnWidth(3)).toInt());
     markingEnabled = settings.value("tree/markingEnabled", true).toBool();
+    ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
+
+    // Set monospace font for some controls
+    QString fontName;
+    int fontSize;
+#if defined Q_OS_OSX
+    fontName = settings.value("mainWindow/fontName", QString("Menlo")).toString();
+    fontSize = settings.value("mainWindow/fontSize", 10).toInt();
+#elif defined Q_OS_WIN
+    fontName = settings.value("mainWindow/fontName", QString("Consolas")).toString();
+    fontSize = settings.value("mainWindow/fontSize", 9).toInt();
+#else
+    fontName = settings.value("mainWindow/fontName", QString("Courier New")).toString();
+    fontSize = settings.value("mainWindow/fontSize", 10).toInt();
+#endif
+    currentFont = QFont(fontName, fontSize);
+    ui->infoEdit->setFont(currentFont);
+    ui->parserMessagesListWidget->setFont(currentFont);
+    ui->finderMessagesListWidget->setFont(currentFont);
+    ui->builderMessagesListWidget->setFont(currentFont);
+    ui->fitTableWidget->setFont(currentFont);
+    ui->securityEdit->setFont(currentFont);
+    ui->structureTreeView->setFont(currentFont);
+    searchDialog->ui->guidEdit->setFont(currentFont);
+    searchDialog->ui->hexEdit->setFont(currentFont);
+    hexViewDialog->setFont(currentFont);
+    goToAddressDialog->ui->hexSpinBox->setFont(currentFont);
+    goToBaseDialog->ui->hexSpinBox->setFont(currentFont);
 }
 
 void UEFITool::writeSettings()
@@ -1091,6 +943,8 @@ void UEFITool::writeSettings()
     settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
     settings.setValue("tree/columnWidth3", ui->structureTreeView->columnWidth(3));
     settings.setValue("tree/markingEnabled", markingEnabled);
+    settings.setValue("mainWindow/fontName", currentFont.family());
+    settings.setValue("mainWindow/fontSize", currentFont.pointSize());
 }
 
 void UEFITool::showFitTable()
@@ -1098,14 +952,12 @@ void UEFITool::showFitTable()
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable = ffsParser->getFitTable();
     if (fitTable.empty()) {
         // Disable FIT tab
-        ui->messagesTabWidget->setTabEnabled(1, false);
-        // Disable BootGuard tab
-        ui->messagesTabWidget->setTabEnabled(2, false);
+        ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
         return;
     }
 
     // Enable FIT tab
-    ui->messagesTabWidget->setTabEnabled(1, true);
+    ui->messagesTabWidget->setTabEnabled(TAB_FIT, true);
 
     // Set up the FIT table
     ui->fitTableWidget->clear();
@@ -1128,19 +980,21 @@ void UEFITool::showFitTable()
 
     ui->fitTableWidget->resizeColumnsToContents();
     ui->fitTableWidget->resizeRowsToContents();
-    ui->messagesTabWidget->setCurrentIndex(1);
+    ui->messagesTabWidget->setCurrentIndex(TAB_FIT);
+}
 
-    // Get BootGuard info
-    UString bgInfo = ffsParser->getBootGuardInfo();
-    if (bgInfo.isEmpty()) {
-        // Disable BootGuard tab
-        ui->messagesTabWidget->setTabEnabled(2, false);
+void UEFITool::showSecurityInfo()
+{
+    // Get security info
+    UString secInfo = ffsParser->getSecurityInfo();
+    if (secInfo.isEmpty()) {
+        ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
         return;
     }
 
-    ui->messagesTabWidget->setTabEnabled(2, true);
-    ui->bootGuardEdit->setPlainText(bgInfo);
-    ui->messagesTabWidget->setCurrentIndex(2);
+    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, true);
+    ui->securityEdit->setPlainText(secInfo);
+    ui->messagesTabWidget->setCurrentIndex(TAB_SECURITY);
 }
 
 void UEFITool::currentTabChanged(int index)
@@ -1155,10 +1009,52 @@ void UEFITool::currentTabChanged(int index)
 
 void UEFITool::loadGuidDatabase()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), currentDir, "GUID database files (*.gdb);;All files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), currentDir, tr("Comma-separated values files (*.csv);;All files (*)"));
     if (!path.isEmpty()) {
         initGuidDatabase(path);
         if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("New GUID database loaded"), tr("Apply new GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
             openImageFile(currentPath);
+    }
+}
+
+void UEFITool::unloadGuidDatabase()
+{
+    initGuidDatabase();
+    if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("GUID database unloaded"), tr("Apply changes on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
+       openImageFile(currentPath);
+}
+
+void UEFITool::loadDefaultGuidDatabase()
+{
+    initGuidDatabase(":/guids.csv");
+    if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("Default GUID database loaded"), tr("Apply default GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
+        openImageFile(currentPath);
+}
+
+void UEFITool::exportDiscoveredGuids()
+{
+    GuidDatabase db = guidDatabaseFromTreeRecursive(model, model->index(0, 0));
+    if (!db.empty()) {
+        QString path = QFileDialog::getSaveFileName(this, tr("Save parsed GUIDs to database"), currentPath + ".guids.csv", tr("Comma-separated values files (*.csv);;All files (*)"));
+        if (!path.isEmpty())
+            guidDatabaseExportToFile(path, db);
+    }
+}
+
+void UEFITool::generateReport()
+{
+    QString path = QFileDialog::getSaveFileName(this, tr("Save report to text file"), currentPath + ".report.txt", tr("Text files (*.txt);;All files (*)"));
+    if (!path.isEmpty()) {
+        std::vector<QString> report = ffsReport->generate();
+        if (report.size()) {
+            QFile file;
+            file.setFileName(path);
+            if (file.open(QFile::Text | QFile::WriteOnly)) {
+                for (size_t i = 0; i < report.size(); i++) {
+                    file.write(report[i].toLatin1().append('\n'));
+                }
+                file.close();
+            }
+        }
     }
 }

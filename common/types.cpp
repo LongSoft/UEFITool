@@ -66,6 +66,20 @@ UString itemTypeToUString(const UINT8 type)
     case Types::FlashMapEntry:  return UString("FlashMap entry");
     case Types::Microcode:      return UString("Microcode");
     case Types::SlicData:       return UString("SLIC data");
+    // ME-specific
+    case Types::FptStore:       return UString("FPT store");
+    case Types::FptEntry:       return UString("FPT entry");
+    case Types::IfwiHeader:     return UString("IFWI header");
+    case Types::IfwiPartition:  return UString("IFWI partition");
+    case Types::FptPartition:   return UString("FPT partition");
+    case Types::BpdtStore:      return UString("BPDT store");
+    case Types::BpdtEntry:      return UString("BPDT entry");
+    case Types::BpdtPartition:  return UString("BPDT partition");
+    case Types::CpdStore:       return UString("CPD store");
+    case Types::CpdEntry:       return UString("CPD entry");
+    case Types::CpdPartition:   return UString("CPD partition");
+    case Types::CpdExtension:   return UString("CPD extension");
+    case Types::CpdSpiEntry:    return UString("CPD SPI entry");
     }
 
     return  UString("Unknown");
@@ -74,17 +88,6 @@ UString itemTypeToUString(const UINT8 type)
 UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
 {
     switch (type) {
-    case Types::Root:
-    case Types::FreeSpace:
-    case Types::VssStore:
-    case Types::Vss2Store:
-    case Types::FdcStore:
-    case Types::FsysStore:
-    case Types::EvsaStore:
-    case Types::FtwStore:
-    case Types::FlashMapStore:
-    case Types::CmdbStore:
-    case Types::SlicData:                                  return UString();
     case Types::Image:
         if (subtype == Subtypes::IntelImage)               return UString("Intel");
         if (subtype == Subtypes::UefiImage)                return UString("UEFI");
@@ -99,6 +102,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::Ffs2Volume)               return UString("FFSv2");
         if (subtype == Subtypes::Ffs3Volume)               return UString("FFSv3");
         if (subtype == Subtypes::NvramVolume)              return UString("NVRAM");
+        if (subtype == Subtypes::MicrocodeVolume)          return UString("Microcode");
         break;
     case Types::Capsule: 
         if (subtype == Subtypes::AptioSignedCapsule)       return UString("Aptio signed");
@@ -142,20 +146,40 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::IntelMicrocode)           return UString("Intel");
         if (subtype == Subtypes::AmdMicrocode)             return UString("AMD");
         break;
+	// ME-specific
+    case Types::FptEntry:
+        if (subtype == Subtypes::ValidFptEntry)            return UString("Valid");
+        if (subtype == Subtypes::InvalidFptEntry)          return UString("Invalid");
+        break;
+    case Types::FptPartition:
+        if (subtype == Subtypes::CodeFptPartition)         return UString("Code");
+        if (subtype == Subtypes::DataFptPartition)         return UString("Data");
+        if (subtype == Subtypes::GlutFptPartition)         return UString("GLUT");
+        break;
+    case Types::IfwiPartition:
+        if (subtype == Subtypes::BootIfwiPartition)         return UString("Boot");
+        if (subtype == Subtypes::DataIfwiPartition)         return UString("Data");
+        break;
+    case Types::CpdPartition:
+        if (subtype == Subtypes::ManifestCpdPartition)         return UString("Manifest");
+        if (subtype == Subtypes::MetadataCpdPartition)         return UString("Metadata");
+        if (subtype == Subtypes::KeyCpdPartition)              return UString("Key");
+        if (subtype == Subtypes::CodeCpdPartition)             return UString("Code");
+        break;
     }
 
-    return UString("Unknown");
+    return UString();
 }
 
 UString compressionTypeToUString(const UINT8 algorithm)
 {
     switch (algorithm) {
-    case COMPRESSION_ALGORITHM_NONE:         return UString("None");
-    case COMPRESSION_ALGORITHM_EFI11:        return UString("EFI 1.1");
-    case COMPRESSION_ALGORITHM_TIANO:        return UString("Tiano");
-    case COMPRESSION_ALGORITHM_UNDECIDED:    return UString("Undecided Tiano/EFI 1.1");
-    case COMPRESSION_ALGORITHM_LZMA:         return UString("LZMA");
-    case COMPRESSION_ALGORITHM_IMLZMA:       return UString("Intel LZMA");
+    case COMPRESSION_ALGORITHM_NONE:                    return UString("None");
+    case COMPRESSION_ALGORITHM_EFI11:                   return UString("EFI 1.1");
+    case COMPRESSION_ALGORITHM_TIANO:                   return UString("Tiano");
+    case COMPRESSION_ALGORITHM_UNDECIDED:               return UString("Undecided Tiano/EFI 1.1");
+    case COMPRESSION_ALGORITHM_LZMA:                    return UString("LZMA");
+    case COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY:       return UString("Intel legacy LZMA");
     }
 
     return UString("Unknown");

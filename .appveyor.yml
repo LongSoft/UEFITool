@@ -1,0 +1,27 @@
+image: Visual Studio 2015
+
+environment:
+  matrix:
+    - MSYS2_ARCH: i686
+      MSYSTEM: MINGW32
+
+clone_depth: 10
+
+build_script:
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%
+  - bash ./unixbuild.sh
+
+deploy:
+  provider: GitHub
+  force_update: true
+  auth_token:
+    secure: zSJnpSnrKY1NO5RPVBaD/uq7UPyc+GW7ecjPFqEMsLjtnd6H+iNfROdoeuxJgt5T
+  artifact: Binaries
+  prerelease: true
+  on:
+    appveyor_repo_tag: true
+
+artifacts:
+  - path: dist\**\*.zip
+    name: Binaries

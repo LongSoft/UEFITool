@@ -24,7 +24,7 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
 
     if (role == Qt::DisplayRole) {
-        return (const char*)item->data(index.column()).toLocal8Bit();
+        return item->data(index.column()).toLocal8Bit();
     }
 #if defined (QT_GUI_LIB)
     else if (role == Qt::BackgroundRole) {
@@ -34,7 +34,7 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     }
 #endif
     else if (role == Qt::UserRole) {
-        return (const char*)item->info().toLocal8Bit();
+        return item->info().toLocal8Bit();
     }
 
     return QVariant();
@@ -154,6 +154,20 @@ int TreeModel::rowCount(const UModelIndex &parent) const
         parentItem = static_cast<TreeItem*>(parent.internalPointer());
 
     return parentItem->childCount();
+}
+
+UINT32 TreeModel::base(const UModelIndex &current) const
+{
+    // TODO: rewrite this as loop if we ever see an image that is too deep for this naive implementation
+    if (!current.isValid())
+        return 0;
+
+    UModelIndex parent = current.parent();
+    if (!parent.isValid())
+        return offset(current);
+    else {
+        return offset(current) + base(parent);
+    }
 }
 
 UINT32 TreeModel::offset(const UModelIndex &index) const
@@ -296,13 +310,14 @@ void TreeModel::setFixed(const UModelIndex &index, const bool fixed)
         return;
 
     if (fixed) {
+        // Special handling for uncompressed to compressed boundary
         if (item->compressed() && item->parent()->compressed() == FALSE) {
             item->setFixed(item->parent()->fixed());
             return;
         }
 
-        if (item->parent()->type() != Types::Root)
-            item->parent()->setFixed(fixed);
+        // Propagate fixed flag until root
+        setFixed(index.parent(), true);
     }
 
     emit dataChanged(index, index);
@@ -537,7 +552,7 @@ UModelIndex TreeModel::findLastParentOfType(const UModelIndex& index, UINT8 type
     return lastParentOfType;
 }
 
-UModelIndex TreeModel::findByOffset(UINT32 offset) const
+UModelIndex TreeModel::findByBase(UINT32 base) const
 {
     UModelIndex parentIndex = index(0,0);
 
@@ -545,10 +560,10 @@ goDeeper:
     int n = rowCount(parentIndex);
     for (int i = 0; i < n; i++) {
         UModelIndex currentIndex = parentIndex.child(i, 0);
-        UINTN currentOffset = this->offset(currentIndex);
-        UINTN fullSize = header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size();
-        if ((compressed(currentIndex) == false || (compressed(currentIndex) == true && compressed(currentIndex.parent()) == false)) // Offset is meaningful only for uncompressed items
-            && currentOffset <= offset && offset < currentOffset + fullSize) { // Offset must be in range [currentOffset, currentOffset + fullSize)
+        UINT32 currentBase = this->base(currentIndex);
+        UINT32 fullSize = header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size();
+        if ((compressed(currentIndex) == false || (compressed(currentIndex) == true && compressed(currentIndex.parent()) == false)) // Base is meaningful only for true uncompressed items
+            && currentBase <= base && base < currentBase + fullSize) { // Base must be in range [currentBase, currentBase + fullSize)
             // Found a better candidate
             parentIndex = currentIndex;
             goto goDeeper;

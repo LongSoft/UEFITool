@@ -112,7 +112,7 @@ int QHexEdit::addressWidth()
     if (size > Q_INT64_C(0x100000000)){ n += 8; size /= Q_INT64_C(0x100000000);}
     if (size > 0x10000){ n += 4; size /= 0x10000;}
     if (size > 0x100){ n += 2; size /= 0x100;}
-    if (size > 0x10){ n += 1; size /= 0x10;}
+    if (size > 0x10){ n += 1; }
 
     if (n > _addressWidth)
         return n;
@@ -165,7 +165,7 @@ void QHexEdit::setCursorPosition(qint64 position)
 
     // 3. Calc new position of cursor
     _bPosCurrent = position / 2;
-    _pxCursorY = ((position / 2 - _bPosFirst) / _bytesPerLine + 1) * _pxCharHeight;
+    _pxCursorY = (int)((position / 2 - _bPosFirst) / _bytesPerLine + 1) * _pxCharHeight;
     int x = (position % (2 * _bytesPerLine));
     if (_editAreaIsAscii)
     {
@@ -341,7 +341,7 @@ void QHexEdit::insert(qint64 pos, const QByteArray &ba)
 
 void QHexEdit::replace(qint64 pos, qint64 len, const QByteArray &ba)
 {
-    _undoStack->overwrite(pos, len, ba);
+    _undoStack->overwrite(pos, (int)len, ba);
     refresh();
 }
 

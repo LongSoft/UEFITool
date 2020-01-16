@@ -34,7 +34,7 @@ public:
 private:
     TreeModel* model;
     
-    USTATUS generateRecursive(std::vector<UString> & report, UModelIndex index, UINT32 level = 0);
+    USTATUS generateRecursive(std::vector<UString> & report, const UModelIndex & index, const UINT32 level = 0);
 };
 
 #endif // FFSREPORT_H

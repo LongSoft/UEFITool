@@ -12,6 +12,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "uefifind.h"
+#include "../common/ffsutils.h"
+
+#include <fstream>
 
 UEFIFind::UEFIFind()
 {
@@ -27,23 +30,13 @@ UEFIFind::~UEFIFind()
     model = NULL;
 }
 
-USTATUS UEFIFind::init(const QString & path)
+USTATUS UEFIFind::init(const UString & path)
 {
     USTATUS result;
-    
-    fileInfo = QFileInfo(path);
-
-    if (!fileInfo.exists())
-        return U_FILE_OPEN;
-
-    QFile inputFile;
-    inputFile.setFileName(path);
-
-    if (!inputFile.open(QFile::ReadOnly))
-        return U_FILE_OPEN;
-
-    QByteArray buffer = inputFile.readAll();
-    inputFile.close();
+    UByteArray buffer;
+    result = readFileIntoBuffer(path, buffer);
+    if (result)
+        return result;
 
     result = ffsParser->parse(buffer);
     if (result)
@@ -53,91 +46,37 @@ USTATUS UEFIFind::init(const QString & path)
     return U_SUCCESS;
 }
 
-USTATUS UEFIFind::find(const UINT8 mode, const bool count, const QString & hexPattern, QString & result)
+USTATUS UEFIFind::find(const UINT8 mode, const bool count, const UString & hexPattern, UString & result)
 {
-    QModelIndex root = model->index(0, 0);
-    std::set<std::pair<QModelIndex, QModelIndex> > files;
+    UModelIndex root = model->index(0, 0);
+    std::set<std::pair<UModelIndex, UModelIndex> > files;
 
     result.clear();
 
-    USTATUS returned = findFileRecursive(root, hexPattern, mode, files);
+    USTATUS returned = FfsUtils::findFileRecursive(model, root, hexPattern, mode, files);
     if (returned)
         return returned;
     
     if (count) {
         if (!files.empty())
-            result.append(QString("%1\n").arg(files.size()));
+            result += usprintf("%d\n", files.size());
         return U_SUCCESS;
     }
 
-    for (std::set<std::pair<QModelIndex, QModelIndex> >::const_iterator citer = files.begin(); citer != files.end(); ++citer) {
-        QByteArray data(16, '\x00');
-        std::pair<QModelIndex, QModelIndex> indexes = *citer;
+    for (std::set<std::pair<UModelIndex, UModelIndex> >::const_iterator citer = files.begin(); citer != files.end(); ++citer) {
+        UByteArray data(16, '\x00');
+        std::pair<UModelIndex, UModelIndex> indexes = *citer;
         if (!model->hasEmptyHeader(indexes.first))
             data = model->header(indexes.first).left(16);
-        result.append(guidToUString(*(const EFI_GUID*)data.constData()));
+        result += guidToUString(readUnaligned((const EFI_GUID*)data.constData()));
 
         // Special case of freeform subtype GUID files
         if (indexes.second.isValid() && model->subtype(indexes.second) == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
             data = model->header(indexes.second);
-            result.append(" ").append(guidToUString(*(const EFI_GUID*)(data.constData() + sizeof(EFI_COMMON_SECTION_HEADER))));
+            result += UString(" ") + (guidToUString(readUnaligned((const EFI_GUID*)(data.constData() + sizeof(EFI_COMMON_SECTION_HEADER)))));
         }
         
-        result.append("\n");
+        result += UString("\n");
     }
-    return U_SUCCESS;
-}
-
-USTATUS UEFIFind::findFileRecursive(const QModelIndex index, const QString & hexPattern, const UINT8 mode, std::set<std::pair<QModelIndex, QModelIndex> > & files)
-{
-    if (!index.isValid())
-        return U_SUCCESS;
-
-    if (hexPattern.isEmpty())
-        return U_INVALID_PARAMETER;
-
-    // Check for "all substrings" pattern
-    if (hexPattern.count('.') == hexPattern.length())
-        return U_SUCCESS;
-
-    bool hasChildren = (model->rowCount(index) > 0);
-    for (int i = 0; i < model->rowCount(index); i++) {
-        findFileRecursive(index.child(i, index.column()), hexPattern, mode, files);
-    }
-
-    QByteArray data;
-    if (hasChildren) {
-        if (mode == SEARCH_MODE_HEADER || mode == SEARCH_MODE_ALL)
-            data.append(model->header(index));
-    }
-    else {
-        if (mode == SEARCH_MODE_HEADER)
-            data.append(model->header(index));
-        else if (mode == SEARCH_MODE_BODY)
-            data.append(model->body(index));
-        else
-            data.append(model->header(index)).append(model->body(index));
-    }
-
-    QString hexBody = QString(data.toHex());
-    QRegExp regexp = QRegExp(QString(hexPattern), Qt::CaseInsensitive);
-    INT32 offset = regexp.indexIn(hexBody);
-    while (offset >= 0) {
-        if (offset % 2 == 0) {
-            if (model->type(index) != Types::File) {
-                QModelIndex ffs = model->findParentOfType(index, Types::File);
-                if (model->type(index) == Types::Section && model->subtype(index) == EFI_SECTION_FREEFORM_SUBTYPE_GUID)
-                    files.insert(std::pair<QModelIndex, QModelIndex>(ffs, index));
-                else
-                    files.insert(std::pair<QModelIndex, QModelIndex>(ffs, QModelIndex()));
-            }
-            else
-                files.insert(std::pair<QModelIndex, QModelIndex>(index, QModelIndex()));
-
-            break;
-        }
-        offset = regexp.indexIn(hexBody, offset + 1);
-    }
-
     return U_SUCCESS;
 }

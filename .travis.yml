@@ -1,28 +1,78 @@
 language: cpp
-compiler: gcc
-sudo: require
-dist: trusty
 
-before_install:
-    - sudo add-apt-repository ppa:beineri/opt-qt58-trusty -y
-    - sudo apt-get update -qq
-    
-install: 
-    - sudo apt-get -y install qt58base
-    - source /opt/qt58/bin/qt58-env.sh
+env:
+  global:
+    secure: "cWSx7cf7dOyGzqY12imfKIF0G0ImcjChHLpWuDU4dfSl+BvPh8WURhQqwpPihFzA4j+Ob9IdgJdEINW4ZKs5Fqt9NqpqTbsGlv7xMeGSNMymlwzwrY63CU8td6z/ju8Tgvi9I7aHtrYCbi4RCw2vPRzBihgwXTzQg6LWFoVT+XQ="
 
-script:
-  - cd UEFITool
-  - qmake PREFIX=/usr
-  - make -j4
-  - mkdir -p appdir/usr/bin ; mkdir -p appdir/usr/share/{applications,icons} ; cd appdir
-  - cp ../UEFITool usr/bin/uefitool
-  - cp ../uefitool.desktop .
-  - cp ../icons/uefitool_256x256.png uefitool.png
-  - cd .. 
-  - wget -c "https://github.com/probonopd/linuxdeployqt/releases/download/3/linuxdeployqt-3-x86_64.AppImage" 
-  - chmod a+x linuxdeployqt*.AppImage
-  - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
-  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/* -bundle-non-qt-libs
-  - ./linuxdeployqt*.AppImage ./appdir/usr/bin/* -appimage 
-  - curl --upload-file ./UEFITool-*.AppImage https://transfer.sh/UEFITool-git.$(git rev-parse --short HEAD)-x86_64.AppImage 
+matrix:
+  include:
+  - os: osx
+    osx_image: xcode9.2
+
+    compiler: clang
+
+    script:
+      - ./unixbuild.sh
+
+    deploy:
+      provider: releases
+      skip_cleanup: true
+      file: "dist/*.zip"
+      file_glob: true
+      api_key:
+        secure: "WjYd93lVLKHULBpUXS/WtGrkdXyAwxHOUnLJotyDmQipAQP5Ox7Kj12JwkSJGEmVOEdcbIQJyi0QxPjn1UYbYsAt6Op8zrjnYLS4G4fMdBtcxprWzid85uTW7oAAIFs7ygMVhpzxRKpu70yNb683vbThqNmaOu6RyG9aJOLtPAg="
+      on:
+        tags: true
+
+  - os: linux
+    dist: trusty
+    compiler: clang
+
+    before_install:
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
+
+    script:
+      - ./unixbuild.sh
+
+  - os: linux
+    dist: trusty
+    compiler: gcc
+
+    before_install:
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
+
+    script:
+      - ./unixbuild.sh
+
+    deploy:
+      provider: releases
+      skip_cleanup: true
+      file: "dist/*.zip"
+      file_glob: true
+      api_key:
+        secure: "WjYd93lVLKHULBpUXS/WtGrkdXyAwxHOUnLJotyDmQipAQP5Ox7Kj12JwkSJGEmVOEdcbIQJyi0QxPjn1UYbYsAt6Op8zrjnYLS4G4fMdBtcxprWzid85uTW7oAAIFs7ygMVhpzxRKpu70yNb683vbThqNmaOu6RyG9aJOLtPAg="
+      on:
+        tags: true
+
+  - os: linux
+    dist: trusty
+    compiler: clang
+
+    before_install:
+      - sudo apt-get update -qq
+      - sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
+
+    script:
+      - echo "This script runs coverity..."
+
+    addons:
+      coverity_scan:
+        project:
+          name: "LongSoft/UEFITool"
+          description: "UEFITool"
+        notification_email: $NOTIFICATION_EMAIL
+        build_command_prepend: "./unixbuild.sh --configure"
+        build_command: "./unixbuild.sh --build"
+        branch_pattern: new_engine

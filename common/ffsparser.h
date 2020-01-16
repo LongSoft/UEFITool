@@ -20,9 +20,9 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "treemodel.h"
 #include "bootguard.h"
+#include "fit.h"
 
-typedef struct BG_PROTECTED_RANGE_
-{
+typedef struct BG_PROTECTED_RANGE_ {
     UINT32     Offset;
     UINT32     Size;
     UINT8      Type;
@@ -57,8 +57,8 @@ public:
     // Obtain parsed FIT table
     std::vector<std::pair<std::vector<UString>, UModelIndex> > getFitTable() const { return fitTable; }
 
-    // Obtain BootGuardInfo
-    UString getBootGuardInfo() const { return bootGuardInfo; }
+    // Obtain Security Info
+    UString getSecurityInfo() const { return securityInfo; }
 
     // Obtain offset/address difference
     UINT64 getAddressDiff() { return addressDiff; }
@@ -66,7 +66,7 @@ public:
 private:
     TreeModel *model;
     std::vector<std::pair<UString, UModelIndex> > messagesVector;
-    void msg(const UString message, const UModelIndex index = UModelIndex()) {
+    void msg(const UString & message, const UModelIndex & index = UModelIndex()) {
         messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
     };
 
@@ -75,11 +75,11 @@ private:
  
     UByteArray openedImage;
     UModelIndex lastVtf;
-    UINT32 capsuleOffsetFixup;
+    UINT32 imageBase;
     UINT64 addressDiff;
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable;
     
-    UString bootGuardInfo;
+    UString securityInfo;
     bool bgAcmFound;
     bool bgKeyManifestFound;
     bool bgBootPolicyFound;
@@ -87,25 +87,35 @@ private:
     UByteArray bgBpHash;
     UByteArray bgBpDigest;
     std::vector<BG_PROTECTED_RANGE> bgProtectedRanges;
-    UINT64 bgFirstVolumeOffset;
+    UINT64 bgProtectedRegionsBase;
     UModelIndex bgDxeCoreIndex;
 
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
+    USTATUS parseCapsule(const UByteArray & capsule, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+
+    USTATUS parseBpdtRegion(const UByteArray & region, const UINT32 localOffset, const UINT32 sbpdtOffsetFixup, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseCpdRegion(const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseCpdExtensionsArea(const UModelIndex & index);
+    USTATUS parseSignedPackageInfoData(const UModelIndex & index);
+    
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseVolumeBody(const UModelIndex & index);
+    USTATUS parseMicrocodeVolumeBody(const UModelIndex & index);
     USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseFileBody(const UModelIndex & index);
     USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
     USTATUS parseSectionBody(const UModelIndex & index);
 
-    USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & root);
     USTATUS parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseMeRegion(const UByteArray & me, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseBiosRegion(const UByteArray & bios, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parsePdrRegion(const UByteArray & pdr, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseDevExp1Region(const UByteArray & devExp1, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericRegion(const UINT8 subtype, const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
     USTATUS parsePadFileBody(const UModelIndex & index);
@@ -129,35 +139,42 @@ private:
     USTATUS parseTeImageSectionBody(const UModelIndex & index);
 
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
-    USTATUS findNextVolume(const UModelIndex & index, const UByteArray & bios, const UINT32 localOffset, const UINT32 volumeOffset, UINT32 & nextVolumeOffset);
-    USTATUS getVolumeSize(const UByteArray & bios, const UINT32 volumeOffset, UINT32 & volumeSize, UINT32 & bmVolumeSize);
+    USTATUS findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize);
     UINT32  getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion);
     UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
+    
+    USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    BOOLEAN microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader);
 
     // Second pass
     USTATUS performSecondPass(const UModelIndex & index);
-    USTATUS addOffsetsRecursive(const UModelIndex & index);
-    USTATUS addMemoryAddressesRecursive(const UModelIndex & index);
-    USTATUS addFixedAndCompressedRecursive(const UModelIndex & index);
+    USTATUS addInfoRecursive(const UModelIndex & index);
+    USTATUS checkTeImageBase(const UModelIndex & index);
     USTATUS checkProtectedRanges(const UModelIndex & index);
     USTATUS markProtectedRangeRecursive(const UModelIndex & index, const BG_PROTECTED_RANGE & range);
 
+    USTATUS parseResetVectorData();
     USTATUS parseFit(const UModelIndex & index);
     USTATUS parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index);
 
+
 #ifdef U_ENABLE_FIT_PARSING_SUPPORT
-    USTATUS findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
+    void findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset);
 
     // FIT entries
-    USTATUS parseIntelMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseIntelAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseIntelBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseIntelBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS findNextElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
+    USTATUS parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
+    USTATUS findNextBootGuardBootPolicyElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
 #endif
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
     friend class NvramParser; // Make FFS parsing routines accessible to NvramParser
+#endif
+    
+#ifdef U_ENABLE_ME_PARSING_SUPPORT
+    friend class MeParser; // Make FFS parsing routines accessible to MeParser
 #endif
 };
 

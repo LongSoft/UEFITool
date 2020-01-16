@@ -40,7 +40,7 @@ not recommended that bformat be used at all. */
 #define START_VSNBUFF (256)
 #else
 
-#if defined (__GNUC__) && !defined (__PPC__)
+#if defined (__GNUC__) && !defined (__PPC__) && !defined(__WIN32__)
 /* Something is making gcc complain about this prototype not being here, so
 I've just gone ahead and put it in. */
 extern "C" {

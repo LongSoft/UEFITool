@@ -23,9 +23,11 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #pragma pack(push,1)
 
 extern UString guidToUString(const EFI_GUID& guid, bool convertToString = true);
+extern bool ustringToGuid(const UString& str, EFI_GUID& guid);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);
-
+extern UString bpdtEntryTypeToUString(const UINT16 type);
+extern UString cpdExtensionTypeToUstring(const UINT32 type);
 //*****************************************************************************
 // EFI Capsule
 //*****************************************************************************
@@ -41,6 +43,10 @@ typedef struct EFI_CAPSULE_HEADER_ {
 #define EFI_CAPSULE_HEADER_FLAG_SETUP                   0x00000001
 #define EFI_CAPSULE_HEADER_FLAG_PERSIST_ACROSS_RESET    0x00010000
 #define EFI_CAPSULE_HEADER_FLAG_POPULATE_SYSTEM_TABLE   0x00020000
+
+// Standard FMP capsule GUID
+const UByteArray EFI_FMP_CAPSULE_GUID // 6DCBD5ED-E82D-4C44-BDA1-7194199AD92A
+("\xED\xD5\xCB\x6D\x2D\xE8\x44\x4C\xBD\xA1\x71\x94\x19\x9A\xD9\x2A", 16);
 
 // Standard EFI capsule GUID
 const UByteArray EFI_CAPSULE_GUID
@@ -113,38 +119,43 @@ typedef struct EFI_FIRMWARE_VOLUME_HEADER_ {
 } EFI_FIRMWARE_VOLUME_HEADER;
 
 // Standard file system GUIDs
-const UByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID // 7A9354D9-0468-444A-81CE-0BF617D890DF
 ("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
-const UByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID
+
+const UByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID // 8C8CE578-8A3D-4F1C-9935-896185C32DD3
 ("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
-// Vendor-specific file system GUIDs
-const UByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM_GUID
-("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
-const UByteArray EFI_APPLE_BOOT_VOLUME_FILE_SYSTEM2_GUID
-("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
-
-// AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0 // Intel 1
-const UByteArray EFI_INTEL_FILE_SYSTEM_GUID
-("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
-// D6A1CD70-4B33-4994-A6EA-375F2CCC5437 // Intel 2
-const UByteArray EFI_INTEL_FILE_SYSTEM2_GUID
-("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
-// 4F494156-AED6-4D64-A537-B8A5557BCEEC // Sony 1
-const UByteArray EFI_SONY_FILE_SYSTEM_GUID
-("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
-
-
-// Vector of volume GUIDs with FFSv2-compatible files
-extern const std::vector<UByteArray> FFSv2Volumes;
 
 const UByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4DCA-BD6F-1E9689E7349A
 ("\x7A\xC0\x73\x54\xCB\x3D\xCA\x4D\xBD\x6F\x1E\x96\x89\xE7\x34\x9A", 16);
+
+// Vendor-specific file system GUIDs
+const UByteArray EFI_APPLE_IMMUTABLE_FV_GUID // 04ADEEAD-61FF-4D31-B6BA-64F8BF901F5A
+("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
+
+const UByteArray EFI_APPLE_AUTHENTICATION_FV_GUID // BD001B8C-6A71-487B-A14F-0C2A2DCF7A5D
+("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
+
+const UByteArray EFI_APPLE_MICROCODE_VOLUME_GUID // 153D2197-29BD-44DC-AC59-887F70E41A6B
+("\x97\x21\x3D\x15\xBD\x29\xDC\x44\xAC\x59\x88\x7F\x70\xE4\x1A\x6B", 16);
+#define EFI_APPLE_MICROCODE_VOLUME_HEADER_SIZE 0x100
+
+const UByteArray EFI_INTEL_FILE_SYSTEM_GUID // AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0
+("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
+
+const UByteArray EFI_INTEL_FILE_SYSTEM2_GUID // D6A1CD70-4B33-4994-A6EA-375F2CCC5437
+("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
+
+const UByteArray EFI_SONY_FILE_SYSTEM_GUID // 4F494156-AED6-4D64-A537-B8A5557BCEEC
+("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
+
+// Vector of volume GUIDs with FFSv2-compatible files
+extern const std::vector<UByteArray> FFSv2Volumes;
 
 // Vector of volume GUIDs with FFSv3-compatible files
 extern const std::vector<UByteArray> FFSv3Volumes;
 
 // Firmware volume signature
-const UByteArray EFI_FV_SIGNATURE("_FVH", 4);
+#define EFI_FV_SIGNATURE 0x4856465F // _FVH
 #define EFI_FV_SIGNATURE_OFFSET 0x28
 
 // Firmware volume attributes
@@ -369,6 +380,10 @@ const UByteArray AMI_CORE_DXE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
 const UByteArray EFI_DXE_CORE_GUID // D6A2CB7F-6A18-4E2F-B43B-9920A733700A
 ("\x7F\xCB\xA2\xD6\x18\x6A\x2F\x4E\xB4\x3B\x99\x20\xA7\x33\x70\x0A", 16);
 
+// TXT ACM
+const UByteArray EFI_TXT_ACM_GUID // 2D27C618-7DCD-41F5-BB10-21166BE7E143
+("\x18\xC6\x27\x2D\xCD\x7D\xF5\x41\xBB\x10\x21\x16\x6B\xE7\xE1\x43", 16);
+
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(const UINT8* ffsSize);
@@ -473,6 +488,9 @@ const UByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
 const UByteArray EFI_GUIDED_SECTION_LZMAF86 // D42AE6BD-1352-4BFB-909A-CA72A6EAE889
 ("\xBD\xE6\x2A\xD4\x52\x13\xFB\x4B\x90\x9A\xCA\x72\xA6\xEA\xE8\x89", 16);
 
+const UByteArray EFI_GUIDED_SECTION_GZIP // 1D301FE9-BE79-4353-91C2-D23BC959AE0C
+("\xE9\x1F\x30\x1D\x79\xBE\x53\x43\x91\xC2\xD2\x3B\xC9\x59\xAE\x0C", 16);
+
 const UByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID // 0F9D89E8-9259-4F76-A5AF-0C89E34023DF
 ("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
 
@@ -552,6 +570,235 @@ typedef struct POSTCODE_SECTION_ {
 /// EFI_DEP_SOR is only used by DXE drivers
 ///
 #define EFI_DEP_SOR           0x09
+
+//*****************************************************************************
+// X86 Reset Vector Data
+//*****************************************************************************
+typedef struct X86_RESET_VECTOR_DATA_ {
+    UINT8  ApEntryVector[8];   // Base: 0xffffffd0
+    UINT8  Reserved0[8];
+    UINT32 PeiCoreEntryPoint;  // Base: 0xffffffe0
+    UINT8  Reserved1[12];
+    UINT8  ResetVector[8];     // Base: 0xfffffff0
+    UINT32 ApStartupSegment;   // Base: 0xfffffff8
+    UINT32 BootFvBaseAddress;  // Base: 0xfffffffc
+} X86_RESET_VECTOR_DATA;
+
+#define X86_RESET_VECTOR_DATA_UNPOPULATED 0x12345678
+
+//*****************************************************************************
+// IFWI
+//*****************************************************************************
+
+// BPDT
+#define BPDT_GREEN_SIGNATURE  0x000055AA
+#define BPDT_YELLOW_SIGNATURE 0x00AA55AA
+
+typedef struct BPDT_HEADER_ {
+    UINT32 Signature;
+    UINT16 NumEntries;
+    UINT8  HeaderVersion;
+    UINT8  RedundancyFlag; // Reserved zero in version 1
+    UINT32 Checksum;
+    UINT32 IfwiVersion;
+    UINT16 FitcMajor;
+    UINT16 FitcMinor;
+    UINT16 FitcHotfix;
+    UINT16 FitcBuild;
+} BPDT_HEADER;
+
+#define BPDT_HEADER_VERSION_1 1
+#define BPDT_HEADER_VERSION_2 2
+
+typedef struct BPDT_ENTRY_ {
+    UINT32 Type : 16;
+    UINT32 SplitSubPartitionFirstPart : 1;
+    UINT32 SplitSubPartitionSecondPart : 1;
+    UINT32 CodeSubPartition : 1;
+    UINT32 UmaCachable : 1;
+    UINT32 Reserved: 12;
+    UINT32 Offset;
+    UINT32 Size;
+} BPDT_ENTRY;
+
+#define BPDT_ENTRY_TYPE_OEM_SMIP         0
+#define BPDT_ENTRY_TYPE_OEM_RBE          1
+#define BPDT_ENTRY_TYPE_CSE_BUP          2
+#define BPDT_ENTRY_TYPE_UCODE            3
+#define BPDT_ENTRY_TYPE_IBB              4
+#define BPDT_ENTRY_TYPE_SBPDT            5
+#define BPDT_ENTRY_TYPE_OBB              6
+#define BPDT_ENTRY_TYPE_CSE_MAIN         7
+#define BPDT_ENTRY_TYPE_ISH              8
+#define BPDT_ENTRY_TYPE_CSE_IDLM         9
+#define BPDT_ENTRY_TYPE_IFP_OVERRIDE     10
+#define BPDT_ENTRY_TYPE_DEBUG_TOKENS     11
+#define BPDT_ENTRY_TYPE_USF_PHY_CONFIG   12
+#define BPDT_ENTRY_TYPE_USB_GPP_LUN_ID   13
+#define BPDT_ENTRY_TYPE_PMC              14
+#define BPDT_ENTRY_TYPE_IUNIT            15
+#define BPDT_ENTRY_TYPE_NVM_CONFIG       16
+#define BPDT_ENTRY_TYPE_UEP              17
+#define BPDT_ENTRY_TYPE_WLAN_UCODE       18
+#define BPDT_ENTRY_TYPE_LOCL_SPRITES     19
+#define BPDT_ENTRY_TYPE_OEM_KEY_MANIFEST 20
+#define BPDT_ENTRY_TYPE_DEFAULTS         21
+#define BPDT_ENTRY_TYPE_PAVP             22
+#define BPDT_ENTRY_TYPE_TCSS_FW_IOM      23
+#define BPDT_ENTRY_TYPE_TCSS_FW_PHY      24
+#define BPDT_ENTRY_TYPE_TBT              25
+#define BPDT_LAST_KNOWN_ENTRY_TYPE       BPDT_ENTRY_TYPE_TBT
+
+// CPD
+#define CPD_SIGNATURE 0x44504324 //$CPD
+
+typedef struct CPD_REV1_HEADER_ {
+    UINT32 Signature;
+    UINT32 NumEntries;
+    UINT8  HeaderVersion; // 1
+    UINT8  EntryVersion;
+    UINT8  HeaderLength;
+    UINT8  HeaderChecksum;
+    UINT8  ShortName[4];
+} CPD_REV1_HEADER;
+
+typedef struct CPD_REV2_HEADER_ {
+    UINT32 Signature;
+    UINT32 NumEntries;
+    UINT8  HeaderVersion; // 2
+    UINT8  EntryVersion;
+    UINT8  HeaderLength;
+    UINT8  Reserved;
+    UINT8  ShortName[4];
+    UINT32 Checksum;
+} CPD_REV2_HEADER;
+
+typedef struct CPD_ENTRY_ {
+    UINT8  EntryName[12];
+    struct {
+        UINT32 Offset : 25;
+        UINT32 HuffmanCompressed : 1;
+        UINT32 Reserved : 6;
+    } Offset;
+    UINT32 Length;
+    UINT32 Reserved;
+} CPD_ENTRY;
+
+typedef struct CPD_MANIFEST_HEADER_ {
+    UINT32 HeaderType;
+    UINT32 HeaderLength;
+    UINT32 HeaderVersion;
+    UINT32 Flags;
+    UINT32 Vendor;
+    UINT32 Date;
+    UINT32 Size;
+    UINT32 HeaderId;
+    UINT32 Reserved1;
+    UINT16 VersionMajor;
+    UINT16 VersionMinor;
+    UINT16 VersionBugfix;
+    UINT16 VersionBuild;
+    UINT32 SecurityVersion;
+    UINT8  Reserved2[8];
+    UINT8  Reserved3[64];
+    UINT32 ModulusSize;
+    UINT32 ExponentSize;
+    //manifest_rsa_key_t public_key;
+    //manifest_signature_t signature;
+} CPD_MANIFEST_HEADER;
+
+typedef struct CPD_EXTENTION_HEADER_ {
+    UINT32 Type;
+    UINT32 Length;
+} CPD_EXTENTION_HEADER;
+
+#define CPD_EXT_TYPE_SYSTEM_INFO             0
+#define CPD_EXT_TYPE_INIT_SCRIPT             1
+#define CPD_EXT_TYPE_FEATURE_PERMISSIONS     2
+#define CPD_EXT_TYPE_PARTITION_INFO          3
+#define CPD_EXT_TYPE_SHARED_LIB_ATTRIBUTES   4
+#define CPD_EXT_TYPE_PROCESS_ATTRIBUTES      5
+#define CPD_EXT_TYPE_THREAD_ATTRIBUTES       6
+#define CPD_EXT_TYPE_DEVICE_TYPE             7
+#define CPD_EXT_TYPE_MMIO_RANGE              8
+#define CPD_EXT_TYPE_SPEC_FILE_PRODUCER      9
+#define CPD_EXT_TYPE_MODULE_ATTRIBUTES       10
+#define CPD_EXT_TYPE_LOCKED_RANGES           11
+#define CPD_EXT_TYPE_CLIENT_SYSTEM_INFO      12
+#define CPD_EXT_TYPE_USER_INFO               13
+#define CPD_EXT_TYPE_KEY_MANIFEST            14
+#define CPD_EXT_TYPE_SIGNED_PACKAGE_INFO     15
+#define CPD_EXT_TYPE_ANTI_CLONING_SKU_ID     16
+#define CPD_EXT_TYPE_CAVS                    17
+#define CPD_EXT_TYPE_IMR_INFO                18
+#define CPD_EXT_TYPE_BOOT_POLICY             19
+#define CPD_EXT_TYPE_RCIP_INFO               20
+#define CPD_EXT_TYPE_SECURE_TOKEN            21
+#define CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST 22
+#define CPD_EXT_TYPE_FD_HASH                 23
+#define CPD_EXT_TYPE_IOM_METADATA            24
+#define CPD_EXT_TYPE_MGP_METADATA            25
+#define CPD_EXT_TYPE_TBT_METADATA            26
+#define CPD_LAST_KNOWN_EXT_TYPE              CPD_EXT_TYPE_TBT_METADATA
+
+typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_MODULE_ {
+    UINT8  Name[12];
+    UINT8  Type;
+    UINT8  HashAlgorithm;
+    UINT16 HashSize;
+    UINT32 MetadataSize;
+    UINT8  MetadataHash[32];
+} CPD_EXT_SIGNED_PACKAGE_INFO_MODULE;
+
+typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_ {
+    UINT32 ExtensionType;
+    UINT32 ExtensionLength;
+    UINT8  PackageName[4];
+    UINT32 Vcn;
+    UINT8  UsageBitmap[16];
+    UINT32 Svn;
+    UINT8  Reserved[16];
+    // EXT_SIGNED_PACKAGE_INFO_MODULE Modules[];
+} CPD_EXT_SIGNED_PACKAGE_INFO;
+
+typedef struct CPD_EXT_MODULE_ATTRIBUTES_ {
+    UINT32 ExtensionType;
+    UINT32 ExtensionLength;
+    UINT8  CompressionType;
+    UINT8  Reserved[3];
+    UINT32 UncompressedSize;
+    UINT32 CompressedSize;
+    UINT32 GlobalModuleId;
+    UINT8  ImageHash[32];
+} CPD_EXT_MODULE_ATTRIBUTES;
+
+#define CPD_EXT_MODULE_COMPRESSION_TYPE_UNCOMPRESSED 0
+#define CPD_EXT_MODULE_COMPRESSION_TYPE_HUFFMAN 1
+#define CPD_EXT_MODULE_COMPRESSION_TYPE_LZMA 2
+
+typedef struct CPD_EXT_IFWI_PARTITION_MANIFEST_ {
+    UINT32 ExtensionType;
+    UINT32 ExtensionLength;
+    UINT8  PartitionName[4];
+    UINT32 CompletePartitionLength;
+    UINT16 PartitionVersionMinor;
+    UINT16 PartitionVersionMajor;
+    UINT32 DataFormatVersion;
+    UINT32 InstanceId;
+    UINT32 SupportMultipleInstances : 1;
+    UINT32 SupportApiVersionBasedUpdate : 1;
+    UINT32 ActionOnUpdate : 2;
+    UINT32 ObeyFullUpdateRules : 1;
+    UINT32 IfrEnableOnly : 1;
+    UINT32 AllowCrossPointUpdate : 1;
+    UINT32 AllowCrossHotfixUpdate : 1;
+    UINT32 PartialUpdateOnly : 1;
+    UINT32 ReservedFlags : 23;
+    UINT32 HashAlgorithm : 8;
+    UINT32 HashSize : 24;
+    UINT8  CompletePartitionHash[32];
+    UINT8  Reserved[20];
+} CPD_EXT_IFWI_PARTITION_MANIFEST;
 
 // Restore previous packing rules
 #pragma pack(pop)

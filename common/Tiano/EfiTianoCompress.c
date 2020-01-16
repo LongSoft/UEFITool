@@ -69,18 +69,15 @@ PutDword(
 
 STATIC
 EFI_STATUS 
-AllocateMemory (
-  );
+AllocateMemory (VOID);
 
 STATIC
 VOID
-FreeMemory (
-  );
+FreeMemory (VOID);
 
 STATIC 
 VOID 
-InitSlide (
-  );
+InitSlide (VOID);
 
 STATIC 
 NODE 
@@ -105,28 +102,23 @@ Split (
 
 STATIC 
 VOID 
-InsertNode (
-  );
+InsertNode (VOID);
   
 STATIC 
 VOID 
-DeleteNode (
-  );
+DeleteNode (VOID);
 
 STATIC 
 VOID 
-GetNextMatch (
-  );
+GetNextMatch (VOID);
   
 STATIC 
 EFI_STATUS 
-Encode (
-  );
+Encode (VOID);
 
 STATIC 
 VOID 
-CountTFreq (
-  );
+CountTFreq (VOID);
 
 STATIC 
 VOID 
@@ -138,8 +130,7 @@ WritePTLen (
 
 STATIC 
 VOID 
-WriteCLen (
-  );
+WriteCLen (VOID);
   
 STATIC 
 VOID 
@@ -155,8 +146,7 @@ EncodeP (
 
 STATIC 
 VOID 
-SendBlock (
-  );
+SendBlock (VOID);
   
 STATIC 
 VOID 
@@ -167,18 +157,15 @@ Output (
 
 STATIC 
 VOID 
-HufEncodeStart (
-  );
+HufEncodeStart (VOID);
   
 STATIC 
 VOID 
-HufEncodeEnd (
-  );
+HufEncodeEnd (VOID);
   
 STATIC 
 VOID 
-MakeCrcTable (
-  );
+MakeCrcTable (VOID);
   
 STATIC 
 VOID 
@@ -196,8 +183,7 @@ FreadCrc (
   
 STATIC 
 VOID 
-InitPutBits (
-  );
+InitPutBits (VOID);
   
 STATIC 
 VOID 
@@ -550,39 +536,14 @@ Returns: (VOID)
 
 --*/
 {
-  if (mText) {
     free (mText);
-  }
-  
-  if (mLevel) {
     free (mLevel);
-  }
-  
-  if (mChildCount) {
     free (mChildCount);
-  }
-  
-  if (mPosition) {
     free (mPosition);
-  }
-  
-  if (mParent) {
     free (mParent);
-  }
-  
-  if (mPrev) {
     free (mPrev);
-  }
-  
-  if (mNext) {
     free (mNext);
-  }
-  
-  if (mBuf) {
     free (mBuf);
-  }  
-
-  return;
 }
 
 

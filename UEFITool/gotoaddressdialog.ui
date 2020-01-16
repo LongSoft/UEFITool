@@ -7,11 +7,11 @@
     <x>0</x>
     <y>0</y>
     <width>270</width>
-    <height>70</height>
+    <height>86</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Go to address</string>
+   <string>Select item at address</string>
   </property>
   <property name="modal">
    <bool>false</bool>
@@ -56,7 +56,7 @@
       <item>
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>Select tree item at address:</string>
+         <string>Select item at address:</string>
         </property>
        </widget>
       </item>

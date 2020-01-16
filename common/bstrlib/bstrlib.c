@@ -102,7 +102,7 @@ static int snapUpSize (int i) {
 
 /*  int balloc (bstring b, int len)
  *
- *  Increase the size of the memory backing the bstring b to at least len.
+ *  Increase the size of the memory backing the bstring b to at least olen + 1.
  */
 int balloc (bstring b, int olen) {
 	int len;
@@ -124,14 +124,14 @@ int balloc (bstring b, int olen) {
 
 			reallocStrategy:;
 
-			x = (unsigned char *) bstr__realloc (b->data, (size_t) len);
+			x = (unsigned char *) bstr__realloc (b->data, (size_t) len + 1);
 			if (x == NULL) {
 
 				/* Since we failed, try allocating the tighest possible
 				   allocation */
 
 				len = olen;
-				x = (unsigned char *) bstr__realloc (b->data, (size_t) olen);
+				x = (unsigned char *) bstr__realloc (b->data, (size_t) len + 1);
 				if (NULL == x) {
 					return BSTR_ERR;
 				}
@@ -142,7 +142,7 @@ int balloc (bstring b, int olen) {
 			   the extra bytes that are allocated, but not considered part of
 			   the string */
 
-			if (NULL == (x = (unsigned char *) bstr__alloc ((size_t) len))) {
+			if (NULL == (x = (unsigned char *) bstr__alloc ((size_t) len + 1))) {
 
 				/* Perhaps there is no available memory for the two
 				   allocations to be in memory at once */
@@ -2398,8 +2398,14 @@ int i, c, v;
 	} else {
 		v = (bl->qty - 1) * len;
 		if ((bl->qty > 512 || len > 127) &&
-		    v / len != bl->qty - 1) return NULL; /* Overflow */
-		if (v > INT_MAX - c) return NULL;	/* Overflow */
+			v / len != bl->qty - 1) {
+			bstr__free (b);
+			return NULL; /* Overflow */
+		}
+		if (v > INT_MAX - c) {
+			bstr__free (b);
+			return NULL;    /* Overflow */
+		}
 		c += v;
 		p = b->data = (unsigned char *) bstr__alloc (c);
 		if (p == NULL) {
@@ -2432,7 +2438,7 @@ int i, c, v;
  *  NULL is returned, otherwise a bstring with the correct result is returned.
  */
 bstring bjoin (const struct bstrList * bl, const_bstring sep) {
-	if (sep != NULL && (sep->slen < 0 || sep->data == NULL)) return NULL;
+	if (sep == NULL || (sep->slen < 0 || sep->data == NULL)) return NULL;
 	return bjoinblk (bl, sep->data, sep->slen);
 }
 
@@ -2458,9 +2464,9 @@ bstring bjoin (const struct bstrList * bl, const_bstring sep) {
  */
 int bssplitscb (struct bStream * s, const_bstring splitStr,
 	int (* cb) (void * parm, int ofs, const_bstring entry), void * parm) {
-struct charField chrs;
-bstring buff;
-int i, p, ret;
+	struct charField chrs;
+	bstring buff;
+	int i = 0, p = 0, ret = 0;
 
 	if (cb == NULL || s == NULL || s->readFnPtr == NULL ||
 	    splitStr == NULL || splitStr->slen < 0) return BSTR_ERR;
@@ -2473,7 +2479,6 @@ int i, p, ret;
 			ret = 0;
 	} else {
 		buildCharField (&chrs, splitStr);
-		ret = p = i = 0;
 		for (;;) {
 			if (i >= buff->slen) {
 				bsreada (buff, s, BSSSC_BUFF_LEN);
@@ -2525,8 +2530,8 @@ int i, p, ret;
  */
 int bssplitstrcb (struct bStream * s, const_bstring splitStr,
 	int (* cb) (void * parm, int ofs, const_bstring entry), void * parm) {
-bstring buff;
-int i, p, ret;
+	bstring buff;
+	int i = 0, p = 0, ret = 0;
 
 	if (cb == NULL || s == NULL || s->readFnPtr == NULL
 	 || splitStr == NULL || splitStr->slen < 0) return BSTR_ERR;
@@ -2543,10 +2548,10 @@ int i, p, ret;
 			}
 			buff->slen = 0;
 		}
+		bdestroy (buff);
 		return BSTR_OK;
 	} else {
-		ret = p = i = 0;
-		for (i=p=0;;) {
+		for (;;) {
 			if ((ret = binstr (buff, 0, splitStr)) >= 0) {
 				struct tagbstring t;
 				blk2tbstr (t, buff->data, ret);

@@ -16,8 +16,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <stddef.h>
 
-typedef uint8_t USTATUS;
+typedef size_t USTATUS;
 #define U_SUCCESS                         0
 #define U_INVALID_PARAMETER               1
 #define U_BUFFER_TOO_SMALL                2
@@ -44,30 +45,45 @@ typedef uint8_t USTATUS;
 #define U_CUSTOMIZED_COMPRESSION_FAILED   23
 #define U_STANDARD_DECOMPRESSION_FAILED   24
 #define U_CUSTOMIZED_DECOMPRESSION_FAILED 25
-#define U_UNKNOWN_COMPRESSION_TYPE        26
-#define U_DEPEX_PARSE_FAILED              27
-#define U_UNKNOWN_EXTRACT_MODE            28
-#define U_UNKNOWN_REPLACE_MODE            29
-#define U_UNKNOWN_IMAGE_TYPE              30
-#define U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 31
-#define U_UNKNOWN_RELOCATION_TYPE         32
-#define U_DIR_ALREADY_EXIST               33
-#define U_DIR_CREATE                      34
-#define U_DIR_CHANGE                      35
-#define U_TRUNCATED_IMAGE                 36
-#define U_INVALID_CAPSULE                 37
-#define U_STORES_NOT_FOUND                38
-#define U_INVALID_IMAGE                   39
-#define U_INVALID_RAW_AREA                40
-#define U_INVALID_FIT                     41
-#define U_INVALID_MICROCODE               42
-#define U_INVALID_ACM                     43
-#define U_INVALID_BG_KEY_MANIFEST         44
-#define U_INVALID_BG_BOOT_POLICY          45
-#define U_ELEMENTS_NOT_FOUND              46
+#define U_GZIP_DECOMPRESSION_FAILED       26
+#define U_UNKNOWN_COMPRESSION_TYPE        27
+#define U_DEPEX_PARSE_FAILED              28
+#define U_UNKNOWN_EXTRACT_MODE            29
+#define U_UNKNOWN_REPLACE_MODE            30
+#define U_UNKNOWN_IMAGE_TYPE              31
+#define U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE 32
+#define U_UNKNOWN_RELOCATION_TYPE         33
+#define U_DIR_ALREADY_EXIST               34
+#define U_DIR_CREATE                      35
+#define U_DIR_CHANGE                      36
+#define U_TRUNCATED_IMAGE                 37
+#define U_INVALID_CAPSULE                 38
+#define U_STORES_NOT_FOUND                39
+#define U_INVALID_IMAGE                   40
+#define U_INVALID_RAW_AREA                41
+#define U_INVALID_FIT                     42
+#define U_INVALID_MICROCODE               43
+#define U_INVALID_ACM                     44
+#define U_INVALID_BG_KEY_MANIFEST         45
+#define U_INVALID_BG_BOOT_POLICY          46
+#define U_INVALID_TXT_CONF                47
+#define U_ELEMENTS_NOT_FOUND              48
+#define U_PEI_CORE_ENTRY_POINT_NOT_FOUND  49
+#define U_INVALID_STORE_SIZE              50
+#define U_UNKNOWN_COMPRESSION_ALGORITHM   51
+#define U_NOTHING_TO_PATCH                52
+#define U_UNKNOWN_PATCH_TYPE              53
+#define U_PATCH_OFFSET_OUT_OF_BOUNDS      54
+#define U_INVALID_SYMBOL                  55
+
+#define U_INVALID_MANIFEST                251
+#define U_UNKNOWN_MANIFEST_HEADER_VERSION 252
+#define U_INVALID_ME_PARTITION_TABLE      253
+#define U_INVALID_ME_PARTITION            254
+
 #define U_NOT_IMPLEMENTED                 0xFF
 
-// UDK porting definitions
+// EDK2 porting definitions
 typedef uint8_t      BOOLEAN;
 typedef int8_t       INT8;
 typedef uint8_t      UINT8;
@@ -79,11 +95,16 @@ typedef int64_t      INT64;
 typedef uint64_t     UINT64;
 typedef char         CHAR8;
 typedef uint16_t     CHAR16;
-typedef unsigned int UINTN;
+typedef size_t       UINTN;
+typedef ptrdiff_t    INTN;
 
 #define CONST  const
 #define VOID   void
 #define STATIC static
+
+#ifndef INT32_MAX
+#define INT32_MAX 0x7fffffff
+#endif
 
 #ifndef TRUE
 #define TRUE  ((BOOLEAN)(1==1))
@@ -104,13 +125,14 @@ typedef unsigned int UINTN;
 #define EFI_ERROR(X) (X)
 
 // Compression algorithms
-#define COMPRESSION_ALGORITHM_UNKNOWN     0
-#define COMPRESSION_ALGORITHM_NONE        1
-#define COMPRESSION_ALGORITHM_EFI11       2
-#define COMPRESSION_ALGORITHM_TIANO       3
-#define COMPRESSION_ALGORITHM_UNDECIDED   4
-#define COMPRESSION_ALGORITHM_LZMA        5
-#define COMPRESSION_ALGORITHM_IMLZMA      6
+#define COMPRESSION_ALGORITHM_UNKNOWN                0
+#define COMPRESSION_ALGORITHM_NONE                   1
+#define COMPRESSION_ALGORITHM_EFI11                  2
+#define COMPRESSION_ALGORITHM_TIANO                  3
+#define COMPRESSION_ALGORITHM_UNDECIDED              4
+#define COMPRESSION_ALGORITHM_LZMA                   5
+#define COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY      6
+#define COMPRESSION_ALGORITHM_GZIP                   7
 
 // Item create modes
 #define CREATE_MODE_APPEND    0
@@ -161,11 +183,11 @@ typedef struct EFI_TIME_ {
     UINT8   Hour;       // Hour:       0 - 23
     UINT8   Minute;     // Minute:     0 - 59
     UINT8   Second;     // Second:     0 - 59
-    UINT8   : 8;
+    UINT8   Reserved0;
     UINT32  Nanosecond; // Nanosecond: 0 - 999,999,999
     INT16   TimeZone;   // TimeZone:   -1440 to 1440 or UNSPECIFIED (0x07FF)
     UINT8   Daylight;   // Daylight:   ADJUST_DAYLIGHT (1) or IN_DAYLIGHT (2) 
-    UINT8   : 8;
+    UINT8   Reserved1;
 } EFI_TIME;
 
 // Align to 4 or 8 bytes

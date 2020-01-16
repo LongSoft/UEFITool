@@ -3,6 +3,7 @@
 #################
 moc_*.*
 ui_*.*
+qrc_*.*
 
 #################
 ## Qt Creator
@@ -231,3 +232,19 @@ pip-log.txt
 #############
 *.o
 Makefile
+
+uefitool_plugin_import.cpp
+UEFITool.app/
+UEFITool/XCBuildData
+UEFIDump/UEFIDump
+UEFIExtract/UEFIExtract
+UEFIFind/UEFIFind
+.qmake.stash
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+DerivedData
+*.xcodeproj
+compile_commands.json
+CMakeScripts
+UEFITool/qrc_uefitool.cpp

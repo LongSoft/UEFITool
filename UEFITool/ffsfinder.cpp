@@ -15,6 +15,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode)
 {
+    //TODO: use FfsUtils.
+
     if (!index.isValid())
         return U_SUCCESS;
 
@@ -32,16 +34,18 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
 
     UByteArray data;
     if (hasChildren) {
-        if (mode != SEARCH_MODE_BODY)
+        if (mode == SEARCH_MODE_HEADER)
             data = model->header(index);
+        else if (mode == SEARCH_MODE_ALL)
+            data = model->header(index) + model->body(index);
     }
     else {
         if (mode == SEARCH_MODE_HEADER)
-            data.append(model->header(index));
+            data = model->header(index);
         else if (mode == SEARCH_MODE_BODY)
-            data.append(model->body(index));
+            data = model->body(index);
         else
-            data.append(model->header(index)).append(model->body(index));
+            data = model->header(index) + model->body(index);
     }
 
     UString hexBody = UString(data.toHex());
@@ -49,11 +53,15 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
     INT32 offset = regexp.indexIn(hexBody);
     while (offset >= 0) {
         if (offset % 2 == 0) {
-            msg(UString("Hex pattern \"") + UString(hexPattern) 
-                + UString("\" found as \"") + hexBody.mid(offset, hexPattern.length()).toUpper() 
-                + UString("\" in ") + model->name(index) 
-                + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
-                index);
+            // For patterns that cross header|body boundary, skip patterns entirely located in body, since
+            // children search above has already found them.
+            if (!(hasChildren && mode == SEARCH_MODE_ALL && offset/2 >= model->header(index).size())) {
+                msg(UString("Hex pattern \"") + UString(hexPattern)
+                    + UString("\" found as \"") + hexBody.mid(offset, hexPattern.length()).toUpper()
+                    + UString("\" in ") + model->name(index)
+                    + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
+                    index);
+            }
         }
         offset = regexp.indexIn(hexBody, offset + 1);
     }

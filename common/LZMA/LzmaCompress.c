@@ -25,7 +25,7 @@ static ISzAlloc SzAllocForLzma = { &AllocForLzma, &FreeForLzma };
 
 SRes OnProgress(void *p, UInt64 inSize, UInt64 outSize)
 {
-    (void)p; (void) inSize; (void) outSize;
+    (void)p; (void)inSize; (void)outSize;
     return SZ_OK;
 }
 
@@ -34,9 +34,9 @@ static ICompressProgress g_ProgressCallback = { &OnProgress };
 STATIC
 UINT64
 EFIAPI
-RShiftU64(
-UINT64                    Operand,
-UINT32                     Count
+RShiftU64 (
+    UINT64 Operand,
+    UINT32 Count
 )
 {
     return Operand >> Count;
@@ -44,8 +44,8 @@ UINT32                     Count
 
 VOID
 SetEncodedSizeOfBuf(
-UINT64 EncodedSize,
-UINT8 *EncodedData
+    UINT64 EncodedSize,
+    UINT8* EncodedData
 )
 {
     INT32   Index;
@@ -58,13 +58,14 @@ UINT8 *EncodedData
     }
 }
 
-INT32
+USTATUS
 EFIAPI
-LzmaCompress(
-CONST UINT8  *Source,
-UINT32       SourceSize,
-UINT8    *Destination,
-UINT32   *DestinationSize
+LzmaCompress (
+    CONST UINT8  *Source,
+    UINT32       SourceSize,
+    UINT8        *Destination,
+    UINT32       *DestinationSize,
+    UINT32       DictionarySize
 )
 {
     SRes              LzmaResult;
@@ -72,14 +73,14 @@ UINT32   *DestinationSize
     SizeT propsSize = LZMA_PROPS_SIZE;
     SizeT destLen = SourceSize + SourceSize / 3 + 128;
 
-    if (*DestinationSize < destLen)
+    if (*DestinationSize < (UINT32)destLen)
     {
         *DestinationSize = (UINT32)destLen;
         return EFI_BUFFER_TOO_SMALL;
     }
 
     LzmaEncProps_Init(&props);
-    props.dictSize = LZMA_DICTIONARY_SIZE;
+    props.dictSize = DictionarySize;
     props.level = 9;
     props.fb = 273;
 
@@ -87,7 +88,7 @@ UINT32   *DestinationSize
         (Byte*)((UINT8*)Destination + LZMA_HEADER_SIZE),
         &destLen,
         Source,
-        SourceSize,
+        (SizeT)SourceSize,
         &props,
         (UINT8*)Destination,
         &propsSize,
@@ -98,7 +99,7 @@ UINT32   *DestinationSize
 
     *DestinationSize = (UINT32)(destLen + LZMA_HEADER_SIZE);
 
-    SetEncodedSizeOfBuf((UINT64)SourceSize, Destination);
+    SetEncodedSizeOfBuf(SourceSize, Destination);
 
     if (LzmaResult == SZ_OK) {
         return EFI_SUCCESS;

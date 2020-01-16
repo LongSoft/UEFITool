@@ -203,12 +203,12 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="bootGuardTab">
+       <widget class="QWidget" name="securityTab">
         <property name="enabled">
          <bool>true</bool>
         </property>
         <attribute name="title">
-         <string>BootGuard</string>
+         <string>Security</string>
         </attribute>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="spacing">
@@ -227,7 +227,7 @@
           <number>5</number>
          </property>
          <item>
-          <widget class="QPlainTextEdit" name="bootGuardEdit">
+          <widget class="QPlainTextEdit" name="securityEdit">
            <property name="acceptDrops">
             <bool>false</bool>
            </property>
@@ -322,7 +322,12 @@
     <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
     <addaction name="separator"/>
+    <addaction name="actionGenerateReport"/>
+    <addaction name="separator"/>
     <addaction name="actionLoadGuidDatabase"/>
+    <addaction name="actionLoadDefaultGuidDatabase"/>
+    <addaction name="actionUnloadGuidDatabase"/>
+    <addaction name="actionExportDiscoveredGuids"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -473,7 +478,7 @@
       <bool>false</bool>
      </property>
      <property name="title">
-      <string>Entry</string>
+      <string>&amp;Entry</string>
      </property>
      <addaction name="actionHexView"/>
      <addaction name="actionBodyHexView"/>
@@ -515,7 +520,7 @@
      <addaction name="actionReplace"/>
      <addaction name="actionReplaceBody"/>
     </widget>
-    <addaction name="actionGoToOffset"/>
+    <addaction name="actionGoToBase"/>
     <addaction name="actionGoToAddress"/>
     <addaction name="actionSearch"/>
     <addaction name="separator"/>
@@ -532,7 +537,7 @@
     <addaction name="separator"/>
     <addaction name="menuMessageActions"/>
    </widget>
-   <widget class="QMenu" name="menu_View">
+   <widget class="QMenu" name="menuView">
     <property name="title">
      <string>&amp;View</string>
     </property>
@@ -540,7 +545,7 @@
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAction"/>
-   <addaction name="menu_View"/>
+   <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
   <action name="actionInsertAfter">
@@ -718,7 +723,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Sear&amp;ch...</string>
+    <string>Searc&amp;h...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+F</string>
@@ -818,12 +823,12 @@
     <string>Ctrl+D</string>
    </property>
   </action>
-  <action name="actionGoToOffset">
+  <action name="actionGoToBase">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>&amp;Go to offset...</string>
+    <string>&amp;Select item at base...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+G</string>
@@ -853,7 +858,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Go to &amp;address...</string>
+    <string>Select item at &amp;address...</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+G</string>
@@ -867,10 +872,51 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;BootGuard marking</string>
+    <string>BootGuard &amp;markings</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+B</string>
+   </property>
+  </action>
+  <action name="actionGenerateReport">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Generate &amp;report...</string>
+   </property>
+   <property name="toolTip">
+    <string>Generate report</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+R</string>
+   </property>
+  </action>
+  <action name="actionUnloadGuidDatabase">
+   <property name="text">
+    <string>&amp;Unload GUID database</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+U</string>
+   </property>
+  </action>
+  <action name="actionLoadDefaultGuidDatabase">
+   <property name="text">
+    <string>Load &amp;default GUID database</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+D</string>
+   </property>
+  </action>
+  <action name="actionExportDiscoveredGuids">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Export discovered GUIDs...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+E</string>
    </property>
   </action>
  </widget>
