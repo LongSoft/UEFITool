@@ -3467,14 +3467,18 @@ UINT8 FfsEngine::reconstructVolume(const QModelIndex & index, QByteArray & recon
                     if (fileHeader->Type == EFI_FV_FILETYPE_PAD) {
                         padFileGuid = file.left(sizeof(EFI_GUID));
 
+                        if (model->action(index.child(i, 0)) == Actions::DoNotRebuild) {
+                            // User asked not to touch this file, do nothing here
+                        }
                         // Parse non-empty pad file
-                        if (model->rowCount(index.child(i, 0))) {
-                            //TODO: handle it
+                        else if (model->rowCount(index.child(i, 0))) {
+                            // TODO: handle this special case
                             continue;
                         }
                         // Skip empty pad-file
-                        else
+                        else {
                             continue;
+                        }
                     }
 
                     // Volume Top File
