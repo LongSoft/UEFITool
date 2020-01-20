@@ -3668,7 +3668,6 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
         // Calculate FIT entry checksum
         UByteArray tempFIT = model->body(fitIndex).mid(fitOffset, fitSize);
         FIT_ENTRY* tempFitHeader = (FIT_ENTRY*)tempFIT.data();
-        tempFitHeader->CsFlag = 0;
         tempFitHeader->Checksum = 0;
         UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
         if (calculated != fitHeader->Checksum) {
