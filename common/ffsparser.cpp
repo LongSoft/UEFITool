@@ -3522,17 +3522,20 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
         return EFI_INVALID_PARAMETER;
 
     if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
+        const UByteArray &body = model->body(index);
+        UINT32 size = (UINT32)body.size();
+
         // File too small to have even a signature
-        if ((UINT32)model->body(index).size() < sizeof(BG_VENDOR_HASH_FILE_SIGNATURE_PHOENIX)) {
+        if (size < sizeof(BG_VENDOR_HASH_FILE_SIGNATURE_PHOENIX)) {
             msg(usprintf("%s: unknown or corrupted Phoenix hash file found", __FUNCTION__), index);
             model->setText(index, UString("Phoenix hash file"));
             return U_INVALID_FILE;
         }
 
-        const BG_VENDOR_HASH_FILE_HEADER_PHOENIX* header = (const BG_VENDOR_HASH_FILE_HEADER_PHOENIX*)model->body(index).constData();
+        const BG_VENDOR_HASH_FILE_HEADER_PHOENIX* header = (const BG_VENDOR_HASH_FILE_HEADER_PHOENIX*)body.constData();
         if (header->Signature == BG_VENDOR_HASH_FILE_SIGNATURE_PHOENIX) {
-            if ((UINT32)model->body(index).size() < sizeof(BG_VENDOR_HASH_FILE_HEADER_PHOENIX) ||
-                (UINT32)model->body(index).size() < sizeof(BG_VENDOR_HASH_FILE_HEADER_PHOENIX) + header->NumEntries * sizeof(BG_VENDOR_HASH_FILE_ENTRY)) {
+            if (size < sizeof(BG_VENDOR_HASH_FILE_HEADER_PHOENIX) ||
+                size < sizeof(BG_VENDOR_HASH_FILE_HEADER_PHOENIX) + header->NumEntries * sizeof(BG_VENDOR_HASH_FILE_ENTRY)) {
                 msg(usprintf("%s: unknown or corrupted Phoenix hash file found", __FUNCTION__), index);
                 model->setText(index, UString("Phoenix hash file"));
                 return U_INVALID_FILE;
@@ -3575,14 +3578,15 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
     }
     else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_AMI) {
         UModelIndex fileIndex = model->parent(index);
-        UINT32 size = model->body(index).size();
-        if (size != (UINT32)model->body(index).count('\xFF')) {
+        const UByteArray &body = model->body(index);
+        UINT32 size = (UINT32)body.size();
+        if (size != (UINT32)body.count('\xFF')) {
             if (size == sizeof(BG_VENDOR_HASH_FILE_HEADER_AMI_NEW)) {
                 bool protectedRangesFound = false;
-                UINT32 NumEntries = (UINT32)model->body(index).size() / sizeof(BG_VENDOR_HASH_FILE_ENTRY);
+                UINT32 NumEntries = (UINT32)body.size() / sizeof(BG_VENDOR_HASH_FILE_ENTRY);
                 for (UINT32 i = 0; i < NumEntries; i++) {
                     protectedRangesFound = true;
-                    const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(model->body(index).constData()) + i;
+                    const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(body.constData()) + i;
                     BG_PROTECTED_RANGE range;
                     range.Offset = entry->Offset;
                     range.Size = entry->Size;
@@ -3594,7 +3598,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 if (protectedRangesFound) {
                     securityInfo += usprintf("New AMI hash file found at base %Xh\nProtected ranges:", model->base(fileIndex));
                     for (UINT32 i = 0; i < NumEntries; i++) {
-                        const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(model->body(index).constData()) + i;
+                        const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(body.constData()) + i;
                         securityInfo += usprintf("\nAddress: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
                         for (UINT8 j = 0; j < sizeof(entry->Hash); j++) {
                             securityInfo += usprintf("%02X", entry->Hash[j]);
@@ -3607,7 +3611,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
             }
             else if (size == sizeof(BG_VENDOR_HASH_FILE_HEADER_AMI_OLD)) {
                 securityInfo += usprintf("Old AMI hash file found at base %Xh\nProtected range:", model->base(fileIndex));
-                const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD* entry = (const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD*)(model->body(index).constData());
+                const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD* entry = (const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD*)(body.constData());
                 securityInfo += usprintf("\nSize: %Xh\nHash: ", entry->Size);
                 for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
                     securityInfo += usprintf("%02X", entry->Hash[i]);
