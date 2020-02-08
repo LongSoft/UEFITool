@@ -75,7 +75,7 @@ struct CPD_PARTITION_INFO {
 FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
 imageBase(0), addressDiff(0x100000000ULL),
 bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgProtectedRegionsBase(0) {
-    nvramParser = new NvramParser(treeModel, this); 
+    nvramParser = new NvramParser(treeModel, this);
     meParser = new MeParser(treeModel, this);
 }
 
@@ -85,7 +85,7 @@ FfsParser::~FfsParser() {
     delete meParser;
 }
 
-// Obtain parser messages 
+// Obtain parser messages
 std::vector<std::pair<UString, UModelIndex> > FfsParser::getMessages() const {
     std::vector<std::pair<UString, UModelIndex> > meVector = meParser->getMessages();
     std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser->getMessages();
@@ -96,7 +96,7 @@ std::vector<std::pair<UString, UModelIndex> > FfsParser::getMessages() const {
 }
 
 // Firmware image parsing functions
-USTATUS FfsParser::parse(const UByteArray & buffer) 
+USTATUS FfsParser::parse(const UByteArray & buffer)
 {
     UModelIndex root;
 
@@ -438,7 +438,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             index);
         return U_INVALID_FLASH_DESCRIPTOR;
     }
-    // Check for padding between descriptor and the first region 
+    // Check for padding between descriptor and the first region
     else if (regions.front().offset > FLASH_DESCRIPTOR_SIZE) {
         region.offset = FLASH_DESCRIPTOR_SIZE;
         region.length = regions.front().offset - FLASH_DESCRIPTOR_SIZE;
@@ -483,7 +483,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         region.type = getPaddingType(region.data);
         regions.push_back(region);
     }
-    
+
     // Region map is consistent
 
     // Intel image
@@ -513,7 +513,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                     descriptor->ReservedVector[8],  descriptor->ReservedVector[9],  descriptor->ReservedVector[10], descriptor->ReservedVector[11],
                     descriptor->ReservedVector[12], descriptor->ReservedVector[13], descriptor->ReservedVector[14], descriptor->ReservedVector[15],
                     FLASH_DESCRIPTOR_SIZE, FLASH_DESCRIPTOR_SIZE);
-    
+
     // Add offsets of actual regions
     for (size_t i = 0; i < regions.size(); i++) {
         if (regions[i].type != Subtypes::ZeroPadding && regions[i].type != Subtypes::OnePadding && regions[i].type != Subtypes::DataPadding)
@@ -786,11 +786,11 @@ USTATUS FfsParser::parseDevExp1Region(const UByteArray & devExp1, const UINT32 l
     // Check sanity
     if (devExp1.isEmpty())
         return U_EMPTY_REGION;
-    
+
     // Get info
     UString name("DevExp1 region");
     UString info = usprintf("Full size: %Xh (%u)", devExp1.size(), devExp1.size());
-    
+
     bool emptyRegion = false;
     // Check for empty region
     if (devExp1.size() == devExp1.count('\xFF') || devExp1.size() == devExp1.count('\x00')) {
@@ -798,10 +798,10 @@ USTATUS FfsParser::parseDevExp1Region(const UByteArray & devExp1, const UINT32 l
         emptyRegion = true;
         info += ("\nState: empty");
     }
-    
+
     // Add tree item
     index = model->addItem(localOffset, Types::Region, Subtypes::DevExp1Region, name, UString(), info, UByteArray(), devExp1, UByteArray(), Fixed, parent);
-    
+
     if (!emptyRegion) {
         meParser->parseMeRegionBody(index);
     }
@@ -836,7 +836,7 @@ USTATUS FfsParser::parseBiosRegion(const UByteArray & bios, const UINT32 localOf
 
     // Add tree item
     index = model->addItem(localOffset, Types::Region, Subtypes::BiosRegion, name, UString(), info, UByteArray(), bios, UByteArray(), Fixed, parent);
-    
+
     return parseRawArea(index);
 }
 
@@ -903,7 +903,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             // Add tree item
             model->addItem(headerSize + paddingOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
         }
-        
+
         // Check that item is fully present in input
         if (itemSize > (UINT32)data.size() || itemOffset + itemSize > (UINT32)data.size()) {
             // Mark the rest as padding and finish parsing
@@ -922,7 +922,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             prevItemSize = padding.size();
             break;
         }
-        
+
         // Parse current volume's header
         if (itemType == Types::Volume) {
             UModelIndex volumeIndex;
@@ -948,11 +948,11 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
         }
         else if (itemType == Types::BpdtStore) {
             UByteArray bpdtStore = data.mid(itemOffset, itemSize);
-            
+
             // Get info
             name = UString("BPDT region");
             info = usprintf("Full size: %Xh (%u)", bpdtStore.size(), bpdtStore.size());
-            
+
             // Add tree item
             UModelIndex bpdtIndex = model->addItem(headerSize + itemOffset, Types::BpdtStore, 0, name, UString(), info, UByteArray(), bpdtStore, UByteArray(), Fixed, index);
 
@@ -1146,7 +1146,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     UByteArray body = volume.mid(headerSize);
     UString name = guidToUString(volumeHeader->FileSystemGuid);
     UString info = usprintf("ZeroVector:\n%02X %02X %02X %02X %02X %02X %02X %02X\n"
-        "%02X %02X %02X %02X %02X %02X %02X %02X\nSignature: _FVH\nFileSystem GUID: ", 
+        "%02X %02X %02X %02X %02X %02X %02X %02X\nSignature: _FVH\nFileSystem GUID: ",
         volumeHeader->ZeroVector[0], volumeHeader->ZeroVector[1], volumeHeader->ZeroVector[2], volumeHeader->ZeroVector[3],
         volumeHeader->ZeroVector[4], volumeHeader->ZeroVector[5], volumeHeader->ZeroVector[6], volumeHeader->ZeroVector[7],
         volumeHeader->ZeroVector[8], volumeHeader->ZeroVector[9], volumeHeader->ZeroVector[10], volumeHeader->ZeroVector[11],
@@ -1157,7 +1157,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         headerSize, headerSize,
         volumeSize - headerSize, volumeSize - headerSize,
         volumeHeader->Revision,
-        volumeHeader->Attributes, 
+        volumeHeader->Attributes,
         (emptyByte ? 1 : 0),
         volumeHeader->Checksum) +
         (msgInvalidChecksum ? usprintf(", invalid, should be %04Xh", calculated) : UString(", valid"));
@@ -1231,7 +1231,7 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
     if (!reservedBytesValid) {
         return FALSE;
     }
-    
+
     // Check CpuFlags reserved bytes to be zero
     for (UINT32 i = 0; i < sizeof(ucodeHeader->ProcessorFlagsReserved); i++) {
         if (ucodeHeader->ProcessorFlagsReserved[i] != 0x00) {
@@ -1242,19 +1242,19 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
     if (!reservedBytesValid) {
         return FALSE;
     }
-    
+
     // Check data size to be multiple of 4 and less than 0x1000000
     if (ucodeHeader->DataSize % 4 != 0 ||
         ucodeHeader->DataSize > 0xFFFFFF) {
         return FALSE;
     }
-    
+
     // Check TotalSize to be greater or equal than DataSize and less than 0x1000000
     if (ucodeHeader->TotalSize < ucodeHeader->DataSize ||
         ucodeHeader->TotalSize > 0xFFFFFF) {
         return FALSE;
     }
-    
+
     // Check date to be sane
     // Check day to be in 0x01-0x09, 0x10-0x19, 0x20-0x29, 0x30-0x31
     if (ucodeHeader->DateDay < 0x01 ||
@@ -1309,7 +1309,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             if (restSize < sizeof(INTEL_MICROCODE_HEADER)) {
                 continue;
             }
-            
+
             // Check microcode header candidate
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)currentPos;
             if (FALSE == microcodeHeaderValid(ucodeHeader)) {
@@ -1319,7 +1319,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             // Check size candidate
             if (ucodeHeader->TotalSize == 0)
                 continue;
-            
+
             // All checks passed, microcode found
             nextItemType = Types::Microcode;
             nextItemSize = ucodeHeader->TotalSize;
@@ -1361,18 +1361,18 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             // Check data size
             if (restSize < sizeof(BPDT_HEADER))
                 continue;
-            
+
             const BPDT_HEADER *bpdtHeader = (const BPDT_HEADER *)currentPos;
             // Check version
             if (bpdtHeader->HeaderVersion != BPDT_HEADER_VERSION_1) // IFWI 2.0 only for now
                 continue;
-            
+
             UINT32 ptBodySize = bpdtHeader->NumEntries * sizeof(BPDT_ENTRY);
             UINT32 ptSize = sizeof(BPDT_HEADER) + ptBodySize;
             // Check data size again
             if (restSize < ptSize)
                 continue;
-            
+
             UINT32 sizeCandidate = 0;
             // Parse partition table
             const BPDT_ENTRY* firstPtEntry = (const BPDT_ENTRY*)((const UINT8*)bpdtHeader + sizeof(BPDT_HEADER));
@@ -1387,11 +1387,11 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
                         sizeCandidate = ptEntry->Offset + ptEntry->Size;
                 }
             }
-            
+
             // Check size candidate
             if (sizeCandidate == 0)
                 continue;
-            
+
              // All checks passed, BPDT found
             nextItemType = Types::BpdtStore;
             nextItemSize = sizeCandidate;
@@ -1455,15 +1455,15 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
         ffsVersion = pdata->ffsVersion;
         usedSpace = pdata->usedSpace;
     }
-    
+
     // Check for unknown FFS version
-    if (ffsVersion != 2 && ffsVersion != 3) 
+    if (ffsVersion != 2 && ffsVersion != 3)
         return U_SUCCESS;
 
     // Search for and parse all files
     UINT32 volumeBodySize = volumeBody.size();
     UINT32 fileOffset = 0;
-    
+
     while (fileOffset < volumeBodySize) {
         UINT32 fileSize = getFileSize(volumeBody, fileOffset, ffsVersion);
 
@@ -1555,7 +1555,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
         // Skip non-file entries and pad files
         if (model->type(current) != Types::File || model->subtype(current) == EFI_FV_FILETYPE_PAD)
             continue;
-        
+
         // Get current file GUID
         UByteArray currentGuid(model->header(current).constData(), sizeof(EFI_GUID));
 
@@ -1566,7 +1566,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             // Skip non-file entries
             if (model->type(another) != Types::File)
                 continue;
-            
+
             // Get another file GUID
             UByteArray anotherGuid(model->header(another).constData(), sizeof(EFI_GUID));
 
@@ -1663,19 +1663,19 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     UINT8 alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
     if (volumeRevision > 1 && (fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT2)) {
         alignmentPower = ffsAlignment2Table[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
-    }  
-       
+    }
+
     UINT32 alignment = (UINT32)(1UL << alignmentPower);
     if ((localOffset + header.size()) % alignment) {
         msgUnalignedFile = true;
     }
-    
+
     // Check file alignment agains volume alignment
     bool msgFileAlignmentIsGreaterThanVolumeAlignment = false;
     if (!isWeakAligned && volumeAlignment < alignment) {
         msgFileAlignmentIsGreaterThanVolumeAlignment = true;
     }
-    
+
     // Get file body
     UByteArray body = file.mid(header.size());
 
@@ -1699,7 +1699,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader) {
         msgInvalidHeaderChecksum = true;
     }
-    
+
     // Check data checksum
     // Data checksum must be calculated
     bool msgInvalidDataChecksum = false;
@@ -1718,7 +1718,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (fileHeader->IntegrityCheck.Checksum.File != calculatedData) {
         msgInvalidDataChecksum = true;
     }
-    
+
     // Check file type
     bool msgUnknownType = false;
     if (fileHeader->Type > EFI_FV_FILETYPE_MM_CORE_STANDALONE && fileHeader->Type != EFI_FV_FILETYPE_PAD) {
@@ -1736,8 +1736,8 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
 
     info = UString("File GUID: ") + guidToUString(fileHeader->Name, false) +
         usprintf("\nType: %02Xh\nAttributes: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\nState: %02Xh",
-        fileHeader->Type, 
-        fileHeader->Attributes, 
+        fileHeader->Type,
+        fileHeader->Attributes,
         header.size() + body.size() + tail.size(), header.size() + body.size() + tail.size(),
         header.size(), header.size(),
         body.size(), body.size(),
@@ -1754,7 +1754,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (fileGuid == EFI_FFS_VOLUME_TOP_FILE_GUID) {
         // Mark it as the last VTF
         // This information will later be used to determine memory addresses of uncompressed image elements
-        // Because the last byte of the last VFT is mapped to 0xFFFFFFFF physical memory address 
+        // Because the last byte of the last VFT is mapped to 0xFFFFFFFF physical memory address
         isVtf = true;
         text = UString("Volume Top File");
     }
@@ -1881,7 +1881,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
 
     // Check if all bytes of the file are empty
     UByteArray body = model->body(index);
-    
+
     // Obtain required information from parent file
     UINT8 emptyByte = 0xFF;
     UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
@@ -1984,7 +1984,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
                 msg(usprintf("%s: non-UEFI data found in sections area", __FUNCTION__), dataIndex);
 
                 // Exit from parsing loop
-                break; 
+                break;
             }
             // Preparsing
             else {
@@ -2021,7 +2021,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
             return U_UNKNOWN_ITEM_TYPE;
         }
     }
-    
+
     return U_SUCCESS;
 }
 
@@ -2054,7 +2054,7 @@ USTATUS FfsParser::parseSectionHeader(const UByteArray & section, const UINT32 l
     case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
     case EFI_SECTION_RAW:                   return parseCommonSectionHeader(section, localOffset, parent, index, insertIntoTree);
     // Unknown
-    default: 
+    default:
         USTATUS result = parseCommonSectionHeader(section, localOffset, parent, index, insertIntoTree);
         msg(usprintf("%s: section with unknown type %02Xh", __FUNCTION__, sectionHeader->Type), index);
         return result;
@@ -2097,7 +2097,7 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
     if ((UINT32)section.size() < headerSize) {
         return U_INVALID_SECTION;
     }
-    
+
     UByteArray header = section.left(headerSize);
     UByteArray body = section.mid(headerSize);
 
@@ -2139,7 +2139,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
     const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
-       
+
     if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
         const EFI_COMPRESSION_SECTION_APPLE* appleSectionHeader = (const EFI_COMPRESSION_SECTION_APPLE*)(appleHeader + 1);
         headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_COMPRESSION_SECTION_APPLE);
@@ -2352,7 +2352,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     UString name = guidToUString(guid);
     UString info = UString("Section GUID: ") + guidToUString(guid, false) +
         usprintf("\nType: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nData offset: %Xh\nAttributes: %04Xh",
-        sectionHeader->Type, 
+        sectionHeader->Type,
         section.size(), section.size(),
         header.size(), header.size(),
         body.size(), body.size(),
@@ -2447,7 +2447,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
     // Get info
     UString name = sectionTypeToUString(type) + (" section");
     UString info = usprintf("Type: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nSubtype GUID: ",
-        type, 
+        type,
         section.size(), section.size(),
         header.size(), header.size(),
         body.size(), body.size())
@@ -2517,11 +2517,11 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
 
     UByteArray header = section.left(headerSize);
     UByteArray body = section.mid(headerSize);
-    
+
     // Get info
     UString name = sectionTypeToUString(type) + (" section");
     UString info = usprintf("Type: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nBuild number: %u",
-        type, 
+        type,
         section.size(), section.size(),
         header.size(), header.size(),
         body.size(), body.size(),
@@ -2609,7 +2609,7 @@ USTATUS FfsParser::parseSectionBody(const UModelIndex & index)
     UByteArray header = model->header(index);
     if ((UINT32)header.size() < sizeof(EFI_COMMON_SECTION_HEADER))
         return U_INVALID_SECTION;
-    
+
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(header.constData());
 
     switch (sectionHeader->Type) {
@@ -2664,7 +2664,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
         msg(UString("parseCompressedSectionBody: decompression failed with error ") + errorCodeToUString(result), index);
         return U_SUCCESS;
     }
-    
+
     // Check reported uncompressed size
     if (uncompressedSize != (UINT32)decompressed.size()) {
         msg(usprintf("parseCompressedSectionBody: decompressed size stored in header %Xh (%u) differs from actual %Xh (%u)",
@@ -2703,7 +2703,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     pdata.compressionType = compressionType;
     pdata.uncompressedSize = uncompressedSize;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
-    
+
     if (algorithm != COMPRESSION_ALGORITHM_NONE)
         model->setCompressed(index, true);
 
@@ -2757,7 +2757,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
                 parseCurrentSection = false;
             }
         }
-        
+
         info += UString("\nCompression algorithm: ") + compressionTypeToUString(algorithm);
         info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
     }
@@ -2879,7 +2879,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
         break;
     }
 
-    // Parse the rest of depex 
+    // Parse the rest of depex
     while (current - (const UINT8*)body.constData() < body.size()) {
         switch (*current) {
         case EFI_DEP_BEFORE: {
@@ -2940,7 +2940,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
             break;
         }
     }
-    
+
     // Add info
     model->addInfo(index, UString("\nParsed expression:") + parsed);
 
@@ -3077,11 +3077,11 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
     }
 
     info += usprintf("\nDOS signature: %04Xh\nPE signature: %08Xh",
-        dosHeader->e_magic, 
-        peHeader->Signature) + 
+        dosHeader->e_magic,
+        peHeader->Signature) +
         UString("\nMachine type: ") + machineTypeToUString(imageFileHeader->Machine) +
         usprintf("\nNumber of sections: %u\nCharacteristics: %04Xh",
-        imageFileHeader->NumberOfSections, 
+        imageFileHeader->NumberOfSections,
         imageFileHeader->Characteristics);
 
     EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION optionalHeader;
@@ -3096,15 +3096,15 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
     if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR32_MAGIC) {
         info += usprintf("\nOptional header signature: %04Xh\nSubsystem: %04Xh\nAddress of entry point: %Xh\nBase of code: %Xh\nImage base: %Xh",
             optionalHeader.H32->Magic,
-            optionalHeader.H32->Subsystem, 
+            optionalHeader.H32->Subsystem,
             optionalHeader.H32->AddressOfEntryPoint,
             optionalHeader.H32->BaseOfCode,
             optionalHeader.H32->ImageBase);
     }
     else if (optionalHeader.H32->Magic == EFI_IMAGE_PE_OPTIONAL_HDR64_MAGIC) {
         info += usprintf("\nOptional header signature: %04Xh\nSubsystem: %04Xh\nAddress of entry point: %Xh\nBase of code: %Xh\nImage base: %" PRIX64 "h",
-            optionalHeader.H64->Magic, 
-            optionalHeader.H64->Subsystem, 
+            optionalHeader.H64->Magic,
+            optionalHeader.H64->Subsystem,
             optionalHeader.H64->AddressOfEntryPoint,
             optionalHeader.H64->BaseOfCode,
             optionalHeader.H64->ImageBase);
@@ -3151,7 +3151,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
             teHeader->ImageBase,
             teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER));
     }
-    
+
     // Update parsing data
     TE_IMAGE_SECTION_PARSING_DATA pdata;
     pdata.imageBaseType = EFI_IMAGE_TE_BASE_OTHER; // Will be determined later
@@ -3177,7 +3177,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
         msg(usprintf("%s: the last VTF appears inside compressed item, the image may be damaged", __FUNCTION__), lastVtf);
         return U_SUCCESS;
     }
-    
+
     // Calculate address difference
     const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size();
     addressDiff = 0xFFFFFFFFULL - model->base(lastVtf) - vtfSize + 1;
@@ -3235,8 +3235,8 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
         return U_SUCCESS;
 
     // Determine relocation type of uncompressed TE image sections
-    if (model->compressed(index) == false 
-        && model->type(index) == Types::Section 
+    if (model->compressed(index) == false
+        && model->type(index) == Types::Section
         && model->subtype(index) == EFI_SECTION_TE) {
         // Obtain required values from parsing data
         UINT32 originalImageBase = 0;
@@ -3333,7 +3333,7 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index) 
+USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
@@ -3365,7 +3365,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
     // Calculate digests for vendor-protected ranges
     for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
-        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD 
+        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD
             && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF) {
             if (!bgDxeCoreIndex.isValid()) {
                 msg(usprintf("%s: can't determine DXE volume offset, old AMI protected range hash can't be checked", __FUNCTION__), index);
@@ -3422,7 +3422,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 }
             }
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW 
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW
             && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
             && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
 
@@ -3457,7 +3457,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
 
             markProtectedRangeRecursive(index, bgProtectedRanges[i]);
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT 
+        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT
             && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
             && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
             bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
@@ -3689,7 +3689,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
         msg(UString("Invalid FIT header type"), fitIndex);
         return U_INVALID_FIT;
     }
-    
+
     // Add FIT header
     std::vector<UString> currentStrings;
     currentStrings.push_back(UString("_FIT_            "));
@@ -3851,11 +3851,11 @@ USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UI
     if (!microcodeHeaderValid(ucodeHeader)) {
         return U_INVALID_MICROCODE;
     }
-    
+
     if ((UINT32)microcode.size() - localOffset < ucodeHeader->TotalSize) {
         return U_INVALID_MICROCODE;
     }
-    
+
     // Valid microcode found
     info = usprintf("CpuSignature: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
                     ucodeHeader->ProcessorSignature,
@@ -4294,7 +4294,7 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
     }
 
     const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)microcode.constData();
-    
+
     if (!microcodeHeaderValid(ucodeHeader)) {
         return U_INVALID_MICROCODE;
     }
@@ -4303,30 +4303,41 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
     if ((UINT32)microcode.size() < ucodeHeader->TotalSize) {
         return U_INVALID_MICROCODE;
     }
-    
+
     // Valid microcode found
     UINT32 dataSize = ucodeHeader->DataSize;
     if (dataSize == 0) {
         dataSize = INTEL_MICROCODE_REAL_DATA_SIZE_ON_ZERO;
     }
-    
+
+    // Cross check DataSize and TotalSize
+    if (ucodeHeader->TotalSize < sizeof(INTEL_MICROCODE_HEADER) + dataSize) {
+        return U_INVALID_MICROCODE;
+    }
+
     // Recalculate the whole microcode checksum
     UByteArray tempMicrocode = microcode;
     INTEL_MICROCODE_HEADER* tempUcodeHeader = (INTEL_MICROCODE_HEADER*)(tempMicrocode.data());
     tempUcodeHeader->Checksum = 0;
     UINT32 calculated = calculateChecksum32((const UINT32*)tempMicrocode.constData(), tempUcodeHeader->TotalSize);
     bool msgInvalidChecksum = (ucodeHeader->Checksum != calculated);
-    
+
     // Construct header, body and tail
     UByteArray header = microcode.left(sizeof(INTEL_MICROCODE_HEADER));
     UByteArray body = microcode.mid(sizeof(INTEL_MICROCODE_HEADER), dataSize);
-    UByteArray tail = microcode.mid(sizeof(INTEL_MICROCODE_HEADER) + dataSize);
-    
+    UByteArray tail;
+
+    // Check if the tail is present
+    if (ucodeHeader->TotalSize > sizeof(INTEL_MICROCODE_HEADER) + dataSize) {
+        tail = microcode.mid(sizeof(INTEL_MICROCODE_HEADER) + dataSize, ucodeHeader->TotalSize - (sizeof(INTEL_MICROCODE_HEADER) + dataSize));
+    }
+
     // Check if we have extended header in the tail
     UString extendedHeaderInfo;
+    bool msgUnknownOrDamagedMicrocodeTail = false;
     if ((UINT32)tail.size() >= sizeof(INTEL_MICROCODE_EXTENDED_HEADER)) {
         const INTEL_MICROCODE_EXTENDED_HEADER* extendedHeader = (const INTEL_MICROCODE_EXTENDED_HEADER*)tail.constData();
-        
+
         // Reserved bytes are all zeroes
         bool extendedReservedBytesValid = true;
         for (UINT8 i = 0; i < sizeof(extendedHeader->Reserved); i++) {
@@ -4335,31 +4346,31 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
                 break;
             }
         }
-        
+
         // We have more than 0 entries and they are all in the tail
         if (extendedReservedBytesValid
             && extendedHeader->EntryCount > 0
-            && (UINT32)tail.size() >= sizeof(INTEL_MICROCODE_EXTENDED_HEADER) + extendedHeader->EntryCount * sizeof(INTEL_MICROCODE_EXTENDED_HEADER_ENTRY)) {
+            && (UINT32)tail.size() == sizeof(INTEL_MICROCODE_EXTENDED_HEADER) + extendedHeader->EntryCount * sizeof(INTEL_MICROCODE_EXTENDED_HEADER_ENTRY)) {
             // Recalculate extended header checksum
             INTEL_MICROCODE_EXTENDED_HEADER* tempExtendedHeader = (INTEL_MICROCODE_EXTENDED_HEADER*)(tempMicrocode.data() + sizeof(INTEL_MICROCODE_HEADER) + dataSize);
             tempExtendedHeader->Checksum = 0;
             UINT32 extendedCalculated = calculateChecksum32((const UINT32*)tempExtendedHeader, sizeof(INTEL_MICROCODE_EXTENDED_HEADER) + extendedHeader->EntryCount * sizeof(INTEL_MICROCODE_EXTENDED_HEADER_ENTRY));
-            
+
             extendedHeaderInfo = usprintf("\nExtended header entries: %u\nExtended header checksum: %08Xh, ",
                                           extendedHeader->EntryCount,
                                           extendedHeader->Checksum)
                                + (extendedHeader->Checksum == extendedCalculated ? UString("valid") : usprintf("invalid, should be %08Xh", extendedCalculated));
-            
+
             const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY* firstEntry = (const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY*)(extendedHeader + 1);
             for (UINT8 i = 0; i < extendedHeader->EntryCount; i++) {
                 const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY* entry = (const INTEL_MICROCODE_EXTENDED_HEADER_ENTRY*)(firstEntry + i);
-                
+
                 // Recalculate checksum after patching
                 tempUcodeHeader->Checksum = 0;
                 tempUcodeHeader->ProcessorFlags = entry->ProcessorFlags;
                 tempUcodeHeader->ProcessorSignature = entry->ProcessorSignature;
                 UINT32 entryCalculated = calculateChecksum32((const UINT32*)tempMicrocode.constData(), sizeof(INTEL_MICROCODE_HEADER) + dataSize);
-                
+
                 extendedHeaderInfo += usprintf("\nCPU signature #%u: %08Xh\nCPU flags #%u: %02Xh\nChecksum #%u: %08Xh, ",
                                                i + 1, entry->ProcessorSignature,
                                                i + 1, entry->ProcessorFlags,
@@ -4367,16 +4378,23 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
                                     + (entry->Checksum == entryCalculated ? UString("valid") : usprintf("invalid, should be %08Xh", entryCalculated));
             }
         }
+        else {
+            msgUnknownOrDamagedMicrocodeTail = true;
+        }
     }
-    
+    else if (tail.size() != 0) {
+        msgUnknownOrDamagedMicrocodeTail = true;
+    }
+
+    // Get microcode binary
+    UByteArray microcodeBinary = microcode.left(ucodeHeader->TotalSize);
+
     // Add info
     UString name("Intel microcode");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\n"
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: 0h (0u)\nBody size: %Xh (%u)\nTail size: 0h (0u)\n"
                             "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\nCPU flags: %02Xh\nChecksum: %08Xh, ",
-                            dataSize, dataSize,
-                            header.size(), header.size(),
-                            body.size(), body.size(),
-                            tail.size(), tail.size(),
+                            microcodeBinary.size(), microcodeBinary.size(),
+                            microcodeBinary.size(), microcodeBinary.size(),
                             ucodeHeader->DateDay,
                             ucodeHeader->DateMonth,
                             ucodeHeader->DateYear,
@@ -4386,12 +4404,14 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
                             ucodeHeader->Checksum)
                  + (ucodeHeader->Checksum == calculated ? UString("valid") : usprintf("invalid, should be %08Xh", calculated))
                  + extendedHeaderInfo;
-    
+
     // Add tree item
-    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, header, body, tail, Fixed, parent);
+    index = model->addItem(localOffset, Types::Microcode, Subtypes::IntelMicrocode, name, UString(), info, UByteArray(), microcodeBinary, UByteArray(), Fixed, parent);
     if (msgInvalidChecksum)
         msg(usprintf("%s: invalid microcode checksum %08Xh, should be %08Xh", __FUNCTION__, ucodeHeader->Checksum, calculated), index);
-    
+    if (msgUnknownOrDamagedMicrocodeTail)
+        msg(usprintf("%s: extended header of size %Xh (%u) found, but it's damaged or has unknown format", __FUNCTION__, tail.size(), tail.size()), index);
+
     // No need to parse the body further for now
     return U_SUCCESS;
 }
@@ -4399,16 +4419,16 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
 USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 localOffset, const UINT32 sbpdtOffsetFixup, const UModelIndex & parent, UModelIndex & index)
 {
     UINT32 regionSize = (UINT32)region.size();
-    
+
     // Check region size
     if (regionSize < sizeof(BPDT_HEADER)) {
         msg(usprintf("%s: BPDT region too small to fit BPDT partition table header", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     // Populate partition table header
     const BPDT_HEADER* ptHeader = (const BPDT_HEADER*)(region.constData());
-    
+
     // Check region size again
     UINT32 ptBodySize = ptHeader->NumEntries * sizeof(BPDT_ENTRY);
     UINT32 ptSize = sizeof(BPDT_HEADER) + ptBodySize;
@@ -4416,11 +4436,11 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         msg(usprintf("%s: BPDT region too small to fit BPDT partition table", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     // Get info
     UByteArray header = region.left(sizeof(BPDT_HEADER));
     UByteArray body = region.mid(sizeof(BPDT_HEADER), ptBodySize);
-    
+
     UString name = UString("BPDT partition table");
     UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\nVersion: %2Xh\n"
                             "IFWI version: %Xh\nFITC version: %u.%u.%u.%u",
@@ -4431,20 +4451,20 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
                             ptHeader->HeaderVersion,
                             ptHeader->IfwiVersion,
                             ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild);
-    
+
     // Add tree item
     index = model->addItem(localOffset, Types::BpdtStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
-    
+
     // Adjust offset
     UINT32 offset = sizeof(BPDT_HEADER);
-    
+
     // Add partition table entries
     std::vector<BPDT_PARTITION_INFO> partitions;
     const BPDT_ENTRY* firstPtEntry = (const BPDT_ENTRY*)((const UINT8*)ptHeader + sizeof(BPDT_HEADER));
     for (UINT16 i = 0; i < ptHeader->NumEntries; i++) {
         // Populate entry header
         const BPDT_ENTRY* ptEntry = firstPtEntry + i;
-        
+
         // Get info
         name = bpdtEntryTypeToUString(ptEntry->Type);
         info = usprintf("Full size: %Xh (%u)\nType: %Xh\nPartition offset: %Xh\nPartition length: %Xh",
@@ -4456,13 +4476,13 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         UString("\nSplit sub-partition second part: ") + (ptEntry->SplitSubPartitionSecondPart ? "Yes" : "No") +
         UString("\nCode sub-partition: ") + (ptEntry->CodeSubPartition ? "Yes" : "No") +
         UString("\nUMA cachable: ") + (ptEntry->UmaCachable ? "Yes" : "No");
-        
+
         // Add tree item
         UModelIndex entryIndex = model->addItem(localOffset + offset, Types::BpdtEntry, 0, name, UString(), info, UByteArray(), UByteArray((const char*)ptEntry, sizeof(BPDT_ENTRY)), UByteArray(), Fixed, index);
-        
+
         // Adjust offset
         offset += sizeof(BPDT_ENTRY);
-        
+
         if (ptEntry->Offset != 0 && ptEntry->Offset != 0xFFFFFFFF && ptEntry->Size != 0) {
             // Add to partitions vector
             BPDT_PARTITION_INFO partition;
@@ -4473,28 +4493,28 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
             partitions.push_back(partition);
         }
     }
-    
+
     // Add padding if there's no partions to add
     if (partitions.size() == 0) {
         UByteArray partition = region.mid(ptSize);
-        
+
         // Get info
         name = UString("Padding");
         info = usprintf("Full size: %Xh (%u)",
                         partition.size(), partition.size());
-        
+
         // Add tree item
         model->addItem(localOffset + ptSize, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
         return U_SUCCESS;
     }
-    
+
 make_partition_table_consistent:
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
-    
+
     // Check for intersections and paddings between partitions
     BPDT_PARTITION_INFO padding;
-    
+
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {
         msg(usprintf("%s: BPDT partition has intersection with BPDT partition table, skipped", __FUNCTION__),
@@ -4512,7 +4532,7 @@ make_partition_table_consistent:
     // Check for intersections/paddings between partitions
     for (size_t i = 1; i < partitions.size(); i++) {
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
-        
+
         // Check that partition is fully present in the image
         if ((UINT64)partitions[i].ptEntry.Offset + (UINT64)partitions[i].ptEntry.Size > regionSize) {
             if ((UINT64)partitions[i].ptEntry.Offset >= (UINT64)region.size()) {
@@ -4525,7 +4545,7 @@ make_partition_table_consistent:
                 partitions[i].ptEntry.Size = regionSize - (UINT32)partitions[i].ptEntry.Offset;
             }
         }
-        
+
         // Check for intersection with previous partition
         if (partitions[i].ptEntry.Offset < previousPartitionEnd) {
             // Check if current partition is located inside previous one
@@ -4542,7 +4562,7 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
         }
-        
+
         // Check for padding between current and previous partitions
         else if (partitions[i].ptEntry.Offset > previousPartitionEnd) {
             padding.ptEntry.Offset = previousPartitionEnd;
@@ -4553,7 +4573,7 @@ make_partition_table_consistent:
             partitions.insert(iter, padding);
         }
     }
-    
+
     // Partition map is consistent
     for (size_t i = 0; i < partitions.size(); i++) {
         if (partitions[i].type == Types::BpdtPartition) {
@@ -4561,7 +4581,7 @@ make_partition_table_consistent:
             UString name = bpdtEntryTypeToUString(partitions[i].ptEntry.Type);
             UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
             UByteArray signature = partition.left(sizeof(UINT32));
-            
+
             UString info = usprintf("Full size: %Xh (%u)\nType: %Xh",
                                     partition.size(), partition.size(),
                                     partitions[i].ptEntry.Type) +
@@ -4569,55 +4589,55 @@ make_partition_table_consistent:
             UString("\nSplit sub-partition second part: ") + (partitions[i].ptEntry.SplitSubPartitionSecondPart ? "Yes" : "No") +
             UString("\nCode sub-partition: ") + (partitions[i].ptEntry.CodeSubPartition ? "Yes" : "No") +
             UString("\nUMA cachable: ") + (partitions[i].ptEntry.UmaCachable ? "Yes" : "No");
-            
+
             UString text = bpdtEntryTypeToUString(partitions[i].ptEntry.Type);
-            
+
             // Add tree item
             UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::BpdtPartition, 0, name, text, info, UByteArray(), partition, UByteArray(), Fixed, parent);
-            
+
             // Special case of S-BPDT
             if (partitions[i].ptEntry.Type == BPDT_ENTRY_TYPE_SBPDT) {
                 UModelIndex sbpdtIndex;
                 parseBpdtRegion(partition, 0, partitions[i].ptEntry.Offset, partitionIndex, sbpdtIndex); // Third parameter is a fixup for S-BPDT offset entries, because they are calculated from the start of BIOS region
             }
-            
+
             // Parse code partitions
             if (readUnaligned((const UINT32*)partition.constData()) == CPD_SIGNATURE) {
                 // Parse code partition contents
                 UModelIndex cpdIndex;
                 parseCpdRegion(partition, localOffset, partitionIndex, cpdIndex);
             }
-            
+
             if (partitions[i].ptEntry.Type > BPDT_LAST_KNOWN_ENTRY_TYPE) {
                 msg(usprintf("%s: BPDT entry of unknown type found", __FUNCTION__), partitionIndex);
             }
         }
         else if (partitions[i].type == Types::Padding) {
             UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
-            
+
             // Get info
             name = UString("Padding");
             info = usprintf("Full size: %Xh (%u)",
                             partition.size(), partition.size());
-            
+
             // Add tree item
             model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
         }
     }
-    
+
     // Add padding after the last region
     if ((UINT64)partitions.back().ptEntry.Offset + (UINT64)partitions.back().ptEntry.Size < regionSize) {
         UByteArray partition = region.mid(partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, regionSize - padding.ptEntry.Offset);
-        
+
         // Get info
         name = UString("Padding");
         info = usprintf("Full size: %Xh (%u)",
                         partition.size(), partition.size());
-        
+
         // Add tree item
         model->addItem(localOffset + partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
     }
-    
+
     return U_SUCCESS;
 }
 
@@ -4628,10 +4648,10 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         msg(usprintf("%s: CPD too small to fit rev1 partition table header", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     // Populate partition table header
     const CPD_REV1_HEADER* cpdHeader = (const CPD_REV1_HEADER*)region.constData();
-    
+
     // Check header version to be known
     UINT32 ptHeaderSize = 0;
     if (cpdHeader->HeaderVersion == 2) {
@@ -4639,13 +4659,13 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
             msg(usprintf("%s: CPD too small to fit rev2 partition table header", __FUNCTION__), parent);
             return U_INVALID_ME_PARTITION_TABLE;
         }
-        
+
         ptHeaderSize = sizeof(CPD_REV2_HEADER);
     }
     else if (cpdHeader->HeaderVersion == 1) {
         ptHeaderSize = sizeof(CPD_REV1_HEADER);
     }
-    
+
     // Check directory size again
     UINT32 ptBodySize = cpdHeader->NumEntries * sizeof(CPD_ENTRY);
     UINT32 ptSize = ptHeaderSize + ptBodySize;
@@ -4653,7 +4673,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         msg(usprintf("%s: CPD too small to fit the whole partition table", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     // Get info
     UByteArray header = region.left(ptHeaderSize);
     UByteArray body = region.mid(ptHeaderSize);
@@ -4666,10 +4686,10 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
                             cpdHeader->NumEntries,
                             cpdHeader->HeaderVersion,
                             cpdHeader->EntryVersion);
-    
+
     // Add tree item
     index = model->addItem(localOffset, Types::CpdStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
-    
+
     // Add partition table entries
     std::vector<CPD_PARTITION_INFO> partitions;
     UINT32 offset = ptHeaderSize;
@@ -4678,7 +4698,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         // Populate entry header
         const CPD_ENTRY* cpdEntry = firstCpdEntry + i;
         UByteArray entry((const char*)cpdEntry, sizeof(CPD_ENTRY));
-        
+
         // Get info
         name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
                         cpdEntry->EntryName[0], cpdEntry->EntryName[1], cpdEntry->EntryName[2], cpdEntry->EntryName[3],
@@ -4689,13 +4709,13 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
                         cpdEntry->Offset.Offset,
                         cpdEntry->Length)
         + (cpdEntry->Offset.HuffmanCompressed ? "Yes" : "No");
-        
+
         // Add tree item
         UModelIndex entryIndex = model->addItem(offset, Types::CpdEntry, 0, name, UString(), info, UByteArray(), entry, UByteArray(), Fixed, index);
-        
+
         // Adjust offset
         offset += sizeof(CPD_ENTRY);
-        
+
         if (cpdEntry->Offset.Offset != 0 && cpdEntry->Length != 0) {
             // Add to partitions vector
             CPD_PARTITION_INFO partition;
@@ -4705,25 +4725,25 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
             partitions.push_back(partition);
         }
     }
-    
+
     // Add padding if there's no partions to add
     if (partitions.size() == 0) {
         UByteArray partition = region.mid(ptSize);
-        
+
         // Get info
         name = UString("Padding");
         info = usprintf("Full size: %Xh (%u)",
                         partition.size(), partition.size());
-        
+
         // Add tree item
         model->addItem(localOffset + ptSize, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-        
+
         return U_SUCCESS;
     }
-    
+
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
-    
+
     // Because lenghts for all Huffmann-compressed partitions mean nothing at all, we need to split all partitions into 2 classes:
     // 1. CPD manifest (should be the first)
     // 2. Metadata entries (should begin right after partition manifest and end before any code partition)
@@ -4733,13 +4753,13 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
                         partitions[i].ptEntry.EntryName[0], partitions[i].ptEntry.EntryName[1], partitions[i].ptEntry.EntryName[2],  partitions[i].ptEntry.EntryName[3],
                         partitions[i].ptEntry.EntryName[4], partitions[i].ptEntry.EntryName[5], partitions[i].ptEntry.EntryName[6],  partitions[i].ptEntry.EntryName[7],
                         partitions[i].ptEntry.EntryName[8], partitions[i].ptEntry.EntryName[9], partitions[i].ptEntry.EntryName[10], partitions[i].ptEntry.EntryName[11]);
-        
+
         // Check if the current entry is metadata entry
         if (!name.contains(".met")) {
             // No need to parse further, all metadata partitions are parsed
             break;
         }
-        
+
         // Parse into data block, find Module Attributes extension, and get compressed size from there
         UINT32 offset = 0;
         UINT32 length = 0xFFFFFFFF; // Special guardian value
@@ -4755,7 +4775,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
             }
             else break;
         }
-        
+
         // Search down for corresponding code partition
         // Construct it's name by replacing last 4 non-zero butes of the name with zeros
         UINT32 j = 0;
@@ -4765,7 +4785,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
                 j++;
             }
         }
-        
+
         // Search
         j = i + 1;
         while (j < partitions.size()) {
@@ -4791,14 +4811,14 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         // Check the next partition
         i++;
     }
-    
+
 make_partition_table_consistent:
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
-    
+
     // Check for intersections and paddings between partitions
     CPD_PARTITION_INFO padding;
-    
+
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset.Offset < ptSize) {
         msg(usprintf("%s: CPD partition has intersection with CPD partition table, skipped", __FUNCTION__),
@@ -4816,7 +4836,7 @@ make_partition_table_consistent:
     // Check for intersections/paddings between partitions
     for (size_t i = 1; i < partitions.size(); i++) {
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset.Offset + partitions[i - 1].ptEntry.Length;
-        
+
         // Check that current region is fully present in the image
         if ((UINT64)partitions[i].ptEntry.Offset.Offset + (UINT64)partitions[i].ptEntry.Length > (UINT64)region.size()) {
             if ((UINT64)partitions[i].ptEntry.Offset.Offset >= (UINT64)region.size()) {
@@ -4829,7 +4849,7 @@ make_partition_table_consistent:
                 partitions[i].ptEntry.Length = (UINT32)region.size() - (UINT32)partitions[i].ptEntry.Offset.Offset;
             }
         }
-        
+
         // Check for intersection with previous partition
         if (partitions[i].ptEntry.Offset.Offset < previousPartitionEnd) {
             // Check if current partition is located inside previous one
@@ -4863,18 +4883,18 @@ make_partition_table_consistent:
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }
-    
+
     // Partition map is consistent
     for (size_t i = 0; i < partitions.size(); i++) {
         if (partitions[i].type == Types::CpdPartition) {
             UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
-            
+
             // Get info
             name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
                             partitions[i].ptEntry.EntryName[0], partitions[i].ptEntry.EntryName[1], partitions[i].ptEntry.EntryName[2], partitions[i].ptEntry.EntryName[3],
                             partitions[i].ptEntry.EntryName[4], partitions[i].ptEntry.EntryName[5], partitions[i].ptEntry.EntryName[6], partitions[i].ptEntry.EntryName[7],
                             partitions[i].ptEntry.EntryName[8], partitions[i].ptEntry.EntryName[9], partitions[i].ptEntry.EntryName[10], partitions[i].ptEntry.EntryName[11]);
-            
+
             // It's a manifest
             if (name.contains(".man")) {
                 if (!partitions[i].ptEntry.Offset.HuffmanCompressed
@@ -4883,7 +4903,7 @@ make_partition_table_consistent:
                     if (manifestHeader->HeaderId == ME_MANIFEST_HEADER_ID) {
                         UByteArray header = partition.left(manifestHeader->HeaderLength * sizeof(UINT32));
                         UByteArray body = partition.mid(header.size());
-                        
+
                         info += usprintf(
                                          "\nHeader type: %u\nHeader length: %Xh (%u)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
                                          "Date: %Xh\nSize: %Xh (%u)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %Xh (%u)\nExponent size: %Xh (%u)",
@@ -4898,10 +4918,10 @@ make_partition_table_consistent:
                                          manifestHeader->SecurityVersion,
                                          manifestHeader->ModulusSize * sizeof(UINT32), manifestHeader->ModulusSize * sizeof(UINT32),
                                          manifestHeader->ExponentSize * sizeof(UINT32), manifestHeader->ExponentSize * sizeof(UINT32));
-                        
+
                         // Add tree item
                         UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::ManifestCpdPartition, name, UString(), info, header, body, UByteArray(), Fixed, parent);
-                        
+
                         // Parse data as extensions area
                         parseCpdExtensionsArea(partitionIndex);
                     }
@@ -4914,15 +4934,15 @@ make_partition_table_consistent:
                                 partitions[i].ptEntry.Offset.Offset,
                                 partitions[i].ptEntry.Length)
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
-                
+
                 // Calculate SHA256 hash over the metadata and add it to it's info
                 UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nMetadata hash: ") + UString(hash.toHex().constData());
-                
+
                 // Add three item
                 UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition,  Subtypes::MetadataCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-                
+
                 // Parse data as extensions area
                 parseCpdExtensionsArea(partitionIndex);
             }
@@ -4933,15 +4953,15 @@ make_partition_table_consistent:
                                 partitions[i].ptEntry.Offset.Offset,
                                 partitions[i].ptEntry.Length)
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
-                
+
                 // Calculate SHA256 hash over the key and add it to it's info
                 UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nHash: ") + UString(hash.toHex().constData());
-                
+
                 // Add three item
                 UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition,  Subtypes::KeyCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-                
+
                 // Parse data as extensions area
                 parseCpdExtensionsArea(partitionIndex);
             }
@@ -4952,23 +4972,23 @@ make_partition_table_consistent:
                                 partitions[i].ptEntry.Offset.Offset,
                                 partitions[i].ptEntry.Length)
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
-                
+
                 // Calculate SHA256 hash over the code and add it to it's info
                 UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nHash: ") + UString(hash.toHex().constData());
-                
+
                 UModelIndex codeIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::CodeCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
                 parseRawArea(codeIndex);
             }
         }
         else if (partitions[i].type == Types::Padding) {
             UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
-            
+
             // Get info
             name = UString("Padding");
             info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
-            
+
             // Add tree item
             model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
         }
@@ -4977,7 +4997,7 @@ make_partition_table_consistent:
             return U_INVALID_ME_PARTITION_TABLE;
         }
     }
-    
+
     return U_SUCCESS;
 }
 
@@ -4986,25 +5006,25 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
     if (!index.isValid()) {
         return U_INVALID_PARAMETER;
     }
-    
+
     UByteArray body = model->body(index);
     UINT32 offset = 0;
     while (offset < (UINT32)body.size()) {
         const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (body.constData() + offset);
         if (extHeader->Length <= ((UINT32)body.size() - offset)) {
             UByteArray partition = body.mid(offset, extHeader->Length);
-            
+
             UString name = cpdExtensionTypeToUstring(extHeader->Type);
             UString info = usprintf("Full size: %Xh (%u)\nType: %Xh", partition.size(), partition.size(), extHeader->Type);
-            
+
             // Parse Signed Package Info a bit further
             UModelIndex extIndex;
             if (extHeader->Type == CPD_EXT_TYPE_SIGNED_PACKAGE_INFO) {
                 UByteArray header = partition.left(sizeof(CPD_EXT_SIGNED_PACKAGE_INFO));
                 UByteArray data = partition.mid(header.size());
-                
+
                 const CPD_EXT_SIGNED_PACKAGE_INFO* infoHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO*)header.constData();
-                
+
                 info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
                                 "Package name: %c%c%c%c\nVersion control number: %Xh\nSecurity version number: %Xh\n"
                                 "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
@@ -5019,7 +5039,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                                 infoHeader->UsageBitmap[4],  infoHeader->UsageBitmap[5],  infoHeader->UsageBitmap[6],  infoHeader->UsageBitmap[7],
                                 infoHeader->UsageBitmap[8],  infoHeader->UsageBitmap[9],  infoHeader->UsageBitmap[10], infoHeader->UsageBitmap[11],
                                 infoHeader->UsageBitmap[12], infoHeader->UsageBitmap[13], infoHeader->UsageBitmap[14], infoHeader->UsageBitmap[15]);
-                
+
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, header, data, UByteArray(), Fixed, index);
                 parseSignedPackageInfoData(extIndex);
@@ -5027,12 +5047,12 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
             // Parse IFWI Partition Manifest a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST) {
                 const CPD_EXT_IFWI_PARTITION_MANIFEST* attrHeader = (const CPD_EXT_IFWI_PARTITION_MANIFEST*)partition.constData();
-                
+
                 // This hash is stored reversed
                 // Need to reverse it back to normal
                 UByteArray hash((const char*)&attrHeader->CompletePartitionHash, sizeof(attrHeader->CompletePartitionHash));
                 std::reverse(hash.begin(), hash.end());
-                
+
                 info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
                                 "Partition name: %c%c%c%c\nPartition length: %Xh\nPartition version major: %Xh\nPartition version minor: %Xh\n"
                                 "Data format version: %Xh\nInstance ID: %Xh\nHash algorithm: %Xh\nHash size: %Xh\nAction on update: %Xh",
@@ -5054,19 +5074,19 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 + UString("\nAllow cross hotfix update: ") + (attrHeader->AllowCrossHotfixUpdate ? "Yes" : "No")
                 + UString("\nPartial update only: ") + (attrHeader->PartialUpdateOnly ? "Yes" : "No")
                 + UString("\nPartition hash: ") +  UString(hash.toHex().constData());
-                
+
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
             }
             // Parse Module Attributes a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
                 const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)partition.constData();
-                
+
                 // This hash is stored reversed
                 // Need to reverse it back to normal
                 UByteArray hash((const char*)&attrHeader->ImageHash, sizeof(attrHeader->ImageHash));
                 std::reverse(hash.begin(), hash.end());
-                
+
                 info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
                                 "Compression type: %Xh\nUncompressed size: %Xh (%u)\nCompressed size: %Xh (%u)\nGlobal module ID: %Xh\nImage hash: ",
                                 partition.size(), partition.size(),
@@ -5075,7 +5095,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                                 attrHeader->UncompressedSize, attrHeader->UncompressedSize,
                                 attrHeader->CompressedSize, attrHeader->CompressedSize,
                                 attrHeader->GlobalModuleId) + UString(hash.toHex().constData());
-                
+
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
             }
@@ -5084,17 +5104,17 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 // Add tree item, if needed
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
             }
-            
+
             if (extHeader->Type > CPD_LAST_KNOWN_EXT_TYPE) {
                 msg(usprintf("%s: CPD extention of unknown type found", __FUNCTION__), extIndex);
             }
-            
+
             offset += extHeader->Length;
         }
         else break;
         // TODO: add padding at the end
     }
-    
+
     return U_SUCCESS;
 }
 
@@ -5103,24 +5123,24 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
     if (!index.isValid()) {
         return U_INVALID_PARAMETER;
     }
-    
+
     UByteArray body = model->body(index);
     UINT32 offset = 0;
     while (offset < (UINT32)body.size()) {
         const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
         if (sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) <= ((UINT32)body.size() - offset)) {
             UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE));
-            
+
             UString name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
                                     moduleHeader->Name[0], moduleHeader->Name[1], moduleHeader->Name[2], moduleHeader->Name[3],
                                     moduleHeader->Name[4], moduleHeader->Name[5], moduleHeader->Name[6], moduleHeader->Name[7],
                                     moduleHeader->Name[8], moduleHeader->Name[9], moduleHeader->Name[10],moduleHeader->Name[11]);
-            
+
             // This hash is stored reversed
             // Need to reverse it back to normal
             UByteArray hash((const char*)&moduleHeader->MetadataHash, sizeof(moduleHeader->MetadataHash));
             std::reverse(hash.begin(), hash.end());
-            
+
             UString info = usprintf("Full size: %X (%u)\nType: %Xh\nHash algorithm: %Xh\nHash size: %Xh (%u)\nMetadata size: %Xh (%u)\nMetadata hash: ",
                                     module.size(), module.size(),
                                     moduleHeader->Type,
@@ -5129,12 +5149,12 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
                                     moduleHeader->MetadataSize, moduleHeader->MetadataSize) + UString(hash.toHex().constData());
             // Add tree otem
             model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
-            
+
             offset += module.size();
         }
         else break;
         // TODO: add padding at the end
     }
-    
+
     return U_SUCCESS;
 }
