@@ -2,7 +2,7 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET    = UEFITool
-TEMPLATE  = app
+TEMPLATE  = app lib
 
 SOURCES  += uefitool_main.cpp \
  uefitool.cpp \
