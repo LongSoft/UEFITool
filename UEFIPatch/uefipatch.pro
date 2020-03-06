@@ -21,6 +21,7 @@ SOURCES  += uefipatch_main.cpp \
  ../LZMA/SDK/C/LzFind.c \
  ../LZMA/SDK/C/LzmaDec.c \
  ../LZMA/SDK/C/LzmaEnc.c \
+ ../LZMA/SDK/C/Bra86.c \
  ../Tiano/EfiTianoDecompress.c \
  ../Tiano/EfiTianoCompress.c \
  ../Tiano/EfiTianoCompressLegacy.c
@@ -39,6 +40,7 @@ HEADERS  += uefipatch.h \
  ../version.h \
  ../LZMA/LzmaCompress.h \
  ../LZMA/LzmaDecompress.h \
+ ../LZMA/x86Convert.h \
  ../Tiano/EfiTianoDecompress.h \
  ../Tiano/EfiTianoCompress.h
  
