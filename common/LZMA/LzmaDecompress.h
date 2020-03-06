@@ -16,6 +16,7 @@
 
 #include "../basetypes.h"
 #include "SDK/C/LzmaDec.h"
+#include "SDK/C/Bra.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -20,6 +20,7 @@ SET(PROJECT_SOURCES
  ../common/treemodel.cpp
  ../common/utility.cpp
  ../common/LZMA/LzmaDecompress.c
+ ../common/LZMA/SDK/C/Bra86.c
  ../common/LZMA/SDK/C/LzmaDec.c
  ../common/Tiano/EfiTianoDecompress.c
  ../common/ustring.cpp

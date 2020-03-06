@@ -283,7 +283,7 @@ make_partition_table_consistent:
             // Add tree item
             UINT8 type = Subtypes::CodeFptPartition + partitions[i].ptEntry.Type;
             partitionIndex = model->addItem(partitions[i].ptEntry.Offset, Types::FptPartition, type, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-            if (type == Subtypes::CodeFptPartition && partition.size() >= sizeof(UINT32) && readUnaligned((const UINT32*)partition.constData()) == CPD_SIGNATURE) {
+            if (type == Subtypes::CodeFptPartition && partition.size() >= (int) sizeof(UINT32) && readUnaligned((const UINT32*)partition.constData()) == CPD_SIGNATURE) {
                 // Parse code partition contents
                 UModelIndex cpdIndex;
                 ffsParser->parseCpdRegion(partition, partitions[i].ptEntry.Offset, partitionIndex, cpdIndex);

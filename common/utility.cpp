@@ -163,10 +163,11 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
 
     switch (compressionType)
     {
-    case EFI_NOT_COMPRESSED:
+    case EFI_NOT_COMPRESSED: {
         decompressedData = compressedData;
         algorithm = COMPRESSION_ALGORITHM_NONE;
         return U_SUCCESS;
+        }
     case EFI_STANDARD_COMPRESSION: {
         // Set default algorithm to unknown
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
@@ -226,8 +227,8 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
         free(efiDecompressed);
         free(scratch);
         return result;
-    }
-    case EFI_CUSTOMIZED_COMPRESSION:
+        }
+    case EFI_CUSTOMIZED_COMPRESSION: {
         // Set default algorithm to unknown
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
 
@@ -271,11 +272,59 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
         decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
         free(decompressed);
         return U_SUCCESS;
-    default:
+        }
+    case EFI_CUSTOMIZED_COMPRESSION_LZMAF86: {
+        // Set default algorithm to unknown
+        algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
+
+        // Get buffer sizes
+        data = (const UINT8*)compressedData.constData();
+        dataSize = compressedData.size();
+
+        // Get info as normal LZMA section
+        if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        }
+        algorithm = COMPRESSION_ALGORITHM_LZMAF86;
+
+        // Allocate memory
+        decompressed = (UINT8*)malloc(decompressedSize);
+        if (!decompressed) {
+            return U_OUT_OF_MEMORY;
+        }
+
+        // Decompress section data
+        if (U_SUCCESS != LzmaDecompress(data, dataSize, decompressed)) {
+            free(decompressed);
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        }
+
+        if (decompressedSize > INT32_MAX) {
+            free(decompressed);
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        }
+
+        // After LZMA decompression, the data need to be converted to the raw data.
+        UINT32 state = 0;
+        const UINT8 x86LookAhead = 4;
+        if (decompressedSize != x86LookAhead + x86_Convert(decompressed, decompressedSize, 0, &state, 0)) {
+            free(decompressed);
+            return U_CUSTOMIZED_DECOMPRESSION_FAILED;
+        }
+
+        dictionarySize = readUnaligned((UINT32*)(data + 1)); // LZMA dictionary size is stored in bytes 1-4 of LZMA properties header
+        decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
+        free(decompressed);
+        return U_SUCCESS;
+        }
+    default: {
         algorithm = COMPRESSION_ALGORITHM_UNKNOWN;
         return U_UNKNOWN_COMPRESSION_TYPE;
+        }
     }
 }
+
+
 
 // 8bit sum calculation routine
 UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize)

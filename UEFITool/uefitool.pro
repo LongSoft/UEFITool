@@ -86,6 +86,7 @@ SOURCES += uefitool_main.cpp \
  ../common/treemodel.cpp \
  ../common/LZMA/LzmaCompress.c \
  ../common/LZMA/LzmaDecompress.c \
+ ../common/LZMA/SDK/C/Bra86.c \
  ../common/LZMA/SDK/C/LzFind.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
  ../common/LZMA/SDK/C/LzmaEnc.c \

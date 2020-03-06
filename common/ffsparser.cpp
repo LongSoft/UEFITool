@@ -2762,7 +2762,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
     }
     // LZMA compressed section
-    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMAF86) {
+    else if (baGuid == EFI_GUIDED_SECTION_LZMA) {
         USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION, algorithm, dictionarySize, processed, efiDecompressed);
         if (result) {
             msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
@@ -2771,6 +2771,24 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
 
         if (algorithm == COMPRESSION_ALGORITHM_LZMA) {
             info += UString("\nCompression algorithm: LZMA");
+            info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
+            info += usprintf("\nLZMA dictionary size: %Xh", dictionarySize);
+        }
+        else {
+            info += UString("\nCompression algorithm: unknown");
+            parseCurrentSection = false;
+        }
+    }
+    // LZMAF86 compressed section
+    else if (baGuid == EFI_GUIDED_SECTION_LZMAF86) {
+        USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION_LZMAF86, algorithm, dictionarySize, processed, efiDecompressed);
+        if (result) {
+            msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+            return U_SUCCESS;
+        }
+
+        if (algorithm == COMPRESSION_ALGORITHM_LZMAF86) {
+            info += UString("\nCompression algorithm: LZMAF86");
             info += usprintf("\nDecompressed size: %Xh (%u)", processed.size(), processed.size());
             info += usprintf("\nLZMA dictionary size: %Xh", dictionarySize);
         }
