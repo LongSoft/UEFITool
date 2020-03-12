@@ -885,8 +885,8 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 void UEFITool::readSettings()
 {
     QSettings settings(this);
-    resize(settings.value("mainWindow/size", QSize(800, 600)).toSize());
-    move(settings.value("mainWindow/position", QPoint(0, 0)).toPoint());
+    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+    restoreState(settings.value("mainWindow/windowState").toByteArray());
     QList<int> horList, vertList;
     horList.append(settings.value("mainWindow/treeWidth", 600).toInt());
     horList.append(settings.value("mainWindow/infoWidth", 180).toInt());
@@ -932,8 +932,8 @@ void UEFITool::readSettings()
 void UEFITool::writeSettings()
 {
     QSettings settings(this);
-    settings.setValue("mainWindow/size", size());
-    settings.setValue("mainWindow/position", pos());
+    settings.setValue("mainWindow/geometry", saveGeometry());
+    settings.setValue("mainWindow/windowState", saveState());
     settings.setValue("mainWindow/treeWidth", ui->structureGroupBox->width());
     settings.setValue("mainWindow/infoWidth", ui->infoGroupBox->width());
     settings.setValue("mainWindow/treeHeight", ui->structureGroupBox->height());
