@@ -76,7 +76,7 @@ private slots:
     void openImageFile();
     void openImageFileInNewWindow();
     void saveImageFile();
-    
+
     void search();
     void goToBase();
     void goToAddress();
@@ -84,7 +84,7 @@ private slots:
     void hexView();
     void bodyHexView();
     void goToData();
-    
+
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
@@ -146,6 +146,7 @@ private:
 
     bool enableExtractBodyUncompressed(const QModelIndex &current);
 
+    bool eventFilter(QObject* obj, QEvent* event);
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
     void contextMenuEvent(QContextMenuEvent* event);
