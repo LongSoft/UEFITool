@@ -160,6 +160,11 @@ void UEFITool::init()
     connect(ui->builderMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)),       this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->fitTableWidget, SIGNAL(itemDoubleClicked(QTableWidgetItem*)), this, SLOT(scrollTreeView(QTableWidgetItem*)));
     connect(ui->messagesTabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentTabChanged(int)));
+
+    // allow enter/return pressing to scroll tree view
+    ui->parserMessagesListWidget->installEventFilter(this);
+    ui->finderMessagesListWidget->installEventFilter(this);
+    ui->builderMessagesListWidget->installEventFilter(this);
 }
 
 void UEFITool::populateUi(const QItemSelection &selected)
@@ -193,11 +198,11 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuFileActions->setEnabled(type == Types::File);
     ui->menuSectionActions->setEnabled(type == Types::Section);
     ui->menuEntryActions->setEnabled(type == Types::Microcode
-	    || type == Types::SlicData
+        || type == Types::SlicData
         || type == Types::NvarEntry
-        || type == Types::VssEntry 
+        || type == Types::VssEntry
         || type == Types::FsysEntry
-        || type == Types::EvsaEntry 
+        || type == Types::EvsaEntry
         || type == Types::FlashMapEntry
         || type == Types::IfwiHeader
         || type == Types::IfwiPartition
@@ -210,19 +215,19 @@ void UEFITool::populateUi(const QModelIndex &current)
         || type == Types::CpdExtension
         || type == Types::CpdSpiEntry
         );
-    ui->menuStoreActions->setEnabled(type == Types::VssStore 
+    ui->menuStoreActions->setEnabled(type == Types::VssStore
         || type == Types::Vss2Store
-        || type == Types::FdcStore 
+        || type == Types::FdcStore
         || type == Types::FsysStore
-        || type == Types::EvsaStore 
-        || type == Types::FtwStore 
-        || type == Types::FlashMapStore 
-        || type == Types::CmdbStore 
+        || type == Types::EvsaStore
+        || type == Types::FtwStore
+        || type == Types::FlashMapStore
+        || type == Types::CmdbStore
         || type == Types::FptStore
         || type == Types::BpdtStore
         || type == Types::CpdStore
         );
-    
+
     // Enable actions
     ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
     ui->actionBodyHexView->setDisabled(model->hasEmptyBody(current));
@@ -370,7 +375,7 @@ void UEFITool::goToData()
 
     // Get parent
     QModelIndex parent = model->parent(index);
-    
+
     for (int i = index.row(); i < model->rowCount(parent); i++) {
         if (model->hasEmptyParsingData(index))
             continue;
@@ -383,7 +388,7 @@ void UEFITool::goToData()
             ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
             ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
         }
-        
+
         for (int j = i + 1; j < model->rowCount(parent); j++) {
             QModelIndex currentIndex = parent.child(j, 0);
             if (model->hasEmptyParsingData(currentIndex))
@@ -461,7 +466,7 @@ void UEFITool::extract(const UINT8 mode)
         QMessageBox::critical(this, tr("Extraction failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
     }
-    
+
     name = QDir::toNativeSeparators(currentDir + QDir::separator() + name);
 
     //ui->statusBar->showMessage(name);
@@ -503,12 +508,12 @@ void UEFITool::extract(const UINT8 mode)
         switch (type) {
         case Types::Capsule:                         path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", tr("Image files (*.rom *.bin);;All files (*)"));       break;
         case Types::Volume:                          path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", tr("Volume body files (*.vbd *.bin);;All files (*)")); break;
-        case Types::File: 
+        case Types::File:
             if (subtype    == EFI_FV_FILETYPE_ALL
                 || subtype == EFI_FV_FILETYPE_RAW)   path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),  name + ".raw", tr("Raw files (*.raw *.bin);;All files (*)"));
             else                                     path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
             break;
-        case Types::Section: 
+        case Types::Section:
             if (subtype    == EFI_SECTION_COMPRESSION
                 || subtype == EFI_SECTION_GUID_DEFINED
                 || subtype == EFI_SECTION_DISPOSABLE)              path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
@@ -734,7 +739,7 @@ void UEFITool::clearMessages()
         if (ffsBuilder) ffsBuilder->clearMessages();
         ui->builderMessagesListWidget->clear();
     }
-    
+
     ui->menuMessageActions->setEnabled(false);
     ui->actionMessagesCopy->setEnabled(false);
     ui->actionMessagesCopyAll->setEnabled(false);
@@ -745,6 +750,23 @@ void UEFITool::toggleBootGuardMarking(bool enabled)
 {
     model->setMarkingEnabled(enabled);
     markingEnabled = enabled;
+}
+
+/* emit double click signal of QListWidget on enter/return key pressed */
+bool UEFITool::eventFilter(QObject* obj, QEvent* event)
+{
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent* key = static_cast<QKeyEvent*>(event);
+
+        if (key->key() == Qt::Key_Enter || key->key() == Qt::Key_Return) {
+            QListWidget* list = static_cast<QListWidget*>(obj);
+
+            if (list->currentItem() != NULL)
+                emit list->itemDoubleClicked(list->currentItem());
+        }
+    }
+
+    return QObject::eventFilter(obj, event);
 }
 
 void UEFITool::dragEnterEvent(QDragEnterEvent* event)
