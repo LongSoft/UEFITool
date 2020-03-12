@@ -759,9 +759,9 @@ bool UEFITool::eventFilter(QObject* obj, QEvent* event)
         QKeyEvent* key = static_cast<QKeyEvent*>(event);
 
         if (key->key() == Qt::Key_Enter || key->key() == Qt::Key_Return) {
-            QListWidget* list = static_cast<QListWidget*>(obj);
+            QListWidget* list = qobject_cast<QListWidget*>(obj);
 
-            if (list->currentItem() != NULL)
+            if (list != NULL && list->currentItem() != NULL)
                 emit list->itemDoubleClicked(list->currentItem());
         }
     }
