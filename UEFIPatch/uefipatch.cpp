@@ -58,7 +58,7 @@ UINT8 UEFIPatch::patchFromFile(const QString & path, const QString & patches, co
 
     UINT8 counter = 0;
     while (!file.atEnd()) {
-        QByteArray line = file.readLine();
+        QByteArray line = file.readLine().trimmed();
         // Use sharp sign as commentary
         if (line.count() == 0 || line[0] == '#')
             continue;
