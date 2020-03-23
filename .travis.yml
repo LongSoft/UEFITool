@@ -11,6 +11,7 @@ matrix:
 
     deploy:
       provider: releases
+      skip_cleanup: true
       file: "dist/*.zip"
       file_glob: true
       api_key:
@@ -42,6 +43,7 @@ matrix:
 
     deploy:
       provider: releases
+      skip_cleanup: true
       file: "dist/*.zip"
       file_glob: true
       api_key:
