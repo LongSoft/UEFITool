@@ -3360,13 +3360,22 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
     // Calculate digest for BG-protected ranges
     UByteArray protectedParts;
     bool bgProtectedRangeFound = false;
-    for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
-        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
-            bgProtectedRangeFound = true;
-            bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
-            protectedParts += openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
-            markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+    try {
+        for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
+            if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB && bgProtectedRanges[i].Size > 0) {
+                bgProtectedRangeFound = true;
+                if ((UINT64)bgProtectedRanges[i].Offset >= addressDiff) {
+                    bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
+                } else {
+                    // TODO: Explore this.
+                    msg(usprintf("%s: Suspicious BG protection offset", __FUNCTION__), index);
+                }
+                protectedParts += openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+                markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+            }
         }
+    } catch (...) {
+        bgProtectedRangeFound = false;
     }
 
     if (bgProtectedRangeFound) {
