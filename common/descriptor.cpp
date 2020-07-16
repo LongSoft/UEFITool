@@ -210,10 +210,11 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0x014016: return UString("Spansion S25FL132K");
     case 0x014017: return UString("Spansion S25FL164K");
         
-    // Amic
-    case 0x373015: return UString("Amic A25L016");
-    case 0x373016: return UString("Amic A25L032");
-    case 0x374016: return UString("Amic A25L032A");
+    // AMIC Technology
+    case 0x373015: return UString("AMIC A25L016");
+    case 0x373016: return UString("AMIC A25L032");
+    case 0x374015: return UString("AMIC A25LQ16");
+    case 0x374016: return UString("AMIC A25LQ32A");
 
     // PMC
     case 0x9DF713: return UString("PMC Pm25LV080B");
