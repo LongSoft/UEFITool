@@ -211,8 +211,6 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     // Add tree item
     index = model->addItem(0, Types::FptStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
 
-    // Show messages
-
     // Add partition table entries
     std::vector<FPT_PARTITION_INFO> partitions;
     UINT32 offset = header.size();
