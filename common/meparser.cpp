@@ -167,7 +167,6 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     // XXX: Shall we continue with parsing?
     if (msgInvalidPtHeaderChecksum) {
         msg(usprintf("%s: FPT header checksum is invalid", __FUNCTION__), index);
-        return U_INVALID_ME_PARTITION_TABLE;
     }
 
     // Get info
