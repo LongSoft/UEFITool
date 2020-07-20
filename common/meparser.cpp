@@ -83,7 +83,7 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
         msg(usprintf("%s: ME region too small to fit IFWI 1.7 layout header", __FUNCTION__), index);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     const IFWI_17_LAYOUT_HEADER* ifwi17Header = (const IFWI_17_LAYOUT_HEADER*)meRegion.constData();
     // Check region size
     if ((UINT32)meRegion.size() < ifwi17Header->DataPartition.Offset + sizeof(UINT32)) {
@@ -103,88 +103,135 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
 
 USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & parent, UModelIndex & index)
 {
-    // Check region size
-    if ((UINT32)region.size() < sizeof(FPT_HEADER)) {
-        msg(usprintf("%s: region too small to fit FPT header", __FUNCTION__), parent);
+    // Is there a room for smallest header?
+    if ((UINT32)region.size() < sizeof(FPT_HEADER10)) {
+        msg(usprintf("%s: no space in ME region for FPT header", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
-    // Populate partition table header
-    const FPT_HEADER* ptHeader = (const FPT_HEADER*)region.constData();
+
     UINT32 romBypassVectorSize = 0;
     if (region.left(sizeof(UINT32)) != FPT_HEADER_SIGNATURE) {
-        // Adjust the header to skip ROM bypass vector
+        // May be v20|v21?
         romBypassVectorSize = ME_ROM_BYPASS_VECTOR_SIZE;
-        ptHeader = (const FPT_HEADER*)(region.constData() + romBypassVectorSize);
+        if (region.mid(romBypassVectorSize, sizeof(UINT32)) != FPT_HEADER_SIGNATURE) {
+            msg(usprintf("%s: ME region has no FPT header", __FUNCTION__), parent);
+            return U_INVALID_ME_PARTITION_TABLE;
+        }
     }
-    
+
+    const FPT_HEADER10* pt1Header = (const FPT_HEADER10*)(region.constData() + romBypassVectorSize);
+
     // Check region size again
-    UINT32 ptBodySize = ptHeader->NumEntries * sizeof(FPT_HEADER_ENTRY);
-    UINT32 ptSize = romBypassVectorSize + sizeof(FPT_HEADER) + ptBodySize;
+    UINT32 ptBodySize = pt1Header->NumEntries * sizeof(FPT_HEADER_ENTRY);
+    UINT32 ptSize = pt1Header->HeaderLength + ptBodySize;   // HeaderLength accounts for ROMB
     if ((UINT32)region.size() < ptSize) {
-        msg(usprintf("%s: ME region too small to fit partition table", __FUNCTION__), parent);
+        msg(usprintf("%s: ME region too small to fit FPT", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
-    // Recalculate checksum
-    UByteArray tempHeader = UByteArray((const char*)ptHeader, sizeof(FPT_HEADER));
-    FPT_HEADER* tempPtHeader = (FPT_HEADER*)tempHeader.data();
-    tempPtHeader->Checksum = 0;
-    UINT8 calculated = calculateChecksum8((const UINT8*)tempPtHeader, sizeof(FPT_HEADER));
-    bool msgInvalidPtHeaderChecksum = (calculated != ptHeader->Checksum);
-    
+
+    UINT32 fptNumEntries;
+    UINT32 chksumCalculated;
+    bool msgInvalidPtHeaderChecksum;
+
+    // Verify checksum
+    switch (pt1Header->HeaderVersion) {
+        case 0x10:
+            /* FALLTHROUGH */
+        case 0x20:
+            {
+                UByteArray tempHeader = region.left(pt1Header->HeaderLength);
+                tempHeader[romBypassVectorSize + 0x0B] = 0x00;
+                chksumCalculated = calculateChecksum8((const UINT8 *)tempHeader.constData(), tempHeader.size());
+                msgInvalidPtHeaderChecksum = (chksumCalculated != pt1Header->Checksum);
+            }
+            fptNumEntries = pt1Header->NumEntries;
+            break;
+        case 0x21:
+            msg(usprintf("%s: FPT header version 21h checksum verification will be coded later", __FUNCTION__, pt1Header->HeaderVersion), parent);
+            return U_INVALID_ME_PARTITION_TABLE;
+        default:
+            msg(usprintf("%s: FPT header with unknown version %02h", __FUNCTION__, pt1Header->HeaderVersion), parent);
+            return U_INVALID_ME_PARTITION_TABLE;
+    }
+
+    // XXX: Shall we continue with parsing?
+    if (msgInvalidPtHeaderChecksum) {
+        msg(usprintf("%s: FPT header checksum is invalid", __FUNCTION__), index);
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
+
     // Get info
-    UByteArray header = region.left(romBypassVectorSize + sizeof(FPT_HEADER));
+    UByteArray header = region.left(pt1Header->HeaderLength);
     UByteArray body = region.mid(header.size(), ptBodySize);
-    
+
     UString name = UString("FPT partition table");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
-                            "Header length: %02Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nUMA size: %Xh\nFlash layout: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh, ",
-                            ptSize, ptSize,
-                            header.size(), header.size(),
-                            ptBodySize, ptBodySize,
-                            ptHeader->NumEntries,
-                            ptHeader->HeaderVersion,
-                            ptHeader->EntryVersion,
-                            ptHeader->HeaderLength,
-                            ptHeader->TicksToAdd,
-                            ptHeader->TokensToAdd,
-                            ptHeader->UmaSize,
-                            ptHeader->FlashLayout,
-                            ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild,
-                            ptHeader->Checksum) + (ptHeader->Checksum == calculated ? UString("valid") : usprintf("invalid, should be %02Xh", calculated));
-    
+    UString info;
+
+    switch (pt1Header->HeaderVersion) {
+        case 0x10:
+            /* FALLTHROUGH */
+        case 0x20:
+            info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\n"
+                            "Header version: %02Xh\nEntry version: %02Xh\nHeader length: %02Xh\n"
+                            "Ticks to add: %04Xh\nTokens to add: %04Xh\nUMA size: %Xh\nFlash layout: %Xh\n"
+                            "FITC version: %u.%u.%u.%u\nChecksum: %02Xh, ",
+                       ptSize, ptSize, header.size(), header.size(), ptBodySize, ptBodySize, pt1Header->NumEntries,
+                       pt1Header->HeaderVersion, pt1Header->EntryVersion, pt1Header->HeaderLength,
+                       pt1Header->TicksToAdd, pt1Header->TokensToAdd, pt1Header->UmaSize, pt1Header->FlashLayout,
+                       pt1Header->FitcMajor, pt1Header->FitcMinor, pt1Header->FitcHotfix, pt1Header->FitcBuild, pt1Header->Checksum);
+            info += (msgInvalidPtHeaderChecksum ? usprintf("invalid, should be %02Xh", chksumCalculated) : UString("valid"));
+            break;
+        case 0x21:
+            {
+                const FPT_HEADER21* pt2Header = (const FPT_HEADER21*)pt1Header;
+                info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\n"
+                                "Header version: %02Xh\nEntry version: %02Xh\nHeader length: %02Xh\n"
+                                "Flags: %02Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nSPS Flags: %Xh\n"
+                                "FITC version: %u.%u.%u.%u\nChecksum: %08Xh, ",
+                        ptSize, ptSize, header.size(), header.size(), ptBodySize, ptBodySize, pt2Header->NumEntries,
+                        pt2Header->HeaderVersion, pt2Header->EntryVersion, pt2Header->HeaderLength,
+                        pt2Header->Flags, pt2Header->TicksToAdd, pt2Header->TokensToAdd, pt2Header->SPSFlags,
+                        pt2Header->FitcMajor, pt2Header->FitcMinor, pt2Header->FitcHotfix, pt2Header->FitcBuild, pt2Header->Checksum);
+                info += (msgInvalidPtHeaderChecksum ? usprintf("invalid, should be %08Xh", chksumCalculated) : UString("valid"));
+            }
+            break;
+        default:
+            info = usprintf("%s: XXX: unknown fpt header version - not yet!", __FUNCTION__);
+            break;
+    }
+
     // Add tree item
     index = model->addItem(0, Types::FptStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
-    
+
     // Show messages
-    if (msgInvalidPtHeaderChecksum) {
-        msg(usprintf("%s: FPT partition table header checksum is invalid", __FUNCTION__), index);
-    }
 
     // Add partition table entries
     std::vector<FPT_PARTITION_INFO> partitions;
     UINT32 offset = header.size();
     const FPT_HEADER_ENTRY* firstPtEntry = (const FPT_HEADER_ENTRY*)(region.constData() + offset);
-    for (UINT8 i = 0; i < ptHeader->NumEntries; i++) {
+    for (UINT8 i = 0; i < fptNumEntries; i++) {
         // Populate entry header
         const FPT_HEADER_ENTRY* ptEntry = firstPtEntry + i;
-        
+
+        // ME8!!!
+        if (ptEntry->Name[0] == '\xE0' && ptEntry->Name[1] == '\x15')
+            name = UString("E0150020");
+        else
+            name = usprintf("%c%c%c%c", ptEntry->Name[0], ptEntry->Name[1], ptEntry->Name[2], ptEntry->Name[3]);
         // Get info
-        name = usprintf("%c%c%c%c", ptEntry->Name[0], ptEntry->Name[1], ptEntry->Name[2], ptEntry->Name[3]);
         info = usprintf("Full size: %Xh (%u)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
                         sizeof(FPT_HEADER_ENTRY), sizeof(FPT_HEADER_ENTRY),
                         ptEntry->Offset,
                         ptEntry->Size,
                         ptEntry->Type);
-        
+
         // Add tree item
         const UINT8 type = (ptEntry->Offset != 0 && ptEntry->Offset != 0xFFFFFFFF && ptEntry->Size != 0 && ptEntry->EntryValid != 0xFF) ? Subtypes::ValidFptEntry : Subtypes::InvalidFptEntry;
         UModelIndex entryIndex = model->addItem(offset, Types::FptEntry, type, name, UString(), info, UByteArray(), UByteArray((const char*)ptEntry, sizeof(FPT_HEADER_ENTRY)), UByteArray(), Fixed, index);
-        
+
         // Adjust offset
         offset += sizeof(FPT_HEADER_ENTRY);
-        
+
         // Add valid partitions
         if (type == Subtypes::ValidFptEntry) { // Skip absent and invalid partitions
             // Add to partitions vector
@@ -199,10 +246,10 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
 make_partition_table_consistent:
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
-    
+
     // Check for intersections and paddings between partitions
     FPT_PARTITION_INFO padding;
-    
+
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {
         msg(usprintf("%s: ME partition has intersection with ME partition table, skipped", __FUNCTION__),
@@ -220,7 +267,7 @@ make_partition_table_consistent:
     // Check for intersections/paddings between partitions
     for (size_t i = 1; i < partitions.size(); i++) {
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
-        
+
         // Check that current region is fully present in the image
         if ((UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
             if ((UINT32)partitions[i].ptEntry.Offset >= (UINT32)region.size()) {
@@ -250,7 +297,7 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
         }
-        
+
         // Check for padding between current and previous partitions
         else if (partitions[i].ptEntry.Offset > previousPartitionEnd) {
             padding.ptEntry.Offset = previousPartitionEnd;
@@ -268,14 +315,18 @@ make_partition_table_consistent:
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }
-    
+
     // Partition map is consistent
     for (size_t i = 0; i < partitions.size(); i++) {
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
         if (partitions[i].type == Types::FptPartition) {
             UModelIndex partitionIndex;
+            // ME8!!!
+            if (partitions[i].ptEntry.Name[0] == '\xE0' && partitions[i].ptEntry.Name[1] == '\x15')
+                name = UString("E0150020");
+            else
+                name = usprintf("%c%c%c%c", partitions[i].ptEntry.Name[0], partitions[i].ptEntry.Name[1], partitions[i].ptEntry.Name[2], partitions[i].ptEntry.Name[3]);
             // Get info
-            name = usprintf("%c%c%c%c", partitions[i].ptEntry.Name[0], partitions[i].ptEntry.Name[1], partitions[i].ptEntry.Name[2], partitions[i].ptEntry.Name[3]);
             info = usprintf("Full size: %Xh (%u)\nPartition type: %02Xh\n",
                 partition.size(), partition.size(),
                 partitions[i].ptEntry.Type);
@@ -293,12 +344,12 @@ make_partition_table_consistent:
             // Get info
             name = UString("Padding");
             info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
-            
+
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
         }
     }
-    
+
     return U_SUCCESS;
 }
 
@@ -309,13 +360,13 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
         msg(usprintf("%s: ME region too small to fit IFWI 1.6 layout header", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     const IFWI_16_LAYOUT_HEADER* ifwiHeader = (const IFWI_16_LAYOUT_HEADER*)region.constData();
-    
+
     // Add header
     UINT32 ptSize = sizeof(IFWI_16_LAYOUT_HEADER);
     UByteArray header = region.left(ptSize);
-    
+
     UString name = UString("IFWI 1.6 header");
     UString info = usprintf("Full size: %Xh (%u)\n"
                             "Data  partition offset: %Xh\nData  partition size:   %Xh\n"
@@ -335,7 +386,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             ifwiHeader->Checksum);
     // Add tree item
     index = model->addItem(0, Types::IfwiHeader, 0, name, UString(), info, UByteArray(), header, UByteArray(), Fixed, parent);
-    
+
     std::vector<IFWI_PARTITION_INFO> partitions;
     // Add data partition
     {
@@ -359,10 +410,10 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
 make_partition_table_consistent:
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
-    
+
     // Check for intersections and paddings between partitions
     IFWI_PARTITION_INFO padding;
-    
+
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {
         msg(usprintf("%s: IFWI partition has intersection with IFWI layout header, skipped", __FUNCTION__), index);
@@ -379,7 +430,7 @@ make_partition_table_consistent:
     // Check for intersections/paddings between partitions
     for (size_t i = 1; i < partitions.size(); i++) {
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
-        
+
         // Check that current region is fully present in the image
         if ((UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
             if ((UINT32)partitions[i].ptEntry.Offset >= (UINT32)region.size()) {
@@ -392,7 +443,7 @@ make_partition_table_consistent:
                 partitions[i].ptEntry.Size = (UINT32)region.size() - (UINT32)partitions[i].ptEntry.Offset;
             }
         }
-        
+
         // Check for intersection with previous partition
         if (partitions[i].ptEntry.Offset < previousPartitionEnd) {
             // Check if current partition is located inside previous one
@@ -407,7 +458,7 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
         }
-        
+
         // Check for padding between current and previous partitions
         else if (partitions[i].ptEntry.Offset > previousPartitionEnd) {
             padding.ptEntry.Offset = previousPartitionEnd;
@@ -425,7 +476,7 @@ make_partition_table_consistent:
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }
-    
+
     // Partition map is consistent
     for (size_t i = 0; i < partitions.size(); i++) {
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
@@ -437,14 +488,14 @@ make_partition_table_consistent:
             else if (partitions[i].subtype == Subtypes::BootIfwiPartition) {
                 name = "Boot partition";
             }
-            
+
             // Get info
             info = usprintf("Full size: %Xh (%u)\n",
                             partition.size(), partition.size());
-            
+
             // Add tree item
             partitionIndex = model->addItem(partitions[i].ptEntry.Offset, partitions[i].type, partitions[i].subtype, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-            
+
             // Parse partition further
             if (partitions[i].subtype == Subtypes::DataIfwiPartition) {
                 UModelIndex dataPartitionFptRegionIndex;
@@ -460,7 +511,7 @@ make_partition_table_consistent:
             // Get info
             name = UString("Padding");
             info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
-            
+
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
         }
@@ -476,14 +527,14 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
         msg(usprintf("%s: ME region too small to fit IFWI 1.7 layout header", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
-    
+
     const IFWI_17_LAYOUT_HEADER* ifwiHeader = (const IFWI_17_LAYOUT_HEADER*)region.constData();
     // TODO: add check for HeaderSize to be 0x40
-    
+
     // Add header
     UINT32 ptSize = sizeof(IFWI_17_LAYOUT_HEADER);
     UByteArray header = region.left(ptSize);
-    
+
     UString name = UString("IFWI 1.7 header");
     UString info = usprintf("Full size: %Xh (%u)\n"
                             "Flags: %02Xh\n"
@@ -509,7 +560,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
                             ifwiHeader->TempPage.Offset, ifwiHeader->TempPage.Size);
     // Add tree item
     index = model->addItem(0, Types::IfwiHeader, 0, name, UString(), info, UByteArray(), header, UByteArray(), Fixed, parent);
-    
+
     std::vector<IFWI_PARTITION_INFO> partitions;
     // Add data partition
     {
@@ -537,14 +588,14 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
         partition.ptEntry = ifwiHeader->TempPage;
         partitions.push_back(partition);
     }
-    
+
 make_partition_table_consistent:
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
-    
+
     // Check for intersections and paddings between partitions
     IFWI_PARTITION_INFO padding;
-    
+
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {
         msg(usprintf("%s: IFWI partition has intersection with IFWI layout header, skipped", __FUNCTION__), index);
@@ -561,7 +612,7 @@ make_partition_table_consistent:
     // Check for intersections/paddings between partitions
     for (size_t i = 1; i < partitions.size(); i++) {
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
-        
+
         // Check that current region is fully present in the image
         if ((UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
             if ((UINT32)partitions[i].ptEntry.Offset >= (UINT32)region.size()) {
@@ -574,7 +625,7 @@ make_partition_table_consistent:
                 partitions[i].ptEntry.Size = (UINT32)region.size() - (UINT32)partitions[i].ptEntry.Offset;
             }
         }
-        
+
         // Check for intersection with previous partition
         if (partitions[i].ptEntry.Offset < previousPartitionEnd) {
             // Check if current partition is located inside previous one
@@ -589,7 +640,7 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
         }
-        
+
         // Check for padding between current and previous partitions
         else if (partitions[i].ptEntry.Offset > previousPartitionEnd) {
             padding.ptEntry.Offset = previousPartitionEnd;
@@ -607,7 +658,7 @@ make_partition_table_consistent:
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }
-    
+
     // Partition map is consistent
     for (size_t i = 0; i < partitions.size(); i++) {
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
@@ -615,7 +666,7 @@ make_partition_table_consistent:
             UModelIndex partitionIndex;
             if (partitions[i].subtype == Subtypes::DataIfwiPartition) {
                 name = "Data partition";
-                
+
             }
             else if (partitions[i].subtype == Subtypes::BootIfwiPartition){
                 name = "Boot partition";
@@ -623,14 +674,14 @@ make_partition_table_consistent:
             else {
                 name = "Temp page";
             }
-            
+
             // Get info
             info = usprintf("Full size: %Xh (%u)\n",
                             partition.size(), partition.size());
-            
+
             // Add tree item
             partitionIndex = model->addItem(partitions[i].ptEntry.Offset, partitions[i].type, partitions[i].subtype, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-            
+
             // Parse partition further
             if (partitions[i].subtype == Subtypes::DataIfwiPartition) {
                 UModelIndex dataPartitionFptRegionIndex;
@@ -646,12 +697,12 @@ make_partition_table_consistent:
             // Get info
             name = UString("Padding");
             info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
-            
+
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
         }
     }
-    
+
     return U_SUCCESS;
 }
 

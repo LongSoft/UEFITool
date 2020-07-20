@@ -32,26 +32,43 @@ const UByteArray ME_VERSION_SIGNATURE2("\x24\x4D\x4E\x32", 4); //$MN2
 
 // FPT
 #define ME_ROM_BYPASS_VECTOR_SIZE 0x10
-const UByteArray FPT_HEADER_SIGNATURE("\x24\x46\x50\x54", 4); //$FPT
+const UByteArray FPT_HEADER_SIGNATURE("\x24\x46\x50\x54", 4);  //$FPT
 
-typedef struct FPT_HEADER_ {
+typedef struct FPT_HEADER10_ {
     UINT32 Signature;
     UINT32 NumEntries;
-    UINT8  HeaderVersion;
+    UINT8  HeaderVersion; // 0x10, 0x20
     UINT8  EntryVersion;
     UINT8  HeaderLength;
-    UINT8  Checksum;      // One bit for Redundant before IFWI
+    UINT8  Checksum;
     UINT16 TicksToAdd;
     UINT16 TokensToAdd;
-    UINT32 UmaSize;       // Flags in SPS
-    UINT32 FlashLayout;   // Crc32 before IFWI
+    UINT32 UmaSize;
+    UINT32 FlashLayout;
     UINT16 FitcMajor;
     UINT16 FitcMinor;
     UINT16 FitcHotfix;
     UINT16 FitcBuild;
-} FPT_HEADER;
+} FPT_HEADER10;
 
-typedef struct FPT_HEADER_ENTRY_{
+typedef struct FPT_HEADER21_ {
+    UINT32 Signature;
+    UINT32 NumEntries;
+    UINT8  HeaderVersion; // 0x21
+    UINT8  EntryVersion;
+    UINT8  HeaderLength;
+    UINT8  Flags;         // 0 FPT Backup Present, 1-7 Reserved
+    UINT16 TicksToAdd;
+    UINT16 TokensToAdd;
+    UINT32 SPSFlags;
+    UINT32 Checksum;      // Crc32
+    UINT16 FitcMajor;
+    UINT16 FitcMinor;
+    UINT16 FitcHotfix;
+    UINT16 FitcBuild;
+} FPT_HEADER21;
+
+typedef struct FPT_HEADER_ENTRY_ {
     CHAR8  Name[4];
     CHAR8  Owner[4];
     UINT32 Offset;
