@@ -120,6 +120,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     }
 
     const FPT_HEADER10* pt1Header = (const FPT_HEADER10*)(region.constData() + romBypassVectorSize);
+    const FPT_HEADER21* pt2Header = (const FPT_HEADER21*)(region.constData() + romBypassVectorSize);
 
     // Check region size again
     UINT32 ptBodySize = pt1Header->NumEntries * sizeof(FPT_HEADER_ENTRY);
@@ -141,14 +142,23 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
             {
                 UByteArray tempHeader = region.left(pt1Header->HeaderLength);
                 tempHeader[romBypassVectorSize + 0x0B] = 0x00;
-                chksumCalculated = calculateChecksum8((const UINT8 *)tempHeader.constData(), tempHeader.size());
+                chksumCalculated = calculateChecksum8((const UINT8*)tempHeader.constData(), tempHeader.size());
                 msgInvalidPtHeaderChecksum = (chksumCalculated != pt1Header->Checksum);
             }
             fptNumEntries = pt1Header->NumEntries;
             break;
         case 0x21:
-            msg(usprintf("%s: FPT header version 21h checksum verification will be coded later", __FUNCTION__, pt1Header->HeaderVersion), parent);
-            return U_INVALID_ME_PARTITION_TABLE;
+            {
+                // CRC-32 (Header + Entries, Checksum = 0)
+                UByteArray tempPart = region.left(ptSize);
+                tempPart[romBypassVectorSize + 0x14] = 0x00;
+                tempPart[romBypassVectorSize + 0x15] = 0x00;
+                tempPart[romBypassVectorSize + 0x16] = 0x00;
+                tempPart[romBypassVectorSize + 0x17] = 0x00;
+                chksumCalculated = crc32(0, (const UINT8*)tempPart.constData(), tempPart.size());
+
+                msgInvalidPtHeaderChecksum = (chksumCalculated != pt2Header->Checksum);
+            }
         default:
             msg(usprintf("%s: FPT header with unknown version %02h", __FUNCTION__, pt1Header->HeaderVersion), parent);
             return U_INVALID_ME_PARTITION_TABLE;
@@ -183,7 +193,6 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
             break;
         case 0x21:
             {
-                const FPT_HEADER21* pt2Header = (const FPT_HEADER21*)pt1Header;
                 info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\n"
                                 "Header version: %02Xh\nEntry version: %02Xh\nHeader length: %02Xh\n"
                                 "Flags: %02Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nSPS Flags: %Xh\n"
