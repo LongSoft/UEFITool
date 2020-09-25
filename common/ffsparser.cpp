@@ -3453,19 +3453,24 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
             && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
             && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
 
-            bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
-            protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+            if ((UINT64)bgProtectedRanges[i].Offset >= addressDiff) {
+                bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
+                protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
-            UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
+                sha256(protectedParts.constData(), protectedParts.size(), digest.data());
 
-            if (digest != bgProtectedRanges[i].Hash) {
-                msg(usprintf("%s: AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                    bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                    model->findByBase(bgProtectedRanges[i].Offset));
+                if (digest != bgProtectedRanges[i].Hash) {
+                    msg(usprintf("%s: AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                        bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
+                        model->findByBase(bgProtectedRanges[i].Offset));
+                }
+
+                markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+            } else {
+                // TODO: Explore this.
+                msg(usprintf("%s: Suspicious AMI new BG protection offset", __FUNCTION__), index);
             }
-
-            markProtectedRangeRecursive(index, bgProtectedRanges[i]);
         }
         else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX
             && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
