@@ -1429,20 +1429,23 @@ USTATUS FfsParser::parseVolumeNonUefiData(const UByteArray & data, const UINT32 
 USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 {
     // Sanity check
-    if (!index.isValid())
+    if (!index.isValid()) {
         return U_INVALID_PARAMETER;
+    }
 
     // Get volume header size and body
     UByteArray volumeBody = model->body(index);
     UINT32 volumeHeaderSize = model->header(index).size();
 
     // Parse VSS NVRAM volumes with a dedicated function
-    if (model->subtype(index) == Subtypes::NvramVolume)
+    if (model->subtype(index) == Subtypes::NvramVolume) {
         return nvramParser->parseNvramVolumeBody(index);
+    }
 
     // Parse Microcode volume with a dedicated function
-    if (model->subtype(index) == Subtypes::MicrocodeVolume)
+    if (model->subtype(index) == Subtypes::MicrocodeVolume) {
         return parseMicrocodeVolumeBody(index);
+    }
 
     // Get required values from parsing data
     UINT8 emptyByte = 0xFF;
@@ -1457,8 +1460,10 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     }
 
     // Check for unknown FFS version
-    if (ffsVersion != 2 && ffsVersion != 3)
+    if (ffsVersion != 2 && ffsVersion != 3) {
+        msg(usprintf("%s: unknown FFS version %d", __FUNCTION__, ffsVersion), index);
         return U_SUCCESS;
+    }
 
     // Search for and parse all files
     UINT32 volumeBodySize = volumeBody.size();
@@ -1469,7 +1474,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
         if (fileSize == 0) {
             msg(usprintf("%s: file header parsing failed with invalid size", __FUNCTION__), index);
-            return U_INVALID_PARAMETER;
+            break; // Exit from parsing loop
         }
 
         // Check that we are at the empty space
@@ -1494,8 +1499,9 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
                 UINT32 size = freeSpace.size();
                 const UINT8* current = (UINT8*)freeSpace.constData();
                 for (i = 0; i < size; i++) {
-                    if (*current++ != emptyByte)
-                        break;
+                    if (*current++ != emptyByte) {
+                        break; // Exit from parsing loop
+                    }
                 }
 
                 // Align found index to file alignment
@@ -1525,6 +1531,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
                 // Add free space item
                 model->addItem(volumeHeaderSize + fileOffset, Types::FreeSpace, 0, UString("Volume free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Movable, index);
             }
+
             break; // Exit from parsing loop
         }
 
@@ -1534,6 +1541,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             volumeBodySize - fileOffset < fileSize) { // Remaining space is smaller than non-empty file size
             // Parse non-UEFI data
             parseVolumeNonUefiData(volumeBody.mid(fileOffset), volumeHeaderSize + fileOffset, index);
+
             break; // Exit from parsing loop
         }
 
@@ -1553,8 +1561,9 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex current = index.child(i, 0);
         // Skip non-file entries and pad files
-        if (model->type(current) != Types::File || model->subtype(current) == EFI_FV_FILETYPE_PAD)
+        if (model->type(current) != Types::File || model->subtype(current) == EFI_FV_FILETYPE_PAD) {
             continue;
+        }
 
         // Get current file GUID
         UByteArray currentGuid(model->header(current).constData(), sizeof(EFI_GUID));
@@ -1564,8 +1573,9 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             UModelIndex another = index.child(j, 0);
 
             // Skip non-file entries
-            if (model->type(another) != Types::File)
+            if (model->type(another) != Types::File) {
                 continue;
+            }
 
             // Get another file GUID
             UByteArray anotherGuid(model->header(another).constData(), sizeof(EFI_GUID));
@@ -1577,7 +1587,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
         }
     }
 
-    //Parse bodies
+    // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex current = index.child(i, 0);
         switch (model->type(current)) {
