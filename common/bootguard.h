@@ -121,11 +121,29 @@ typedef struct BG_BOOT_POLICY_MANIFEST_HEADER_ {
     UINT16 NEMDataSize;
 } BG_BOOT_POLICY_MANIFEST_HEADER;
 
+typedef struct BG_BOOT_POLICY_MANIFEST_HEADER2_ {
+    UINT64 Tag;
+    UINT8  Version;
+    UINT8  HeaderVersion;
+    UINT16 HeaderSize;
+    UINT16 RSAEntryOffset;
+    UINT8  PMBPMVersion;
+    UINT8  BPSVN;
+    UINT8  ACMSVN;
+    UINT8  : 8;
+    UINT16 NEMDataSize;
+} BG_BOOT_POLICY_MANIFEST_HEADER2;
+
 typedef struct SHA256_HASH_ {
     UINT16 HashAlgorithmId;
     UINT16 Size;
     UINT8  HashBuffer[32];
 } SHA256_HASH;
+
+typedef struct HASH_HEADER_ {
+    UINT16 HashAlgorithmId;
+    UINT16 Size;
+} HASH_HEADER;
 
 typedef struct RSA_PUBLIC_KEY_ {
     UINT8  Version;
@@ -180,6 +198,30 @@ typedef struct BG_IBB_ELEMENT_ {
     // BG_IBB_SEGMENT_ELEMENT IbbSegment[];
 } BG_IBB_ELEMENT;
 
+typedef struct BG_IBB_ELEMENT2_ {
+    UINT64                 Tag;
+    UINT8                  Version;
+    UINT8                  : 8;
+
+    UINT16                 ElementSize;
+    UINT8                  Unknown1[3];
+    UINT8                  PolicyTimerVal;
+
+    UINT32                 Flags;
+    UINT64                 IbbMchBar;
+    UINT64                 VtdBar;
+    UINT32                 PmrlBase;
+    UINT32                 PmrlLimit;
+    UINT64                 Unknown3;
+    UINT64                 Unknown4;
+    UINT8                  PostIbbHash[4];
+    UINT32                 EntryPoint;
+
+    UINT16                 SizeOfDigests;
+    UINT16                 NumOfDigests;
+    UINT8                  SHA_HASHList[1];
+} BG_IBB_ELEMENT2;
+
 #define BG_BOOT_POLICY_MANIFEST_PLATFORM_MANUFACTURER_ELEMENT_TAG  (*(UINT64 *)"__PMDA__")
 typedef struct BG_PLATFORM_MANUFACTURER_ELEMENT_ {
     UINT64 Tag;
@@ -194,6 +236,13 @@ typedef struct BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT_ {
     BG_KEY_SIGNATURE     KeySignature;
 } BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT;
 
+typedef struct BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT2_ {
+    UINT64               Tag;
+    UINT8                Version;
+    UINT8                Unknown[3];
+    BG_KEY_SIGNATURE     KeySignature;
+} BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT2;
+
 #define BG_KEY_MANIFEST_TAG  (*(UINT64 *)"__KEYM__")
 typedef struct BG_KEY_MANIFEST_ {
     UINT64               Tag;
@@ -204,6 +253,22 @@ typedef struct BG_KEY_MANIFEST_ {
     SHA256_HASH          BpKeyHash;
     BG_KEY_SIGNATURE     KeyManifestSignature;
 } BG_KEY_MANIFEST;
+
+typedef struct BG_KEY_MANIFEST2_ {
+    UINT64               Tag;
+    UINT8                Version;
+    UINT8                Unknown[3];
+    UINT16               RSAEntryOffset;
+    UINT8                Unknown1[3];
+    UINT8                KmVersion;
+    UINT8                KmSvn;
+    UINT8                KmId;
+    UINT16               SHAType;
+    UINT16               TotalKeys;
+    UINT8                Unknown2[8];
+    SHA256_HASH          BpKeyHash;
+    BG_KEY_SIGNATURE     KeyManifestSignature;
+} BG_KEY_MANIFEST2;
 
 #pragma pack(pop)
 
