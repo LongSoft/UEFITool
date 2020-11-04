@@ -39,6 +39,7 @@ if [ "$UPLATFORM" = "mac" ]; then
   export PATH="/opt/qt56sm/bin:$PATH"
 elif [ "$UPLATFORM" = "win32" ]; then
   # Install missing dependencies
+  pacman -Syu --ignore pacman --noconfirm || exit 1
   pacman -S --noconfirm --needed zip unzip curl perl mingw-w64-i686-toolchain mingw-w64-i686-cmake || exit 1
 
   # Fix PATH to support running shasum.
