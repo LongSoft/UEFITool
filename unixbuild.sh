@@ -82,7 +82,7 @@ build_tool() {
       if [ "$UPLATFORM" = "mac" ]; then
         qmake $3 QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
       elif [ "$UPLATFORM" = "win32" ]; then
-        qmake $3 QMAKE_CXXFLAGS="-static -flto -Os" QMAKE_LFLAGS="-static -flto -Os" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
+        qmake $3 QMAKE_CXXFLAGS="-static -flto -Os -std=c++03" QMAKE_LFLAGS="-static -flto -Os -std=c++03" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
       else
         qmake $3 CONFIG+=optimize_size || exit 1
       fi
@@ -90,7 +90,7 @@ build_tool() {
       if [ "$UPLATFORM" = "mac" ]; then
         cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7" . || exit 1
       elif [ "$UPLATFORM" = "win32" ]; then
-        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os" -DCMAKE_C_FLAGS="-static -Os" . || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os -std=c++03" -DCMAKE_C_FLAGS="-static -Os" . || exit 1
       else
         cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os" . || exit 1
       fi
