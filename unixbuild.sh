@@ -39,14 +39,10 @@ if [ "$UPLATFORM" = "mac" ]; then
   export PATH="/opt/qt56sm/bin:$PATH"
 elif [ "$UPLATFORM" = "win32" ]; then
   # Install missing dependencies
-  curl -O -o /tmp/keyring.tar.xz http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz || exit 1
-  krsum=$(shasum -a 256 /tmp/keyring.tar.xz | cut -f1 -d' ')
-  krexpsum="f1cc152902fd6018868b64d015cab9bf547ff9789d8bd7c0d798fb2b22367b2b"
-  if [ "$krsum" != "$krexpsum" ]; then
-    echo "Keyring hash $krsum does not match $krexpsum"
-    exit 1
-  fi
-  pacman -U /tmp/keyring.tar.xz || exit 1
+  curl -O http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz || exit 1
+  curl -O http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig || exit 1
+  pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig || exit 1
+  pacman -U --noconfirm msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz || exit 1
   pacman -Syu --ignore pacman --noconfirm || exit 1
   pacman -S --noconfirm --needed zip unzip curl perl mingw-w64-i686-toolchain mingw-w64-i686-cmake || exit 1
 
