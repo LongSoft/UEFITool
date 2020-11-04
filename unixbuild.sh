@@ -39,11 +39,6 @@ if [ "$UPLATFORM" = "mac" ]; then
   export PATH="/opt/qt56sm/bin:$PATH"
 elif [ "$UPLATFORM" = "win32" ]; then
   # Install missing dependencies
-  curl -O http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz || exit 1
-  curl -O http://repo.msys2.org/msys/x86_64/msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig || exit 1
-  pacman-key --verify msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz.sig || exit 1
-  pacman -U --noconfirm msys2-keyring-r21.b39fb11-1-any.pkg.tar.xz || exit 1
-  pacman -Syu --ignore pacman --noconfirm || exit 1
   pacman -S --noconfirm --needed zip unzip curl perl mingw-w64-i686-toolchain mingw-w64-i686-cmake || exit 1
 
   # Fix PATH to support running shasum.
