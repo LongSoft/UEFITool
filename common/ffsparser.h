@@ -22,6 +22,8 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "bootguard.h"
 #include "fit.h"
 
+
+
 typedef struct BG_PROTECTED_RANGE_ {
     UINT32     Offset;
     UINT32     Size;
@@ -38,6 +40,8 @@ typedef struct BG_PROTECTED_RANGE_ {
 
 class NvramParser;
 class MeParser;
+class BGManifestParser;
+
 
 class FfsParser
 {
@@ -89,6 +93,7 @@ private:
     std::vector<BG_PROTECTED_RANGE> bgProtectedRanges;
     UINT64 bgProtectedRegionsBase;
     UModelIndex bgDxeCoreIndex;
+    BGManifestParser* manifestParser;
 
     // First pass
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
@@ -165,10 +170,11 @@ private:
     USTATUS parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseFitEntryAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseFitEntryBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseFitEntryBootGuardKeyManifest10Gen(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
-    USTATUS parseFitEntryBootGuardBootPolicy10Gen(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize);
     USTATUS findNextBootGuardBootPolicyElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize);
+    friend class BGIBBManifestParserIcelake;
+    friend class BGIBBManifestParser;
+
 #endif
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT

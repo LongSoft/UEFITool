@@ -130,9 +130,10 @@ typedef struct BG_BOOT_POLICY_MANIFEST_HEADER2_ {
     UINT8  PMBPMVersion;
     UINT8  BPSVN;
     UINT8  ACMSVN;
-    UINT8  : 8;
+    UINT8  Unknown;
     UINT16 NEMDataSize;
 } BG_BOOT_POLICY_MANIFEST_HEADER2;
+
 
 typedef struct SHA256_HASH_ {
     UINT16 HashAlgorithmId;
@@ -144,6 +145,7 @@ typedef struct HASH_HEADER_ {
     UINT16 HashAlgorithmId;
     UINT16 Size;
 } HASH_HEADER;
+
 
 typedef struct RSA_PUBLIC_KEY_ {
     UINT8  Version;
@@ -201,10 +203,10 @@ typedef struct BG_IBB_ELEMENT_ {
 typedef struct BG_IBB_ELEMENT2_ {
     UINT64                 Tag;
     UINT8                  Version;
-    UINT8                  : 8;
+    UINT8                  Unknown1;
 
     UINT16                 ElementSize;
-    UINT8                  Unknown1[3];
+    UINT8                  Unknown2[3];
     UINT8                  PolicyTimerVal;
 
     UINT32                 Flags;
@@ -221,6 +223,7 @@ typedef struct BG_IBB_ELEMENT2_ {
     UINT16                 NumOfDigests;
     UINT8                  SHA_HASHList[1];
 } BG_IBB_ELEMENT2;
+
 
 #define BG_BOOT_POLICY_MANIFEST_PLATFORM_MANUFACTURER_ELEMENT_TAG  (*(UINT64 *)"__PMDA__")
 typedef struct BG_PLATFORM_MANUFACTURER_ELEMENT_ {
