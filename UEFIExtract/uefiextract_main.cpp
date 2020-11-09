@@ -79,6 +79,14 @@ int main(int argc, char *argv[])
             }
         }
 
+        // Get security info
+        UString secInfo = ffsParser.getSecurityInfo();
+        if (!secInfo.isEmpty()) {
+            std::cout << "------------------------------------------------------------------------"  << std::endl;
+            std::cout << "Security Info" << std::endl;
+            std::cout << "------------------------------------------------------------------------"  << std::endl;
+            std::cout << secInfo << std::endl;
+        }
 
         // Create ffsDumper
         FfsDumper ffsDumper(&model);
