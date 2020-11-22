@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build_mac:
+    name: Build on macOS
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+      - run: ./unixbuild.sh
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: macOS builds
+          path: dist/*.zip
+      - name: Upload to releases
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
+
+  build_linux:
+    name: Build on Linux
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Qt
+        run: sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
+      - run: ./unixbuild.sh
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Linux builds
+          path: dist/*.zip
+      - name: Upload to releases
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
+
+  build_win_extract:
+    name: Build on Windows
+    runs-on: windows-2016
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get Qt
+        uses: actions/checkout@v2
+        with:
+          repository: LongSoft/qt-5.6.3-static-x86-msvc2017
+          path: qt
+          lfs: true
+      - name: Unpack Qt
+        shell: bash
+        working-directory: qt
+        run: 7z x qt-5.6.3-static-x86-msvc2017.7z -o../..
+      - name: Create dist directory
+        shell: bash
+        run: mkdir dist
+
+      - name: Create UEFIPatch build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build/UEFIPatch
+      - name: Configure UEFIPatch
+        shell: bash
+        working-directory: ${{runner.workspace}}/build/UEFIPatch
+        run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe ../../UEFITool/UEFIPatch/
+      - name: Build UEFIPatch
+        working-directory: ${{runner.workspace}}/build/UEFIPatch
+        shell: cmd
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+            nmake release
+      - name: Archive UEFIPatch
+        working-directory: ${{runner.workspace}}/build/UEFIPatch/release
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2) ; \
+          7z a ../../../UEFITool/dist/UEFIPatch_${UEFITOOL_VER}_win32.zip UEFIPatch.exe
+
+      - name: Create UEFIReplace build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build/UEFIReplace
+      - name: Configure UEFIReplace
+        shell: bash
+        working-directory: ${{runner.workspace}}/build/UEFIReplace
+        run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe ../../UEFITool/UEFIReplace/
+      - name: Build UEFIReplace
+        working-directory: ${{runner.workspace}}/build/UEFIReplace
+        shell: cmd
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+            nmake release
+      - name: Archive UEFIReplace
+        working-directory: ${{runner.workspace}}/build/UEFIReplace/release
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2) ; \
+          7z a ../../../UEFITool/dist/UEFIReplace_${UEFITOOL_VER}_win32.zip UEFIReplace.exe
+
+      - name: Create UEFITool build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool
+      - name: Configure UEFITool
+        shell: bash
+        working-directory: ${{runner.workspace}}/build/UEFITool
+        run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe ../../UEFITool/
+      - name: Build UEFITool
+        working-directory: ${{runner.workspace}}/build/UEFITool
+        shell: cmd
+        run: |
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+            nmake release
+      - name: Archive UEFITool
+        working-directory: ${{runner.workspace}}/build/UEFITool/release
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2) ; \
+          7z a ../../../UEFITool/dist/UEFITool_${UEFITOOL_VER}_win32.zip UEFITool.exe
+
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Windows builds
+          path: dist/*.zip
+      - name: Windows to releases
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
