@@ -122,15 +122,15 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     UINT32 ptBodySize = ptHeader->NumEntries * sizeof(FPT_HEADER_ENTRY);
     UINT32 ptSize = romBypassVectorSize + sizeof(FPT_HEADER) + ptBodySize;
     if ((UINT32)region.size() < ptSize) {
-        msg(usprintf("%s: ME region too small to fit partition table", __FUNCTION__), parent);
+        msg(usprintf("%s: ME region too small to fit FPT partition table", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
     
     // Recalculate checksum
-    UByteArray tempHeader = UByteArray((const char*)ptHeader, sizeof(FPT_HEADER));
-    FPT_HEADER* tempPtHeader = (FPT_HEADER*)tempHeader.data();
+    UByteArray tempHeader = UByteArray((const char*)region.constData(), romBypassVectorSize + sizeof(FPT_HEADER));
+    FPT_HEADER* tempPtHeader = (FPT_HEADER*)(tempHeader.data() + romBypassVectorSize);
     tempPtHeader->Checksum = 0;
-    UINT8 calculated = calculateChecksum8((const UINT8*)tempPtHeader, sizeof(FPT_HEADER));
+    UINT8 calculated = calculateChecksum8((const UINT8*)tempHeader.data(), romBypassVectorSize + sizeof(FPT_HEADER));
     bool msgInvalidPtHeaderChecksum = (calculated != ptHeader->Checksum);
     
     // Get info
@@ -138,11 +138,12 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     UByteArray body = region.mid(header.size(), ptBodySize);
     
     UString name = UString("FPT partition table");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
                             "Header length: %02Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nUMA size: %Xh\nFlash layout: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh, ",
                             ptSize, ptSize,
                             header.size(), header.size(),
                             ptBodySize, ptBodySize,
+                            (romBypassVectorSize ? "present" : "absent"),
                             ptHeader->NumEntries,
                             ptHeader->HeaderVersion,
                             ptHeader->EntryVersion,
@@ -152,7 +153,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
                             ptHeader->UmaSize,
                             ptHeader->FlashLayout,
                             ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild,
-                            ptHeader->Checksum) + (ptHeader->Checksum == calculated ? UString("valid") : usprintf("invalid, should be %02Xh", calculated));
+                            ptHeader->Checksum) + (ptHeader->Checksum == calculated ? UString("valid\n") : usprintf("invalid, should be %02Xh\n", calculated));
     
     // Add tree item
     index = model->addItem(0, Types::FptStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
