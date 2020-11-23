@@ -510,7 +510,7 @@ local void gen_bitlen(s, desc)
     for (h = s->heap_max+1; h < HEAP_SIZE; h++) {
         n = s->heap[h];
         bits = tree[tree[n].Dad].Len + 1;
-        if (bits > max_length) bits = max_length, overflow++;
+        if (bits > max_length) {bits = max_length; overflow++;}
         tree[n].Len = (ush)bits;
         /* We overwrite tree[n].Dad which is no longer needed */
 
@@ -627,7 +627,7 @@ local void build_tree(s, desc)
      * heap[SMALLEST]. The sons of heap[n] are heap[2*n] and heap[2*n+1].
      * heap[0] is not used.
      */
-    s->heap_len = 0, s->heap_max = HEAP_SIZE;
+    s->heap_len = 0; s->heap_max = HEAP_SIZE;
 
     for (n = 0; n < elems; n++) {
         if (tree[n].Freq != 0) {
@@ -713,7 +713,7 @@ local void scan_tree (s, tree, max_code)
     int max_count = 7;         /* max repeat count */
     int min_count = 4;         /* min repeat count */
 
-    if (nextlen == 0) max_count = 138, min_count = 3;
+    if (nextlen == 0) {max_count = 138; min_count = 3;}
     tree[max_code+1].Len = (ush)0xffff; /* guard */
 
     for (n = 0; n <= max_code; n++) {
@@ -732,11 +732,11 @@ local void scan_tree (s, tree, max_code)
         }
         count = 0; prevlen = curlen;
         if (nextlen == 0) {
-            max_count = 138, min_count = 3;
+            max_count = 138; min_count = 3;
         } else if (curlen == nextlen) {
-            max_count = 6, min_count = 3;
+            max_count = 6; min_count = 3;
         } else {
-            max_count = 7, min_count = 4;
+            max_count = 7; min_count = 4;
         }
     }
 }
@@ -759,7 +759,7 @@ local void send_tree (s, tree, max_code)
     int min_count = 4;         /* min repeat count */
 
     /* tree[max_code+1].Len = -1; */  /* guard already set */
-    if (nextlen == 0) max_count = 138, min_count = 3;
+    if (nextlen == 0) {max_count = 138; min_count = 3;}
 
     for (n = 0; n <= max_code; n++) {
         curlen = nextlen; nextlen = tree[n+1].Len;
@@ -783,11 +783,11 @@ local void send_tree (s, tree, max_code)
         }
         count = 0; prevlen = curlen;
         if (nextlen == 0) {
-            max_count = 138, min_count = 3;
+            max_count = 138; min_count = 3;
         } else if (curlen == nextlen) {
-            max_count = 6, min_count = 3;
+            max_count = 6; min_count = 3;
         } else {
-            max_count = 7, min_count = 4;
+            max_count = 7; min_count = 4;
         }
     }
 }
@@ -1162,7 +1162,7 @@ local unsigned bi_reverse(code, len)
     register unsigned res = 0;
     do {
         res |= code & 1;
-        code >>= 1, res <<= 1;
+        code >>= 1; res <<= 1;
     } while (--len > 0);
     return res >> 1;
 }

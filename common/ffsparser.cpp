@@ -4655,29 +4655,30 @@ make_partition_table_consistent:
             }
         }
         else if (partitions[i].type == Types::Padding) {
-            UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
+            UByteArray padding = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
 
             // Get info
             name = UString("Padding");
             info = usprintf("Full size: %Xh (%u)",
-                            partition.size(), partition.size());
+                            padding.size(), padding.size());
 
             // Add tree item
-            model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, parent);
         }
     }
 
     // Add padding after the last region
     if ((UINT64)partitions.back().ptEntry.Offset + (UINT64)partitions.back().ptEntry.Size < regionSize) {
-        UByteArray partition = region.mid(partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, regionSize - padding.ptEntry.Offset);
+        UINT64 usedSize = (UINT64)partitions.back().ptEntry.Offset + (UINT64)partitions.back().ptEntry.Size;
+        UByteArray padding = region.mid(partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, (int)(regionSize - usedSize));
 
         // Get info
         name = UString("Padding");
         info = usprintf("Full size: %Xh (%u)",
-                        partition.size(), partition.size());
+                        padding.size(), padding.size());
 
         // Add tree item
-        model->addItem(localOffset + partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+        model->addItem(localOffset + partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, parent);
     }
 
     return U_SUCCESS;
