@@ -23,6 +23,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treemodel.h"
 #include "parsingdata.h"
 
+// Returns bytes as string when all bytes are ascii visible, hex representation otherwise
+UString visibleAsciiOrHex(UINT8* bytes, UINT32 length);
+
 // Returns unique name for tree item
 UString uniqueItemName(const UModelIndex & index);
 

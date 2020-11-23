@@ -171,7 +171,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         const FPT_HEADER_ENTRY* ptEntry = firstPtEntry + i;
         
         // Get info
-        name = usprintf("%c%c%c%c", ptEntry->Name[0], ptEntry->Name[1], ptEntry->Name[2], ptEntry->Name[3]);
+        name = visibleAsciiOrHex((UINT8*)ptEntry->Name, 4);
         info = usprintf("Full size: %Xh (%u)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
                         sizeof(FPT_HEADER_ENTRY), sizeof(FPT_HEADER_ENTRY),
                         ptEntry->Offset,
@@ -275,7 +275,7 @@ make_partition_table_consistent:
         if (partitions[i].type == Types::FptPartition) {
             UModelIndex partitionIndex;
             // Get info
-            name = usprintf("%c%c%c%c", partitions[i].ptEntry.Name[0], partitions[i].ptEntry.Name[1], partitions[i].ptEntry.Name[2], partitions[i].ptEntry.Name[3]);
+            name = visibleAsciiOrHex((UINT8*) partitions[i].ptEntry.Name, 4); 
             info = usprintf("Full size: %Xh (%u)\nPartition type: %02Xh\n",
                 partition.size(), partition.size(),
                 partitions[i].ptEntry.Type);

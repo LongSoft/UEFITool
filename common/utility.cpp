@@ -23,6 +23,32 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "LZMA/LzmaCompress.h"
 #include "LZMA/LzmaDecompress.h"
 
+// Returns bytes as string when all bytes are ascii visible, hex representation otherwise
+UString visibleAsciiOrHex(UINT8* bytes, UINT32 length)
+{
+    bool ascii = true;
+    UString asciiString;
+    UString hexString;
+    
+    for (UINT32 i = 0; i < length; i++) {
+        hexString += usprintf("%02X", bytes[i]);
+        
+        if (bytes[i] < '\x20' || bytes[i] > '\x7E') {  // Explicit ascii codes to avoid locale dependency
+            ascii = false;
+        }
+        
+        if (ascii) {
+            asciiString += usprintf("%c", bytes[i]);
+        }
+    }
+    
+    if (ascii) {
+        return asciiString;
+    }
+    
+    return hexString;
+}
+
 // Returns unique name string based for tree item
 UString uniqueItemName(const UModelIndex & index)
 {
