@@ -123,7 +123,7 @@ rm -rf dist
 mkdir -p dist || exit 1
 
 # FIXME: Qt is bugged and does not override CC.
-if [ "$COVERITY_SCAN_TOKEN" != "" ]; then
+if [ "$COVERITY_SCAN_TOKEN" = "" ]; then
   build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
 fi
 build_tool UEFIExtract "$UEFITOOL_VER"  ""
