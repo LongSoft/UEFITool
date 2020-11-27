@@ -122,7 +122,10 @@ build_tool() {
 rm -rf dist
 mkdir -p dist || exit 1
 
-build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
+# FIXME: Qt is bugged and does not override CC.
+if [ "$COVERITY_SCAN_TOKEN" != "" ]; then
+  build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
+fi
 build_tool UEFIExtract "$UEFITOOL_VER"  ""
 build_tool UEFIFind    "$UEFITOOL_VER"  ""
 
