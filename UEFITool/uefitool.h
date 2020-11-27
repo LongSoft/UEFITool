@@ -156,6 +156,7 @@ private:
     void showFitTable();
     void showSecurityInfo();
     void showBuilderMessages();
+    void saveFoundObjects();
 
     enum {
         TAB_PARSER,

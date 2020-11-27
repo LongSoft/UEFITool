@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "ffsfinder.h"
+#include "../common/types.h"
 
 USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode)
 {
@@ -173,6 +174,15 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
 
     int offset = -1;
     while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
+        UModelIndex savedIndex = index;
+
+        if (model->type(savedIndex) == Types::ItemTypes::Section)
+            savedIndex = index.parent();
+
+        if (model->type(savedIndex) == Types::ItemTypes::File)
+        {
+            addObj(savedIndex);
+        }
 
         msg((unicode ? UString("Unicode") : UString("ASCII")) + UString(" text \"") + UString(pattern)
             + UString("\" in ") + model->name(model->parent(index))

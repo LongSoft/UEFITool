@@ -29,18 +29,27 @@ public:
     ~FfsFinder() {}
 
     std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
+    std::vector<UModelIndex> getFoundFiles() const { return foundObjects; }
+    void clearFoundFiles() { foundObjects.clear(); }
     void clearMessages() { messagesVector.clear(); }
 
     USTATUS findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode);
     USTATUS findGuidPattern(const UModelIndex & index, const UByteArray & guidPattern, const UINT8 mode);
     USTATUS findTextPattern(const UModelIndex & index, const UString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive);
 
+    void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
+        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
+    }
+
 private:
     const TreeModel* model;
     std::vector<std::pair<UString, UModelIndex> > messagesVector;
+    std::vector<UModelIndex> foundObjects;
 
-    void msg(const UString & message, const UModelIndex &index = UModelIndex()) {
-        messagesVector.push_back(std::pair<UString, UModelIndex>(message, index));
+    void addObj(const UModelIndex &index) {
+        if(std::find(foundObjects.begin(), foundObjects.end(), index) == foundObjects.end()) {
+            foundObjects.push_back(index);
+        }
     }
 };
 
