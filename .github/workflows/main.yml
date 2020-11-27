@@ -148,11 +148,10 @@ jobs:
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
       - uses: actions/checkout@v2
-      - run: ./unixbuild.sh --configure
       - name: Run Coverity
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/coverity/covstrap.sh) && eval "$src" || exit 1
         env:
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
-          COVERITY_BUILD_COMMAND: ./unixbuild.sh --build
+          COVERITY_BUILD_COMMAND: ./unixbuild.sh
