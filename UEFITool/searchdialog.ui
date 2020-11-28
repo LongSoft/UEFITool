@@ -220,13 +220,6 @@
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="QCheckBox" name="textDumpFilesCheckBox">
-            <property name="text">
-             <string>Dump files?</string>
-            </property>
-           </widget>
-          </item>
          </layout>
         </widget>
        </item>
@@ -263,7 +256,6 @@
   <tabstop>textEdit</tabstop>
   <tabstop>textUnicodeCheckBox</tabstop>
   <tabstop>textCaseSensitiveCheckBox</tabstop>
-  <tabstop>textDumpFilesCheckBox</tabstop>
  </tabstops>
  <resources/>
  <connections>

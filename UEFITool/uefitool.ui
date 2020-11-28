@@ -342,6 +342,16 @@
     <property name="title">
      <string>&amp;Action</string>
     </property>
+    <widget class="QMenu" name="menuExtractSearchActions">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="title">
+      <string>Found files</string>
+     </property>
+     <addaction name="actionExtractSearch"/>
+     <addaction name="actionExtractSearchBody"/>
+    </widget>
     <widget class="QMenu" name="menuCapsuleActions">
      <property name="enabled">
       <bool>false</bool>
@@ -531,6 +541,7 @@
     <addaction name="menuVolumeActions"/>
     <addaction name="menuFileActions"/>
     <addaction name="menuSectionActions"/>
+    <addaction name="menuExtractSearchActions"/>
     <addaction name="separator"/>
     <addaction name="menuStoreActions"/>
     <addaction name="menuEntryActions"/>
@@ -605,9 +616,6 @@
    </property>
   </action>
   <action name="actionExtractBody">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
    <property name="text">
     <string>Extract &amp;body...</string>
    </property>
@@ -616,6 +624,22 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+E</string>
+   </property>
+  </action>
+  <action name="actionExtractSearch">
+   <property name="toolTip">
+    <string>Extract found files as they are</string>
+   </property>
+   <property name="text">
+    <string>E&amp;xtract as is...</string>
+   </property>
+  </action>
+  <action name="actionExtractSearchBody">
+   <property name="toolTip">
+    <string>Extract body of found files</string>
+   </property>
+   <property name="text">
+    <string>Extract &amp;body...</string>
    </property>
   </action>
   <action name="actionRemove">

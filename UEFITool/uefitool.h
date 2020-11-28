@@ -85,6 +85,10 @@ private slots:
     void bodyHexView();
     void goToData();
 
+    void extractSearch(const UINT8 mode);
+    void extractSearchAsIs();
+    void extractSearchBody();
+
     void extract(const UINT8 mode);
     void extractAsIs();
     void extractBody();
@@ -156,7 +160,6 @@ private:
     void showFitTable();
     void showSecurityInfo();
     void showBuilderMessages();
-    void saveFoundObjects();
 
     enum {
         TAB_PARSER,
