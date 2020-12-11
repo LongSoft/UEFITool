@@ -141,7 +141,7 @@ jobs:
     env:
       PROJECT_TYPE: TOOL
       JOB_TYPE: COVERITY
-    if: github.event_name != 'pull_request'
+    if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
     name: Analyze Coverity
     runs-on: macos-10.15
     steps:
