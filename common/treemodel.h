@@ -86,7 +86,6 @@ private:
 #if defined(QT_CORE_LIB)
 class TreeModel : public QAbstractItemModel
 {
-    //Q_OBJECT
 private:
     TreeItem *rootItem;
     bool markingEnabledFlag;
