@@ -3,6 +3,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QScrollBar>
+#include <qconfig.h>
 
 #include "qhexedit.h"
 #include <algorithm>
