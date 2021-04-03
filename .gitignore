@@ -248,3 +248,5 @@ DerivedData
 compile_commands.json
 CMakeScripts
 UEFITool/qrc_uefitool.cpp
+XcodeQT5
+XcodeQT6
