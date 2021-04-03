@@ -92,7 +92,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
             }
 
             // Build image
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
             UModelIndex imageIndex = index.child(0, 0);
 #else
             UModelIndex imageIndex = index.model()->index(0, 0, index);
@@ -170,7 +170,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
     // Rebuild
     else if (model->action(index) == Actions::Rebuild) {
         // First child will always be descriptor for this type of image, and it's read only for now
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         intelImage = model->header(index.child(0, 0)) + model->body(index.child(0, 0)) + model->tail(index.child(0, 0));
 #else
         intelImage = model->header(index.model()->index(0, 0, index)) + model->body(index.model()->index(0, 0, index)) + model->tail(index.model()->index(0, 0, index));
@@ -178,7 +178,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
 
         // Process other regions
         for (int i = 1; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
             UModelIndex currentRegion = index.child(i, 0);
 #else
             UModelIndex currentRegion = index.model()->index(i, 0, index);
@@ -283,7 +283,7 @@ USTATUS FfsBuilder::buildRawArea(const UModelIndex & index, UByteArray & rawArea
             for (int i = 0; i < model->rowCount(index); i++) {
                 USTATUS result = U_SUCCESS;
 
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
                 UModelIndex currentChild = index.child(i, 0);
 #else
                 UModelIndex currentChild = index.model()->index(i, 0, index);

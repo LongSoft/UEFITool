@@ -992,7 +992,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         UModelIndex current = index.child(i, 0);
 #else
         UModelIndex current = index.model()->index(i, 0, index);
@@ -1564,7 +1564,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Check for duplicate GUIDs
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         UModelIndex current = index.child(i, 0);
 #else
         UModelIndex current = index.model()->index(i, 0, index);
@@ -1580,7 +1580,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
         // Check files after current for having an equal GUID
         for (int j = i + 1; j < model->rowCount(index); j++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
             UModelIndex another = index.child(j, 0);
 #else
             UModelIndex another = index.model()->index(j, 0, index);
@@ -1603,7 +1603,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         UModelIndex current = index.child(i, 0);
 #else
         UModelIndex current = index.model()->index(i, 0, index);
@@ -2038,7 +2038,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
 
     // Parse bodies, will be skipped if insertIntoTree is not required
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         UModelIndex current = index.child(i, 0);
 #else
         UModelIndex current = index.model()->index(i, 0, index);
@@ -3350,7 +3350,7 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         checkTeImageBase(index.child(i, 0));
 #else
         checkTeImageBase(index.model()->index(i, 0, index));
@@ -3391,7 +3391,7 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         addInfoRecursive(index.child(i, 0));
 #else
         addInfoRecursive(index.model()->index(i, 0, index));
@@ -3592,7 +3592,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
     }
 
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         markProtectedRangeRecursive(index.child(i, 0), range);
 #else
         markProtectedRangeRecursive(index.model()->index(i, 0, index), range);
@@ -3900,7 +3900,7 @@ void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         findFitRecursive(index.child(i, 0), found, fitOffset);
 #else
         findFitRecursive(index.model()->index(i, 0, index), found, fitOffset);

@@ -27,7 +27,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "nvram.h"
 #include "ffs.h"
 #include "fit.h"
-#include <qconfig.h>
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
@@ -231,7 +230,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             // Search previously added entries for a link to this variable
             // WARNING: O(n^2), may be very slow
             for (int i = model->rowCount(index) - 1; i >= 0; i--) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
                 nvarIndex = index.child(i, 0);
 #else
                 nvarIndex = index.model()->index(i, 0, index);
@@ -508,7 +507,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         UModelIndex current = index.child(i, 0);
 #else
         UModelIndex current = index.model()->index(i, 0, index);
@@ -1832,7 +1831,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
     // Reparse all data variables to detect invalid ones and assign name and test to valid ones
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         UModelIndex current = index.child(i, 0);
 #else
         UModelIndex current = index.model()->index(i, 0, index);
