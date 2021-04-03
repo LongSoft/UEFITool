@@ -116,7 +116,7 @@ GuidDatabase guidDatabaseFromTreeRecursive(TreeModel * model, const UModelIndex 
         return db;
 
     for (int i = 0; i < model->rowCount(index); i++) {
-#ifdef _USE_DEPRECATED
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
         GuidDatabase tmpDb = guidDatabaseFromTreeRecursive(model, index.child(i, index.column()));
 #else
         GuidDatabase tmpDb = guidDatabaseFromTreeRecursive(model, index.model()->index(i, index.column(), index));

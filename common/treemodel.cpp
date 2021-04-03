@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treemodel.h"
 
 #include "stack"
+#include <qconfig.h>
 
 #if defined(QT_CORE_LIB)
 QVariant TreeModel::data(const UModelIndex &index, int role) const
@@ -559,7 +560,7 @@ UModelIndex TreeModel::findByBase(UINT32 base) const
 goDeeper:
     int n = rowCount(parentIndex);
     for (int i = 0; i < n; i++) {
-#ifdef _USE_DEPRECATED
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
         UModelIndex currentIndex = parentIndex.child(i, 0);
 #else
         UModelIndex currentIndex = parentIndex.model()->index(i, 0, parentIndex);

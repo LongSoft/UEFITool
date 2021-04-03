@@ -14,6 +14,7 @@
 #include "../version.h"
 #include "uefitool.h"
 #include "ui_uefitool.h"
+#include <qconfig.h>
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
@@ -390,7 +391,7 @@ void UEFITool::goToData()
         }
 
         for (int j = i + 1; j < model->rowCount(parent); j++) {
-#ifdef _USE_DEPRECATED
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
             QModelIndex currentIndex = parent.child(j, 0);
 #else
             QModelIndex currentIndex = parent.model()->index(j, 0, parent);

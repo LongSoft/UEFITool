@@ -44,8 +44,8 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
         extracted.clear();
         // There is no need to redo decompression, we can use child items
         for (int i = 0; i < model->rowCount(index); i++) {
-#ifdef _USE_DEPRECATED
-             UModelIndex childIndex = index.child(i, 0);
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 8)) || (QT_VERSION_MAJOR < 5)
+            UModelIndex childIndex = index.child(i, 0);
 #else
             UModelIndex childIndex = index.model()->index(i, 0, index);
 #endif
