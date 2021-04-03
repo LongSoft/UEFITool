@@ -195,6 +195,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0xC84017: return UString("GigaDevice GD25x64");
     case 0xC84018: return UString("GigaDevice GD25x128");
     case 0xC84019: return UString("GigaDevice GD25x256C");
+    case 0xC86015: return UString("GigaDevice GD25LQ16V");
     case 0xC86017: return UString("GigaDevice GD25Lx64");
     case 0xC86018: return UString("GigaDevice GD25Lx128");
     case 0xC86019: return UString("GigaDevice GD25LQ256C");

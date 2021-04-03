@@ -40,7 +40,12 @@ USTATUS findFileRecursive(TreeModel *model, const UModelIndex index, const UStri
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         findFileRecursive(model, index.child(i, index.column()), hexPattern, mode, files);
+#else
+        findFileRecursive(model, index.model()->index(i, index.column(), index), hexPattern, mode, files);
+#endif
+
     }
 
     UByteArray data;

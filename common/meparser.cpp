@@ -165,7 +165,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
 
     // Add partition table entries
     std::vector<FPT_PARTITION_INFO> partitions;
-    UINT32 offset = header.size();
+    UINT32 offset = (UINT32)header.size();
     const FPT_HEADER_ENTRY* firstPtEntry = (const FPT_HEADER_ENTRY*)(region.constData() + offset);
     for (UINT8 i = 0; i < ptHeader->NumEntries; i++) {
         // Populate entry header
@@ -265,7 +265,7 @@ make_partition_table_consistent:
     // Check for padding after the last region
     if ((UINT32)partitions.back().ptEntry.Offset + (UINT32)partitions.back().ptEntry.Size < (UINT32)region.size()) {
         padding.ptEntry.Offset = partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size;
-        padding.ptEntry.Size = region.size() - padding.ptEntry.Offset;
+        padding.ptEntry.Size = (UINT32)(region.size() - padding.ptEntry.Offset);
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }
@@ -422,7 +422,7 @@ make_partition_table_consistent:
     // Check for padding after the last region
     if ((UINT32)partitions.back().ptEntry.Offset + (UINT32)partitions.back().ptEntry.Size < (UINT32)region.size()) {
         padding.ptEntry.Offset = partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size;
-        padding.ptEntry.Size = region.size() - padding.ptEntry.Offset;
+        padding.ptEntry.Size = (UINT32)(region.size() - padding.ptEntry.Offset);
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }
@@ -604,7 +604,7 @@ make_partition_table_consistent:
     // Check for padding after the last region
     if ((UINT32)partitions.back().ptEntry.Offset + (UINT32)partitions.back().ptEntry.Size < (UINT32)region.size()) {
         padding.ptEntry.Offset = partitions.back().ptEntry.Offset + partitions.back().ptEntry.Size;
-        padding.ptEntry.Size = region.size() - padding.ptEntry.Offset;
+        padding.ptEntry.Size = (UINT32)(region.size() - padding.ptEntry.Offset);
         padding.type = Types::Padding;
         partitions.push_back(padding);
     }

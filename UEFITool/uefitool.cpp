@@ -390,7 +390,12 @@ void UEFITool::goToData()
         }
 
         for (int j = i + 1; j < model->rowCount(parent); j++) {
+#ifdef _USE_DEPRECATED
             QModelIndex currentIndex = parent.child(j, 0);
+#else
+            QModelIndex currentIndex = parent.model()->index(j, 0, parent);
+#endif
+
             if (model->hasEmptyParsingData(currentIndex))
                 continue;
 
@@ -789,6 +794,7 @@ void UEFITool::showParserMessages()
 
     std::vector<std::pair<QString, QModelIndex> > messages = ffsParser->getMessages();
     std::pair<QString, QModelIndex> msg;
+
     foreach (msg, messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));

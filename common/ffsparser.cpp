@@ -478,7 +478,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Check for padding after the last region
     if ((UINT64)regions.back().offset + (UINT64)regions.back().length < (UINT64)intelImage.size()) {
         region.offset = regions.back().offset + regions.back().length;
-        region.length = intelImage.size() - region.offset;
+        region.length = (UINT32)(intelImage.size() - region.offset);
         region.data = intelImage.mid(region.offset, region.length);
         region.type = getPaddingType(region.data);
         regions.push_back(region);
@@ -718,10 +718,10 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     }
     else {
         // Search for new signature
-        INT32 versionOffset = me.indexOf(ME_VERSION_SIGNATURE2);
+        INT32 versionOffset = (INT32)me.indexOf(ME_VERSION_SIGNATURE2);
         if (versionOffset < 0){ // New signature not found
             // Search for old signature
-            versionOffset = me.indexOf(ME_VERSION_SIGNATURE);
+            versionOffset = (INT32)me.indexOf(ME_VERSION_SIGNATURE);
             if (versionOffset < 0){
                 info += ("\nVersion: unknown");
                 versionFound = false;
@@ -848,7 +848,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
 
     // Get item data
     UByteArray data = model->body(index);
-    UINT32 headerSize = model->header(index).size();
+    UINT32 headerSize = (UINT32)model->header(index).size();
 
     USTATUS result;
     UString name;
@@ -919,7 +919,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
 
             // Update variables
             prevItemOffset = itemOffset;
-            prevItemSize = padding.size();
+            prevItemSize = (UINT32)padding.size();
             break;
         }
 
@@ -992,7 +992,12 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex current = index.child(i, 0);
+#else
+        UModelIndex current = index.model()->index(i, 0, index);
+#endif
+
         switch (model->type(current)) {
         case Types::Volume:
             parseVolumeBody(current);
@@ -1122,7 +1127,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
 
     // Check for AppleCRC32 and UsedSpace in ZeroVector
     bool hasAppleCrc32 = false;
-    UINT32 volumeSize = volume.size();
+    UINT32 volumeSize = (UINT32)volume.size();
     UINT32 appleCrc32 = *(UINT32*)(volume.constData() + 8);
     UINT32 usedSpace = *(UINT32*)(volume.constData() + 12);
     if (appleCrc32 != 0) {
@@ -1295,7 +1300,7 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
 USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize)
 {
     UByteArray data = model->body(index);
-    UINT32 dataSize = data.size();
+    UINT32 dataSize = (UINT32)data.size();
 
     if (dataSize < sizeof(UINT32))
         return U_STORES_NOT_FOUND;
@@ -1435,7 +1440,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Get volume header size and body
     UByteArray volumeBody = model->body(index);
-    UINT32 volumeHeaderSize = model->header(index).size();
+    UINT32 volumeHeaderSize = (UINT32)model->header(index).size();
 
     // Parse VSS NVRAM volumes with a dedicated function
     if (model->subtype(index) == Subtypes::NvramVolume) {
@@ -1466,7 +1471,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     }
 
     // Search for and parse all files
-    UINT32 volumeBodySize = volumeBody.size();
+    UINT32 volumeBodySize = (UINT32)volumeBody.size();
     UINT32 fileOffset = 0;
 
     while (fileOffset < volumeBodySize) {
@@ -1496,7 +1501,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             if (freeSpace.count(emptyByte) != freeSpace.size()) {
                 // Search for the first non-empty byte
                 UINT32 i;
-                UINT32 size = freeSpace.size();
+                UINT32 size = (UINT32)freeSpace.size();
                 const UINT8* current = (UINT8*)freeSpace.constData();
                 for (i = 0; i < size; i++) {
                     if (*current++ != emptyByte) {
@@ -1559,7 +1564,12 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Check for duplicate GUIDs
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex current = index.child(i, 0);
+#else
+        UModelIndex current = index.model()->index(i, 0, index);
+#endif
+
         // Skip non-file entries and pad files
         if (model->type(current) != Types::File || model->subtype(current) == EFI_FV_FILETYPE_PAD) {
             continue;
@@ -1570,7 +1580,11 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
         // Check files after current for having an equal GUID
         for (int j = i + 1; j < model->rowCount(index); j++) {
+#ifdef _USE_DEPRECATED
             UModelIndex another = index.child(j, 0);
+#else
+            UModelIndex another = index.model()->index(j, 0, index);
+#endif
 
             // Skip non-file entries
             if (model->type(another) != Types::File) {
@@ -1589,7 +1603,12 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex current = index.child(i, 0);
+#else
+        UModelIndex current = index.model()->index(i, 0, index);
+#endif
+
         switch (model->type(current)) {
         case Types::File:
             parseFileBody(current);
@@ -1704,7 +1723,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     }
 
     // Check header checksum
-    UINT8 calculatedHeader = 0x100 - (calculateSum8((const UINT8*)header.constData(), header.size()) - fileHeader->IntegrityCheck.Checksum.Header - fileHeader->IntegrityCheck.Checksum.File - fileHeader->State);
+    UINT8 calculatedHeader = 0x100 - (calculateSum8((const UINT8*)header.constData(), (UINT32)header.size()) - fileHeader->IntegrityCheck.Checksum.Header - fileHeader->IntegrityCheck.Checksum.File - fileHeader->State);
     bool msgInvalidHeaderChecksum = false;
     if (fileHeader->IntegrityCheck.Checksum.Header != calculatedHeader) {
         msgInvalidHeaderChecksum = true;
@@ -1715,7 +1734,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     bool msgInvalidDataChecksum = false;
     UINT8 calculatedData = 0;
     if (fileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
-        calculatedData = calculateChecksum8((const UINT8*)body.constData(), body.size());
+        calculatedData = calculateChecksum8((const UINT8*)body.constData(), (UINT32)body.size());
     }
     // Data checksum must be one of predefined values
     else if (volumeRevision == 1) {
@@ -1907,7 +1926,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
 
     // Search for the first non-empty byte
     UINT32 nonEmptyByteOffset;
-    UINT32 size = body.size();
+    UINT32 size = (UINT32)body.size();
     const UINT8* current = (const UINT8*)body.constData();
     for (nonEmptyByteOffset = 0; nonEmptyByteOffset < size; nonEmptyByteOffset++) {
         if (*current++ != emptyByte)
@@ -1915,7 +1934,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     }
 
     // Add all bytes before as free space...
-    UINT32 headerSize = model->header(index).size();
+    UINT32 headerSize = (UINT32)model->header(index).size();
     if (nonEmptyByteOffset >= 8) {
         // Align free space to 8 bytes boundary
         if (nonEmptyByteOffset != ALIGN8(nonEmptyByteOffset))
@@ -1959,8 +1978,8 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
         return U_INVALID_PARAMETER;
 
     // Search for and parse all sections
-    UINT32 bodySize = sections.size();
-    UINT32 headerSize = model->header(index).size();
+    UINT32 bodySize = (UINT32)sections.size();
+    UINT32 headerSize = (UINT32)model->header(index).size();
     UINT32 sectionOffset = 0;
     USTATUS result = U_SUCCESS;
 
@@ -2019,7 +2038,12 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
 
     // Parse bodies, will be skipped if insertIntoTree is not required
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex current = index.child(i, 0);
+#else
+        UModelIndex current = index.model()->index(i, 0, index);
+#endif
+
         switch (model->type(current)) {
         case Types::Section:
             parseSectionBody(current);
@@ -2278,7 +2302,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         UINT32 crc = *(UINT32*)(section.constData() + headerSize);
         additionalInfo += UString("\nChecksum type: CRC32");
         // Calculate CRC32 of section data
-        UINT32 calculated = (UINT32)crc32(0, (const UINT8*)section.constData() + dataOffset, section.size() - dataOffset);
+        UINT32 calculated = (UINT32)crc32(0, (const UINT8*)section.constData() + dataOffset, (uInt)(section.size() - dataOffset));
         if (crc == calculated) {
             additionalInfo += usprintf("\nChecksum: %08Xh, valid", crc);
         }
@@ -2656,7 +2680,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
 
     // Obtain required information from parsing data
     UINT8 compressionType = EFI_NOT_COMPRESSED;
-    UINT32 uncompressedSize = model->body(index).size();
+    UINT32 uncompressedSize = (UINT32)model->body(index).size();
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
         const COMPRESSED_SECTION_PARSING_DATA* pdata = (const COMPRESSED_SECTION_PARSING_DATA*)data.constData();
@@ -2846,7 +2870,11 @@ USTATUS FfsParser::parseVersionSectionBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
 
     // Add info
+#if QT_VERSION_MAJOR >= 6
+    model->addInfo(index, UString("\nVersion string: ") + UString::fromUtf16((const char16_t*)model->body(index).constData()));
+#else
     model->addInfo(index, UString("\nVersion string: ") + UString::fromUtf16((const CHAR16*)model->body(index).constData()));
+#endif
 
     return U_SUCCESS;
 }
@@ -2981,7 +3009,11 @@ USTATUS FfsParser::parseUiSectionBody(const UModelIndex & index)
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
+#if QT_VERSION_MAJOR >= 6
+    UString text = UString::fromUtf16((const char16_t*)model->body(index).constData());
+#else
     UString text = UString::fromUtf16((const CHAR16*)model->body(index).constData());
+#endif
 
     // Add info
     model->addInfo(index, UString("\nText: ") + text);
@@ -2999,7 +3031,7 @@ USTATUS FfsParser::parseAprioriRawSection(const UByteArray & body, UString & par
         msg(usprintf("%s: apriori file has size is not a multiple of 16", __FUNCTION__));
     }
     parsed.clear();
-    UINT32 count = body.size() / sizeof(EFI_GUID);
+    UINT32 count = (UINT32)(body.size() / sizeof(EFI_GUID));
     if (count > 0) {
         for (UINT32 i = 0; i < count; i++) {
             const EFI_GUID* guid = (const EFI_GUID*)body.constData() + i;
@@ -3207,7 +3239,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     }
 
     // Calculate address difference
-    const UINT32 vtfSize = model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size();
+    const UINT32 vtfSize = (const UINT32)(model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size());
     addressDiff = 0xFFFFFFFFULL - model->base(lastVtf) - vtfSize + 1;
 
     // Parse reset vector data
@@ -3280,7 +3312,7 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
         if (originalImageBase != 0 || adjustedImageBase != 0) {
             // Check data memory address to be equal to either OriginalImageBase or AdjustedImageBase
             UINT64 address = addressDiff + model->base(index);
-            UINT32 base = (UINT32)address + model->header(index).size();
+            UINT32 base = (UINT32)(address + model->header(index).size());
 
             if (originalImageBase == base) {
                 imageBaseType = EFI_IMAGE_TE_BASE_ORIGINAL;
@@ -3318,7 +3350,11 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         checkTeImageBase(index.child(i, 0));
+#else
+        checkTeImageBase(index.model()->index(i, 0, index));
+#endif
     }
 
     return U_SUCCESS;
@@ -3339,7 +3375,7 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
         // Add physical address of the whole item or it's header and data portions separately
         UINT64 address = addressDiff + model->base(index);
         if (address <= 0xFFFFFFFFUL) {
-            UINT32 headerSize = model->header(index).size();
+            UINT32 headerSize = (UINT32)model->header(index).size();
             if (headerSize) {
                 model->addInfo(index, usprintf("Data address: %08Xh\n", address + headerSize),false);
                 model->addInfo(index, usprintf("Header address: %08Xh\n", address), false);
@@ -3355,7 +3391,11 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         addInfoRecursive(index.child(i, 0));
+#else
+        addInfoRecursive(index.model()->index(i, 0, index));
+#endif
     }
 
     return U_SUCCESS;
@@ -3443,7 +3483,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 else
                 {
                     bgProtectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
-                    bgProtectedRanges[i].Size = model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size();
+                    bgProtectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
                     protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
 
                     UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
@@ -3534,7 +3574,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
     // Mark normal items
     else {
         UINT32 currentOffset = model->base(index);
-        UINT32 currentSize = model->header(index).size() + model->body(index).size() + model->tail(index).size();
+        UINT32 currentSize = (UINT32)(model->header(index).size() + model->body(index).size() + model->tail(index).size());
 
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
@@ -3552,7 +3592,11 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
     }
 
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         markProtectedRangeRecursive(index.child(i, 0), range);
+#else
+        markProtectedRangeRecursive(index.model()->index(i, 0, index), range);
+#endif
     }
 
     return U_SUCCESS;
@@ -3856,7 +3900,12 @@ void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         findFitRecursive(index.child(i, 0), found, fitOffset);
+#else
+        findFitRecursive(index.model()->index(i, 0, index), found, fitOffset);
+#endif
+
         if (found.isValid())
             return;
     }
@@ -3864,11 +3913,11 @@ void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
     // Check for all FIT signatures in item's body
     UByteArray lastVtfBody = model->body(lastVtf);
     UINT32 storedFitAddress = *(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET);
-    for (INT32 offset = model->body(index).indexOf(FIT_SIGNATURE);
+    for (INT32 offset = (INT32)model->body(index).indexOf(FIT_SIGNATURE);
         offset >= 0;
-        offset = model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
+        offset = (INT32)model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
         // FIT candidate found, calculate it's physical address
-        UINT32 fitAddress = model->base(index) + (UINT32)addressDiff + model->header(index).size() + (UINT32)offset;
+        UINT32 fitAddress = (UINT32)(model->base(index) + (UINT32)addressDiff + model->header(index).size() + (UINT32)offset);
 
         // Check FIT address to be stored in the last VTF
         if (fitAddress == storedFitAddress) {
@@ -4062,7 +4111,7 @@ USTATUS FfsParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
 
 USTATUS FfsParser::findNextBootGuardBootPolicyElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize)
 {
-    UINT32 dataSize = bootPolicy.size();
+    UINT32 dataSize = (UINT32)bootPolicy.size();
     if (dataSize < sizeof(UINT64)) {
         return U_ELEMENTS_NOT_FOUND;
     }

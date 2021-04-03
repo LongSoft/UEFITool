@@ -15,7 +15,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define FFSFINDER_H
 
 #include <vector>
+
+#if QT_VERSION_MAJOR >= 6
+#include <QRegularExpression>
+#else
 #include <QRegExp>
+#endif
 
 #include "../common/ubytearray.h"
 #include "../common/ustring.h"

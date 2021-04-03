@@ -116,7 +116,12 @@ GuidDatabase guidDatabaseFromTreeRecursive(TreeModel * model, const UModelIndex 
         return db;
 
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         GuidDatabase tmpDb = guidDatabaseFromTreeRecursive(model, index.child(i, index.column()));
+#else
+        GuidDatabase tmpDb = guidDatabaseFromTreeRecursive(model, index.model()->index(i, index.column(), index));
+#endif
+
         db.insert(tmpDb.begin(), tmpDb.end());
     }
 

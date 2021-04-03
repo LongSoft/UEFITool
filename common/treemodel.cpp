@@ -43,7 +43,7 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
 Qt::ItemFlags TreeModel::flags(const UModelIndex &index) const
 {
     if (!index.isValid())
-        return 0;
+        return Qt::NoItemFlags;
 
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
@@ -559,9 +559,14 @@ UModelIndex TreeModel::findByBase(UINT32 base) const
 goDeeper:
     int n = rowCount(parentIndex);
     for (int i = 0; i < n; i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex currentIndex = parentIndex.child(i, 0);
+#else
+        UModelIndex currentIndex = parentIndex.model()->index(i, 0, parentIndex);
+#endif
+    
         UINT32 currentBase = this->base(currentIndex);
-        UINT32 fullSize = header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size();
+        UINT32 fullSize = (UINT32)(header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size());
         if ((compressed(currentIndex) == false || (compressed(currentIndex) == true && compressed(currentIndex.parent()) == false)) // Base is meaningful only for true uncompressed items
             && currentBase <= base && base < currentBase + fullSize) { // Base must be in range [currentBase, currentBase + fullSize)
             // Found a better candidate

@@ -16,8 +16,13 @@
 SearchDialog::SearchDialog(QWidget *parent) :
 QDialog(parent, Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint),
 ui(new Ui::SearchDialog),
+#if QT_VERSION_MAJOR >= 6
+hexValidator(QRegularExpression("([0-9a-fA-F\\. ])*")),
+guidValidator(QRegularExpression("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))
+#else
 hexValidator(QRegExp("([0-9a-fA-F\\. ])*")),
 guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{12}"))
+#endif
 {
     // Create UI
     ui->setupUi(this);

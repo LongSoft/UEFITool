@@ -15,7 +15,12 @@
 #define HEXSPINBOX_H
 
 #include <QSpinBox>
+
+#if QT_VERSION_MAJOR >= 6
+#include <QRegularExpressionValidator>
+#else
 #include <QRegExpValidator>
+#endif
 
 class HexSpinBox : public QSpinBox
 {
@@ -30,7 +35,11 @@ protected:
     QString textFromValue(int value) const;
 
 private:
+#if QT_VERSION_MAJOR >= 6
+    QRegularExpressionValidator validator;
+#else
     QRegExpValidator validator;
+#endif
 };
 
 #endif // HEXSPINBOX_H

@@ -408,7 +408,13 @@ QString QHexEdit::selectionToReadableString()
 void QHexEdit::setFont(const QFont &font)
 {
     QWidget::setFont(font);
+
+#ifdef _USE_DEPREACTED
     _pxCharWidth = fontMetrics().width(QLatin1Char('2'));
+#else
+    _pxCharWidth = fontMetrics().horizontalAdvance('2');
+#endif
+
     _pxCharHeight = fontMetrics().height();
     _pxGapAdr = _pxCharWidth / 2;
     _pxGapAdrHex = _pxCharWidth;
@@ -573,7 +579,7 @@ void QHexEdit::keyPressEvent(QKeyEvent *event)
         {
             QByteArray ba = _chunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
             for (qint64 idx = 32; idx < ba.size(); idx +=33)
-                ba.insert(idx, "\n");
+                ba.insert((int)idx, "\n");
             QClipboard *clipboard = QApplication::clipboard();
             clipboard->setText(ba);
             if (_overwriteMode)
@@ -596,7 +602,7 @@ void QHexEdit::keyPressEvent(QKeyEvent *event)
             QByteArray ba = QByteArray().fromHex(clipboard->text().toLatin1());
             if (_overwriteMode)
             {
-                ba = ba.left(std::min<qint64>(ba.size(), (_chunks->size() - _bPosCurrent)));
+                ba = ba.left((int)std::min<qint64>(ba.size(), (_chunks->size() - _bPosCurrent)));
                 replace(_bPosCurrent, ba.size(), ba);
             }
             else
@@ -746,7 +752,7 @@ void QHexEdit::keyPressEvent(QKeyEvent *event)
     {
         QByteArray ba = _chunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
         for (qint64 idx = 32; idx < ba.size(); idx += 33)
-            ba.insert(idx, "\n");
+            ba.insert((int)idx, "\n");
 		if(_upperCase)
 			ba = ba.toUpper();
         QClipboard *clipboard = QApplication::clipboard();
@@ -875,7 +881,7 @@ void QHexEdit::paintEvent(QPaintEvent *event)
                 else
                     r.setRect(pxPosX - _pxCharWidth, pxPosY - _pxCharHeight + _pxSelectionSub, 3*_pxCharWidth, _pxCharHeight);
                 painter.fillRect(r, c);
-                hex = _hexDataShown.mid((bPosLine + colIdx) * 2, 2);
+                hex = _hexDataShown.mid((int)((bPosLine + colIdx) * 2), 2);
 
                 // upper or lower case
                 if (_upperCase)
@@ -887,7 +893,7 @@ void QHexEdit::paintEvent(QPaintEvent *event)
                 // render ascii value
                 if (_asciiArea)
                 {
-                    int ch = (uchar)_dataShown.at(bPosLine + colIdx);
+                    int ch = (uchar)_dataShown.at((int)(bPosLine + colIdx));
                     if ( ch < 0x20 )
                         ch = '.';
                     r.setRect(pxPosAsciiX2, pxPosY - _pxCharHeight + _pxSelectionSub, _pxCharWidth, _pxCharHeight);
@@ -977,12 +983,12 @@ void QHexEdit::setSelection(qint64 pos)
 
 int QHexEdit::getSelectionBegin()
 {
-    return _bSelectionBegin;
+    return (int)_bSelectionBegin;
 }
 
 int QHexEdit::getSelectionEnd()
 {
-    return _bSelectionEnd;
+    return (int)_bSelectionEnd;
 }
 
 // ********************************************************************** Private utility functions

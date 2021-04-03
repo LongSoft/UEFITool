@@ -123,7 +123,10 @@ rm -rf dist
 mkdir -p dist || exit 1
 
 build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
-build_tool UEFIExtract "$UEFITOOL_VER"  ""
-build_tool UEFIFind    "$UEFITOOL_VER"  ""
+# FIXME: cmake does not let overriding CC after generating files.
+if [ "$COVERITY_SCAN_TOKEN" = "" ]; then
+  build_tool UEFIExtract "$UEFITOOL_VER"  ""
+  build_tool UEFIFind    "$UEFITOOL_VER"  ""
+fi
 
 exit 0

@@ -102,7 +102,7 @@ UString uniqueItemName(const UModelIndex & index)
         '<', '>', ':', '\"', '\\', '|', '?', '*', // Banned in Windows
         ' ' // Provides better readability
     };
-    int nameLength = name.length(); // Note: Qt uses int for whatever reason.
+    int nameLength = (int)name.length(); // Note: Qt uses int for whatever reason.
     for (int i = 0; i < nameLength; i++) {
         for (size_t j = 0; j < sizeof(table); j++) {
             if (name[i] == table[j]) {
@@ -200,7 +200,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
 
         // Get buffer sizes
         data = (UINT8*)compressedData.data();
-        dataSize = compressedData.size();
+        dataSize = (UINT32)compressedData.size();
 
         // Check header to be valid
         header = (const EFI_TIANO_HEADER*)data;
@@ -260,7 +260,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
 
         // Get buffer sizes
         data = (const UINT8*)compressedData.constData();
-        dataSize = compressedData.size();
+        dataSize = (UINT32)compressedData.size();
 
         // Get info as normal LZMA section
         if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
@@ -305,7 +305,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
 
         // Get buffer sizes
         data = (const UINT8*)compressedData.constData();
-        dataSize = compressedData.size();
+        dataSize = (UINT32)compressedData.size();
 
         // Get info as normal LZMA section
         if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
@@ -498,7 +498,7 @@ USTATUS gzipDecompress(const UByteArray & input, UByteArray & output)
 
     z_stream stream;
     stream.next_in = (z_const Bytef *)input.data();
-    stream.avail_in = input.size();
+    stream.avail_in = (uInt)input.size();
     stream.zalloc = Z_NULL;
     stream.zfree = Z_NULL;
     stream.opaque = Z_NULL;

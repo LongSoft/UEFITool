@@ -15,7 +15,11 @@
 #include <QDebug>
 
 HexSpinBox::HexSpinBox(QWidget *parent) :
+#if QT_VERSION_MAJOR >= 6
+QSpinBox(parent), validator(QRegularExpression("0x([0-9a-fA-F]){1,8}"))
+#else
 QSpinBox(parent), validator(QRegExp("0x([0-9a-fA-F]){1,8}"))
+#endif
 {
     this->setRange(INT_MIN, INT_MAX);
     this->setPrefix("0x");

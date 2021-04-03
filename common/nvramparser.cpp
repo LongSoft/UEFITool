@@ -45,7 +45,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
     }
 
     // Get local offset
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -121,7 +121,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 guidArea.size(), guidArea.size(),
                 guidsInStore);
             // Add tree item
-            model->addItem(localOffset + offset + padding.size(), Types::Padding, getPaddingType(guidArea), name, UString(), info, UByteArray(), guidArea, UByteArray(), Fixed, index);
+            model->addItem((UINT32)(localOffset + offset + padding.size()), Types::Padding, getPaddingType(guidArea), name, UString(), info, UByteArray(), guidArea, UByteArray(), Fixed, index);
 
             return U_SUCCESS;
         }
@@ -230,7 +230,12 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             // Search previously added entries for a link to this variable
             // WARNING: O(n^2), may be very slow
             for (int i = model->rowCount(index) - 1; i >= 0; i--) {
+#ifdef _USE_DEPRECATED
                 nvarIndex = index.child(i, 0);
+#else
+                nvarIndex = index.model()->index(i, 0, index);
+#endif
+
                 if (model->hasEmptyParsingData(nvarIndex) == false) {
                     UByteArray nvarData = model->parsingData(nvarIndex);
                     const NVAR_ENTRY_PARSING_DATA nvarPdata = readUnaligned((const NVAR_ENTRY_PARSING_DATA*)nvarData.constData());
@@ -261,11 +266,16 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             UINT32 nameSize = 0;
             if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_ASCII_NAME) { // Name is stored as ASCII string of CHAR8s
                 text = UString(namePtr);
-                nameSize = text.length() + 1;
+                nameSize = (UINT32)(text.length() + 1);
             }
             else { // Name is stored as UCS2 string of CHAR16s
+#if QT_VERSION_MAJOR >= 6
+                text = UString::fromUtf16((char16_t*)namePtr);
+#else
                 text = UString::fromUtf16((CHAR16*)namePtr);
-                nameSize = (text.length() + 1) * 2;
+#endif
+
+                nameSize = (UINT32)((text.length() + 1) * 2);
             }
 
             // Get entry GUID
@@ -388,7 +398,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
     }
 
     // Get local offset
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
 
     // Get item data
     UByteArray data = model->body(index);
@@ -455,7 +465,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
             // Update variables
             prevStoreOffset = storeOffset;
-            prevStoreSize = padding.size();
+            prevStoreSize = (UINT32)padding.size();
             break;
         }
 
@@ -497,7 +507,12 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex current = index.child(i, 0);
+#else
+        UModelIndex current = index.model()->index(i, 0, index);
+#endif
+
         switch (model->type(current)) {
         case Types::FdcStore:
             parseFdcStoreBody(current);
@@ -528,7 +543,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
 USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray & volume, const UINT32 localOffset, const UINT32 storeOffset, UINT32 & nextStoreOffset)
 {
-    UINT32 dataSize = volume.size();
+    UINT32 dataSize = (UINT32)volume.size();
 
     if (dataSize < sizeof(UINT32))
         return U_STORES_NOT_FOUND;
@@ -1286,7 +1301,7 @@ USTATUS NvramParser::parseFdcStoreBody(const UModelIndex & index)
     const UByteArray data = model->body(index);
 
     // Get local offset
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
 
     // The body is a firmware volume with either a VSS or VSS2 store
     UModelIndex volumeIndex;
@@ -1300,14 +1315,14 @@ USTATUS NvramParser::parseFdcStoreBody(const UModelIndex & index)
     UByteArray store = model->body(volumeIndex);
     if ((UINT32)store.size() >= sizeof(UINT32) && *(const UINT32*)store.constData() == NVRAM_VSS_STORE_SIGNATURE) {
         UModelIndex vssIndex;
-        status = parseVssStoreHeader(store, localOffset + model->header(volumeIndex).size(), true, volumeIndex, vssIndex);
+        status = parseVssStoreHeader(store, (UINT32)(localOffset + model->header(volumeIndex).size()), true, volumeIndex, vssIndex);
         if (status)
             return status;
         return parseVssStoreBody(vssIndex, 0);
     }
     else if ((UINT32)store.size() >= sizeof(EFI_GUID) && store.left(sizeof(EFI_GUID)) == NVRAM_FDC_STORE_GUID) {
         UModelIndex vss2Index;
-        status = parseVss2StoreHeader(store, localOffset + model->header(volumeIndex).size(), true, volumeIndex, vss2Index);
+        status = parseVss2StoreHeader(store, (UINT32)(localOffset + model->header(volumeIndex).size()), true, volumeIndex, vss2Index);
         if (status)
             return status;
         return parseVssStoreBody(vss2Index, 0);
@@ -1335,7 +1350,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
     }
 
     // Get local offset
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -1396,7 +1411,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
 
                     // Calculate CRC32 of the variable data
                     storedCrc32 = appleVariableHeader->DataCrc32;
-                    calculatedCrc32 = (UINT32)crc32(0, (const UINT8*)body.constData(), body.size());
+                    calculatedCrc32 = (UINT32)crc32(0, (const UINT8*)body.constData(), (uInt)body.size());
                 }
             }
 
@@ -1501,7 +1516,12 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         else { // Add GUID and text for valid variables
             name = guidToUString(readUnaligned(variableGuid));
             info += UString("Variable GUID: ") + guidToUString(readUnaligned(variableGuid), false) + UString("\n");
+
+#if QT_VERSION_MAJOR >= 6
+            text = UString::fromUtf16((char16_t *)variableName);
+#else
             text = UString::fromUtf16(variableName);
+#endif
         }
 
         // Add info
@@ -1555,7 +1575,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
 
     // Get local offset
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -1658,7 +1678,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
     }
 
     // Get local offset
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
 
     // Get item data
     const UByteArray data = model->body(index);
@@ -1732,7 +1752,13 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             const EVSA_NAME_ENTRY* nameHeader = (const EVSA_NAME_ENTRY*)entryHeader;
             header = data.mid(offset, sizeof(EVSA_NAME_ENTRY));
             body = data.mid(offset + sizeof(EVSA_NAME_ENTRY), nameHeader->Header.Size - sizeof(EVSA_NAME_ENTRY));
+
+#if QT_VERSION_MAJOR >= 6
+            name = UString::fromUtf16((const char16_t *)body.constData());
+#else
             name = UString::fromUtf16((const CHAR16*)body.constData());
+#endif
+
             info = UString("Name: ") + name + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
                 variableSize, variableSize,
                 header.size(), header.size(),
@@ -1805,7 +1831,12 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
     // Reparse all data variables to detect invalid ones and assign name and test to valid ones
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         UModelIndex current = index.child(i, 0);
+#else
+        UModelIndex current = index.model()->index(i, 0, index);
+#endif
+
         if (model->subtype(current) == Subtypes::DataEvsaEntry) {
             UByteArray header = model->header(current);
             const EVSA_DATA_ENTRY* dataHeader = (const EVSA_DATA_ENTRY*)header.constData();
@@ -1857,7 +1888,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
 
     // Get parsing data for the current item
-    UINT32 localOffset = model->header(index).size();
+    UINT32 localOffset = (UINT32)model->header(index).size();
     const UByteArray data = model->body(index);
 
 

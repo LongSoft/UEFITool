@@ -49,7 +49,7 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
     
     // Calculate item CRC32
     UByteArray data = model->header(index) + model->body(index) + model->tail(index);
-    UINT32 crc = (UINT32)crc32(0, (const UINT8*)data.constData(), data.size());
+    UINT32 crc = (UINT32)crc32(0, (const UINT8*)data.constData(), (uInt)data.size());
 
     // Information on current item
     UString text = model->text(index);
@@ -68,7 +68,11 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
 
     // Information on child items
     for (int i = 0; i < model->rowCount(index); i++) {
+#ifdef _USE_DEPRECATED
         generateRecursive(report, index.child(i,0), level + 1);
+#else
+        generateRecursive(report, index.model()->index(i,0,index), level + 1);
+#endif
     }
 
     return U_SUCCESS;

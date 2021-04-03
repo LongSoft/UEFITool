@@ -19,7 +19,7 @@ UString usprintf(const char* fmt, ...)
     UString msg;
     va_list vl;
     va_start(vl, fmt);
-    msg.vsprintf(fmt, vl);
+    msg = msg.vasprintf(fmt, vl);
     va_end(vl);
     return msg;
 };

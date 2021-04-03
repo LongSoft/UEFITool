@@ -35,7 +35,9 @@ enum ItemFixedState {
 #include "types.h"
 #include "treeitem.h"
 
+#ifndef UModelIndex
 #define UModelIndex QModelIndex
+#endif
 #else
 // Use own implementation 
 #include "ustring.h"
@@ -86,7 +88,7 @@ private:
 #if defined(QT_CORE_LIB)
 class TreeModel : public QAbstractItemModel
 {
-    Q_OBJECT
+    //Q_OBJECT
 private:
     TreeItem *rootItem;
     bool markingEnabledFlag;
