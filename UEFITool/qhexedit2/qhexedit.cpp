@@ -409,7 +409,7 @@ void QHexEdit::setFont(const QFont &font)
 {
     QWidget::setFont(font);
 
-#ifdef _USE_DEPREACTED
+#if (QT_VERSION_MINOR <= 6) && (QT_VERSION_MAJOR == 6)
     _pxCharWidth = fontMetrics().width(QLatin1Char('2'));
 #else
     _pxCharWidth = fontMetrics().horizontalAdvance('2');
