@@ -35,9 +35,7 @@ enum ItemFixedState {
 #include "types.h"
 #include "treeitem.h"
 
-#ifndef UModelIndex
 #define UModelIndex QModelIndex
-#endif
 #else
 // Use own implementation 
 #include "ustring.h"
