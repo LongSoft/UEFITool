@@ -29,7 +29,12 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         findHexPattern(index.child(i, index.column()), hexPattern, mode);
+#else
+        findHexPattern(index.model()->index(i, index.column(), index), hexPattern, mode);
+#endif
+
     }
 
     UByteArray data;
@@ -49,9 +54,22 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
     }
 
     UString hexBody = UString(data.toHex());
+#if QT_VERSION_MAJOR >= 6
+    QRegularExpression regexp = QRegularExpression(UString(hexPattern));
+    regexp.setPatternOptions((QRegularExpression::PatternOptions)0x1);
+    QRegularExpressionMatch regexpmatch;
+
+    INT32 offset = 0;
+    while ((offset = (INT32)hexBody.indexOf(regexp, (qsizetype)offset, &regexpmatch)) != -1)
+    {
+#else
     QRegExp regexp = QRegExp(UString(hexPattern), Qt::CaseInsensitive);
+
     INT32 offset = regexp.indexIn(hexBody);
+
     while (offset >= 0) {
+#endif
+
         if (offset % 2 == 0) {
             // For patterns that cross header|body boundary, skip patterns entirely located in body, since
             // children search above has already found them.
@@ -64,7 +82,12 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
                     index);
             }
         }
+
+#if QT_VERSION_MAJOR >= 6
+        offset += 1;
+#else
         offset = regexp.indexIn(hexBody, offset + 1);
+#endif
     }
 
     return U_SUCCESS;
@@ -80,7 +103,11 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         findGuidPattern(index.child(i, index.column()), guidPattern, mode);
+#else
+        findGuidPattern(index.model()->index(i, index.column(), index), guidPattern, mode);
+#endif
     }
 
     UByteArray data;
@@ -121,8 +148,19 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
     if (hexPattern.count('.') == hexPattern.length())
         return U_SUCCESS;
 
+#if QT_VERSION_MAJOR >= 6
+    QRegularExpression regexp((QString)UString(hexPattern));
+    regexp.setPatternOptions((QRegularExpression::PatternOptions)0x1);
+    QRegularExpressionMatch regexpmatch;
+
+    INT32 offset = 0;
+    offset = (INT32)hexBody.indexOf(regexp, (qsizetype)offset, &regexpmatch);
+#else
     QRegExp regexp(UString(hexPattern), Qt::CaseInsensitive);
+
     INT32 offset = regexp.indexIn(hexBody);
+#endif
+
     while (offset >= 0) {
         if (offset % 2 == 0) {
             msg(UString("GUID pattern \"") + UString(guidPattern)
@@ -132,7 +170,12 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
                 + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                 index);
         }
+
+#if QT_VERSION_MAJOR >= 6
+        offset = (INT32)hexBody.indexOf(regexp, (qsizetype)offset + 1, &regexpmatch);
+#else
         offset = regexp.indexIn(hexBody, offset + 1);
+#endif
     }
 
     return U_SUCCESS;
@@ -148,7 +191,11 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
         findTextPattern(index.child(i, index.column()), pattern, mode, unicode, caseSensitive);
+#else
+        findTextPattern(index.model()->index(i, index.column(), index), pattern, mode, unicode, caseSensitive);
+#endif
     }
 
     UByteArray body;
@@ -167,12 +214,16 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
 
     UString data;
     if (unicode)
-        data = UString::fromUtf16((const ushort*)body.constData(), body.length() / 2);
+#if QT_VERSION_MAJOR >= 6
+        data = UString::fromUtf16((const char16_t*)body.constData(), (int)(body.length() / 2));
+#else
+        data = UString::fromUtf16((const ushort*)body.constData(), (int)(body.length() / 2));
+#endif
     else
         data = UString::fromLatin1((const char*)body.constData(), body.length());
 
     int offset = -1;
-    while ((offset = data.indexOf(pattern, offset + 1, caseSensitive)) >= 0) {
+    while ((offset = (int)data.indexOf(pattern, (int)(offset + 1), caseSensitive)) >= 0) {
 
         msg((unicode ? UString("Unicode") : UString("ASCII")) + UString(" text \"") + UString(pattern)
             + UString("\" in ") + model->name(model->parent(index))

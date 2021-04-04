@@ -390,7 +390,12 @@ void UEFITool::goToData()
         }
 
         for (int j = i + 1; j < model->rowCount(parent); j++) {
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
             QModelIndex currentIndex = parent.child(j, 0);
+#else
+            QModelIndex currentIndex = parent.model()->index(j, 0, parent);
+#endif
+
             if (model->hasEmptyParsingData(currentIndex))
                 continue;
 
@@ -788,8 +793,14 @@ void UEFITool::showParserMessages()
         return;
 
     std::vector<std::pair<QString, QModelIndex> > messages = ffsParser->getMessages();
+
+#if QT_VERSION_MAJOR < 6
     std::pair<QString, QModelIndex> msg;
+    
     foreach (msg, messages) {
+#else
+    for (const auto &msg : messages) {
+#endif
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
         ui->parserMessagesListWidget->addItem(item);
@@ -806,8 +817,14 @@ void UEFITool::showFinderMessages()
         return;
 
     std::vector<std::pair<QString, QModelIndex> > messages = ffsFinder->getMessages();
+
+#if QT_VERSION_MAJOR < 6
     std::pair<QString, QModelIndex> msg;
+
     foreach (msg, messages) {
+#else
+    for (const auto &msg : messages) {
+#endif
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));;
         ui->finderMessagesListWidget->addItem(item);
@@ -825,8 +842,14 @@ void UEFITool::showBuilderMessages()
         return;
 
     std::vector<std::pair<QString, QModelIndex> > messages = ffsBuilder->getMessages();
+
+#if QT_VERSION_MAJOR < 6
     std::pair<QString, QModelIndex> msg;
+
     foreach (msg, messages) {
+#else
+    for (const auto &msg : messages) {
+#endif
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
         ui->builderMessagesListWidget->addItem(item);

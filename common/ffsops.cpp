@@ -44,8 +44,13 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
         extracted.clear();
         // There is no need to redo decompression, we can use child items
         for (int i = 0; i < model->rowCount(index); i++) {
-             UModelIndex childIndex = index.child(i, 0);
-             // Ensure 4-byte alignment of current section
+#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
+            UModelIndex childIndex = index.child(i, 0);
+#else
+            UModelIndex childIndex = index.model()->index(i, 0, index);
+#endif
+            
+            // Ensure 4-byte alignment of current section
              extracted += UByteArray(ALIGN4((UINT32)extracted.size()) - (UINT32)extracted.size(), '\x00');
              // Add current section header, body and tail
              extracted += model->header(childIndex);

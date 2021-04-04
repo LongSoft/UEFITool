@@ -109,8 +109,8 @@ static void sha256_compress(struct sha256_state *md, unsigned char *buf)
     }
     /* Compress */
 #define RND(a,b,c,d,e,f,g,h,i)                          \
-t0 = h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i];	\
-t1 = Sigma0(a) + Maj(a, b, c);			\
+t0 = (uint32_t)(h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i]);	\
+t1 = (uint32_t)(Sigma0(a) + Maj(a, b, c));			\
 d += t0;					\
 h  = t0 + t1;
     for (i = 0; i < 64; ++i) {

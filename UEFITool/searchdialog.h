@@ -15,7 +15,13 @@
 #define SEARCHDIALOG_H
 
 #include <QDialog>
+
+#if QT_VERSION_MAJOR >= 6
+#include <QRegularExpressionValidator>
+#else
 #include <QRegExpValidator>
+#endif
+
 #include "ui_searchdialog.h"
 
 class SearchDialog : public QDialog
@@ -31,8 +37,13 @@ private slots:
     void setEditFocus(int index);
 
 private:
+#if QT_VERSION_MAJOR >= 6
+    QRegularExpressionValidator hexValidator;
+    QRegularExpressionValidator guidValidator;
+#else
     QRegExpValidator hexValidator;
     QRegExpValidator guidValidator;
+#endif
 };
 
 #endif // SEARCHDIALOG_H
