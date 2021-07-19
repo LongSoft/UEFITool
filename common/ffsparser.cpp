@@ -3377,11 +3377,11 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
         if (address <= 0xFFFFFFFFUL) {
             UINT32 headerSize = (UINT32)model->header(index).size();
             if (headerSize) {
-                model->addInfo(index, usprintf("Data address: %08Xh\n", address + headerSize),false);
-                model->addInfo(index, usprintf("Header address: %08Xh\n", address), false);
+                model->addInfo(index, usprintf("Data address: %08llXh\n", address + headerSize),false);
+                model->addInfo(index, usprintf("Header address: %08llXh\n", address), false);
             }
             else {
-                model->addInfo(index, usprintf("Address: %08Xh\n", address), false);
+                model->addInfo(index, usprintf("Address: %08llXh\n", address), false);
             }
         }
         // Add base
@@ -3863,7 +3863,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
 
         // Add entry to fitTable
         currentStrings.push_back(usprintf("%016" PRIX64 "h", currentEntry->Address));
-        currentStrings.push_back(usprintf("%08Xh", currentEntrySize, currentEntrySize));
+        currentStrings.push_back(usprintf("%08Xh", currentEntrySize));
         currentStrings.push_back(usprintf("%04Xh", currentEntry->Version));
         currentStrings.push_back(usprintf("%02Xh", currentEntry->Checksum));
         currentStrings.push_back(fitEntryTypeToUString(currentEntry->Type));
@@ -3988,12 +3988,12 @@ USTATUS FfsParser::parseFitEntryAcm(const UByteArray & acm, const UINT32 localOf
     // Add ACM header info
     UString acmInfo;
     acmInfo += usprintf(" found at base %Xh\n"
-                        "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08Xh\n"
+                        "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08lXh\n"
                         "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
-                        "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08Xh\n"
+                        "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08lXh\n"
                         "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
                         "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
-                        "SegSel: %08Xh         KeySize: %08Xh       Unknown3: %08Xh",
+                        "SegSel: %08Xh         KeySize: %08lXh       Unknown3: %08lXh",
                         model->base(parent) + localOffset,
                         header->ModuleType,
                         header->ModuleSubtype,
@@ -4197,7 +4197,7 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
             securityInfo += usprintf(
                                       "\nInitial Boot Block Element found at base %Xh\n"
                                       "Tag: __IBBS__       Version: %02Xh         Unknown: %02Xh\n"
-                                      "Flags: %08Xh    IbbMchBar: %08Xh VtdBar: %08Xh\n"
+                                      "Flags: %08Xh    IbbMchBar: %08llXh VtdBar: %08llXh\n"
                                       "PmrlBase: %08Xh PmrlLimit: %08Xh  EntryPoint: %08Xh",
                                       model->base(parent) + localOffset + elementOffset,
                                       elementHeader->Version,
@@ -4558,7 +4558,7 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
 
         // Get info
         name = bpdtEntryTypeToUString(ptEntry->Type);
-        info = usprintf("Full size: %Xh (%u)\nType: %Xh\nPartition offset: %Xh\nPartition length: %Xh",
+        info = usprintf("Full size: %lXh (%lu)\nType: %Xh\nPartition offset: %Xh\nPartition length: %Xh",
                         sizeof(BPDT_ENTRY), sizeof(BPDT_ENTRY),
                         ptEntry->Type,
                         ptEntry->Offset,
@@ -4997,8 +4997,8 @@ make_partition_table_consistent:
                         UByteArray body = partition.mid(header.size());
 
                         info += usprintf(
-                                         "\nHeader type: %u\nHeader length: %Xh (%u)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
-                                         "Date: %Xh\nSize: %Xh (%u)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %Xh (%u)\nExponent size: %Xh (%u)",
+                                         "\nHeader type: %u\nHeader length: %lXh (%lu)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
+                                         "Date: %Xh\nSize: %lXh (%lu)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %lXh (%lu)\nExponent size: %lXh (%lu)",
                                          manifestHeader->HeaderType,
                                          manifestHeader->HeaderLength * sizeof(UINT32), manifestHeader->HeaderLength * sizeof(UINT32),
                                          manifestHeader->HeaderVersion,
@@ -5119,7 +5119,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
 
                 info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
                                 "Package name: %c%c%c%c\nVersion control number: %Xh\nSecurity version number: %Xh\n"
-                                "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                                "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
                                 partition.size(), partition.size(),
                                 header.size(), header.size(),
                                 body.size(), body.size(),
