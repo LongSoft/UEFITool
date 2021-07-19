@@ -238,6 +238,7 @@ UEFITool.app/
 UEFITool/XCBuildData
 UEFIDump/UEFIDump
 UEFIExtract/UEFIExtract
+UEFIExtract/guids.csv
 UEFIFind/UEFIFind
 .qmake.stash
 CMakeCache.txt
