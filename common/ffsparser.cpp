@@ -5144,7 +5144,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
 
                 // This hash is stored reversed
                 // Need to reverse it back to normal
-                UByteArray hash((const char*)&attrHeader->CompletePartitionHash, sizeof(attrHeader->CompletePartitionHash));
+                UByteArray hash((const char*)&attrHeader->CompletePartitionHash, attrHeader->HashSize);
                 std::reverse(hash.begin(), hash.end());
 
                 info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
@@ -5171,14 +5171,19 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
 
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
+                if (sizeof (attrHeader->CompletePartitionHash) != attrHeader->HashSize) {
+                    msg(usprintf("%s: IFWI Partition Manifest hash size is %d, expected %lu", __FUNCTION__, attrHeader->HashSize, sizeof (attrHeader->CompletePartitionHash)), extIndex);
+                }
             }
             // Parse Module Attributes a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
                 const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)partition.constData();
 
+                int hashSize = partition.size() - offsetof(CPD_EXT_MODULE_ATTRIBUTES, ImageHash);
+
                 // This hash is stored reversed
                 // Need to reverse it back to normal
-                UByteArray hash((const char*)&attrHeader->ImageHash, sizeof(attrHeader->ImageHash));
+                UByteArray hash((const char*)&attrHeader->ImageHash, hashSize);
                 std::reverse(hash.begin(), hash.end());
 
                 info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
@@ -5192,6 +5197,9 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
 
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
+                if (hashSize != sizeof (attrHeader->ImageHash)) {
+                    msg(usprintf("%s: Module Attributes hash size is %d, expected %lu", __FUNCTION__, hashSize, sizeof (attrHeader->ImageHash)), extIndex);
+                }
             }
             // Parse everything else
             else {
@@ -5223,13 +5231,13 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
     while (offset < (UINT32)body.size()) {
         const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
         if (sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) <= ((UINT32)body.size() - offset)) {
-            UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE));
+            UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) - sizeof (moduleHeader->MetadataHash) + moduleHeader->HashSize);
 
             UString name = usprintf("%.12s", moduleHeader->Name);
 
             // This hash is stored reversed
             // Need to reverse it back to normal
-            UByteArray hash((const char*)&moduleHeader->MetadataHash, sizeof(moduleHeader->MetadataHash));
+            UByteArray hash((const char*)&moduleHeader->MetadataHash, moduleHeader->HashSize);
             std::reverse(hash.begin(), hash.end());
 
             UString info = usprintf("Full size: %X (%u)\nType: %Xh\nHash algorithm: %Xh\nHash size: %Xh (%u)\nMetadata size: %Xh (%u)\nMetadata hash: ",
@@ -5239,7 +5247,10 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
                                     moduleHeader->HashSize, moduleHeader->HashSize,
                                     moduleHeader->MetadataSize, moduleHeader->MetadataSize) + UString(hash.toHex().constData());
             // Add tree otem
-            model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
+            UModelIndex extIndex = model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
+            if (sizeof (moduleHeader->MetadataHash) != moduleHeader->HashSize) {
+                msg(usprintf("%s: CPD Signed Package Info hash size is %d, expected %lu", __FUNCTION__, moduleHeader->HashSize, sizeof (moduleHeader->MetadataHash)), extIndex);
+            }
 
             offset += module.size();
         }
