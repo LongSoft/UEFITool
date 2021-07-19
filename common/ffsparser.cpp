@@ -26,7 +26,6 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "me.h"
 #include "fit.h"
 #include "nvram.h"
-#include "utility.h"
 #include "peimage.h"
 #include "parsingdata.h"
 #include "types.h"
