@@ -107,6 +107,7 @@ UString uniqueItemName(const UModelIndex & index)
         for (size_t j = 0; j < sizeof(table); j++) {
             if (name[i] == table[j]) {
                 name[i] = '_';
+                break;
             }
         }
     }
