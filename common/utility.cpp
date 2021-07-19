@@ -107,6 +107,7 @@ UString uniqueItemName(const UModelIndex & index)
         for (size_t j = 0; j < sizeof(table); j++) {
             if (name[i] == table[j]) {
                 name[i] = '_';
+                break;
             }
         }
     }
@@ -168,7 +169,7 @@ UString errorCodeToUString(USTATUS errorCode)
     case U_INVALID_CAPSULE:                 return UString("Invalid capsule");
     case U_STORES_NOT_FOUND:                return UString("Stores not found");
     case U_INVALID_STORE_SIZE:              return UString("Invalid store size");
-    default:                                return usprintf("Unknown error %02X", errorCode);
+    default:                                return usprintf("Unknown error %02lX", errorCode);
     }
 }
 

@@ -123,8 +123,10 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
             name = orgName + UString("_") + usprintf("%03d", i);
         }
 
-        if (!nameFound)
+        if (!nameFound) {
+            fprintf(stdout, "Can't find unique name for %s\n", (const char*)orgName.toLocal8Bit());
             return U_INVALID_PARAMETER; //TODO: replace with proper errorCode
+        }
 
         // Add header and body only for leaf sections
         if (model.rowCount(index) == 0) {

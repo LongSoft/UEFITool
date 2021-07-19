@@ -633,7 +633,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             else if (ftwHeader->WriteQueueSize % 0x10 == 0x00) { // Header with 64 bit WriteQueueSize
                 const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)currentPos;
                 if (ftw64Header->WriteQueueSize == 0 || ftw64Header->WriteQueueSize >= 0xFFFFFFFF) {
-                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %Xh", __FUNCTION__, localOffset + offset, ftw64Header->WriteQueueSize), index);
+                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %llXh", __FUNCTION__, localOffset + offset, ftw64Header->WriteQueueSize), index);
                     continue;
                 }
             }
@@ -1025,7 +1025,8 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
         header.size(), header.size(),
         body.size(), body.size(),
         fsysStoreHeader->Unknown0,
-        fsysStoreHeader->Unknown1)
+        fsysStoreHeader->Unknown1,
+        storedCrc)
         + (storedCrc != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
 
     // Add tree item
@@ -1071,7 +1072,7 @@ USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32
         evsaStoreHeader->Header.Type,
         evsaStoreHeader->Attributes,
         evsaStoreHeader->Header.Checksum) +
-        (evsaStoreHeader->Header.Checksum != calculated ? usprintf("%, invalid, should be %02Xh", calculated) : UString(", valid"));
+        (evsaStoreHeader->Header.Checksum != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"));
 
     // Add tree item
     index = model->addItem(localOffset, Types::EvsaStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
@@ -1923,7 +1924,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         // Add info
         UString info = UString("Entry GUID: ") + guidToUString(entryHeader->Guid, false) +
             usprintf("\nFull size: 24h (36)\nHeader size: 24h (36)\nBody size: 0h (0)\n"
-                "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08Xh\nSize: %08Xh\nOffset: %08Xh",
+                "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08llXh\nSize: %08Xh\nOffset: %08Xh",
                 entryHeader->EntryType,
                 entryHeader->DataType,
                 entryHeader->PhysicalAddress,

@@ -173,7 +173,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         
         // Get info
         name = visibleAsciiOrHex((UINT8*)ptEntry->Name, 4);
-        info = usprintf("Full size: %Xh (%u)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
+        info = usprintf("Full size: %lXh (%lu)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
                         sizeof(FPT_HEADER_ENTRY), sizeof(FPT_HEADER_ENTRY),
                         ptEntry->Offset,
                         ptEntry->Size,
@@ -325,7 +325,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             "Boot3 partition offset: %Xh\nBoot3 partition size:   %Xh\n"
                             "Boot4 partition offset: %Xh\nBoot4 partition size:   %Xh\n"
                             "Boot5 partition offset: %Xh\nBoot5 partition size:   %Xh\n"
-                            "Checksum: %Xh",
+                            "Checksum: %llXh",
                             header.size(), header.size(),
                             ifwiHeader->DataPartition.Offset, ifwiHeader->DataPartition.Size,
                             ifwiHeader->BootPartition[0].Offset, ifwiHeader->BootPartition[0].Size,

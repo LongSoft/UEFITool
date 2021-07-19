@@ -75,6 +75,12 @@
 
 #endif
 
+#if defined(_MSC_VER)
+#define _ATTRIBUTE_FORMAT_(t,f,a)
+#else
+#define _ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#endif
+
 namespace Bstrlib {
 
 #ifdef BSTRLIB_THROWS_EXCEPTIONS
@@ -331,8 +337,8 @@ struct CBString : public tagbstring {
 	void trunc (int len);
 
 	// Miscellaneous methods.
-	void format (const char * fmt, ...);
-	void formata (const char * fmt, ...);
+	void format (const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
+	void formata (const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
 	void fill (int length, unsigned char fill = ' ');
 	void repeat (int count);
 	void ltrim (const CBString& b = CBString (bsStaticBlkParms (" \t\v\f\r\n")));
@@ -364,10 +370,13 @@ struct CBString : public tagbstring {
 	// QString compatibility methods
 	const char *toLocal8Bit() const { return *this; }
 	bool contains(const char *str) { return find(str) >= 0; }
+	bool endsWith(const char *str) { int len = strlen(str); return (slen >= len && (find(str, slen - len) == (slen - len))); }
 	bool isEmpty() const { return slen == 0; }
 	void clear() { *this = ""; }
 	CBString left(int len) const { return midstr(0, len); }
 	CBString mid(int pos, int len) const { return midstr(pos, len); }
+	CBString chopped(int len) const { return midstr(slen - len, len); }
+	void chop(int len) { trunc(((slen > len) ? slen - len : 0)); }
 	static CBString fromUtf16(const unsigned short* str) {
 		// Naive implementation assuming that only ASCII LE part of UCS2 is used, str may not be aligned.
 		CBString msg;
