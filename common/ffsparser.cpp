@@ -66,6 +66,7 @@ struct BPDT_PARTITION_INFO {
 struct CPD_PARTITION_INFO {
     CPD_ENTRY ptEntry;
     UINT8 type;
+    bool hasMetaData;
     UModelIndex index;
     friend bool operator< (const CPD_PARTITION_INFO & lhs, const CPD_PARTITION_INFO & rhs){ return lhs.ptEntry.Offset.Offset < rhs.ptEntry.Offset.Offset; }
 };
@@ -4810,6 +4811,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
             partition.type = Types::CpdPartition;
             partition.ptEntry = *cpdEntry;
             partition.index = entryIndex;
+            partition.hasMetaData = false;
             partitions.push_back(partition);
         }
     }
@@ -4882,6 +4884,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
                                  partitions[j].ptEntry.Length, length), partitions[j].index);
                     partitions[j].ptEntry.Length = length; // Believe metadata
                 }
+                partitions[j].hasMetaData = true;
                 // No need to search further
                 break;
             }
@@ -4925,13 +4928,27 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
             else {
-                msg(usprintf("%s: CPD partition can't fit into it's region, truncated", __FUNCTION__), partitions[i].index);
+                if (!partitions[i].hasMetaData && partitions[i].ptEntry.Offset.HuffmanCompressed) {
+                    msg(usprintf("%s: CPD partition is compressed but doesn't have metadata and can't fit into its region, length adjusted", __FUNCTION__),
+                        partitions[i].index);
+                }
+                else {
+                    msg(usprintf("%s: CPD partition can't fit into its region, truncated", __FUNCTION__), partitions[i].index);
+                }
                 partitions[i].ptEntry.Length = (UINT32)region.size() - (UINT32)partitions[i].ptEntry.Offset.Offset;
             }
         }
 
         // Check for intersection with previous partition
         if (partitions[i].ptEntry.Offset.Offset < previousPartitionEnd) {
+            // Check if previous partition was compressed but did not have metadata
+            if (!partitions[i - 1].hasMetaData && partitions[i - 1].ptEntry.Offset.HuffmanCompressed) {
+                msg(usprintf("%s: CPD partition is compressed but doesn't have metadata, length adjusted", __FUNCTION__),
+                    partitions[i - 1].index);
+                partitions[i - 1].ptEntry.Length = (UINT32)partitions[i].ptEntry.Offset.Offset - (UINT32)partitions[i - 1].ptEntry.Offset.Offset;
+                goto make_partition_table_consistent;
+            }
+        
             // Check if current partition is located inside previous one
             if (partitions[i].ptEntry.Offset.Offset + partitions[i].ptEntry.Length <= previousPartitionEnd) {
                 msg(usprintf("%s: CPD partition is located inside another CPD partition, skipped", __FUNCTION__),
