@@ -4791,10 +4791,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         UByteArray entry((const char*)cpdEntry, sizeof(CPD_ENTRY));
 
         // Get info
-        name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
-                        cpdEntry->EntryName[0], cpdEntry->EntryName[1], cpdEntry->EntryName[2], cpdEntry->EntryName[3],
-                        cpdEntry->EntryName[4], cpdEntry->EntryName[5], cpdEntry->EntryName[6], cpdEntry->EntryName[7],
-                        cpdEntry->EntryName[8], cpdEntry->EntryName[9], cpdEntry->EntryName[10], cpdEntry->EntryName[11]);
+        name = usprintf("%.12s", cpdEntry->EntryName);
         info = usprintf("Full size: %Xh (%u)\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
                         entry.size(), entry.size(),
                         cpdEntry->Offset.Offset,
@@ -4838,15 +4835,12 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
     // Because lenghts for all Huffmann-compressed partitions mean nothing at all, we need to split all partitions into 2 classes:
     // 1. CPD manifest (should be the first)
     // 2. Metadata entries (should begin right after partition manifest and end before any code partition)
-    UINT32 i = 1;
+    UINT32 i = 1; // manifest is index 0, .met partitions start at index 1
     while (i < partitions.size()) {
-        name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
-                        partitions[i].ptEntry.EntryName[0], partitions[i].ptEntry.EntryName[1], partitions[i].ptEntry.EntryName[2],  partitions[i].ptEntry.EntryName[3],
-                        partitions[i].ptEntry.EntryName[4], partitions[i].ptEntry.EntryName[5], partitions[i].ptEntry.EntryName[6],  partitions[i].ptEntry.EntryName[7],
-                        partitions[i].ptEntry.EntryName[8], partitions[i].ptEntry.EntryName[9], partitions[i].ptEntry.EntryName[10], partitions[i].ptEntry.EntryName[11]);
+        name = usprintf("%.12s", partitions[i].ptEntry.EntryName);
 
         // Check if the current entry is metadata entry
-        if (!name.contains(".met")) {
+        if (!name.endsWith(".met")) {
             // No need to parse further, all metadata partitions are parsed
             break;
         }
@@ -4868,23 +4862,18 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         }
 
         // Search down for corresponding code partition
-        // Construct it's name by replacing last 4 non-zero butes of the name with zeros
-        UINT32 j = 0;
-        for (UINT32 k = 11; k > 0 && j < 4; k--) {
-            if (name[k] != '\x00') {
-                name[k] = '\x00';
-                j++;
-            }
-        }
+        // Construct its name by removing the .met suffix
+        name.chop(4);
 
         // Search
-        j = i + 1;
+        bool found = false;
+        UINT32 j = i + 1;
         while (j < partitions.size()) {
-            if (name == usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
-                                 partitions[j].ptEntry.EntryName[0], partitions[j].ptEntry.EntryName[1], partitions[j].ptEntry.EntryName[2],  partitions[j].ptEntry.EntryName[3],
-                                 partitions[j].ptEntry.EntryName[4], partitions[j].ptEntry.EntryName[5], partitions[j].ptEntry.EntryName[6],  partitions[j].ptEntry.EntryName[7],
-                                 partitions[j].ptEntry.EntryName[8], partitions[j].ptEntry.EntryName[9], partitions[j].ptEntry.EntryName[10], partitions[j].ptEntry.EntryName[11])) {
-                // Found it, update it's Length if needed
+            UString namej = usprintf("%.12s", partitions[j].ptEntry.EntryName);
+
+            if (name == namej) {
+                found = true;
+                // Found it, update its Length if needed
                 if (partitions[j].ptEntry.Offset.HuffmanCompressed) {
                     partitions[j].ptEntry.Length = length;
                 }
@@ -4981,10 +4970,7 @@ make_partition_table_consistent:
             UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
 
             // Get info
-            name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
-                            partitions[i].ptEntry.EntryName[0], partitions[i].ptEntry.EntryName[1], partitions[i].ptEntry.EntryName[2], partitions[i].ptEntry.EntryName[3],
-                            partitions[i].ptEntry.EntryName[4], partitions[i].ptEntry.EntryName[5], partitions[i].ptEntry.EntryName[6], partitions[i].ptEntry.EntryName[7],
-                            partitions[i].ptEntry.EntryName[8], partitions[i].ptEntry.EntryName[9], partitions[i].ptEntry.EntryName[10], partitions[i].ptEntry.EntryName[11]);
+            name = usprintf("%.12s", partitions[i].ptEntry.EntryName);
 
             // It's a manifest
             if (name.contains(".man")) {
@@ -5117,13 +5103,13 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 const CPD_EXT_SIGNED_PACKAGE_INFO* infoHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO*)header.constData();
 
                 info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
-                                "Package name: %c%c%c%c\nVersion control number: %Xh\nSecurity version number: %Xh\n"
+                                "Package name: %.4s\nVersion control number: %Xh\nSecurity version number: %Xh\n"
                                 "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
                                 partition.size(), partition.size(),
                                 header.size(), header.size(),
                                 body.size(), body.size(),
                                 infoHeader->ExtensionType,
-                                infoHeader->PackageName[0], infoHeader->PackageName[1], infoHeader->PackageName[2], infoHeader->PackageName[3],
+                                infoHeader->PackageName,
                                 infoHeader->Vcn,
                                 infoHeader->Svn,
                                 infoHeader->UsageBitmap[0],  infoHeader->UsageBitmap[1],  infoHeader->UsageBitmap[2],  infoHeader->UsageBitmap[3],
@@ -5145,11 +5131,11 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 std::reverse(hash.begin(), hash.end());
 
                 info = usprintf("Full size: %Xh (%u)\nType: %Xh\n"
-                                "Partition name: %c%c%c%c\nPartition length: %Xh\nPartition version major: %Xh\nPartition version minor: %Xh\n"
+                                "Partition name: %.4s\nPartition length: %Xh\nPartition version major: %Xh\nPartition version minor: %Xh\n"
                                 "Data format version: %Xh\nInstance ID: %Xh\nHash algorithm: %Xh\nHash size: %Xh\nAction on update: %Xh",
                                 partition.size(), partition.size(),
                                 attrHeader->ExtensionType,
-                                attrHeader->PartitionName[0], attrHeader->PartitionName[1], attrHeader->PartitionName[2], attrHeader->PartitionName[3],
+                                attrHeader->PartitionName,
                                 attrHeader->CompletePartitionLength,
                                 attrHeader->PartitionVersionMajor, attrHeader->PartitionVersionMinor,
                                 attrHeader->DataFormatVersion,
@@ -5222,10 +5208,7 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
         if (sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) <= ((UINT32)body.size() - offset)) {
             UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE));
 
-            UString name = usprintf("%c%c%c%c%c%c%c%c%c%c%c%c",
-                                    moduleHeader->Name[0], moduleHeader->Name[1], moduleHeader->Name[2], moduleHeader->Name[3],
-                                    moduleHeader->Name[4], moduleHeader->Name[5], moduleHeader->Name[6], moduleHeader->Name[7],
-                                    moduleHeader->Name[8], moduleHeader->Name[9], moduleHeader->Name[10],moduleHeader->Name[11]);
+            UString name = usprintf("%.12s", moduleHeader->Name);
 
             // This hash is stored reversed
             // Need to reverse it back to normal
