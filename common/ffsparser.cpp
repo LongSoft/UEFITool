@@ -4891,6 +4891,10 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
             // Check the next partition
             j++;
         }
+        if (!found) {
+            msg(usprintf("%s: no code partition for %s", i, (const char*)name.toLocal8Bit()), partitions[i].index);
+        }
+
         // Check the next partition
         i++;
     }
