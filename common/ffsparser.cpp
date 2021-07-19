@@ -1029,7 +1029,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         return U_INVALID_PARAMETER;
 
     // Check that there is space for the volume header
-        if ((UINT32)volume.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
+    if ((UINT32)volume.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
         msg(usprintf("%s: input volume size %Xh (%u) is smaller than volume header size 40h (64)", __FUNCTION__, volume.size(), volume.size()));
         return U_INVALID_VOLUME;
     }
