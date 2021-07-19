@@ -4892,7 +4892,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
             j++;
         }
         if (!found) {
-            msg(usprintf("%s: no code partition for %s", i, (const char*)name.toLocal8Bit()), partitions[i].index);
+            msg(usprintf("%s: no code partition", __FUNCTION__), partitions[i].index);
         }
 
         // Check the next partition
