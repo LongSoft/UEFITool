@@ -1344,7 +1344,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
                 continue;
             }
 
-            // Calculate alternative volume size using it's BlockMap
+            // Calculate alternative volume size using its BlockMap
             nextItemAlternativeSize = 0;
             const EFI_FV_BLOCK_MAP_ENTRY* entry = (const EFI_FV_BLOCK_MAP_ENTRY*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
             while (entry->NumBlocks != 0 && entry->Length != 0) {
@@ -3370,9 +3370,9 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
     model->addInfo(index, usprintf("Offset: %Xh\n", model->offset(index)), false);
 
     // Add current base if the element is not compressed
-    // or it's compressed, but it's parent isn't
+    // or it's compressed, but its parent isn't
     if ((!model->compressed(index)) || (index.parent().isValid() && !model->compressed(index.parent()))) {
-        // Add physical address of the whole item or it's header and data portions separately
+        // Add physical address of the whole item or its header and data portions separately
         UINT64 address = addressDiff + model->base(index);
         if (address <= 0xFFFFFFFFUL) {
             UINT32 headerSize = (UINT32)model->header(index).size();
@@ -3916,7 +3916,7 @@ void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
     for (INT32 offset = (INT32)model->body(index).indexOf(FIT_SIGNATURE);
         offset >= 0;
         offset = (INT32)model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
-        // FIT candidate found, calculate it's physical address
+        // FIT candidate found, calculate its physical address
         UINT32 fitAddress = (UINT32)(model->base(index) + (UINT32)addressDiff + model->header(index).size() + (UINT32)offset);
 
         // Check FIT address to be stored in the last VTF
@@ -4632,7 +4632,7 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
             else {
-                msg(usprintf("%s: BPDT partition can't fit into it's region, truncated", __FUNCTION__), partitions[i].index);
+                msg(usprintf("%s: BPDT partition can't fit into its region, truncated", __FUNCTION__), partitions[i].index);
                 partitions[i].ptEntry.Size = regionSize - (UINT32)partitions[i].ptEntry.Offset;
             }
         }
@@ -5027,7 +5027,7 @@ make_partition_table_consistent:
                                 partitions[i].ptEntry.Length)
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
 
-                // Calculate SHA256 hash over the metadata and add it to it's info
+                // Calculate SHA256 hash over the metadata and add it to its info
                 UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nMetadata hash: ") + UString(hash.toHex().constData());
@@ -5046,7 +5046,7 @@ make_partition_table_consistent:
                                 partitions[i].ptEntry.Length)
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
 
-                // Calculate SHA256 hash over the key and add it to it's info
+                // Calculate SHA256 hash over the key and add it to its info
                 UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nHash: ") + UString(hash.toHex().constData());
@@ -5065,7 +5065,7 @@ make_partition_table_consistent:
                                 partitions[i].ptEntry.Length)
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
 
-                // Calculate SHA256 hash over the code and add it to it's info
+                // Calculate SHA256 hash over the code and add it to its info
                 UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nHash: ") + UString(hash.toHex().constData());
