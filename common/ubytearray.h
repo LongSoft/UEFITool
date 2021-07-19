@@ -64,7 +64,7 @@ public:
     }
 
     UByteArray left(int32_t len) const { return d.substr(0, len); }
-    UByteArray right(int32_t len) const { return d.substr(d.size() - 1 - len, len); }
+    UByteArray right(int32_t len) const { return d.substr(d.size() - len, len); }
     UByteArray mid(int32_t pos, int32_t len = -1) const { return d.substr(pos, len); }
 
     UByteArray & operator=(const UByteArray & ba) { d = ba.d; return *this; }
