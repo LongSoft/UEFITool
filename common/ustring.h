@@ -25,7 +25,13 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define UString CBString
 #endif // QT_CORE_LIB
 
-UString usprintf(const char* fmt, ...) __attribute__((format(printf, 1, 2))); 
+#if defined(_MSC_VER)
+#define _ATTRIBUTE_FORMAT_(t,f,a)
+#else
+#define _ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#endif
+
+UString usprintf(const char* fmt, ...) _ATTRIBUTE_FORMAT_(printf, 1, 2); 
 UString urepeated(char c, int len);
 
 #endif // USTRING_H

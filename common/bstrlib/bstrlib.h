@@ -29,6 +29,12 @@ extern "C" {
 # endif
 #endif
 
+#if defined(_MSC_VER)
+#define _ATTRIBUTE_FORMAT_(t,f,a)
+#else
+#define _ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#endif
+
 #define BSTR_ERR (-1)
 #define BSTR_OK (0)
 #define BSTR_BS_BUFF_LENGTH_GET (0)
@@ -138,9 +144,9 @@ extern int brtrimws (bstring b);
 extern int btrimws (bstring b);
 
 #if !defined (BSTRLIB_NOVSNP)
-extern bstring bformat (const char * fmt, ...) __attribute__((format(printf, 1, 2)));
-extern int bformata (bstring b, const char * fmt, ...) __attribute__((format(printf, 2, 3)));
-extern int bassignformat (bstring b, const char * fmt, ...) __attribute__((format(printf, 2, 3)));
+extern bstring bformat (const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 1, 2);
+extern int bformata (bstring b, const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
+extern int bassignformat (bstring b, const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
 extern int bvcformata (bstring b, int count, const char * fmt, va_list arglist);
 
 #define bvformata(ret, b, fmt, lastarg) { \

@@ -75,6 +75,12 @@
 
 #endif
 
+#if defined(_MSC_VER)
+#define _ATTRIBUTE_FORMAT_(t,f,a)
+#else
+#define _ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#endif
+
 namespace Bstrlib {
 
 #ifdef BSTRLIB_THROWS_EXCEPTIONS
@@ -331,8 +337,8 @@ struct CBString : public tagbstring {
 	void trunc (int len);
 
 	// Miscellaneous methods.
-	void format (const char * fmt, ...) __attribute__((format(printf, 2, 3)));
-	void formata (const char * fmt, ...) __attribute__((format(printf, 2, 3)));
+	void format (const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
+	void formata (const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
 	void fill (int length, unsigned char fill = ' ');
 	void repeat (int count);
 	void ltrim (const CBString& b = CBString (bsStaticBlkParms (" \t\v\f\r\n")));
