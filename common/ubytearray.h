@@ -77,12 +77,11 @@ public:
         for (int32_t i = 0; i < size(); i++) {
             uint8_t low  = d[i] & 0x0F;
             uint8_t high = (d[i] & 0xF0) >> 4;
-            low += (low < 10 ? '0' : 'a');
-            high += (high < 10 ? '0' : 'a');
-            hex[2*i] = low;
-            hex[2*i + 1] = high;
+            low += (low < 10 ? '0' : 'a' - 10);
+            high += (high < 10 ? '0' : 'a' - 10);
+            hex[2*i] = high;
+            hex[2*i + 1] = low;
         }
-        std::reverse(hex.begin(), hex.end());
         return UByteArray(hex);
     }
 
