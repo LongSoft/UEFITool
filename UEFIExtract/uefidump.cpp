@@ -124,7 +124,7 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
         }
 
         if (!nameFound) {
-            fprintf(stdout, "Can't find unique name for %s\n", (const char*)orgName.toLocal8Bit());
+            printf("Cannot find unique name for \"%s\".\n", (const char*)orgName.toLocal8Bit());
             return U_INVALID_PARAMETER; //TODO: replace with proper errorCode
         }
 

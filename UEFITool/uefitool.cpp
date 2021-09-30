@@ -651,17 +651,17 @@ void UEFITool::openImageFile(QString path)
     // Show ffsParser's messages
     std::vector<std::pair<UString, UModelIndex> > messages = ffsParser->getMessages();
     for (size_t i = 0; i < messages.size(); i++) {
-        fprintf(stdout, "%s\n", (const char *)messages[i].first.toLocal8Bit());
+        printf("%s\n", (const char *)messages[i].first.toLocal8Bit());
     }
 
     // Get last VTF
     std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser->getFitTable();
     if (fitTable.size()) {
-        fprintf(stdout, "%s\n", "---------------------------------------------------------------------------");
-        fprintf(stdout, "%s\n", "     Address      |   Size    |  Ver  | CS  |          Type / Info          ");
-        fprintf(stdout, "%s\n", "---------------------------------------------------------------------------");
+        printf("%s\n", "---------------------------------------------------------------------------");
+        printf("%s\n", "     Address      |   Size    |  Ver  | CS  |          Type / Info          ");
+        printf("%s\n", "---------------------------------------------------------------------------");
         for (size_t i = 0; i < fitTable.size(); i++) {
-            fprintf(stdout, "%s%s%s%s%s%s%s%s%s%s%s\n", (const char*)fitTable[i].first[0].toLocal8Bit(), " | "
+            printf("%s%s%s%s%s%s%s%s%s%s%s\n", (const char*)fitTable[i].first[0].toLocal8Bit(), " | "
                 , (const char*)fitTable[i].first[1].toLocal8Bit(), " | "
                 , (const char*)fitTable[i].first[2].toLocal8Bit(), " | "
                 , (const char*)fitTable[i].first[3].toLocal8Bit(), " | "
@@ -673,10 +673,10 @@ void UEFITool::openImageFile(QString path)
     // Get security info
     UString secInfo = ffsParser->getSecurityInfo();
     if (!secInfo.isEmpty()) {
-        fprintf(stdout, "%s\n", "------------------------------------------------------------------------");
-        fprintf(stdout, "%s\n", "Security Info");
-        fprintf(stdout, "%s\n", "------------------------------------------------------------------------" );
-        fprintf(stdout, "%s\n", (const char*)secInfo.toLocal8Bit());
+        printf("%s\n", "------------------------------------------------------------------------");
+        printf("%s\n", "Security Info");
+        printf("%s\n", "------------------------------------------------------------------------" );
+        printf("%s\n", (const char*)secInfo.toLocal8Bit());
     }
 
     showParserMessages();
