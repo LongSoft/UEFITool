@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffsreport.h"
 #include "ffs.h"
 #include "utility.h"
+#include "qinttypes.h"
 
 std::vector<UString> FfsReport::generate()
 {
@@ -62,7 +63,7 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
         UString(" ") + itemTypeToUString(model->type(index)).leftJustified(16) 
         + UString("| ") + itemSubtypeToUString(model->type(index), model->subtype(index)).leftJustified(22)
         + offset
-        + usprintf("| %08X | %08X | ", data.size(), crc) 
+        + usprintf("| %08" PRIXQ " | %08X | ", data.size(), crc)
         + urepeated('-', level) + UString(" ") + model->name(index) + (text.isEmpty() ? UString() : UString(" | ") + text)
         );
 

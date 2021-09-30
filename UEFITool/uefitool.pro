@@ -9,6 +9,7 @@ DEFINES += "U_ENABLE_ME_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_GUID_DATABASE_SUPPORT"
 
 HEADERS += uefitool.h \
+ ../common/qinttypes.h \
  searchdialog.h \
  hexviewdialog.h \
  gotobasedialog.h \
