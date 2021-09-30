@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <fstream>
 
-static void FixFileName(UString &name)
+void FfsDumper::fixFileName(UString &name)
 {
     // Replace some symbols with underscores for compatibility
     const char table[] = {
