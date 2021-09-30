@@ -59,7 +59,7 @@ USTATUS UEFIFind::find(const UINT8 mode, const bool count, const UString & hexPa
     
     if (count) {
         if (!files.empty())
-            result += usprintf("%d\n", files.size());
+            result += usprintf("%lu\n", files.size());
         return U_SUCCESS;
     }
 
