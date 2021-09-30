@@ -16,12 +16,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <vector>
 
-#if QT_VERSION_MAJOR >= 6
-#include <QRegularExpression>
-#else
-#include <QRegExp>
-#endif
-
 #include "../common/ubytearray.h"
 #include "../common/ustring.h"
 #include "../common/basetypes.h"
