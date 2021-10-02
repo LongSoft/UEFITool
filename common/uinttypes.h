@@ -1,4 +1,4 @@
-/* qinttypes.h
+/* uinttypes.h
 
 Copyright (c) 2021, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
@@ -10,8 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef QINTTYPES_H
-#define QINTTYPES_H
+#ifndef UINTTYPES_H
+#define UINTTYPES_H
 
 // A workaround for compilers not supporting c++11 and c11
 // for using PRIX64.
@@ -35,4 +35,4 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #  define PRIXQ        "X"
 #endif
 
-#endif // QINTTYPES_H
+#endif // UINTTYPES_H

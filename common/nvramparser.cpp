@@ -22,7 +22,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "nvram.h"
 #include "ffs.h"
 #include "fit.h"
-#include "qinttypes.h"
+#include "uinttypes.h"
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)

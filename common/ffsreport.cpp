@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffsreport.h"
 #include "ffs.h"
 #include "utility.h"
-#include "qinttypes.h"
+#include "uinttypes.h"
 
 std::vector<UString> FfsReport::generate()
 {

@@ -28,7 +28,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "nvramparser.h"
 #include "meparser.h"
-#include "qinttypes.h"
+#include "uinttypes.h"
 
 #ifndef QT_CORE_LIB
 namespace Qt {

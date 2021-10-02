@@ -19,7 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "meparser.h"
 #include "parsingdata.h"
 #include "utility.h"
-#include "qinttypes.h"
+#include "uinttypes.h"
 
 #ifdef U_ENABLE_ME_PARSING_SUPPORT
 
