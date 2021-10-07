@@ -22,17 +22,12 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
+#include "../uinttypes.h"
 
 #if !defined (BSTRLIB_VSNP_OK) && !defined (BSTRLIB_NOVSNP)
 # if defined (__TURBOC__) && !defined (__BORLANDC__)
 #  define BSTRLIB_NOVSNP
 # endif
-#endif
-
-#if defined(_MSC_VER)
-#define _ATTRIBUTE_FORMAT_(t,f,a)
-#else
-#define _ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
 #endif
 
 #define BSTR_ERR (-1)
@@ -144,9 +139,9 @@ extern int brtrimws (bstring b);
 extern int btrimws (bstring b);
 
 #if !defined (BSTRLIB_NOVSNP)
-extern bstring bformat (const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 1, 2);
-extern int bformata (bstring b, const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
-extern int bassignformat (bstring b, const char * fmt, ...) _ATTRIBUTE_FORMAT_(printf, 2, 3);
+extern bstring bformat (const char * fmt, ...) ATTRIBUTE_FORMAT_(printf, 1, 2);
+extern int bformata (bstring b, const char * fmt, ...) ATTRIBUTE_FORMAT_(printf, 2, 3);
+extern int bassignformat (bstring b, const char * fmt, ...) ATTRIBUTE_FORMAT_(printf, 2, 3);
 extern int bvcformata (bstring b, int count, const char * fmt, va_list arglist);
 
 #define bvformata(ret, b, fmt, lastarg) { \

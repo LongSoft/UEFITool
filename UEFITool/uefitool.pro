@@ -9,7 +9,6 @@ DEFINES += "U_ENABLE_ME_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_GUID_DATABASE_SUPPORT"
 
 HEADERS += uefitool.h \
- ../common/uinttypes.h \
  searchdialog.h \
  hexviewdialog.h \
  gotobasedialog.h \
@@ -42,6 +41,7 @@ HEADERS += uefitool.h \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/Tiano/EfiTianoCompress.h \
+ ../common/uinttypes.h \
  ../common/ustring.h \
  ../common/ubytearray.h \
  ../common/bootguard.h \

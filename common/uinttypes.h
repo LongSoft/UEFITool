@@ -35,4 +35,10 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #  define PRIXQ        "X"
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+#define ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#else
+#define ATTRIBUTE_FORMAT_(t,f,a)
+#endif
+
 #endif // UINTTYPES_H

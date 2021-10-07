@@ -24,14 +24,9 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "bstrlib/bstrwrap.h"
 #define UString CBString
 #endif // QT_CORE_LIB
+#include "uinttypes.h"
 
-#if defined(_MSC_VER)
-#define _ATTRIBUTE_FORMAT_(t,f,a)
-#else
-#define _ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
-#endif
-
-UString usprintf(const char* fmt, ...) _ATTRIBUTE_FORMAT_(printf, 1, 2); 
+UString usprintf(const char* fmt, ...) ATTRIBUTE_FORMAT_(printf, 1, 2);
 UString urepeated(char c, int len);
 
 #endif // USTRING_H
