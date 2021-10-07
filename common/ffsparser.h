@@ -63,6 +63,9 @@ public:
     // Obtain offset/address difference
     UINT64 getAddressDiff() { return addressDiff; }
 
+    // Output some info to stdout
+    void outputInfo(void);
+
 private:
     TreeModel *model;
     std::vector<std::pair<UString, UModelIndex> > messagesVector;

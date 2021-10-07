@@ -41,27 +41,8 @@ USTATUS UEFIDumper::dump(const UByteArray & buffer, const UString & inPath, cons
         USTATUS result = ffsParser.parse(buffer);
         if (result)
             return result;
-        // Show ffsParser messages
-        std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
-        for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << messages[i].first << std::endl;
-        }
 
-        // Show FIT table
-        std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser.getFitTable();
-        if (fitTable.size()) {
-            std::cout << "-------------------------------------------------------------------------" << std::endl;
-            std::cout << "     Address       |   Size    |  Ver  | CS  |         Type / Info         " << std::endl;
-            std::cout << "-------------------------------------------------------------------------" << std::endl;
-            for (size_t i = 0; i < fitTable.size(); i++) {
-                std::cout << fitTable[i].first[0].toLocal8Bit() << " | "
-                    << fitTable[i].first[1].toLocal8Bit() << " | "
-                    << fitTable[i].first[2].toLocal8Bit() << " | "
-                    << fitTable[i].first[3].toLocal8Bit() << " | "
-                    << fitTable[i].first[4].toLocal8Bit() << " | "
-                    << fitTable[i].first[5].toLocal8Bit() << std::endl;
-            }
-        }
+        ffsParser.outputInfo();
 
         // Create ffsReport
         FfsReport ffsReport(&model);

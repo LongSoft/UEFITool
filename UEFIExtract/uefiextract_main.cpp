@@ -57,36 +57,7 @@ int main(int argc, char *argv[])
         if (result)
             return result;
 
-        // Show ffsParser's messages
-        std::vector<std::pair<UString, UModelIndex> > messages = ffsParser.getMessages();
-        for (size_t i = 0; i < messages.size(); i++) {
-            std::cout << messages[i].first.toLocal8Bit() << std::endl;
-        }
-
-        // Get last VTF
-        std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = ffsParser.getFitTable();
-        if (fitTable.size()) {
-            std::cout << "---------------------------------------------------------------------------" << std::endl;
-            std::cout << "     Address      |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
-            std::cout << "---------------------------------------------------------------------------" << std::endl;
-            for (size_t i = 0; i < fitTable.size(); i++) {
-                std::cout << fitTable[i].first[0].toLocal8Bit() << " | "
-                    << fitTable[i].first[1].toLocal8Bit() << " | "
-                    << fitTable[i].first[2].toLocal8Bit() << " | "
-                    << fitTable[i].first[3].toLocal8Bit() << " | "
-                    << fitTable[i].first[4].toLocal8Bit() << " | "
-                    << fitTable[i].first[5].toLocal8Bit() << std::endl;
-            }
-        }
-
-        // Get security info
-        UString secInfo = ffsParser.getSecurityInfo();
-        if (!secInfo.isEmpty()) {
-            std::cout << "------------------------------------------------------------------------"  << std::endl;
-            std::cout << "Security Info" << std::endl;
-            std::cout << "------------------------------------------------------------------------"  << std::endl;
-            std::cout << secInfo << std::endl;
-        }
+        ffsParser.outputInfo();
 
         // Create ffsDumper
         FfsDumper ffsDumper(&model);

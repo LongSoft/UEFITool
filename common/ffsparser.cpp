@@ -14,6 +14,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <map>
 #include <algorithm>
+#include <iostream>
 
 #include "descriptor.h"
 #include "ffs.h"
@@ -5259,4 +5260,38 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
     }
 
     return U_SUCCESS;
+}
+
+void FfsParser::outputInfo(void) {
+    // Show ffsParser's messages
+    std::vector<std::pair<UString, UModelIndex> > messages = getMessages();
+    for (size_t i = 0; i < messages.size(); i++) {
+        std::cout << (const char *)messages[i].first.toLocal8Bit() << std::endl;
+    }
+
+    // Get last VTF
+    std::vector<std::pair<std::vector<UString>, UModelIndex > > fitTable = getFitTable();
+    if (fitTable.size()) {
+        std::cout << "---------------------------------------------------------------------------" << std::endl;
+        std::cout << "     Address      |   Size    |  Ver  | CS  |          Type / Info          " << std::endl;
+        std::cout << "---------------------------------------------------------------------------" << std::endl;
+        for (size_t i = 0; i < fitTable.size(); i++) {
+            std::cout
+                << (const char *)fitTable[i].first[0].toLocal8Bit() << " | "
+                << (const char *)fitTable[i].first[1].toLocal8Bit() << " | "
+                << (const char *)fitTable[i].first[2].toLocal8Bit() << " | "
+                << (const char *)fitTable[i].first[3].toLocal8Bit() << " | "
+                << (const char *)fitTable[i].first[4].toLocal8Bit() << " | "
+                << (const char *)fitTable[i].first[5].toLocal8Bit() << std::endl;
+        }
+    }
+
+    // Get security info
+    UString secInfo = getSecurityInfo();
+    if (!secInfo.isEmpty()) {
+        std::cout << "------------------------------------------------------------------------"  << std::endl;
+        std::cout << "Security Info" << std::endl;
+        std::cout << "------------------------------------------------------------------------"  << std::endl;
+        std::cout << (const char *)secInfo.toLocal8Bit() << std::endl;
+    }
 }
