@@ -629,7 +629,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             else if (ftwHeader->WriteQueueSize % 0x10 == 0x00) { // Header with 64 bit WriteQueueSize
                 const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)currentPos;
                 if (ftw64Header->WriteQueueSize == 0 || ftw64Header->WriteQueueSize >= 0xFFFFFFFF) {
-                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %llXh", __FUNCTION__, localOffset + offset, ftw64Header->WriteQueueSize), index);
+                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %llXh", __FUNCTION__, localOffset + offset, (unsigned long long)ftw64Header->WriteQueueSize), index);
                     continue;
                 }
             }
@@ -1923,7 +1923,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
                 "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08llXh\nSize: %08Xh\nOffset: %08Xh",
                 entryHeader->EntryType,
                 entryHeader->DataType,
-                entryHeader->PhysicalAddress,
+                (unsigned long long)entryHeader->PhysicalAddress,
                 entryHeader->Size,
                 entryHeader->Offset);
 

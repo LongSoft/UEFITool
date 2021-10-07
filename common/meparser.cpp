@@ -333,7 +333,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             ifwiHeader->BootPartition[2].Offset, ifwiHeader->BootPartition[2].Size,
                             ifwiHeader->BootPartition[3].Offset, ifwiHeader->BootPartition[3].Size,
                             ifwiHeader->BootPartition[4].Offset, ifwiHeader->BootPartition[4].Size,
-                            ifwiHeader->Checksum);
+                            (unsigned long long)ifwiHeader->Checksum);
     // Add tree item
     index = model->addItem(0, Types::IfwiHeader, 0, name, UString(), info, UByteArray(), header, UByteArray(), Fixed, parent);
     

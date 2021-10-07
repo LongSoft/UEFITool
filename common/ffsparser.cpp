@@ -3374,11 +3374,11 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
         if (address <= 0xFFFFFFFFUL) {
             UINT32 headerSize = (UINT32)model->header(index).size();
             if (headerSize) {
-                model->addInfo(index, usprintf("Data address: %08llXh\n", address + headerSize),false);
-                model->addInfo(index, usprintf("Header address: %08llXh\n", address), false);
+                model->addInfo(index, usprintf("Data address: %08llXh\n", (unsigned long long)address + headerSize),false);
+                model->addInfo(index, usprintf("Header address: %08llXh\n", (unsigned long long)address), false);
             }
             else {
-                model->addInfo(index, usprintf("Address: %08llXh\n", address), false);
+                model->addInfo(index, usprintf("Address: %08llXh\n", (unsigned long long)address), false);
             }
         }
         // Add base
@@ -4200,8 +4200,8 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                                       elementHeader->Version,
                                       elementHeader->Unknown,
                                       elementHeader->Flags,
-                                      elementHeader->IbbMchBar,
-                                      elementHeader->VtdBar,
+                                      (unsigned long long)elementHeader->IbbMchBar,
+                                      (unsigned long long)elementHeader->VtdBar,
                                       elementHeader->PmrlBase,
                                       elementHeader->PmrlLimit,
                                       elementHeader->EntryPoint
