@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 UString nvarAttributesToUString(const UINT8 attributes)
 {
-    if (attributes == 0x00 || attributes == 0xFF) 
+    if (attributes == 0x00 || attributes == 0xFF)
         return UString();
 
     UString str;

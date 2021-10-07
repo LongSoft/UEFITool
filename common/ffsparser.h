@@ -46,7 +46,7 @@ public:
     FfsParser(TreeModel* treeModel);
     ~FfsParser();
 
-    // Obtain parser messages 
+    // Obtain parser messages
     std::vector<std::pair<UString, UModelIndex> > getMessages() const;
     // Clear messages
     void clearMessages() { messagesVector.clear(); }

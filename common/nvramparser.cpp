@@ -99,7 +99,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             }
             else {
-                // Nothing is parsed yet, but the file is not empty 
+                // Nothing is parsed yet, but the file is not empty
                 if (!offset) {
                     msg(usprintf("%s: file can't be parsed as NVAR variables store", __FUNCTION__), index);
                     return U_SUCCESS;
@@ -490,7 +490,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
             model->addItem(localOffset + storeOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
         }
         else {
-            // Nothing is parsed yet, but the file is not empty 
+            // Nothing is parsed yet, but the file is not empty
             if (!storeOffset) {
                 msg(usprintf("%s: can't be parsed as NVRAM volume", __FUNCTION__), index);
                 return U_SUCCESS;
@@ -544,7 +544,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
     if (dataSize < sizeof(UINT32))
         return U_STORES_NOT_FOUND;
 
-	// TODO: add checks for restSize
+    // TODO: add checks for restSize
     UINT32 offset = storeOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(volume.constData() + offset);
@@ -1391,7 +1391,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         UINT32 variableSize = 0;
         if (unparsedSize >= sizeof(VSS_VARIABLE_HEADER)
             && variableHeader->StartId == NVRAM_VSS_VARIABLE_START_ID) {
-            // Apple VSS variable with CRC32 of the data  
+            // Apple VSS variable with CRC32 of the data
             if (variableHeader->Attributes & NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM) {
                 isAppleCrc32 = true;
                 if (unparsedSize < sizeof(VSS_APPLE_VARIABLE_HEADER)) {
@@ -1490,7 +1490,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
                 model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             }
             else { // Padding
-                // Nothing is parsed yet, but the store is not empty 
+                // Nothing is parsed yet, but the store is not empty
                 if (!offset) {
                     msg(usprintf("%s: store can't be parsed as VSS store", __FUNCTION__), index);
                     return U_SUCCESS;

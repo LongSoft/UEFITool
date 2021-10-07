@@ -37,7 +37,7 @@ enum ItemFixedState {
 
 #define UModelIndex QModelIndex
 #else
-// Use own implementation 
+// Use own implementation
 #include "ustring.h"
 #include "ubytearray.h"
 #include "basetypes.h"

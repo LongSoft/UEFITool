@@ -181,7 +181,7 @@ namespace Subtypes {
         DataFptPartition,
         GlutFptPartition
     };
-	
+
     enum CpdPartitionSubtypes {
         ManifestCpdPartition = 230,
         MetadataCpdPartition,

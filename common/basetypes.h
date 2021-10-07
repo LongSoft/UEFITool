@@ -188,7 +188,7 @@ typedef struct EFI_TIME_ {
     UINT8   Reserved0;
     UINT32  Nanosecond; // Nanosecond: 0 - 999,999,999
     INT16   TimeZone;   // TimeZone:   -1440 to 1440 or UNSPECIFIED (0x07FF)
-    UINT8   Daylight;   // Daylight:   ADJUST_DAYLIGHT (1) or IN_DAYLIGHT (2) 
+    UINT8   Daylight;   // Daylight:   ADJUST_DAYLIGHT (1) or IN_DAYLIGHT (2)
     UINT8   Reserved1;
 } EFI_TIME;
 

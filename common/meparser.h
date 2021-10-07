@@ -25,14 +25,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "sha256.h"
 
 #ifdef U_ENABLE_ME_PARSING_SUPPORT
-class MeParser 
+class MeParser
 {
 public:
     // Default constructor and destructor
     MeParser(TreeModel* treeModel, FfsParser* parser) : model(treeModel), ffsParser(parser) {}
     ~MeParser() {}
 
-    // Returns messages 
+    // Returns messages
     std::vector<std::pair<UString, UModelIndex> > getMessages() const { return messagesVector; }
     // Clears messages
     void clearMessages() { messagesVector.clear(); }
@@ -53,14 +53,14 @@ private:
     USTATUS parseIfwi17Region(const UByteArray & region, const UModelIndex & parent, UModelIndex & index);
 };
 #else
-class MeParser 
+class MeParser
 {
 public:
     // Default constructor and destructor
     MeParser(TreeModel* treeModel, FfsParser* parser) { U_UNUSED_PARAMETER(treeModel); U_UNUSED_PARAMETER(parser); }
     ~MeParser() {}
 
-    // Returns messages 
+    // Returns messages
     std::vector<std::pair<UString, UModelIndex> > getMessages() const { return std::vector<std::pair<UString, UModelIndex> >(); }
     // Clears messages
     void clearMessages() {}

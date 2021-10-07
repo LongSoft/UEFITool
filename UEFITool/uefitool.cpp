@@ -799,7 +799,7 @@ void UEFITool::showParserMessages()
 
 #if QT_VERSION_MAJOR < 6
     std::pair<QString, QModelIndex> msg;
-    
+
     foreach (msg, messages) {
 #else
     for (const auto &msg : messages) {

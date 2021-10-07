@@ -276,7 +276,7 @@ make_partition_table_consistent:
         if (partitions[i].type == Types::FptPartition) {
             UModelIndex partitionIndex;
             // Get info
-            name = visibleAsciiOrHex((UINT8*) partitions[i].ptEntry.Name, 4); 
+            name = visibleAsciiOrHex((UINT8*) partitions[i].ptEntry.Name, 4);
             info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nPartition type: %02Xh\n",
                 partition.size(), partition.size(),
                 partitions[i].ptEntry.Type);

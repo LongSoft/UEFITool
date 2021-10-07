@@ -124,10 +124,10 @@ void QHexEdit::setAsciiArea(bool asciiArea)
 {
     if (!asciiArea)
         _editAreaIsAscii = false;
-    _asciiArea = asciiArea;		      
+    _asciiArea = asciiArea;
     adjust();
     setCursorPosition(_cursorPosition);
-    viewport()->update();		      
+    viewport()->update();
 }
 
 bool QHexEdit::asciiArea()
@@ -753,8 +753,8 @@ void QHexEdit::keyPressEvent(QKeyEvent *event)
         QByteArray ba = _chunks->data(getSelectionBegin(), getSelectionEnd() - getSelectionBegin()).toHex();
         for (qint64 idx = 32; idx < ba.size(); idx += 33)
             ba.insert((int)idx, "\n");
-		if(_upperCase)
-			ba = ba.toUpper();
+        if(_upperCase)
+            ba = ba.toUpper();
         QClipboard *clipboard = QApplication::clipboard();
         clipboard->setText(ba);
     }

@@ -79,7 +79,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
     }
 
     // Rebuild or Replace
-    else if (model->action(index) == Actions::Rebuild 
+    else if (model->action(index) == Actions::Rebuild
         || model->action(index) == Actions::Replace) {
         if (model->rowCount(index)) {
             // Clear the supplied UByteArray
@@ -272,7 +272,7 @@ USTATUS FfsBuilder::buildRawArea(const UModelIndex & index, UByteArray & rawArea
         return U_SUCCESS;
     }
     // Rebuild or Replace
-    else if (model->action(index) == Actions::Rebuild 
+    else if (model->action(index) == Actions::Rebuild
         || model->action(index) == Actions::Replace) {
         // Rebuild if there is at least 1 child
         if (model->rowCount(index)) {

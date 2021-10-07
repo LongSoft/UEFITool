@@ -22,7 +22,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Memory address of a pointer to FIT, 40h back from the end of flash chip
 #define FIT_POINTER_OFFSET 0x40
 
-// Entry types 
+// Entry types
 #define FIT_TYPE_HEADER            0x00
 #define FIT_TYPE_MICROCODE         0x01
 #define FIT_TYPE_BIOS_AC_MODULE    0x02
@@ -38,7 +38,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define FIT_MICROCODE_VERSION      0x0100
 
 const UByteArray FIT_SIGNATURE
-("\x5F\x46\x49\x54\x5F\x20\x20\x20", 8); 
+("\x5F\x46\x49\x54\x5F\x20\x20\x20", 8);
 
 typedef struct FIT_ENTRY_ {
     UINT64 Address;

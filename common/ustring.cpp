@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <stdarg.h>
 
 #if defined(QT_CORE_LIB)
-UString usprintf(const char* fmt, ...) 
+UString usprintf(const char* fmt, ...)
 {
     UString msg;
     va_list vl;

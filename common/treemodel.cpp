@@ -334,8 +334,8 @@ void TreeModel::setCompressed(const UModelIndex &index, const bool compressed)
     emit dataChanged(index, index);
 }
 
-void TreeModel::TreeModel::setMarkingEnabled(const bool enabled) 
-{ 
+void TreeModel::TreeModel::setMarkingEnabled(const bool enabled)
+{
     markingEnabledFlag = enabled;
     
     emit dataChanged(UModelIndex(), UModelIndex());
