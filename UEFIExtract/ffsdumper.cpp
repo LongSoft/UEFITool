@@ -15,32 +15,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <fstream>
 
-void FfsDumper::fixFileName(UString &name)
-{
-    // Replace some symbols with underscores for compatibility
-    const char table[] = {
-        '/', // Banned in *nix and Windows
-        '<', '>', ':', '\"', '\\', '|', '?', '*', // Banned in Windows
-    };
-    int nameLength = (int)name.length(); // Note: Qt uses int for whatever reason.
-    if (!nameLength) {
-        name += '_';
-    } else {
-        for (int i = 0; i < nameLength; i++) {
-            if (name[i] < 0x20 || name[i] > 0x7f) {
-               name[i] = '_';
-               continue;
-            }
-            for (size_t j = 0; j < sizeof(table); j++) {
-                if (name[i] == table[j]) {
-                    name[i] = '_';
-                    break;
-                }
-            }
-        }
-    }
-}
-
 USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const DumpMode dumpMode, const UINT8 sectionType, const UString & guid)
 {
     dumped = false;
@@ -220,7 +194,7 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             }
 
             UString name = usprintf("%d %s", i, (useText ? model->text(childIndex) : model->name(childIndex)).toLocal8Bit());
-            fixFileName (name);
+            fixFileName (name, false);
             childPath = usprintf("%s/%s", path.toLocal8Bit(), name.toLocal8Bit());
         }
         result = recursiveDump(childIndex, childPath, dumpMode, sectionType, guid);

@@ -29,6 +29,9 @@ UString visibleAsciiOrHex(UINT8* bytes, UINT32 length);
 // Returns unique name for tree item
 UString uniqueItemName(const UModelIndex & index);
 
+// Makes the name usable as a file name
+void fixFileName(UString &name, bool replaceSpaces);
+
 // Converts error code to UString
 UString errorCodeToUString(USTATUS errorCode);
 

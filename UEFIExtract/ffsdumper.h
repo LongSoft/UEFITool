@@ -45,7 +45,6 @@ public:
 
 private:
     USTATUS recursiveDump(const UModelIndex & root, const UString & path, const DumpMode dumpMode, const UINT8 sectionType, const UString & guid);
-    void fixFileName(UString &name);
     TreeModel* model;
     UString currentPath;
     bool dumped;

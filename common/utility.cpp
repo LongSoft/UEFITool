@@ -95,15 +95,29 @@ UString uniqueItemName(const UModelIndex & index)
         + (subtypeString.length() ? ('_' + subtypeString) : UString())
         + '_' + name;
 
+    fixFileName(name, true);
+
+    return name;
+}
+
+// Makes the name usable as a file name
+void fixFileName(UString &name, bool replaceSpaces)
+{
     // Replace some symbols with underscores for compatibility
     const char table[] = {
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, // ASCII control characters, banned in Windows, hard to work with in *nix
         '/', // Banned in *nix and Windows
         '<', '>', ':', '\"', '\\', '|', '?', '*', // Banned in Windows
-        ' ' // Provides better readability
     };
     int nameLength = (int)name.length(); // Note: Qt uses int for whatever reason.
     for (int i = 0; i < nameLength; i++) {
+        if (
+            name[i] < (char)0x20 || // ASCII control characters, banned in Windows, hard to work with in *nix
+            name[i] > (char)0x7f || // high ASCII characters
+            (replaceSpaces && name[i] == ' ') // Provides better readability
+        ) {
+           name[i] = '_';
+           continue;
+        }
         for (size_t j = 0; j < sizeof(table); j++) {
             if (name[i] == table[j]) {
                 name[i] = '_';
@@ -111,8 +125,9 @@ UString uniqueItemName(const UModelIndex & index)
             }
         }
     }
-
-    return name;
+    if (!nameLength) {
+        name = "_";
+    }
 }
 
 // Returns text representation of error code
