@@ -29,6 +29,9 @@ UString visibleAsciiOrHex(UINT8* bytes, UINT32 length);
 // Returns unique name for tree item
 UString uniqueItemName(const UModelIndex & index);
 
+// Makes the name usable as a file name
+void fixFileName(UString &name, bool replaceSpaces);
+
 // Converts error code to UString
 UString errorCodeToUString(USTATUS errorCode);
 
@@ -63,9 +66,9 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
 // Safely dereferences misaligned pointers
 template <typename T>
 inline T readUnaligned(const T *v) {
-	T tmp;
-	memcpy(&tmp, v, sizeof(T));
-	return tmp;
+    T tmp;
+    memcpy(&tmp, v, sizeof(T));
+    return tmp;
 }
 
 #endif // UTILITY_H

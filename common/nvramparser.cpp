@@ -14,11 +14,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 //TODO: relax fixed restrictions once NVRAM builder is ready
 
-// A workaround for compilers not supporting c++11 and c11
-// for using PRIX64.
-#define __STDC_FORMAT_MACROS
-
-#include <inttypes.h>
 #include <map>
 
 #include "nvramparser.h"
@@ -27,6 +22,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "nvram.h"
 #include "ffs.h"
 #include "fit.h"
+#include "uinttypes.h"
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
@@ -96,14 +92,14 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             UByteArray padding = data.mid(offset, unparsedSize);
 
             // Get info
-            UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+            UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", padding.size(), padding.size());
 
             if ((UINT32)padding.count(emptyByte) == unparsedSize) { // Free space
                 // Add tree item
                 model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             }
             else {
-                // Nothing is parsed yet, but the file is not empty 
+                // Nothing is parsed yet, but the file is not empty
                 if (!offset) {
                     msg(usprintf("%s: file can't be parsed as NVAR variables store", __FUNCTION__), index);
                     return U_SUCCESS;
@@ -117,7 +113,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             UByteArray guidArea = data.right(guidAreaSize);
             // Get info
             name = UString("GUID store");
-            info = usprintf("Full size: %Xh (%u)\nGUIDs in store: %u",
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nGUIDs in store: %u",
                 guidArea.size(), guidArea.size(),
                 guidsInStore);
             // Add tree item
@@ -323,7 +319,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             info += usprintf("GUID index: %u\n", guidIndex);
 
         // Add header, body and extended data info
-        info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
+        info += usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")",
             entryHeader->Size, entryHeader->Size,
             header.size(), header.size(),
             body.size(), body.size());
@@ -366,9 +362,9 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
         // Show messages
         if (msgUnknownExtDataFormat) msg(usprintf("%s: unknown extended data format", __FUNCTION__), varIndex);
-        if (msgExtHeaderTooLong)     msg(usprintf("%s: extended header size (%Xh) is greater than body size (%Xh)", __FUNCTION__,
+        if (msgExtHeaderTooLong)     msg(usprintf("%s: extended header size (%Xh) is greater than body size (%" PRIXQ "h)", __FUNCTION__,
             extendedHeaderSize, body.size()), varIndex);
-        if (msgExtDataTooShort)      msg(usprintf("%s: extended header size (%Xh) is too small for timestamp and hash", __FUNCTION__,
+        if (msgExtDataTooShort)      msg(usprintf("%s: extended header size (%" PRIXQ "h) is too small for timestamp and hash", __FUNCTION__,
             tail.size()), varIndex);
 
         // Try parsing the entry data as NVAR storage if it begins with NVAR signature
@@ -417,7 +413,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         // Get info
         UByteArray padding = data.left(prevStoreOffset);
         name = UString("Padding");
-        info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+        info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", padding.size(), padding.size());
 
         // Add tree item
         model->addItem(localOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
@@ -436,7 +432,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", padding.size(), padding.size());
 
             // Add tree item
             model->addItem(localOffset + paddingOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
@@ -457,7 +453,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", padding.size(), padding.size());
 
             // Add tree item
             UModelIndex paddingIndex = model->addItem(localOffset + storeOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
@@ -487,14 +483,14 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
     if ((UINT32)data.size() > storeOffset) {
         UByteArray padding = data.mid(storeOffset);
         // Add info
-        info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+        info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", padding.size(), padding.size());
 
         if (padding.count(emptyByte) == padding.size()) { // Free space
             // Add tree item
             model->addItem(localOffset + storeOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
         }
         else {
-            // Nothing is parsed yet, but the file is not empty 
+            // Nothing is parsed yet, but the file is not empty
             if (!storeOffset) {
                 msg(usprintf("%s: can't be parsed as NVRAM volume", __FUNCTION__), index);
                 return U_SUCCESS;
@@ -548,7 +544,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
     if (dataSize < sizeof(UINT32))
         return U_STORES_NOT_FOUND;
 
-	// TODO: add checks for restSize
+    // TODO: add checks for restSize
     UINT32 offset = storeOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(volume.constData() + offset);
@@ -633,7 +629,7 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             else if (ftwHeader->WriteQueueSize % 0x10 == 0x00) { // Header with 64 bit WriteQueueSize
                 const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* ftw64Header = (const EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)currentPos;
                 if (ftw64Header->WriteQueueSize == 0 || ftw64Header->WriteQueueSize >= 0xFFFFFFFF) {
-                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %Xh", __FUNCTION__, localOffset + offset, ftw64Header->WriteQueueSize), index);
+                    msg(usprintf("%s: FTW block candidate at offset %Xh skipped, has invalid body size %llXh", __FUNCTION__, localOffset + offset, ftw64Header->WriteQueueSize), index);
                     continue;
                 }
             }
@@ -816,7 +812,7 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
         name = UString("VSS store");
     }
     
-    UString info = usprintf("Signature: %Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
+    UString info = usprintf("Signature: %Xh\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
         vssStoreHeader->Signature,
         storeSize, storeSize,
         header.size(), header.size(),
@@ -865,7 +861,7 @@ USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32
     // Add info
     UString name = UString("VSS2 store");
     UString info = UString("Signature: ") + guidToUString(vssStoreHeader->Signature, false) +
-        usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
+        usprintf("\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nFormat: %02Xh\nState: %02Xh\nUnknown: %04Xh",
             storeSize, storeSize,
             header.size(), header.size(),
             body.size(), body.size(),
@@ -935,7 +931,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
     // Add info
     UString name("FTW store");
     UString info = UString("Signature: ") + guidToUString(ftw32BlockHeader->Signature, false) +
-        usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nHeader CRC32: %08Xh",
+        usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %" PRIXQ "h (%" PRIuQ ")\nState: %02Xh\nHeader CRC32: %08Xh",
             ftwBlockSize, ftwBlockSize,
             headerSize, headerSize,
             body.size(), body.size(),
@@ -976,7 +972,7 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
 
     // Add info
     UString name("FDC store");
-    UString info = usprintf("Signature: _FDC\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
+    UString info = usprintf("Signature: _FDC\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")",
         fdcStoreHeader->Size, fdcStoreHeader->Size,
         header.size(), header.size(),
         body.size(), body.size());
@@ -1019,13 +1015,14 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
     // Add info
     bool isGaidStore = (fsysStoreHeader->Signature == NVRAM_APPLE_GAID_STORE_SIGNATURE);
     UString name = isGaidStore ? UString("Gaid store") : UString("Fsys store");
-    UString info = usprintf("Signature: %s\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nUnknown0: %02Xh\nUnknown1: %08Xh\nCRC32: %08Xh",
+    UString info = usprintf("Signature: %s\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nUnknown0: %02Xh\nUnknown1: %08Xh\nCRC32: %08Xh",
         isGaidStore ? "Gaid" : "Fsys",
         fsysStoreHeader->Size, fsysStoreHeader->Size,
         header.size(), header.size(),
         body.size(), body.size(),
         fsysStoreHeader->Unknown0,
-        fsysStoreHeader->Unknown1)
+        fsysStoreHeader->Unknown1,
+        storedCrc)
         + (storedCrc != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
 
     // Add tree item
@@ -1064,14 +1061,14 @@ USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32
 
     // Add info
     UString name("EVSA store");
-    UString info = usprintf("Signature: EVSA\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nAttributes: %08Xh\nChecksum: %02Xh",
+    UString info = usprintf("Signature: EVSA\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nType: %02Xh\nAttributes: %08Xh\nChecksum: %02Xh",
         evsaStoreHeader->StoreSize, evsaStoreHeader->StoreSize,
         header.size(), header.size(),
         body.size(), body.size(),
         evsaStoreHeader->Header.Type,
         evsaStoreHeader->Attributes,
         evsaStoreHeader->Header.Checksum) +
-        (evsaStoreHeader->Header.Checksum != calculated ? usprintf("%, invalid, should be %02Xh", calculated) : UString(", valid"));
+        (evsaStoreHeader->Header.Checksum != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"));
 
     // Add tree item
     index = model->addItem(localOffset, Types::EvsaStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
@@ -1107,7 +1104,7 @@ USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UI
 
     // Add info
     UString name("Phoenix SCT flash map");
-    UString info = usprintf("Signature: _FLASH_MAP\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u",
+    UString info = usprintf("Signature: _FLASH_MAP\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nNumber of entries: %u",
         flashMapSize, flashMapSize,
         header.size(), header.size(),
         body.size(), body.size(),
@@ -1146,7 +1143,7 @@ USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32
 
     // Add info
     UString name("CMDB store");
-    UString info = usprintf("Signature: CMDB\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
+    UString info = usprintf("Signature: CMDB\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")",
         cmdbSize, cmdbSize,
         header.size(), header.size(),
         body.size(), body.size());
@@ -1183,7 +1180,7 @@ USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT3
 
     // Add info
     UString name("SLIC pubkey");
-    UString info = usprintf("Type: 0h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
+    UString info = usprintf("Type: 0h\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: 0h (0)\n"
         "Key type: %02Xh\nVersion: %02Xh\nAlgorithm: %08Xh\nMagic: RSA1\nBit length: %08Xh\nExponent: %08Xh",
         pubkeyHeader->Size, pubkeyHeader->Size,
         header.size(), header.size(),
@@ -1225,7 +1222,7 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
 
     // Add info
     UString name("SLIC marker");
-    UString info = usprintf("Type: 1h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
+    UString info = usprintf("Type: 1h\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: 0h (0)\n"
         "Version: %08Xh\nOEM ID: %s\nOEM table ID: %s\nWindows flag: WINDOWS\nSLIC version: %08Xh",
         markerHeader->Size, markerHeader->Size,
         header.size(), header.size(),
@@ -1394,7 +1391,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         UINT32 variableSize = 0;
         if (unparsedSize >= sizeof(VSS_VARIABLE_HEADER)
             && variableHeader->StartId == NVRAM_VSS_VARIABLE_START_ID) {
-            // Apple VSS variable with CRC32 of the data  
+            // Apple VSS variable with CRC32 of the data
             if (variableHeader->Attributes & NVRAM_VSS_VARIABLE_APPLE_DATA_CHECKSUM) {
                 isAppleCrc32 = true;
                 if (unparsedSize < sizeof(VSS_APPLE_VARIABLE_HEADER)) {
@@ -1486,14 +1483,14 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
             // Check if the data left is a free space or a padding
             UByteArray padding = data.mid(offset, unparsedSize);
             // Get info
-            UString info = usprintf("Full size: %Xh (%u)", padding.size(), padding.size());
+            UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", padding.size(), padding.size());
 
             if (padding.count(emptyByte) == padding.size()) { // Free space
                 // Add tree item
                 model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
             }
             else { // Padding
-                // Nothing is parsed yet, but the store is not empty 
+                // Nothing is parsed yet, but the store is not empty
                 if (!offset) {
                     msg(usprintf("%s: store can't be parsed as VSS store", __FUNCTION__), index);
                     return U_SUCCESS;
@@ -1525,7 +1522,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         }
 
         // Add info
-        info += usprintf("Full size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
+        info += usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
             variableSize, variableSize,
             header.size(), header.size(),
             body.size(), body.size(),
@@ -1606,7 +1603,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
             if (nameSize == 3 && name[0] == 'E' && name[1] == 'O' && name[2] == 'F') {
                 // There is no data afterward, add EOF variable and free space and return
                 UByteArray header = data.mid(offset, sizeof(UINT8) + nameSize);
-                UString info = usprintf("Full size: %Xh (%u)", header.size(), header.size());
+                UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", header.size(), header.size());
 
                 // Add EOF tree item
                 model->addItem(localOffset + offset, Types::FsysEntry, Subtypes::NormalFsysEntry, UString("EOF"), UString(), info, header, UByteArray(), UByteArray(), Fixed, index);
@@ -1614,7 +1611,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
                 // Add free space
                 offset += header.size();
                 UByteArray body = data.mid(offset);
-                info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+                info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", body.size(), body.size());
 
                 // Add free space tree item
                 model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
@@ -1631,7 +1628,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
         else {
             // Last variable is bad, add the rest as padding and return
             UByteArray body = data.mid(offset);
-            UString info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+            UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", body.size(), body.size());
 
             // Add padding tree item
             model->addItem(localOffset + offset, Types::Padding, getPaddingType(body), UString("Padding"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
@@ -1647,7 +1644,7 @@ USTATUS NvramParser::parseFsysStoreBody(const UModelIndex & index)
         UByteArray body = data.mid(offset + sizeof(UINT8) + nameSize + sizeof(UINT16), dataSize);
 
         // Add info
-        UString info = usprintf("Full size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)",
+        UString info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")",
             variableSize, variableSize,
             header.size(), header.size(),
             body.size(), body.size());
@@ -1707,7 +1704,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
         variableSize = sizeof(EVSA_ENTRY_HEADER);
         if (unparsedSize < variableSize || unparsedSize < entryHeader->Size) {
             body = data.mid(offset);
-            info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", body.size(), body.size());
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
@@ -1735,7 +1732,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             body = data.mid(offset + sizeof(EVSA_GUID_ENTRY), guidHeader->Header.Size - sizeof(EVSA_GUID_ENTRY));
             EFI_GUID guid = *(EFI_GUID*)body.constData();
             name = guidToUString(guid);
-            info = UString("GUID: ") + guidToUString(guid, false) + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+            info = UString("GUID: ") + guidToUString(guid, false) + usprintf("\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nType: %02Xh\nChecksum: %02Xh",
                 variableSize, variableSize,
                 header.size(), header.size(),
                 body.size(), body.size(),
@@ -1759,7 +1756,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             name = UString::fromUtf16((const CHAR16*)body.constData());
 #endif
 
-            info = UString("Name: ") + name + usprintf("\nFull size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+            info = UString("Name: ") + name + usprintf("\nFull size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nType: %02Xh\nChecksum: %02Xh",
                 variableSize, variableSize,
                 header.size(), header.size(),
                 body.size(), body.size(),
@@ -1788,7 +1785,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
             header = data.mid(offset, headerSize);
             body = data.mid(offset + headerSize, dataSize);
             name = UString("Data");
-            info = usprintf("Full size: %Xh (%u)\nHeader size %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+            info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
                 variableSize, variableSize,
                 headerSize, headerSize,
                 dataSize, dataSize,
@@ -1805,7 +1802,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
         // Unknown entry or free space
         else {
             body = data.mid(offset);
-            info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", body.size(), body.size());
 
             if (body.count(emptyByte) == body.size()) { // Free space
                 // Add free space tree item
@@ -1903,7 +1900,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         if (unparsedSize < sizeof(PHOENIX_FLASH_MAP_ENTRY)) {
             // Last variable is bad, add the rest as padding and return
             UByteArray body = data.mid(offset);
-            UString info = usprintf("Full size: %Xh (%u)", body.size(), body.size());
+            UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", body.size(), body.size());
 
             // Add padding tree item
             model->addItem(localOffset + offset, Types::Padding, getPaddingType(body), UString("Padding"), UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
@@ -1923,7 +1920,7 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         // Add info
         UString info = UString("Entry GUID: ") + guidToUString(entryHeader->Guid, false) +
             usprintf("\nFull size: 24h (36)\nHeader size: 24h (36)\nBody size: 0h (0)\n"
-                "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08Xh\nSize: %08Xh\nOffset: %08Xh",
+                "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08llXh\nSize: %08Xh\nOffset: %08Xh",
                 entryHeader->EntryType,
                 entryHeader->DataType,
                 entryHeader->PhysicalAddress,

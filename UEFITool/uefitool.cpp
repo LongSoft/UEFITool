@@ -647,6 +647,7 @@ void UEFITool::openImageFile(QString path)
 
     // Parse the image
     USTATUS result = ffsParser->parse(buffer);
+
     showParserMessages();
     if (result) {
         QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToUString(result), QMessageBox::Ok);
@@ -654,6 +655,8 @@ void UEFITool::openImageFile(QString path)
     }
     else
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
+
+    ffsParser->outputInfo();
 
     // Enable or disable FIT tab
     showFitTable();
@@ -796,7 +799,7 @@ void UEFITool::showParserMessages()
 
 #if QT_VERSION_MAJOR < 6
     std::pair<QString, QModelIndex> msg;
-    
+
     foreach (msg, messages) {
 #else
     for (const auto &msg : messages) {

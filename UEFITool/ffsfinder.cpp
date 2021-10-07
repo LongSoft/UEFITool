@@ -13,6 +13,12 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "ffsfinder.h"
 
+#if QT_VERSION_MAJOR >= 6
+#include <QRegularExpression>
+#else
+#include <QRegExp>
+#endif
+
 USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode)
 {
     //TODO: use FfsUtils.

@@ -275,8 +275,8 @@ typedef struct EFI_FIRMWARE_VOLUME_EXT_ENTRY_GUID_TYPE_ {
 // Integrity check
 typedef union {
     struct {
-        UINT8	Header;
-        UINT8	File;
+        UINT8 Header;
+        UINT8 File;
     } Checksum;
     UINT16 TailReference;   // Revision 1
     UINT16 Checksum16;      // Revision 2
@@ -406,7 +406,7 @@ typedef struct EFI_COMMON_SECTION_HEADER2_ {
 
 // Apple common section header
 typedef struct EFI_COMMON_SECTION_HEADER_APPLE {
-    UINT8    Size[3];    
+    UINT8    Size[3];
     UINT8    Type;
     UINT32   Reserved;   // Must be 0x7FFF for this header to be used
 } EFI_COMMON_SECTION_HEADER_APPLE;

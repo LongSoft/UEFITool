@@ -14,11 +14,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "treeitem.h"
 #include "types.h"
 
-TreeItem::TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype, 
+TreeItem::TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
     const UString & name, const UString & text, const UString & info,
     const UByteArray & header, const UByteArray & body, const UByteArray & tail,
     const bool fixed, const bool compressed,
-    TreeItem *parent) : 
+    TreeItem *parent) :
     itemOffset(offset),
     itemAction(Actions::NoAction),
     itemType(type),
@@ -94,8 +94,8 @@ int TreeItem::row() const
 }
 
 TreeItem* TreeItem::child(int row)
-{ 
-    std::list<TreeItem*>::iterator child = childItems.begin();  
-    std::advance(child, row); 
-    return *child; 
+{
+    std::list<TreeItem*>::iterator child = childItems.begin();
+    std::advance(child, row);
+    return *child;
 }

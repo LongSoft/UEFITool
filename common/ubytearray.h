@@ -64,7 +64,7 @@ public:
     }
 
     UByteArray left(int32_t len) const { return d.substr(0, len); }
-    UByteArray right(int32_t len) const { return d.substr(d.size() - 1 - len, len); }
+    UByteArray right(int32_t len) const { return d.substr(d.size() - len, len); }
     UByteArray mid(int32_t pos, int32_t len = -1) const { return d.substr(pos, len); }
 
     UByteArray & operator=(const UByteArray & ba) { d = ba.d; return *this; }
@@ -77,12 +77,11 @@ public:
         for (int32_t i = 0; i < size(); i++) {
             uint8_t low  = d[i] & 0x0F;
             uint8_t high = (d[i] & 0xF0) >> 4;
-            low += (low < 10 ? '0' : 'a');
-            high += (high < 10 ? '0' : 'a');
-            hex[2*i] = low;
-            hex[2*i + 1] = high;
+            low += (low < 10 ? '0' : 'a' - 10);
+            high += (high < 10 ? '0' : 'a' - 10);
+            hex[2*i] = high;
+            hex[2*i + 1] = low;
         }
-        std::reverse(hex.begin(), hex.end());
         return UByteArray(hex);
     }
 

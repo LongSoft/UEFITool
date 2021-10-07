@@ -12,7 +12,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 */
 
-#include <inttypes.h>
 #include <map>
 
 #include "ffs.h"
@@ -20,6 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "meparser.h"
 #include "parsingdata.h"
 #include "utility.h"
+#include "uinttypes.h"
 
 #ifdef U_ENABLE_ME_PARSING_SUPPORT
 
@@ -138,7 +138,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     UByteArray body = region.mid(header.size(), ptBodySize);
     
     UString name = UString("FPT partition table");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
                             "Header length: %02Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nUMA size: %Xh\nFlash layout: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh, ",
                             ptSize, ptSize,
                             header.size(), header.size(),
@@ -173,7 +173,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         
         // Get info
         name = visibleAsciiOrHex((UINT8*)ptEntry->Name, 4);
-        info = usprintf("Full size: %Xh (%u)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
+        info = usprintf("Full size: %lXh (%lu)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
                         sizeof(FPT_HEADER_ENTRY), sizeof(FPT_HEADER_ENTRY),
                         ptEntry->Offset,
                         ptEntry->Size,
@@ -276,8 +276,8 @@ make_partition_table_consistent:
         if (partitions[i].type == Types::FptPartition) {
             UModelIndex partitionIndex;
             // Get info
-            name = visibleAsciiOrHex((UINT8*) partitions[i].ptEntry.Name, 4); 
-            info = usprintf("Full size: %Xh (%u)\nPartition type: %02Xh\n",
+            name = visibleAsciiOrHex((UINT8*) partitions[i].ptEntry.Name, 4);
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nPartition type: %02Xh\n",
                 partition.size(), partition.size(),
                 partitions[i].ptEntry.Type);
 
@@ -293,7 +293,7 @@ make_partition_table_consistent:
         else if (partitions[i].type == Types::Padding) {
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", partition.size(), partition.size());
             
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
@@ -318,14 +318,14 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
     UByteArray header = region.left(ptSize);
     
     UString name = UString("IFWI 1.6 header");
-    UString info = usprintf("Full size: %Xh (%u)\n"
+    UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n"
                             "Data  partition offset: %Xh\nData  partition size:   %Xh\n"
                             "Boot1 partition offset: %Xh\nBoot1 partition size:   %Xh\n"
                             "Boot2 partition offset: %Xh\nBoot2 partition size:   %Xh\n"
                             "Boot3 partition offset: %Xh\nBoot3 partition size:   %Xh\n"
                             "Boot4 partition offset: %Xh\nBoot4 partition size:   %Xh\n"
                             "Boot5 partition offset: %Xh\nBoot5 partition size:   %Xh\n"
-                            "Checksum: %Xh",
+                            "Checksum: %llXh",
                             header.size(), header.size(),
                             ifwiHeader->DataPartition.Offset, ifwiHeader->DataPartition.Size,
                             ifwiHeader->BootPartition[0].Offset, ifwiHeader->BootPartition[0].Size,
@@ -440,7 +440,7 @@ make_partition_table_consistent:
             }
             
             // Get info
-            info = usprintf("Full size: %Xh (%u)\n",
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n",
                             partition.size(), partition.size());
             
             // Add tree item
@@ -460,7 +460,7 @@ make_partition_table_consistent:
         else if (partitions[i].type == Types::Padding) {
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", partition.size(), partition.size());
             
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
@@ -486,7 +486,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     UByteArray header = region.left(ptSize);
     
     UString name = UString("IFWI 1.7 header");
-    UString info = usprintf("Full size: %Xh (%u)\n"
+    UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n"
                             "Flags: %02Xh\n"
                             "Reserved: %02Xh\n"
                             "Checksum: %Xh\n"
@@ -626,7 +626,7 @@ make_partition_table_consistent:
             }
             
             // Get info
-            info = usprintf("Full size: %Xh (%u)\n",
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n",
                             partition.size(), partition.size());
             
             // Add tree item
@@ -646,7 +646,7 @@ make_partition_table_consistent:
         else if (partitions[i].type == Types::Padding) {
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
+            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", partition.size(), partition.size());
             
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);

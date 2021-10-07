@@ -147,7 +147,7 @@ typedef struct VSS_APPLE_VARIABLE_HEADER_ {
 // Authenticated variable header, used for SecureBoot vars
 typedef struct VSS_AUTH_VARIABLE_HEADER_ {
     UINT16    StartId;          // Variable start marker AA55
-    UINT8     State;            // Variable state 
+    UINT8     State;            // Variable state
     UINT8     Reserved;
     UINT32    Attributes;       // Variable attributes
     UINT64    MonotonicCounter; // Monotonic counter against replay attack
@@ -164,7 +164,7 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 #define NVRAM_VSS_VARIABLE_HEADER_VALID              0x7f  // Variable has valid header
 #define NVRAM_VSS_VARIABLE_ADDED                     0x3f  // Variable has been completely added
 #define NVRAM_VSS_INTEL_VARIABLE_VALID               0xfc  // Intel special variable valid
-#define NVRAM_VSS_INTEL_VARIABLE_INVALID             0xf8  // Intel special variable invalid 
+#define NVRAM_VSS_INTEL_VARIABLE_INVALID             0xf8  // Intel special variable invalid
 
 // VSS variable attributes
 #define NVRAM_VSS_VARIABLE_NON_VOLATILE                          0x00000001

@@ -21,16 +21,20 @@ USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const Du
     counterHeader = counterBody = counterRaw = counterInfo = 0;
     fileList.clear();
 
-    if (changeDirectory(path))
+    if (changeDirectory(path)) {
+        printf("Directory \"%s\" already exists.\n", (const char*)path.toLocal8Bit());
         return U_DIR_ALREADY_EXIST;
+    }
 
     currentPath = path;
 
     USTATUS result = recursiveDump(root, path, dumpMode, sectionType, guid);
     if (result) {
+        printf("Error %lu returned from recursiveDump (directory \"%s\").\n", result, (const char*)path.toLocal8Bit());
         return result;
     } else if (!dumped) {
         removeDirectory(path);
+        printf("Removed directory \"%s\" since nothing was dumped.\n", (const char*)path.toLocal8Bit());
         return U_ITEM_NOT_FOUND;
     }
 
@@ -48,8 +52,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         guidToUString(readUnaligned((const EFI_GUID*)model->header(index).constData())) == guid ||
         guidToUString(readUnaligned((const EFI_GUID*)model->header(model->findParentOfType(index, Types::File)).constData())) == guid) {
 
-        if (!changeDirectory(path) && !makeDirectory(path))
+        if (!changeDirectory(path) && !makeDirectory(path)) {
+            printf("Cannot use directory \"%s\" (recursiveDump part 1).\n", (const char*)path.toLocal8Bit());
             return U_DIR_CREATE;
+        }
 
         if (currentPath != path) {
             counterHeader = counterBody = counterRaw = counterInfo = 0;
@@ -72,8 +78,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 counterHeader++;
 
                 std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
-                if (!file)
+                if (!file) {
+                    printf("Cannot open header \"%s\".\n", (const char*)filename.toLocal8Bit());
                     return U_FILE_OPEN;
+                }
 
                 const UByteArray &data = model->header(index);
                 file.write(data.constData(), data.size());
@@ -92,8 +100,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                 counterBody++;
 
                 std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
-                if (!file)
+                if (!file) {
+                    printf("Cannot open body \"%s\".\n", (const char*)filename.toLocal8Bit());
                     return U_FILE_OPEN;
+                }
 
                 const UByteArray &data = model->body(index);
                 file.write(data.constData(), data.size());
@@ -121,8 +131,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
                     counterRaw++;
 
                     std::ofstream file(filename.toLocal8Bit(), std::ofstream::binary);
-                    if (!file)
+                    if (!file) {
+                        printf("Cannot open file \"%s\".\n", (const char*)filename.toLocal8Bit());
                         return U_FILE_OPEN;
+                    }
 
                     const UByteArray &headerData = model->header(fileIndex);
                     const UByteArray &bodyData = model->body(fileIndex);
@@ -155,8 +167,10 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
             counterInfo++;
 
             std::ofstream file(filename.toLocal8Bit());
-            if (!file)
+            if (!file) {
+                printf("Cannot open info \"%s\".\n", (const char*)filename.toLocal8Bit());
                 return U_FILE_OPEN;
+            }
 
             file << info.toLocal8Bit();
 
@@ -174,15 +188,20 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
 
         UString childPath = path;
         if (dumpMode == DUMP_ALL || dumpMode == DUMP_CURRENT) {
-            if (!changeDirectory(path) && !makeDirectory(path))
+            if (!changeDirectory(path) && !makeDirectory(path)) {
+                printf("Cannot use directory \"%s\" (recursiveDump part 2).\n", (const char*)path.toLocal8Bit());
                 return U_DIR_CREATE;
+            }
 
-            childPath = usprintf("%s/%d %s", path.toLocal8Bit(), i,
-                (useText ? model->text(childIndex) : model->name(childIndex)).toLocal8Bit());
+            UString name = usprintf("%d %s", i, (useText ? model->text(childIndex) : model->name(childIndex)).toLocal8Bit());
+            fixFileName (name, false);
+            childPath = usprintf("%s/%s", path.toLocal8Bit(), name.toLocal8Bit());
         }
         result = recursiveDump(childIndex, childPath, dumpMode, sectionType, guid);
-        if (result)
+        if (result) {
+            printf("Error %lu returned from recursiveDump (child directory \"%s\").\n", result, (const char*)childPath.toLocal8Bit());
             return result;
+        }
     }
 
     return U_SUCCESS;

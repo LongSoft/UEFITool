@@ -64,7 +64,7 @@ void initGuidDatabase(const UString & path, UINT32* numEntries)
         if (line.size() == 0 || line[0] == '#')
             continue;
 
-        // GUID and name are comma-separated 
+        // GUID and name are comma-separated
         std::vector<UString> lineParts;
         std::string::size_type prev = 0, curr = 0;
         while ((curr = line.find(',', curr)) != std::string::npos) {
@@ -103,7 +103,7 @@ void initGuidDatabase(const UString & path, UINT32* numEntries)
 
 UString guidDatabaseLookup(const EFI_GUID & guid)
 {
-	U_UNUSED_PARAMETER(guid);
+    U_UNUSED_PARAMETER(guid);
     return UString();
 }
 #endif

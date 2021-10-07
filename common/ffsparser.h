@@ -46,7 +46,7 @@ public:
     FfsParser(TreeModel* treeModel);
     ~FfsParser();
 
-    // Obtain parser messages 
+    // Obtain parser messages
     std::vector<std::pair<UString, UModelIndex> > getMessages() const;
     // Clear messages
     void clearMessages() { messagesVector.clear(); }
@@ -62,6 +62,9 @@ public:
 
     // Obtain offset/address difference
     UINT64 getAddressDiff() { return addressDiff; }
+
+    // Output some info to stdout
+    void outputInfo(void);
 
 private:
     TreeModel *model;

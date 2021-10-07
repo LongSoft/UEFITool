@@ -41,6 +41,7 @@ HEADERS += uefitool.h \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/Tiano/EfiTianoCompress.h \
+ ../common/uinttypes.h \
  ../common/ustring.h \
  ../common/ubytearray.h \
  ../common/bootguard.h \
@@ -123,7 +124,5 @@ FORMS += uefitool.ui \
 RESOURCES += uefitool.qrc
 RC_FILE = uefitool.rc
 ICON = icons/uefitool.icns
-ICONFILE.files = icons/uefitool.icns
-ICONFILE.path = Contents/Resources
 QMAKE_BUNDLE_DATA += ICONFILE
 QMAKE_INFO_PLIST = Info.plist

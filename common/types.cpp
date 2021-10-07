@@ -97,14 +97,14 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::OnePadding)               return UString("Empty (0xFF)");
         if (subtype == Subtypes::DataPadding)              return UString("Non-empty");
         break;
-    case Types::Volume: 
+    case Types::Volume:
         if (subtype == Subtypes::UnknownVolume)            return UString("Unknown");
         if (subtype == Subtypes::Ffs2Volume)               return UString("FFSv2");
         if (subtype == Subtypes::Ffs3Volume)               return UString("FFSv3");
         if (subtype == Subtypes::NvramVolume)              return UString("NVRAM");
         if (subtype == Subtypes::MicrocodeVolume)          return UString("Microcode");
         break;
-    case Types::Capsule: 
+    case Types::Capsule:
         if (subtype == Subtypes::AptioSignedCapsule)       return UString("Aptio signed");
         if (subtype == Subtypes::AptioUnsignedCapsule)     return UString("Aptio unsigned");
         if (subtype == Subtypes::UefiCapsule)              return UString("UEFI 2.0");
@@ -146,7 +146,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         if (subtype == Subtypes::IntelMicrocode)           return UString("Intel");
         if (subtype == Subtypes::AmdMicrocode)             return UString("AMD");
         break;
-	// ME-specific
+    // ME-specific
     case Types::FptEntry:
         if (subtype == Subtypes::ValidFptEntry)            return UString("Valid");
         if (subtype == Subtypes::InvalidFptEntry)          return UString("Invalid");
