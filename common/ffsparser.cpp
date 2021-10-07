@@ -3236,7 +3236,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     }
 
     // Calculate address difference
-    const UINT32 vtfSize = (const UINT32)(model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size());
+    const UINT32 vtfSize = (UINT32)(model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size());
     addressDiff = 0xFFFFFFFFULL - model->base(lastVtf) - vtfSize + 1;
 
     // Parse reset vector data

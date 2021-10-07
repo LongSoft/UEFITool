@@ -771,7 +771,7 @@ USTATUS NvramParser::getStoreSize(const UByteArray & data, const UINT32 storeOff
 
 USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check store size
     if (dataSize < sizeof(VSS_VARIABLE_STORE_HEADER)) {
@@ -829,7 +829,7 @@ USTATUS NvramParser::parseVssStoreHeader(const UByteArray & store, const UINT32 
 
 USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32 localOffset, const bool sizeOverride, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check store size
     if (dataSize < sizeof(VSS2_VARIABLE_STORE_HEADER)) {
@@ -877,7 +877,7 @@ USTATUS NvramParser::parseVss2StoreHeader(const UByteArray & store, const UINT32
 
 USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check store size
     if (dataSize < sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64)) {
@@ -947,7 +947,7 @@ USTATUS NvramParser::parseFtwStoreHeader(const UByteArray & store, const UINT32 
 
 USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check store size
     if (dataSize < sizeof(FDC_VOLUME_HEADER)) {
@@ -985,7 +985,7 @@ USTATUS NvramParser::parseFdcStoreHeader(const UByteArray & store, const UINT32 
 
 USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check store size
     if (dataSize < sizeof(APPLE_FSYS_STORE_HEADER)) {
@@ -1010,7 +1010,7 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
 
     // Check store checksum
     UINT32 storedCrc = *(UINT32*)store.right(sizeof(UINT32)).constData();
-    UINT32 calculatedCrc = (UINT32)crc32(0, (const UINT8*)store.constData(), (const UINT32)store.size() - sizeof(UINT32));
+    UINT32 calculatedCrc = (UINT32)crc32(0, (const UINT8*)store.constData(), (UINT32)store.size() - sizeof(UINT32));
 
     // Add info
     bool isGaidStore = (fsysStoreHeader->Signature == NVRAM_APPLE_GAID_STORE_SIGNATURE);
@@ -1033,7 +1033,7 @@ USTATUS NvramParser::parseFsysStoreHeader(const UByteArray & store, const UINT32
 
 USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check dataSize
     if (dataSize < sizeof(EVSA_STORE_ENTRY)) {
@@ -1078,7 +1078,7 @@ USTATUS NvramParser::parseEvsaStoreHeader(const UByteArray & store, const UINT32
 
 USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check data size
     if (dataSize < sizeof(PHOENIX_FLASH_MAP_HEADER)) {
@@ -1118,7 +1118,7 @@ USTATUS NvramParser::parseFlashMapStoreHeader(const UByteArray & store, const UI
 
 USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check store size
     if (dataSize < sizeof(PHOENIX_CMDB_HEADER)) {
@@ -1156,7 +1156,7 @@ USTATUS NvramParser::parseCmdbStoreHeader(const UByteArray & store, const UINT32
 
 USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check data size
     if (dataSize < sizeof(OEM_ACTIVATION_PUBKEY)) {
@@ -1198,7 +1198,7 @@ USTATUS NvramParser::parseSlicPubkeyHeader(const UByteArray & store, const UINT3
 
 USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
 
     // Check data size
     if (dataSize < sizeof(OEM_ACTIVATION_MARKER)) {
@@ -1240,7 +1240,7 @@ USTATUS NvramParser::parseSlicMarkerHeader(const UByteArray & store, const UINT3
 
 USTATUS NvramParser::parseStoreHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
 {
-    const UINT32 dataSize = (const UINT32)store.size();
+    const UINT32 dataSize = (UINT32)store.size();
     const UINT32* signature = (const UINT32*)store.constData();
     // Check store size
     if (dataSize < sizeof(UINT32)) {
