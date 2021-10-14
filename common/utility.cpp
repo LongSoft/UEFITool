@@ -33,10 +33,23 @@ UString visibleAsciiOrHex(UINT8* bytes, UINT32 length)
     for (UINT32 i = 0; i < length; i++) {
         hexString += usprintf("%02X", bytes[i]);
         
-        if (bytes[i] < '\x20' || bytes[i] > '\x7E') {  // Explicit ascii codes to avoid locale dependency
+        if (bytes[i] == '\x00') { // Check for the rest of the buffer being zeroes, and make the whole previous string visible, if so
+            for (UINT32 j = i + 1; j < length; j++) {
+                if (bytes[j] != '\x00') {
+                    ascii = false;
+                    break;
+                }
+            }
+
+            if (ascii) {
+                // No need to continue iterating over every symbol, we did it already
+                break;
+            }
+        }
+        else if (bytes[i] < '\x20' || bytes[i] > '\x7E') {  // Explicit ascii codes to avoid locale dependency
             ascii = false;
         }
-        
+
         if (ascii) {
             asciiString += usprintf("%c", bytes[i]);
         }
