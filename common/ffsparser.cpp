@@ -5170,11 +5170,11 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
             // Parse Module Attributes a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
                 const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)partition.constData();
-                int hashSize = partition.size() - offsetof(CPD_EXT_MODULE_ATTRIBUTES, ImageHash);
+                int hashSize = partition.size() - CpdExtModuleImageHashOffset;
 
                 // This hash is stored reversed
                 // Need to reverse it back to normal
-                UByteArray hash((const char*)&attrHeader->ImageHash, hashSize);
+                UByteArray hash((const char*)attrHeader + CpdExtModuleImageHashOffset, hashSize);
                 std::reverse(hash.begin(), hash.end());
 
                 info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nType: %Xh\n"
@@ -5226,12 +5226,12 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
         const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
         if (sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) <= ((UINT32)body.size() - offset)) {
             // TODO: check sanity of moduleHeader->HashSize
-            UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) - sizeof(moduleHeader->MetadataHash) + moduleHeader->HashSize);
+            UByteArray module((const char*)moduleHeader, CpdExtSignedPkgMetadataHashOffset + moduleHeader->HashSize);
             UString name = usprintf("%.12s", moduleHeader->Name);
 
             // This hash is stored reversed
             // Need to reverse it back to normal
-            UByteArray hash((const char*)&moduleHeader->MetadataHash, moduleHeader->HashSize);
+            UByteArray hash((const char*)moduleHeader + CpdExtSignedPkgMetadataHashOffset, moduleHeader->HashSize);
             std::reverse(hash.begin(), hash.end());
 
             UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nType: %Xh\nHash algorithm: %Xh\nHash size: %Xh (%u)\nMetadata size: %Xh (%u)\nMetadata hash: ",
