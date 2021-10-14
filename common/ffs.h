@@ -648,7 +648,8 @@ typedef struct BPDT_ENTRY_ {
 #define BPDT_ENTRY_TYPE_TCSS_FW_IOM      23
 #define BPDT_ENTRY_TYPE_TCSS_FW_PHY      24
 #define BPDT_ENTRY_TYPE_TBT              25
-#define BPDT_LAST_KNOWN_ENTRY_TYPE       BPDT_ENTRY_TYPE_TBT
+#define BPDT_ENTRY_TYPE_SAMF             41
+#define BPDT_ENTRY_TYPE_PPHY             42
 
 // CPD
 #define CPD_SIGNATURE 0x44504324 //$CPD
@@ -740,7 +741,11 @@ typedef struct CPD_EXTENTION_HEADER_ {
 #define CPD_EXT_TYPE_IOM_METADATA            24
 #define CPD_EXT_TYPE_MGP_METADATA            25
 #define CPD_EXT_TYPE_TBT_METADATA            26
-#define CPD_LAST_KNOWN_EXT_TYPE              CPD_EXT_TYPE_TBT_METADATA
+#define CPD_EXT_TYPE_GMF_CERTIFICATE         30
+#define CPD_EXT_TYPE_GMF_BODY                31
+#define CPD_EXT_TYPE_KEY_MANIFEST_EXT        34
+#define CPD_EXT_TYPE_SIGNED_PACKAGE_INFO_EXT 35
+#define CPD_EXT_TYPE_SPS_PLATFORM_ID         50
 
 typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_MODULE_ {
     UINT8  Name[12];
@@ -748,7 +753,7 @@ typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_MODULE_ {
     UINT8  HashAlgorithm;
     UINT16 HashSize;
     UINT32 MetadataSize;
-    UINT8  MetadataHash[32];
+    UINT8  MetadataHash[1]; // Can be 32 or 48 bit
 } CPD_EXT_SIGNED_PACKAGE_INFO_MODULE;
 
 typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_ {
@@ -765,12 +770,11 @@ typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_ {
 typedef struct CPD_EXT_MODULE_ATTRIBUTES_ {
     UINT32 ExtensionType;
     UINT32 ExtensionLength;
-    UINT8  CompressionType;
-    UINT8  Reserved[3];
+    UINT32 CompressionType;
     UINT32 UncompressedSize;
     UINT32 CompressedSize;
     UINT32 GlobalModuleId;
-    UINT8  ImageHash[32];
+    UINT8  ImageHash[1]; // The actual hash size is 32 or 48 bytes
 } CPD_EXT_MODULE_ATTRIBUTES;
 
 #define CPD_EXT_MODULE_COMPRESSION_TYPE_UNCOMPRESSED 0
@@ -797,8 +801,8 @@ typedef struct CPD_EXT_IFWI_PARTITION_MANIFEST_ {
     UINT32 ReservedFlags : 23;
     UINT32 HashAlgorithm : 8;
     UINT32 HashSize : 24;
-    UINT8  CompletePartitionHash[32];
-    UINT8  Reserved[20];
+    UINT8  CompletePartitionHash[48];
+    UINT8  Reserved[4];
 } CPD_EXT_IFWI_PARTITION_MANIFEST;
 
 // Restore previous packing rules

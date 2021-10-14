@@ -3871,10 +3871,10 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
     // Perform validation of BootGuard stuff
     if (bgAcmFound) {
         if (!bgKeyManifestFound) {
-            msg(usprintf("%s: ACM found, but KeyManifest isn't", __FUNCTION__), acmIndex);
+            msg(usprintf("%s: ACM found, but KeyManifest is not", __FUNCTION__), acmIndex);
         }
         else if (!bgBootPolicyFound) {
-            msg(usprintf("%s: ACM and KeyManifest found, BootPolicy isn't", __FUNCTION__), kmIndex);
+            msg(usprintf("%s: ACM and KeyManifest found, BootPolicy is not", __FUNCTION__), kmIndex);
         }
         else {
             // Check key hashes
@@ -4693,10 +4693,13 @@ make_partition_table_consistent:
             if (readUnaligned((const UINT32*)partition.constData()) == CPD_SIGNATURE) {
                 // Parse code partition contents
                 UModelIndex cpdIndex;
-                parseCpdRegion(partition, localOffset, partitionIndex, cpdIndex);
+                parseCpdRegion(partition, 0, partitionIndex, cpdIndex);
             }
 
-            if (partitions[i].ptEntry.Type > BPDT_LAST_KNOWN_ENTRY_TYPE) {
+            // TODO: make this generic again
+            if (partitions[i].ptEntry.Type > BPDT_ENTRY_TYPE_TBT
+                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_SAMF
+                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_PPHY) {
                 msg(usprintf("%s: BPDT entry of unknown type found", __FUNCTION__), partitionIndex);
             }
         }
@@ -4765,11 +4768,11 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
 
     // Get info
     UByteArray header = region.left(ptHeaderSize);
-    UByteArray body = region.mid(ptHeaderSize);
+    UByteArray body = region.mid(ptHeaderSize, ptBodySize);
     UString name = usprintf("CPD partition table");
     UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")\nNumber of entries: %u\n"
-                            "Header version: %02X\nEntry version: %02X",
-                            region.size(), region.size(),
+                            "Header version: %u\nEntry version: %u",
+                            ptSize, ptSize,
                             header.size(), header.size(),
                             body.size(), body.size(),
                             cpdHeader->NumEntries,
@@ -4832,8 +4835,8 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
     std::sort(partitions.begin(), partitions.end());
 
     // Because lenghts for all Huffmann-compressed partitions mean nothing at all, we need to split all partitions into 2 classes:
-    // 1. CPD manifest (should be the first)
-    // 2. Metadata entries (should begin right after partition manifest and end before any code partition)
+    // 1. CPD manifest
+    // 2. Metadata entries
     UINT32 i = 1; // manifest is index 0, .met partitions start at index 1
     while (i < partitions.size()) {
         name = usprintf("%.12s", partitions[i].ptEntry.EntryName);
@@ -4866,7 +4869,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
 
         // Search
         bool found = false;
-        UINT32 j = i + 1;
+        UINT32 j = 1;
         while (j < partitions.size()) {
             UString namej = usprintf("%.12s", partitions[j].ptEntry.EntryName);
 
@@ -4991,28 +4994,31 @@ make_partition_table_consistent:
             name = usprintf("%.12s", partitions[i].ptEntry.EntryName);
 
             // It's a manifest
-            if (name.contains(".man")) {
+            if (name.endsWith(".man")) {
                 if (!partitions[i].ptEntry.Offset.HuffmanCompressed
                     && partitions[i].ptEntry.Length >= sizeof(CPD_MANIFEST_HEADER)) {
                     const CPD_MANIFEST_HEADER* manifestHeader = (const CPD_MANIFEST_HEADER*) partition.constData();
                     if (manifestHeader->HeaderId == ME_MANIFEST_HEADER_ID) {
                         UByteArray header = partition.left(manifestHeader->HeaderLength * sizeof(UINT32));
-                        UByteArray body = partition.mid(header.size());
+                        UByteArray body = partition.mid(manifestHeader->HeaderLength * sizeof(UINT32));
 
-                        info += usprintf(
-                                         "\nHeader type: %u\nHeader length: %lXh (%lu)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
-                                         "Date: %Xh\nSize: %lXh (%lu)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %lXh (%lu)\nExponent size: %lXh (%lu)",
-                                         manifestHeader->HeaderType,
-                                         manifestHeader->HeaderLength * sizeof(UINT32), manifestHeader->HeaderLength * sizeof(UINT32),
-                                         manifestHeader->HeaderVersion,
-                                         manifestHeader->Flags,
-                                         manifestHeader->Vendor,
-                                         manifestHeader->Date,
-                                         manifestHeader->Size * sizeof(UINT32), manifestHeader->Size * sizeof(UINT32),
-                                         manifestHeader->VersionMajor, manifestHeader->VersionMinor, manifestHeader->VersionBugfix, manifestHeader->VersionBuild,
-                                         manifestHeader->SecurityVersion,
-                                         manifestHeader->ModulusSize * sizeof(UINT32), manifestHeader->ModulusSize * sizeof(UINT32),
-                                         manifestHeader->ExponentSize * sizeof(UINT32), manifestHeader->ExponentSize * sizeof(UINT32));
+                        info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %" PRIXQ "h (%" PRIuQ ")"
+                                        "\nHeader type: %u\nHeader length: %lXh (%lu)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
+                                        "Date: %Xh\nSize: %lXh (%lu)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %lXh (%lu)\nExponent size: %lXh (%lu)",
+                                        partition.size(), partition.size(),
+                                        header.size(), header.size(),
+                                        body.size(), body.size(),
+                                        manifestHeader->HeaderType,
+                                        manifestHeader->HeaderLength * sizeof(UINT32), manifestHeader->HeaderLength * sizeof(UINT32),
+                                        manifestHeader->HeaderVersion,
+                                        manifestHeader->Flags,
+                                        manifestHeader->Vendor,
+                                        manifestHeader->Date,
+                                        manifestHeader->Size * sizeof(UINT32), manifestHeader->Size * sizeof(UINT32),
+                                        manifestHeader->VersionMajor, manifestHeader->VersionMinor, manifestHeader->VersionBugfix, manifestHeader->VersionBuild,
+                                        manifestHeader->SecurityVersion,
+                                        manifestHeader->ModulusSize * sizeof(UINT32), manifestHeader->ModulusSize * sizeof(UINT32),
+                                        manifestHeader->ExponentSize * sizeof(UINT32), manifestHeader->ExponentSize * sizeof(UINT32));
 
                         // Add tree item
                         UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::ManifestCpdPartition, name, UString(), info, header, body, UByteArray(), Fixed, parent);
@@ -5023,11 +5029,9 @@ make_partition_table_consistent:
                 }
             }
             // It's a metadata
-            else if (name.contains(".met")) {
-                info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
-                                partition.size(), partition.size(),
-                                partitions[i].ptEntry.Offset.Offset,
-                                partitions[i].ptEntry.Length)
+            else if (name.endsWith(".met")) {
+                info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nHuffman compressed: ",
+                                partition.size(), partition.size())
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
 
                 // Calculate SHA256 hash over the metadata and add it to its info
@@ -5041,31 +5045,10 @@ make_partition_table_consistent:
                 // Parse data as extensions area
                 parseCpdExtensionsArea(partitionIndex);
             }
-            // It's a key
-            else if (name.contains(".key")) {
-                info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
-                                partition.size(), partition.size(),
-                                partitions[i].ptEntry.Offset.Offset,
-                                partitions[i].ptEntry.Length)
-                + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
-
-                // Calculate SHA256 hash over the key and add it to its info
-                UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
-                sha256(partition.constData(), partition.size(), hash.data());
-                info += UString("\nHash: ") + UString(hash.toHex().constData());
-
-                // Add three item
-                UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition,  Subtypes::KeyCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-
-                // Parse data as extensions area
-                parseCpdExtensionsArea(partitionIndex);
-            }
             // It's a code
             else {
-                info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nEntry offset: %Xh\nEntry length: %Xh\nHuffman compressed: ",
-                                partition.size(), partition.size(),
-                                partitions[i].ptEntry.Offset.Offset,
-                                partitions[i].ptEntry.Length)
+                info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nHuffman compressed: ",
+                                partition.size(), partition.size())
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
 
                 // Calculate SHA256 hash over the code and add it to its info
@@ -5106,7 +5089,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
     UINT32 offset = 0;
     while (offset < (UINT32)body.size()) {
         const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (body.constData() + offset);
-        if (extHeader->Length <= ((UINT32)body.size() - offset)) {
+        if (extHeader->Length > 0 && extHeader->Length <= ((UINT32)body.size() - offset)) {
             UByteArray partition = body.mid(offset, extHeader->Length);
 
             UString name = cpdExtensionTypeToUstring(extHeader->Type);
@@ -5142,10 +5125,18 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
             // Parse IFWI Partition Manifest a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST) {
                 const CPD_EXT_IFWI_PARTITION_MANIFEST* attrHeader = (const CPD_EXT_IFWI_PARTITION_MANIFEST*)partition.constData();
-
+                
+                // Check HashSize to be sane.
+                UINT32 hashSize = attrHeader->HashSize;
+                bool msgHashSizeMismatch = false;
+                if (hashSize > sizeof(attrHeader->CompletePartitionHash)) {
+                    hashSize = sizeof(attrHeader->CompletePartitionHash);
+                    msgHashSizeMismatch = true;
+                }
+                
                 // This hash is stored reversed
                 // Need to reverse it back to normal
-                UByteArray hash((const char*)&attrHeader->CompletePartitionHash, attrHeader->HashSize);
+                UByteArray hash((const char*)&attrHeader->CompletePartitionHash, hashSize);
                 std::reverse(hash.begin(), hash.end());
 
                 info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nType: %Xh\n"
@@ -5172,14 +5163,13 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
 
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
-                if (sizeof (attrHeader->CompletePartitionHash) != attrHeader->HashSize) {
-                    msg(usprintf("%s: IFWI Partition Manifest hash size is %d, expected %lu", __FUNCTION__, attrHeader->HashSize, sizeof (attrHeader->CompletePartitionHash)), extIndex);
+                if (msgHashSizeMismatch) {
+                    msg(usprintf("%s: IFWI Partition Manifest hash size is %u, maximum allowed is %lu, truncated", __FUNCTION__, attrHeader->HashSize, sizeof(attrHeader->CompletePartitionHash)), extIndex);
                 }
             }
             // Parse Module Attributes a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
                 const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)partition.constData();
-
                 int hashSize = partition.size() - offsetof(CPD_EXT_MODULE_ATTRIBUTES, ImageHash);
 
                 // This hash is stored reversed
@@ -5198,9 +5188,6 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
 
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
-                if (hashSize != sizeof (attrHeader->ImageHash)) {
-                    msg(usprintf("%s: Module Attributes hash size is %d, expected %lu", __FUNCTION__, hashSize, sizeof (attrHeader->ImageHash)), extIndex);
-                }
             }
             // Parse everything else
             else {
@@ -5208,7 +5195,13 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
             }
 
-            if (extHeader->Type > CPD_LAST_KNOWN_EXT_TYPE) {
+            // TODO: make this generic again
+            if (extHeader->Type > CPD_EXT_TYPE_TBT_METADATA
+                && extHeader->Type != CPD_EXT_TYPE_GMF_CERTIFICATE
+                && extHeader->Type != CPD_EXT_TYPE_GMF_BODY
+                && extHeader->Type != CPD_EXT_TYPE_KEY_MANIFEST_EXT
+                && extHeader->Type != CPD_EXT_TYPE_SIGNED_PACKAGE_INFO_EXT
+                && extHeader->Type != CPD_EXT_TYPE_SPS_PLATFORM_ID) {
                 msg(usprintf("%s: CPD extention of unknown type found", __FUNCTION__), extIndex);
             }
 
@@ -5232,8 +5225,8 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
     while (offset < (UINT32)body.size()) {
         const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
         if (sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) <= ((UINT32)body.size() - offset)) {
-            UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) - sizeof (moduleHeader->MetadataHash) + moduleHeader->HashSize);
-
+            // TODO: check sanity of moduleHeader->HashSize
+            UByteArray module((const char*)moduleHeader, sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) - sizeof(moduleHeader->MetadataHash) + moduleHeader->HashSize);
             UString name = usprintf("%.12s", moduleHeader->Name);
 
             // This hash is stored reversed
@@ -5249,10 +5242,6 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
                                     moduleHeader->MetadataSize, moduleHeader->MetadataSize) + UString(hash.toHex().constData());
             // Add tree otem
             UModelIndex extIndex = model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
-            if (sizeof (moduleHeader->MetadataHash) != moduleHeader->HashSize) {
-                msg(usprintf("%s: CPD Signed Package Info hash size is %d, expected %lu", __FUNCTION__, moduleHeader->HashSize, sizeof (moduleHeader->MetadataHash)), extIndex);
-            }
-
             offset += module.size();
         }
         else break;

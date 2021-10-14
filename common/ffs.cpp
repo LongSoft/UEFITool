@@ -175,6 +175,8 @@ UString bpdtEntryTypeToUString(const UINT16 type)
         case BPDT_ENTRY_TYPE_TCSS_FW_IOM:        return UString("TCSS FW IOM");
         case BPDT_ENTRY_TYPE_TCSS_FW_PHY:        return UString("TCSS FW PHY");
         case BPDT_ENTRY_TYPE_TBT:                return UString("TCSS TBT");
+        case BPDT_ENTRY_TYPE_SAMF:               return UString("SAMF");
+        case BPDT_ENTRY_TYPE_PPHY:               return UString("PPHY");
         default:                                 return usprintf("Unknown %u", type);
     }
 }
@@ -209,6 +211,11 @@ UString cpdExtensionTypeToUstring(const UINT32 type)
         case CPD_EXT_TYPE_IOM_METADATA:              return UString("IOM Metadata");
         case CPD_EXT_TYPE_MGP_METADATA:              return UString("MGP Metadata");
         case CPD_EXT_TYPE_TBT_METADATA:              return UString("TBT Metadata");
+        case CPD_EXT_TYPE_GMF_CERTIFICATE:           return UString("Golden Measurement File Certificate");
+        case CPD_EXT_TYPE_GMF_BODY:                  return UString("Golden Measurement File Body");
+        case CPD_EXT_TYPE_KEY_MANIFEST_EXT:          return UString("Extended Key Manifest");
+        case CPD_EXT_TYPE_SIGNED_PACKAGE_INFO_EXT:   return UString("Extended Signed Package Info");
+        case CPD_EXT_TYPE_SPS_PLATFORM_ID:           return UString("SPS Platform ID");
         default:                                     return usprintf("Unknown %u", type);
     }
 }

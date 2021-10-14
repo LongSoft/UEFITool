@@ -126,13 +126,6 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         return U_INVALID_ME_PARTITION_TABLE;
     }
     
-    // Recalculate checksum
-    UByteArray tempHeader = UByteArray((const char*)region.constData(), romBypassVectorSize + sizeof(FPT_HEADER));
-    FPT_HEADER* tempPtHeader = (FPT_HEADER*)(tempHeader.data() + romBypassVectorSize);
-    tempPtHeader->Checksum = 0;
-    UINT8 calculated = calculateChecksum8((const UINT8*)tempHeader.data(), romBypassVectorSize + sizeof(FPT_HEADER));
-    bool msgInvalidPtHeaderChecksum = (calculated != ptHeader->Checksum);
-    
     // Get info
     UByteArray header = region.left(romBypassVectorSize + sizeof(FPT_HEADER));
     UByteArray body = region.mid(header.size(), ptBodySize);
@@ -153,16 +146,11 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
                             ptHeader->UmaSize,
                             ptHeader->FlashLayout,
                             ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild,
-                            ptHeader->Checksum) + (ptHeader->Checksum == calculated ? UString("valid\n") : usprintf("invalid, should be %02Xh\n", calculated));
+                            ptHeader->Checksum);
     
     // Add tree item
     index = model->addItem(0, Types::FptStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
     
-    // Show messages
-    if (msgInvalidPtHeaderChecksum) {
-        msg(usprintf("%s: FPT partition table header checksum is invalid", __FUNCTION__), index);
-    }
-
     // Add partition table entries
     std::vector<FPT_PARTITION_INFO> partitions;
     UINT32 offset = (UINT32)header.size();
