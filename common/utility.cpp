@@ -33,7 +33,7 @@ UString visibleAsciiOrHex(UINT8* bytes, UINT32 length)
     for (UINT32 i = 0; i < length; i++) {
         hexString += usprintf("%02X", bytes[i]);
         
-        if (bytes[i] == '\x00') { // Check for the rest of the buffer being zeroes, and make the whole previous string visible, if so
+        if (ascii && i > 0 && bytes[i] == '\x00') { // Check for the rest of the buffer being zeroes, and make the whole previous string visible, if so
             for (UINT32 j = i + 1; j < length; j++) {
                 if (bytes[j] != '\x00') {
                     ascii = false;
