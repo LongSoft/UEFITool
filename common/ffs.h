@@ -753,8 +753,10 @@ typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_MODULE_ {
     UINT8  HashAlgorithm;
     UINT16 HashSize;
     UINT32 MetadataSize;
-    UINT8  MetadataHash[1]; // Can be 32 or 48 bit
+    // UINT8  MetadataHash[]; with the actual hash size is 32 or 48 bytes
 } CPD_EXT_SIGNED_PACKAGE_INFO_MODULE;
+
+static const size_t CpdExtSignedPkgMetadataHashOffset = sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE);
 
 typedef struct CPD_EXT_SIGNED_PACKAGE_INFO_ {
     UINT32 ExtensionType;
@@ -774,8 +776,10 @@ typedef struct CPD_EXT_MODULE_ATTRIBUTES_ {
     UINT32 UncompressedSize;
     UINT32 CompressedSize;
     UINT32 GlobalModuleId;
-    UINT8  ImageHash[1]; // The actual hash size is 32 or 48 bytes
+    // UINT8  ImageHash[]; with the actual hash size is 32 or 48 bytes
 } CPD_EXT_MODULE_ATTRIBUTES;
+
+static const size_t CpdExtModuleImageHashOffset = sizeof(CPD_EXT_MODULE_ATTRIBUTES);
 
 #define CPD_EXT_MODULE_COMPRESSION_TYPE_UNCOMPRESSED 0
 #define CPD_EXT_MODULE_COMPRESSION_TYPE_HUFFMAN 1
