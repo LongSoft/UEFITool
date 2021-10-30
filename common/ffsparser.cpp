@@ -1686,22 +1686,22 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
 
     // Check file alignment
     bool msgUnalignedFile = false;
-    UINT8 alignmentPower = ffsAlignmentTable[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
-    if (volumeRevision > 1 && (fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT2)) {
-        alignmentPower = ffsAlignment2Table[(fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3];
-    }
-
-    UINT32 alignment = (UINT32)(1UL << alignmentPower);
-    if ((localOffset + header.size()) % alignment) {
-        msgUnalignedFile = true;
-    }
-
-    // Check file alignment agains volume alignment
+    
+    const UINT8 fssAlignment8 = (UINT8) ((fileHeader->Attributes & FFS_ATTRIB_DATA_ALIGNMENT) >> 3 & ~7);
+    ASSERT (fssAlignment8 < 8);
+    const  UINT32 fssAlignment32ConvToVol = (UINT32)ffsAlignmentTable[fssAlignment8];
     bool msgFileAlignmentIsGreaterThanVolumeAlignment = false;
-    if (!isWeakAligned && volumeAlignment < alignment) {
-        msgFileAlignmentIsGreaterThanVolumeAlignment = true;
-    }
 
+    //todo  Intel say align need only for pads + topview guid. also need check v2 vol
+    if (fileHeader->Type == EFI_FV_FILETYPE_PAD) {
+	if (fssAlignment32ConvToVol == 0 || (localOffset + header.size()) % fssAlignment32ConvToVol) {
+	    msgUnalignedFile = true;
+	}
+	// Check file alignment agains volume alignment
+	if (!isWeakAligned && volumeAlignment < fssAlignment32ConvToVol) {
+	    gFileAlignmentIsGreaterThanVolumeAlignment = true;
+	}
+    }
     // Get file body
     UByteArray body = file.mid(header.size());
 
@@ -1817,7 +1817,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (msgUnalignedFile)
         msg(usprintf("%s: unaligned file", __FUNCTION__), index);
     if (msgFileAlignmentIsGreaterThanVolumeAlignment)
-        msg(usprintf("%s: file alignment %Xh is greater than parent volume alignment %Xh", __FUNCTION__, alignment, volumeAlignment), index);
+        msg(usprintf("%s: file alignment %Xh is greater than parent volume alignment %Xh", __FUNCTION__, fssAlignment32ConvToVol, volumeAlignment), index);
     if (msgInvalidHeaderChecksum)
         msg(usprintf("%s: invalid header checksum %02Xh, should be %02Xh", __FUNCTION__, fileHeader->IntegrityCheck.Checksum.Header, calculatedHeader), index);
     if (msgInvalidDataChecksum)
