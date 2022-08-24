@@ -2309,7 +2309,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         }
         // No need to change dataOffset here
     }
-    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMAF86 || baGuid == EFI_GUIDED_SECTION_TIANO || baGuid == EFI_GUIDED_SECTION_GZIP) {
+    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMA_HP || baGuid == EFI_GUIDED_SECTION_LZMAF86 || baGuid == EFI_GUIDED_SECTION_TIANO || baGuid == EFI_GUIDED_SECTION_GZIP) {
         if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on compressed GUIDed sections
             msgNoProcessingRequiredAttributeCompressed = true;
         }
@@ -2793,7 +2793,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         info += usprintf("\nDecompressed size: %" PRIXQ "h (%" PRIuQ ")", processed.size(), processed.size());
     }
     // LZMA compressed section
-    else if (baGuid == EFI_GUIDED_SECTION_LZMA) {
+    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMA_HP) {
         USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION, algorithm, dictionarySize, processed, efiDecompressed);
         if (result) {
             msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
