@@ -1,6 +1,6 @@
 UEFITool
 ========
-.. image:: https://raw.githubusercontent.com/LongSoft/UEFITool/master/uefitool.ico
+.. image:: https://raw.githubusercontent.com/LongSoft/UEFITool/old_engine/uefitool.ico
 |
 | UEFITool is a cross-platform C++/Qt program for parsing, extracting and modifying UEFI firmware images.
 | It supports parsing of full BIOS images starting with the flash descriptor or any binary files containing UEFI volumes.
