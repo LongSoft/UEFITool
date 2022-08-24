@@ -10,7 +10,7 @@ on:
 jobs:
   build_mac:
     name: Build on macOS
-    runs-on: macos-10.15
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - run: ./unixbuild.sh
@@ -30,7 +30,7 @@ jobs:
 
   build_linux:
     name: Build on Linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Get Qt
@@ -52,7 +52,7 @@ jobs:
 
   build_win_extract:
     name: Build on Windows
-    runs-on: windows-2016
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
 
@@ -75,7 +75,7 @@ jobs:
       - name: Configure UEFIExtract
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIExtract
-        run: cmake -G "Visual Studio 15 2017" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIExtract/
+        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIExtract/
       - name: Build UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract
         shell: bash
@@ -92,7 +92,7 @@ jobs:
       - name: Configure UEFIFind
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIFind
-        run: cmake -G "Visual Studio 15 2017" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIFind/
+        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIFind/
       - name: Build UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
         shell: bash
@@ -114,7 +114,7 @@ jobs:
         working-directory: ${{runner.workspace}}/build/UEFITool
         shell: cmd
         run: |
-            call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
+            call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
             nmake release
       - name: Archive UEFITool
         working-directory: ${{runner.workspace}}/build/UEFITool/release
@@ -143,7 +143,7 @@ jobs:
       JOB_TYPE: COVERITY
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
     name: Analyze Coverity
-    runs-on: macos-10.15
+    runs-on: macos-latest
     steps:
       - name: CI Bootstrap
         run: |
