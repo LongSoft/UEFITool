@@ -30,6 +30,7 @@ typedef struct VOLUME_PARSING_DATA_ {
     BOOLEAN  hasExtendedHeader;
     BOOLEAN  hasAppleCrc32;
     BOOLEAN  isWeakAligned;
+    BOOLEAN  requiresSectionAlignmentQuirk;
 } VOLUME_PARSING_DATA;
 
 typedef struct FILE_PARSING_DATA_ {

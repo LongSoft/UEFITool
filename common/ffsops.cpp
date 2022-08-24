@@ -39,24 +39,9 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
         extracted += model->body(index);
     }
     else if (mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
-        name += UString("_body_unc");
-        // Extract without header and tail, uncompressed
+        name += UString("_body_uncompressed");
         extracted.clear();
-        // There is no need to redo decompression, we can use child items
-        for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-            UModelIndex childIndex = index.child(i, 0);
-#else
-            UModelIndex childIndex = index.model()->index(i, 0, index);
-#endif
-            
-            // Ensure 4-byte alignment of current section
-             extracted += UByteArray(ALIGN4((UINT32)extracted.size()) - (UINT32)extracted.size(), '\x00');
-             // Add current section header, body and tail
-             extracted += model->header(childIndex);
-             extracted += model->body(childIndex);
-             extracted += model->tail(childIndex);
-        }
+        extracted += model->uncompressedData(index);
     }
     else
         return U_UNKNOWN_EXTRACT_MODE;

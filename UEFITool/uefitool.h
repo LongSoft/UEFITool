@@ -83,6 +83,7 @@ private slots:
 
     void hexView();
     void bodyHexView();
+    void uncompressedHexView();
     void goToData();
 
     void extract(const UINT8 mode);
@@ -143,8 +144,6 @@ private:
     QFont currentFont;
     const QString version;
     bool markingEnabled;
-
-    bool enableExtractBodyUncompressed(const QModelIndex &current);
 
     bool eventFilter(QObject* obj, QEvent* event);
     void dragEnterEvent(QDragEnterEvent* event);

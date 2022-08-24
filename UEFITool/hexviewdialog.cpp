@@ -37,18 +37,32 @@ void HexViewDialog::setFont(const QFont &font)
     hexView->setFont(font);
 }
 
-void HexViewDialog::setItem(const UModelIndex & index, bool bodyOnly)
+void HexViewDialog::setItem(const UModelIndex & index, HexViewType type)
 {
     const TreeModel * model = (const TreeModel*)index.model();
-    
-    // Set dialog title
     UString itemName = model->name(index);
     UString itemText = model->text(index);
-    setWindowTitle(UString("Hex view: ") + (itemText.isEmpty() ? itemName : itemName + " | " + itemText));
     
-    // Set hex data
+    // Set hex data and dialog title
     QByteArray hexdata;
-    if (bodyOnly) hexdata = model->body(index);
-    else hexdata = model->header(index) + model->body(index) + model->tail(index);
+    UString dialogTitle;
+    
+    switch (type) {
+        case fullHexView:
+            dialogTitle = UString("Hex view: ");
+            hexdata = model->header(index) + model->body(index) + model->tail(index);
+            break;
+        case bodyHexView:
+            dialogTitle = UString("Body hex view: ");
+            hexdata = model->body(index);
+            break;
+        case uncompressedHexView:
+            dialogTitle = UString("Uncompressed hex view: ");
+            hexdata = model->uncompressedData(index);
+            break;
+    }
+    
+    dialogTitle += itemText.isEmpty() ? itemName : itemName + " | " + itemText;
+    setWindowTitle(dialogTitle);
     hexView->setData(hexdata);
 }

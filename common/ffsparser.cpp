@@ -989,11 +989,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex current = index.child(i, 0);
-#else
         UModelIndex current = index.model()->index(i, 0, index);
-#endif
 
         switch (model->type(current)) {
         case Types::Volume:
@@ -1111,7 +1107,9 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         // Acquire alignment
         alignment = (UINT32)(1UL << ((volumeHeader->Attributes & EFI_FVB2_ALIGNMENT) >> 16));
         // Check alignment
-        if (!isUnknown && !model->compressed(parent) && ((model->base(parent) + localOffset - imageBase) % alignment))
+        if (!isUnknown
+            && !model->compressed(parent) // Alignment checks don't really make sense for compressed volumes because they have to be extracted into memory, and by that point it's unlikely that the module doing such extraction will misalign them
+            && ((model->base(parent) + localOffset - imageBase) % alignment) != 0) // Explicit "is not zero" here for better code readability
             msgUnaligned = true;
     }
     else {
@@ -1561,11 +1559,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Check for duplicate GUIDs
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex current = index.child(i, 0);
-#else
         UModelIndex current = index.model()->index(i, 0, index);
-#endif
 
         // Skip non-file entries and pad files
         if (model->type(current) != Types::File || model->subtype(current) == EFI_FV_FILETYPE_PAD) {
@@ -1577,11 +1571,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
         // Check files after current for having an equal GUID
         for (int j = i + 1; j < model->rowCount(index); j++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-            UModelIndex another = index.child(j, 0);
-#else
             UModelIndex another = index.model()->index(j, 0, index);
-#endif
 
             // Skip non-file entries
             if (model->type(another) != Types::File) {
@@ -1600,11 +1590,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex current = index.child(i, 0);
-#else
         UModelIndex current = index.model()->index(i, 0, index);
-#endif
 
         switch (model->type(current)) {
         case Types::File:
@@ -1696,7 +1682,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
         msgUnalignedFile = true;
     }
 
-    // Check file alignment agains volume alignment
+    // Check file alignment against volume alignment
     bool msgFileAlignmentIsGreaterThanVolumeAlignment = false;
     if (!isWeakAligned && volumeAlignment < alignment) {
         msgFileAlignmentIsGreaterThanVolumeAlignment = true;
@@ -1989,12 +1975,15 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
         ffsVersion = pdata->ffsVersion;
     }
 
+    // Iterate over sections
+    UINT32 sectionSize = 0;
     while (sectionOffset < bodySize) {
         // Get section size
-        UINT32 sectionSize = getSectionSize(sections, sectionOffset, ffsVersion);
+        sectionSize = getSectionSize(sections, sectionOffset, ffsVersion);
 
-        // Check section size
-        if (sectionSize < sizeof(EFI_COMMON_SECTION_HEADER) || sectionSize > (bodySize - sectionOffset)) {
+        // Check section size to be sane
+        if (sectionSize < sizeof(EFI_COMMON_SECTION_HEADER)
+            || sectionSize > (bodySize - sectionOffset)) {
             // Final parsing
             if (insertIntoTree) {
                 // Add padding to fill the rest of sections
@@ -2012,7 +2001,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
                 // Exit from parsing loop
                 break;
             }
-            // Preparsing
+            // Preliminary parsing
             else {
                 return U_INVALID_SECTION;
             }
@@ -2030,16 +2019,33 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
 
         // Move to next section
         sectionOffset += sectionSize;
+        // TODO: verify that alignment bytes are actually zero as per PI spec
         sectionOffset = ALIGN4(sectionOffset);
     }
 
+#if 0 // Do not enable this in production for now, as it needs further investigation.
+    // The PI spec requires sections to be aligned by 4 byte boundary with bytes that are all exactly zeroes
+    // Some images interpret "must be aligned by 4" as "every section needs to be padded for sectionSize to be divisible by 4".
+    // Detecting this case can be done by checking for the very last section to have sectionSize not divisible by 4, while the total bodySize is.
+    // However, such detection for a single file is unreliable because in 1/4 random cases the last section will be divisible by 4.
+    // We also know that either PEI core or DXE core is entity that does file and section parsing,
+    // so every single file in the volume should behave consistently.
+    // This makes the probability of unsuccessful detection here to be 1/(4^numFilesInVolume),
+    // which is low enough for real images out there.
+    // It should also be noted that enabling this section alignment quirk for an image that doesn't require it
+    // will not make the image unbootable, but will waste some space and possibly require to move some files around
+    if (sectionOffset == bodySize) {
+        // We are now at the very end of the file body, and sectionSize is the size of the last section
+        if ((sectionSize % 4 != 0) // sectionSize of the very last section is not divisible by 4
+            && (bodySize % 4 == 0)) { // yet bodySize is, meaning that there are indeed some padding bytes added after the last section
+            msg(usprintf("%s: section alignment quirk found", __FUNCTION__), index);
+        }
+    }
+#endif
+    
     // Parse bodies, will be skipped if insertIntoTree is not required
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex current = index.child(i, 0);
-#else
         UModelIndex current = index.model()->index(i, 0, index);
-#endif
 
         switch (model->type(current)) {
         case Types::Section:
@@ -2109,21 +2115,12 @@ USTATUS FfsParser::parseCommonSectionHeader(const UByteArray & section, const UI
     }
 
     // Obtain header fields
-    UINT32 headerSize;
-    UINT8  type;
-    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
-    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) {
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE);
-        type = appleHeader->Type;
-    }
-    else {
-        const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER);
+    const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
+    UINT32 headerSize = sizeof(EFI_COMMON_SECTION_HEADER);
         if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED)
             headerSize = sizeof(EFI_COMMON_SECTION_HEADER2);
-        type = sectionHeader->Type;
-    }
-
+    UINT8 type = sectionHeader->Type;
+    
     // Check sanity again
     if ((UINT32)section.size() < headerSize) {
         return U_INVALID_SECTION;
@@ -2169,15 +2166,8 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
     UINT32 uncompressedLength;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
-    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
 
-    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
-        const EFI_COMPRESSION_SECTION_APPLE* appleSectionHeader = (const EFI_COMPRESSION_SECTION_APPLE*)(appleHeader + 1);
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_COMPRESSION_SECTION_APPLE);
-        compressionType = (UINT8)appleSectionHeader->CompressionType;
-        uncompressedLength = appleSectionHeader->UncompressedLength;
-    }
-    else if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+    if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
         const EFI_COMPRESSION_SECTION* compressedSectionHeader = (const EFI_COMPRESSION_SECTION*)(section2Header + 1);
         if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_COMPRESSION_SECTION))
             return U_INVALID_SECTION;
@@ -2246,18 +2236,8 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     UINT16 attributes;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
-    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
 
-    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
-        const EFI_GUID_DEFINED_SECTION_APPLE* appleSectionHeader = (const EFI_GUID_DEFINED_SECTION_APPLE*)(appleHeader + 1);
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_GUID_DEFINED_SECTION_APPLE);
-        if ((UINT32)section.size() < headerSize)
-            return U_INVALID_SECTION;
-        guid = appleSectionHeader->SectionDefinitionGuid;
-        dataOffset = appleSectionHeader->DataOffset;
-        attributes = appleSectionHeader->Attributes;
-    }
-    else if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+    if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
         const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(section2Header + 1);
         if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_GUID_DEFINED_SECTION))
             return U_INVALID_SECTION;
@@ -2445,15 +2425,8 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
     UINT8 type;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
-    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
 
-    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
-        const EFI_FREEFORM_SUBTYPE_GUID_SECTION* appleSectionHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)(appleHeader + 1);
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION);
-        guid = appleSectionHeader->SubTypeGuid;
-        type = appleHeader->Type;
-    }
-    else if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+    if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
         const EFI_FREEFORM_SUBTYPE_GUID_SECTION* fsgSectionHeader = (const EFI_FREEFORM_SUBTYPE_GUID_SECTION*)(section2Header + 1);
         if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION))
             return U_INVALID_SECTION;
@@ -2521,15 +2494,8 @@ USTATUS FfsParser::parseVersionSectionHeader(const UByteArray & section, const U
     UINT8 type;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
-    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
 
-    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
-        const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)(appleHeader + 1);
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(EFI_VERSION_SECTION);
-        buildNumber = versionHeader->BuildNumber;
-        type = appleHeader->Type;
-    }
-    else if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+    if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
         const EFI_VERSION_SECTION* versionHeader = (const EFI_VERSION_SECTION*)(section2Header + 1);
         headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(EFI_VERSION_SECTION);
         buildNumber = versionHeader->BuildNumber;
@@ -2587,15 +2553,8 @@ USTATUS FfsParser::parsePostcodeSectionHeader(const UByteArray & section, const 
     UINT8 type;
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(section.constData());
     const EFI_COMMON_SECTION_HEADER2* section2Header = (const EFI_COMMON_SECTION_HEADER2*)(section.constData());
-    const EFI_COMMON_SECTION_HEADER_APPLE* appleHeader = (const EFI_COMMON_SECTION_HEADER_APPLE*)(section.constData());
-
-    if ((UINT32)section.size() >= sizeof(EFI_COMMON_SECTION_HEADER_APPLE) && appleHeader->Reserved == EFI_SECTION_APPLE_USED) { // Check for apple section
-        const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)(appleHeader + 1);
-        headerSize = sizeof(EFI_COMMON_SECTION_HEADER_APPLE) + sizeof(POSTCODE_SECTION);
-        postCode = postcodeHeader->Postcode;
-        type = appleHeader->Type;
-    }
-    else if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
+    
+    if (ffsVersion == 3 && uint24ToUint32(sectionHeader->Size) == EFI_SECTION2_IS_USED) { // Check for extended header section
         const POSTCODE_SECTION* postcodeHeader = (const POSTCODE_SECTION*)(section2Header + 1);
         headerSize = sizeof(EFI_COMMON_SECTION_HEADER2) + sizeof(POSTCODE_SECTION);
         postCode = postcodeHeader->Postcode;
@@ -2727,17 +2686,20 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
         model->addInfo(index, usprintf("\nLZMA dictionary size: %Xh", dictionarySize));
     }
 
-    // Update parsing data
+    // Set compression data
+    if (algorithm != COMPRESSION_ALGORITHM_NONE) {
+        model->setUncompressedData(index, decompressed);
+        model->setCompressed(index, true);
+    }
+    
+    // Set parsing data
     COMPRESSED_SECTION_PARSING_DATA pdata;
     pdata.algorithm = algorithm;
     pdata.dictionarySize = dictionarySize;
     pdata.compressionType = compressionType;
     pdata.uncompressedSize = uncompressedSize;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
-
-    if (algorithm != COMPRESSION_ALGORITHM_NONE)
-        model->setCompressed(index, true);
-
+    
     // Parse decompressed data
     return parseSections(decompressed, index, true);
 }
@@ -2793,7 +2755,8 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         info += usprintf("\nDecompressed size: %" PRIXQ "h (%" PRIuQ ")", processed.size(), processed.size());
     }
     // LZMA compressed section
-    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMA_HP) {
+    else if (baGuid == EFI_GUIDED_SECTION_LZMA
+             || baGuid == EFI_GUIDED_SECTION_LZMA_HP) {
         USTATUS result = decompress(model->body(index), EFI_CUSTOMIZED_COMPRESSION, algorithm, dictionarySize, processed, efiDecompressed);
         if (result) {
             msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
@@ -2843,14 +2806,16 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     // Add info
     model->addInfo(index, info);
 
-    // Update data
-    if (algorithm != COMPRESSION_ALGORITHM_NONE)
-        model->setCompressed(index, true);
-
     // Set parsing data
     GUIDED_SECTION_PARSING_DATA pdata;
     pdata.dictionarySize = dictionarySize;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
+
+    // Set compression data
+    if (algorithm != COMPRESSION_ALGORITHM_NONE) {
+        model->setUncompressedData(index, processed);
+        model->setCompressed(index, true);
+    }
 
     if (!parseCurrentSection) {
         msg(usprintf("%s: GUID defined section can not be processed", __FUNCTION__), index);
@@ -3347,11 +3312,7 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        checkTeImageBase(index.child(i, 0));
-#else
         checkTeImageBase(index.model()->index(i, 0, index));
-#endif
     }
 
     return U_SUCCESS;
@@ -3388,11 +3349,7 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        addInfoRecursive(index.child(i, 0));
-#else
         addInfoRecursive(index.model()->index(i, 0, index));
-#endif
     }
 
     return U_SUCCESS;
@@ -3589,11 +3546,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
     }
 
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        markProtectedRangeRecursive(index.child(i, 0), range);
-#else
         markProtectedRangeRecursive(index.model()->index(i, 0, index), range);
-#endif
     }
 
     return U_SUCCESS;
@@ -3897,11 +3850,7 @@ void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
 
     // Process child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        findFitRecursive(index.child(i, 0), found, fitOffset);
-#else
         findFitRecursive(index.model()->index(i, 0, index), found, fitOffset);
-#endif
 
         if (found.isValid())
             return;
@@ -5241,7 +5190,7 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
                                     moduleHeader->HashSize, moduleHeader->HashSize,
                                     moduleHeader->MetadataSize, moduleHeader->MetadataSize) + UString(hash.toHex().constData());
             // Add tree otem
-            UModelIndex extIndex = model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
+            model->addItem(offset, Types::CpdSpiEntry, 0, name, UString(), info, UByteArray(), module, UByteArray(), Fixed, index);
             offset += module.size();
         }
         else break;

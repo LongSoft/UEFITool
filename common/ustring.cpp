@@ -20,11 +20,7 @@ UString usprintf(const char* fmt, ...)
     va_list vl;
     va_start(vl, fmt);
 
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-    msg.vsprintf(fmt, vl);
-#else
     msg = msg.vasprintf(fmt, vl);
-#endif
 
     va_end(vl);
     return msg;

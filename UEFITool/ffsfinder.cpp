@@ -35,12 +35,7 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        findHexPattern(index.child(i, index.column()), hexPattern, mode);
-#else
         findHexPattern(index.model()->index(i, index.column(), index), hexPattern, mode);
-#endif
-
     }
 
     UByteArray data;
@@ -109,11 +104,7 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        findGuidPattern(index.child(i, index.column()), guidPattern, mode);
-#else
         findGuidPattern(index.model()->index(i, index.column(), index), guidPattern, mode);
-#endif
     }
 
     UByteArray data;
@@ -197,11 +188,7 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
 
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        findTextPattern(index.child(i, index.column()), pattern, mode, unicode, caseSensitive);
-#else
         findTextPattern(index.model()->index(i, index.column(), index), pattern, mode, unicode, caseSensitive);
-#endif
     }
 
     UByteArray body;

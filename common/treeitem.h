@@ -86,6 +86,10 @@ public:
     bool hasEmptyParsingData() const { return itemParsingData.isEmpty(); }
     void setParsingData(const UByteArray & pdata) { itemParsingData = pdata; }
 
+    UByteArray uncompressedData() const { return itemUncompressedData; };
+    bool hasEmptyUncompressedData() const { return itemUncompressedData.isEmpty(); }
+    void setUncompressedData(const UByteArray & ucdata) { itemUncompressedData = ucdata; }
+    
     UINT8 marking() const { return itemMarking; }
     void setMarking(const UINT8 marking) { itemMarking = marking; }
 
@@ -105,6 +109,7 @@ private:
     bool       itemFixed;
     bool       itemCompressed;
     UByteArray itemParsingData;
+    UByteArray itemUncompressedData;
     TreeItem*  parentItem;
 };
 
