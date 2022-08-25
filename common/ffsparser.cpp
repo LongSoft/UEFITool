@@ -4856,7 +4856,7 @@ make_partition_table_consistent:
     std::sort(partitions.begin(), partitions.end());
 
     // Check for intersections and paddings between partitions
-    CPD_PARTITION_INFO padding;
+    CPD_PARTITION_INFO padding = {};
 
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset.Offset < ptSize) {
