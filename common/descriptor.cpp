@@ -107,6 +107,9 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
     case 0x204013: return UString("Micron M45PE40");
     case 0x204014: return UString("Micron M45PE80");
     case 0x204015: return UString("Micron M45PE16");
+    case 0x204017: return UString("Micron XM25QH64C");
+    case 0x204018: return UString("Micron XM25QH128C");
+    case 0x204019: return UString("Micron XM25QH256C");
     case 0x207114: return UString("Micron M25PX80");
     case 0x207115: return UString("Micron M25PX16");
     case 0x207116: return UString("Micron M25PX32");
