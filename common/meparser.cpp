@@ -131,22 +131,50 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     UByteArray body = region.mid(header.size(), ptBodySize);
     
     UString name = UString("FPT partition table");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
-                            "Header length: %02Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nUMA size: %Xh\nFlash layout: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh, ",
-                            ptSize, ptSize,
-                            header.size(), header.size(),
-                            ptBodySize, ptBodySize,
-                            (romBypassVectorSize ? "present" : "absent"),
-                            ptHeader->NumEntries,
-                            ptHeader->HeaderVersion,
-                            ptHeader->EntryVersion,
-                            ptHeader->HeaderLength,
-                            ptHeader->TicksToAdd,
-                            ptHeader->TokensToAdd,
-                            ptHeader->UmaSize,
-                            ptHeader->FlashLayout,
-                            ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild,
-                            ptHeader->Checksum);
+    UString info;
+    
+    // Special case of FPT header version 2.1
+    if (ptHeader->HeaderVersion == FPT_HEADER_VERSION_21) {
+        const FPT_HEADER_21* ptHeader21 = (const FPT_HEADER_21*)ptHeader;
+        
+        info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
+                                "Header length: %02Xh\nFlags: %Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nSPS Flags: %Xh\nFITC version: %u.%u.%u.%u\nCRC32 Checksum: %08Xh",
+                                ptSize, ptSize,
+                                header.size(), header.size(),
+                                ptBodySize, ptBodySize,
+                                (romBypassVectorSize ? "present" : "absent"),
+                                ptHeader21->NumEntries,
+                                ptHeader21->HeaderVersion,
+                                ptHeader21->EntryVersion,
+                                ptHeader21->HeaderLength,
+                                ptHeader21->Flags,
+                                ptHeader21->TicksToAdd,
+                                ptHeader21->TokensToAdd,
+                                ptHeader21->SPSFlags,
+                                ptHeader21->FitcMajor, ptHeader21->FitcMinor, ptHeader21->FitcHotfix, ptHeader21->FitcBuild,
+                                ptHeader21->HeaderCrc32);
+        // TODO: verify header crc32
+    }
+    // Default handling for all other versions, may be too generic in some corner cases
+    else {
+        info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
+                                "Header length: %02Xh\nFlash cycle life: %04Xh\nFlash cycle limit: %04Xh\nUMA size: %Xh\nFlags: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh",
+                                ptSize, ptSize,
+                                header.size(), header.size(),
+                                ptBodySize, ptBodySize,
+                                (romBypassVectorSize ? "present" : "absent"),
+                                ptHeader->NumEntries,
+                                ptHeader->HeaderVersion,
+                                ptHeader->EntryVersion,
+                                ptHeader->HeaderLength,
+                                ptHeader->FlashCycleLife,
+                                ptHeader->FlashCycleLimit,
+                                ptHeader->UmaSize,
+                                ptHeader->Flags,
+                                ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild,
+                                ptHeader->HeaderChecksum);
+        // TODO: verify header checksum8
+    }
     
     // Add tree item
     index = model->addItem(0, Types::FptStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);

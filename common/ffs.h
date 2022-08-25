@@ -635,7 +635,7 @@ typedef struct BPDT_ENTRY_ {
 #define BPDT_ENTRY_TYPE_IFP_OVERRIDE     10
 #define BPDT_ENTRY_TYPE_DEBUG_TOKENS     11
 #define BPDT_ENTRY_TYPE_USF_PHY_CONFIG   12
-#define BPDT_ENTRY_TYPE_USB_GPP_LUN_ID   13
+#define BPDT_ENTRY_TYPE_USF_GPP_LUN_ID   13
 #define BPDT_ENTRY_TYPE_PMC              14
 #define BPDT_ENTRY_TYPE_IUNIT            15
 #define BPDT_ENTRY_TYPE_NVM_CONFIG       16
@@ -648,6 +648,8 @@ typedef struct BPDT_ENTRY_ {
 #define BPDT_ENTRY_TYPE_TCSS_FW_IOM      23
 #define BPDT_ENTRY_TYPE_TCSS_FW_PHY      24
 #define BPDT_ENTRY_TYPE_TBT              25
+#define BPDT_ENTRY_TYPE_USB_PHY          31
+#define BPDT_ENTRY_TYPE_PCHC             32
 #define BPDT_ENTRY_TYPE_SAMF             41
 #define BPDT_ENTRY_TYPE_PPHY             42
 

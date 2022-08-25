@@ -162,7 +162,7 @@ UString bpdtEntryTypeToUString(const UINT16 type)
         case BPDT_ENTRY_TYPE_IFP_OVERRIDE:       return UString("IFP Override");
         case BPDT_ENTRY_TYPE_DEBUG_TOKENS:       return UString("Debug Tokens");
         case BPDT_ENTRY_TYPE_USF_PHY_CONFIG:     return UString("USF Phy Config");
-        case BPDT_ENTRY_TYPE_USB_GPP_LUN_ID:     return UString("USF GPP LUN ID");
+        case BPDT_ENTRY_TYPE_USF_GPP_LUN_ID:     return UString("USF GPP LUN ID");
         case BPDT_ENTRY_TYPE_PMC:                return UString("PMC");
         case BPDT_ENTRY_TYPE_IUNIT:              return UString("iUnit");
         case BPDT_ENTRY_TYPE_NVM_CONFIG:         return UString("NVM Config");
@@ -175,6 +175,8 @@ UString bpdtEntryTypeToUString(const UINT16 type)
         case BPDT_ENTRY_TYPE_TCSS_FW_IOM:        return UString("TCSS FW IOM");
         case BPDT_ENTRY_TYPE_TCSS_FW_PHY:        return UString("TCSS FW PHY");
         case BPDT_ENTRY_TYPE_TBT:                return UString("TCSS TBT");
+        case BPDT_ENTRY_TYPE_USB_PHY:            return UString("USB PHY");
+        case BPDT_ENTRY_TYPE_PCHC:               return UString("PCHC");
         case BPDT_ENTRY_TYPE_SAMF:               return UString("SAMF");
         case BPDT_ENTRY_TYPE_PPHY:               return UString("PPHY");
         default:                                 return usprintf("Unknown %u", type);

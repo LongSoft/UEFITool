@@ -4648,6 +4648,8 @@ make_partition_table_consistent:
 
             // TODO: make this generic again
             if (partitions[i].ptEntry.Type > BPDT_ENTRY_TYPE_TBT
+                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_USB_PHY
+                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_PCHC
                 && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_SAMF
                 && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_PPHY) {
                 msg(usprintf("%s: BPDT entry of unknown type found", __FUNCTION__), partitionIndex);
