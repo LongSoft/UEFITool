@@ -105,7 +105,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
 {
     // Check region size
     if ((UINT32)region.size() < sizeof(FPT_HEADER)) {
-        msg(usprintf("%s: region too small to fit FPT header", __FUNCTION__), parent);
+        msg(usprintf("%s: region too small to fit the FPT partition table header", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
     
@@ -122,7 +122,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     UINT32 ptBodySize = ptHeader->NumEntries * sizeof(FPT_HEADER_ENTRY);
     UINT32 ptSize = romBypassVectorSize + sizeof(FPT_HEADER) + ptBodySize;
     if ((UINT32)region.size() < ptSize) {
-        msg(usprintf("%s: ME region too small to fit FPT partition table", __FUNCTION__), parent);
+        msg(usprintf("%s: ME region too small to fit the FPT partition table", __FUNCTION__), parent);
         return U_INVALID_ME_PARTITION_TABLE;
     }
     
@@ -154,8 +154,9 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     // Add partition table entries
     std::vector<FPT_PARTITION_INFO> partitions;
     UINT32 offset = (UINT32)header.size();
+    UINT32 numEntries = ptHeader->NumEntries;
     const FPT_HEADER_ENTRY* firstPtEntry = (const FPT_HEADER_ENTRY*)(region.constData() + offset);
-    for (UINT8 i = 0; i < ptHeader->NumEntries; i++) {
+    for (UINT32 i = 0; i < numEntries; i++) {
         // Populate entry header
         const FPT_HEADER_ENTRY* ptEntry = firstPtEntry + i;
         
@@ -177,7 +178,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         // Add valid partitions
         if (type == Subtypes::ValidFptEntry) { // Skip absent and invalid partitions
             // Add to partitions vector
-            FPT_PARTITION_INFO partition;
+            FPT_PARTITION_INFO partition = {};
             partition.type = Types::FptPartition;
             partition.ptEntry = *ptEntry;
             partition.index = entryIndex;
@@ -190,7 +191,7 @@ make_partition_table_consistent:
     std::sort(partitions.begin(), partitions.end());
     
     // Check for intersections and paddings between partitions
-    FPT_PARTITION_INFO padding;
+    FPT_PARTITION_INFO padding = {};
     
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {
@@ -328,7 +329,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
     std::vector<IFWI_PARTITION_INFO> partitions;
     // Add data partition
     {
-        IFWI_PARTITION_INFO partition;
+        IFWI_PARTITION_INFO partition = {};
         partition.type = Types::IfwiPartition;
         partition.subtype = Subtypes::DataIfwiPartition;
         partition.ptEntry = ifwiHeader->DataPartition;
@@ -337,7 +338,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
     // Add boot partitions
     for (UINT8 i = 0 ; i < 4; i++) {
         if (ifwiHeader->BootPartition[i].Offset != 0 && ifwiHeader->BootPartition[i].Offset != 0xFFFFFFFF) {
-            IFWI_PARTITION_INFO partition;
+            IFWI_PARTITION_INFO partition = {};
             partition.type = Types::IfwiPartition;
             partition.subtype = Subtypes::BootIfwiPartition;
             partition.ptEntry = ifwiHeader->BootPartition[i];
@@ -350,7 +351,7 @@ make_partition_table_consistent:
     std::sort(partitions.begin(), partitions.end());
     
     // Check for intersections and paddings between partitions
-    IFWI_PARTITION_INFO padding;
+    IFWI_PARTITION_INFO padding = {};
     
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {
@@ -502,7 +503,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     std::vector<IFWI_PARTITION_INFO> partitions;
     // Add data partition
     {
-        IFWI_PARTITION_INFO partition;
+        IFWI_PARTITION_INFO partition = {};
         partition.type = Types::IfwiPartition;
         partition.subtype = Subtypes::DataIfwiPartition;
         partition.ptEntry = ifwiHeader->DataPartition;
@@ -511,7 +512,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     // Add boot partitions
     for (UINT8 i = 0 ; i < 4; i++) {
         if (ifwiHeader->BootPartition[i].Offset != 0 && ifwiHeader->BootPartition[i].Offset != 0xFFFFFFFF) {
-            IFWI_PARTITION_INFO partition;
+            IFWI_PARTITION_INFO partition = {};
             partition.type = Types::IfwiPartition;
             partition.subtype = Subtypes::BootIfwiPartition;
             partition.ptEntry = ifwiHeader->BootPartition[i];
@@ -520,7 +521,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     }
     // Add temp page
     if (ifwiHeader->TempPage.Offset != 0 && ifwiHeader->TempPage.Offset != 0xFFFFFFFF) {
-        IFWI_PARTITION_INFO partition;
+        IFWI_PARTITION_INFO partition = {};
         partition.type = Types::IfwiPartition;
         partition.subtype = Subtypes::DataPadding;
         partition.ptEntry = ifwiHeader->TempPage;
@@ -532,7 +533,7 @@ make_partition_table_consistent:
     std::sort(partitions.begin(), partitions.end());
     
     // Check for intersections and paddings between partitions
-    IFWI_PARTITION_INFO padding;
+    IFWI_PARTITION_INFO padding = {};
     
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {

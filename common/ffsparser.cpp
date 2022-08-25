@@ -3630,7 +3630,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     protectedRangesFound = true;
                     const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
 
-                    BG_PROTECTED_RANGE range;
+                    BG_PROTECTED_RANGE range = {};
                     range.Offset = entry->Offset;
                     range.Size = entry->Size;
                     range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
@@ -3670,7 +3670,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 for (UINT32 i = 0; i < NumEntries; i++) {
                     protectedRangesFound = true;
                     const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(body.constData()) + i;
-                    BG_PROTECTED_RANGE range;
+                    BG_PROTECTED_RANGE range = {};
                     range.Offset = entry->Offset;
                     range.Size = entry->Size;
                     range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
@@ -3701,7 +3701,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 }
                 securityInfo += UString("\n------------------------------------------------------------------------\n\n");
 
-                BG_PROTECTED_RANGE range;
+                BG_PROTECTED_RANGE range = {};
                 range.Offset = 0;
                 range.Size = entry->Size;
                 range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
@@ -4216,7 +4216,7 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
             // Check for non-empry PostIbbHash
             UByteArray postIbbHash((const char*)elementHeader->IbbHash.HashBuffer, sizeof(elementHeader->IbbHash.HashBuffer));
             if (postIbbHash.count('\x00') != postIbbHash.size() && postIbbHash.count('\xFF') != postIbbHash.size()) {
-                BG_PROTECTED_RANGE range;
+                BG_PROTECTED_RANGE range = {};
                 range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
                 range.Hash = postIbbHash;
                 bgProtectedRanges.push_back(range);
@@ -4236,7 +4236,7 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 securityInfo += usprintf("Flags: %04Xh Address: %08Xh Size: %08Xh\n",
                                           segments[i].Flags, segments[i].Base, segments[i].Size);
                 if (segments[i].Flags == BG_IBB_SEGMENT_FLAG_IBB) {
-                    BG_PROTECTED_RANGE range;
+                    BG_PROTECTED_RANGE range = {};
                     range.Offset = segments[i].Base;
                     range.Size = segments[i].Size;
                     range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB;
@@ -4269,7 +4269,7 @@ USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                     }
                     securityInfo += UString("\n");
 
-                    BG_PROTECTED_RANGE range;
+                    BG_PROTECTED_RANGE range = {};
                     range.Offset = entries[i].Address;
                     range.Size = entries[i].Size;
                     range.Hash = UByteArray((const char*)entries[i].Hash, sizeof(entries[i].Hash));
@@ -4549,7 +4549,8 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
     // Add partition table entries
     std::vector<BPDT_PARTITION_INFO> partitions;
     const BPDT_ENTRY* firstPtEntry = (const BPDT_ENTRY*)((const UINT8*)ptHeader + sizeof(BPDT_HEADER));
-    for (UINT16 i = 0; i < ptHeader->NumEntries; i++) {
+    UINT16 numEntries = ptHeader->NumEntries;
+    for (UINT16 i = 0; i < numEntries; i++) {
         // Populate entry header
         const BPDT_ENTRY* ptEntry = firstPtEntry + i;
 
@@ -4573,7 +4574,7 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
 
         if (ptEntry->Offset != 0 && ptEntry->Offset != 0xFFFFFFFF && ptEntry->Size != 0) {
             // Add to partitions vector
-            BPDT_PARTITION_INFO partition;
+            BPDT_PARTITION_INFO partition = {};
             partition.type = Types::BpdtPartition;
             partition.ptEntry = *ptEntry;
             partition.ptEntry.Offset -= sbpdtOffsetFixup;
@@ -4601,7 +4602,7 @@ make_partition_table_consistent:
     std::sort(partitions.begin(), partitions.end());
 
     // Check for intersections and paddings between partitions
-    BPDT_PARTITION_INFO padding;
+    BPDT_PARTITION_INFO padding = {};
 
     // Check intersection with the partition table header
     if (partitions.front().ptEntry.Offset < ptSize) {

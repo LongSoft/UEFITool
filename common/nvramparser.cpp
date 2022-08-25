@@ -682,9 +682,9 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
             break;
         }
         else if (*currentPos == OEM_ACTIVATION_MARKER_WINDOWS_FLAG_PART1) { // SLIC marker
-            if (offset >= dataSize - sizeof(UINT64) ||
-                *(const UINT64*)currentPos != OEM_ACTIVATION_MARKER_WINDOWS_FLAG ||
-                offset < 26) // Check full windows flag and structure size
+            if (offset < 26
+                || offset >= dataSize - sizeof(UINT64)
+                || *(const UINT64*)currentPos != OEM_ACTIVATION_MARKER_WINDOWS_FLAG) // Check full windows flag and structure size
                 continue;
 
             const OEM_ACTIVATION_MARKER* markerHeader = (const OEM_ACTIVATION_MARKER*)(volume.constData() + offset - 26);
