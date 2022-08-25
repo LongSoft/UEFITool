@@ -169,7 +169,11 @@ public:
 
     bool compressed(const UModelIndex &index) const;
     void setCompressed(const UModelIndex &index, const bool compressed);
-
+    
+    UByteArray uncompressedData(const UModelIndex &index) const;
+    bool hasEmptyUncompressedData(const UModelIndex &index) const;
+    void setUncompressedData(const UModelIndex &index, const UByteArray &ucdata);
+    
     UINT8 marking(const UModelIndex &index) const;
     void setMarking(const UModelIndex &index, const UINT8 marking);
 

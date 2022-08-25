@@ -226,11 +226,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             // Search previously added entries for a link to this variable
             // WARNING: O(n^2), may be very slow
             for (int i = model->rowCount(index) - 1; i >= 0; i--) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-                nvarIndex = index.child(i, 0);
-#else
                 nvarIndex = index.model()->index(i, 0, index);
-#endif
 
                 if (model->hasEmptyParsingData(nvarIndex) == false) {
                     UByteArray nvarData = model->parsingData(nvarIndex);
@@ -503,11 +499,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
     // Parse bodies
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex current = index.child(i, 0);
-#else
         UModelIndex current = index.model()->index(i, 0, index);
-#endif
 
         switch (model->type(current)) {
         case Types::FdcStore:
@@ -1828,11 +1820,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
 
     // Reparse all data variables to detect invalid ones and assign name and test to valid ones
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex current = index.child(i, 0);
-#else
         UModelIndex current = index.model()->index(i, 0, index);
-#endif
 
         if (model->subtype(current) == Subtypes::DataEvsaEntry) {
             UByteArray header = model->header(current);

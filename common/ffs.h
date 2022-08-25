@@ -414,9 +414,6 @@ typedef struct EFI_COMMON_SECTION_HEADER_APPLE {
 // Section2 usage indicator
 #define EFI_SECTION2_IS_USED 0xFFFFFF
 
-// Apple section usage indicator
-#define EFI_SECTION_APPLE_USED 0x7FFF
-
 // File section types
 #define EFI_SECTION_ALL 0x00 // Impossible attribute for file in the FS
 

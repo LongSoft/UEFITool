@@ -69,11 +69,7 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
 
     // Information on child items
     for (int i = 0; i < model->rowCount(index); i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        generateRecursive(report, index.child(i,0), level + 1);
-#else
         generateRecursive(report, index.model()->index(i,0,index), level + 1);
-#endif
     }
 
     return U_SUCCESS;

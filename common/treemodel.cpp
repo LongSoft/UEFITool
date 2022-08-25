@@ -460,6 +460,34 @@ void TreeModel::setParsingData(const UModelIndex &index, const UByteArray &data)
     emit dataChanged(this->index(0, 0), index);
 }
 
+UByteArray TreeModel::uncompressedData(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return UByteArray();
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->uncompressedData();
+}
+
+bool TreeModel::hasEmptyUncompressedData(const UModelIndex &index) const
+{
+    if (!index.isValid())
+        return true;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    return item->hasEmptyUncompressedData();
+}
+
+void TreeModel::setUncompressedData(const UModelIndex &index, const UByteArray &data)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setUncompressedData(data);
+    emit dataChanged(this->index(0, 0), index);
+}
+
 UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
     const UString & name, const UString & text, const UString & info,
     const UByteArray & header, const UByteArray & body, const UByteArray & tail,
@@ -559,11 +587,7 @@ UModelIndex TreeModel::findByBase(UINT32 base) const
 goDeeper:
     int n = rowCount(parentIndex);
     for (int i = 0; i < n; i++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-        UModelIndex currentIndex = parentIndex.child(i, 0);
-#else
         UModelIndex currentIndex = parentIndex.model()->index(i, 0, parentIndex);
-#endif
     
         UINT32 currentBase = this->base(currentIndex);
         UINT32 fullSize = (UINT32)(header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size());

@@ -43,6 +43,7 @@ markingEnabled(true)
     connect(ui->actionSearch, SIGNAL(triggered()), this, SLOT(search()));
     connect(ui->actionHexView, SIGNAL(triggered()), this, SLOT(hexView()));
     connect(ui->actionBodyHexView, SIGNAL(triggered()), this, SLOT(bodyHexView()));
+    connect(ui->actionUncompressedHexView, SIGNAL(triggered()), this, SLOT(uncompressedHexView()));
     connect(ui->actionExtract, SIGNAL(triggered()), this, SLOT(extractAsIs()));
     connect(ui->actionExtractBody, SIGNAL(triggered()), this, SLOT(extractBody()));
     connect(ui->actionExtractBodyUncompressed, SIGNAL(triggered()), this, SLOT(extractBodyUncompressed()));
@@ -231,6 +232,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     // Enable actions
     ui->actionHexView->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
     ui->actionBodyHexView->setDisabled(model->hasEmptyBody(current));
+    ui->actionUncompressedHexView->setDisabled(model->hasEmptyUncompressedData(current));
     ui->actionExtract->setDisabled(model->hasEmptyHeader(current) && model->hasEmptyBody(current) && model->hasEmptyTail(current));
     ui->actionGoToData->setEnabled(type == Types::NvarEntry && subtype == Subtypes::LinkNvarEntry);
 
@@ -240,7 +242,7 @@ void UEFITool::populateUi(const QModelIndex &current)
 
     //ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionExtractBody->setDisabled(model->hasEmptyBody(current));
-    ui->actionExtractBodyUncompressed->setEnabled(enableExtractBodyUncompressed(current));
+    ui->actionExtractBodyUncompressed->setDisabled(model->hasEmptyUncompressedData(current));
     //ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     //ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
     //    (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
@@ -251,13 +253,6 @@ void UEFITool::populateUi(const QModelIndex &current)
     //ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
 
     ui->menuMessageActions->setEnabled(false);
-}
-
-bool UEFITool::enableExtractBodyUncompressed(const QModelIndex &current)
-{
-    // TODO: rewrite based on model->compressed()
-    U_UNUSED_PARAMETER(current);
-    return false;
 }
 
 void UEFITool::search()
@@ -323,7 +318,7 @@ void UEFITool::hexView()
     if (!index.isValid())
         return;
 
-    hexViewDialog->setItem(index, false);
+    hexViewDialog->setItem(index, HexViewDialog::HexViewType::fullHexView);
     hexViewDialog->exec();
 }
 
@@ -333,7 +328,17 @@ void UEFITool::bodyHexView()
     if (!index.isValid())
         return;
 
-    hexViewDialog->setItem(index, true);
+    hexViewDialog->setItem(index, HexViewDialog::HexViewType::bodyHexView);
+    hexViewDialog->exec();
+}
+
+void UEFITool::uncompressedHexView()
+{
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+
+    hexViewDialog->setItem(index, HexViewDialog::HexViewType::uncompressedHexView);
     hexViewDialog->exec();
 }
 
@@ -390,11 +395,7 @@ void UEFITool::goToData()
         }
 
         for (int j = i + 1; j < model->rowCount(parent); j++) {
-#if ((QT_VERSION_MAJOR == 5) && (QT_VERSION_MINOR < 6)) || (QT_VERSION_MAJOR < 5)
-            QModelIndex currentIndex = parent.child(j, 0);
-#else
             QModelIndex currentIndex = parent.model()->index(j, 0, parent);
-#endif
 
             if (model->hasEmptyParsingData(currentIndex))
                 continue;
