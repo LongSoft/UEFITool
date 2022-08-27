@@ -143,7 +143,7 @@ jobs:
       JOB_TYPE: COVERITY
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
     name: Analyze Coverity
-    runs-on: macos-latest
+    runs-on: macos-12
     steps:
       - name: CI Bootstrap
         run: |
