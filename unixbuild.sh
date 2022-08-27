@@ -23,16 +23,16 @@ fi
 
 if [ "$UPLATFORM" = "mac" ]; then
   if [ ! -d /opt/qt56sm ]; then
-    curl -L -o /tmp/qt-5.6.3-static-mac.zip https://github.com/distdb/qtbuilds/blob/master/qt-5.6.3-static-mac.zip?raw=true || exit 1
-    qtsum=$(shasum -a 256 /tmp/qt-5.6.3-static-mac.zip | cut -f1 -d' ')
-    qtexpsum="214d22d8572ea6162753c8dd251d79275f3b22d49204718c637d722409e0cfcb"
+    curl -L -o /tmp/qt-5.6.3-static-universal-macos-sdk12.3.zip https://github.com/LongSoft/qt-5.6.3-static-universal-macos-sdk12.3/blob/main/qt-5.6.3-static-universal-macos-sdk12.3.zip?raw=true || exit 1
+    qtsum=$(shasum -a 256 /tmp/qt-5.6.3-static-universal-macos-sdk12.3.zip | cut -f1 -d' ')
+    qtexpsum="3668341b9d768a3cff30732e3f34c39bd85ed7b2f24c4f4438fd31d513d4cf44"
     if [ "$qtsum" != "$qtexpsum" ]; then
       echo "Qt hash $qtsum does not match $qtexpsum"
       exit 1
     fi
     sudo mkdir -p /opt || exit 1
     cd /opt || exit 1
-    sudo unzip -q /tmp/qt-5.6.3-static-mac.zip || exit 1
+    sudo unzip -q /tmp/qt-5.6.3-static-universal-macos-sdk12.3.zip || exit 1
     cd - || exit 1
   fi
 
