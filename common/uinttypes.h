@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // A workaround for compilers not supporting c++11 and c11
 // for using PRIX64.
 #define __STDC_FORMAT_MACROS
-
 #include <inttypes.h>
 
 #if defined(__clang__) || defined(__GNUC__)

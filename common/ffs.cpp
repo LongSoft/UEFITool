@@ -1,14 +1,14 @@
 /* ffs.cpp
-
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
-This program and the accompanying materials
-are licensed and made available under the terms and conditions of the BSD License
-which accompanies this distribution.  The full text of the license may be found at
-http://opensource.org/licenses/bsd-license.php
-
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-*/
+ 
+ Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+ This program and the accompanying materials
+ are licensed and made available under the terms and conditions of the BSD License
+ which accompanies this distribution.  The full text of the license may be found at
+ http://opensource.org/licenses/bsd-license.php
+ 
+ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+ */
 
 #include <cstdio>
 
@@ -58,19 +58,19 @@ UString guidToUString(const EFI_GUID & guid, bool convertToString)
         if (!readableName.isEmpty())
             return readableName;
     }
-
+    
     return usprintf("%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-        guid.Data1,
-        guid.Data2,
-        guid.Data3,
-        guid.Data4[0],
-        guid.Data4[1],
-        guid.Data4[2],
-        guid.Data4[3],
-        guid.Data4[4],
-        guid.Data4[5],
-        guid.Data4[6],
-        guid.Data4[7]);
+                    guid.Data1,
+                    guid.Data2,
+                    guid.Data3,
+                    guid.Data4[0],
+                    guid.Data4[1],
+                    guid.Data4[2],
+                    guid.Data4[3],
+                    guid.Data4[4],
+                    guid.Data4[5],
+                    guid.Data4[6],
+                    guid.Data4[7]);
 }
 
 
@@ -78,12 +78,12 @@ bool ustringToGuid(const UString & str, EFI_GUID & guid)
 {
     unsigned long p0;
     unsigned p1, p2, p3, p4, p5, p6, p7, p8, p9, p10;
-
+    
     int err = std::sscanf(str.toLocal8Bit(), "%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X",
                           &p0, &p1, &p2, &p3, &p4, &p5, &p6, &p7, &p8, &p9, &p10);
     if (err == 0)
         return false;
-
+    
     guid.Data1 = (UINT32)p0;
     guid.Data2 = (UINT16)p1;
     guid.Data3 = (UINT16)p2;
@@ -95,7 +95,7 @@ bool ustringToGuid(const UString & str, EFI_GUID & guid)
     guid.Data4[5] = (UINT8)p8;
     guid.Data4[6] = (UINT8)p9;
     guid.Data4[7] = (UINT8)p10;
-
+    
     return true;
 }
 
