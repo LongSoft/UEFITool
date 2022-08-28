@@ -137,7 +137,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     if (ptHeader->HeaderVersion == FPT_HEADER_VERSION_21) {
         const FPT_HEADER_21* ptHeader21 = (const FPT_HEADER_21*)ptHeader;
         
-        info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
+        info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
                                 "Header length: %02Xh\nFlags: %Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nSPS Flags: %Xh\nFITC version: %u.%u.%u.%u\nCRC32 Checksum: %08Xh",
                                 ptSize, ptSize,
                                 header.size(), header.size(),
@@ -157,7 +157,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     }
     // Default handling for all other versions, may be too generic in some corner cases
     else {
-        info = usprintf("Full size: %Xh (%u)\nHeader size: %" PRIXQ "h (%" PRIuQ ")\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
+        info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
                                 "Header length: %02Xh\nFlash cycle life: %04Xh\nFlash cycle limit: %04Xh\nUMA size: %Xh\nFlags: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh",
                                 ptSize, ptSize,
                                 header.size(), header.size(),
@@ -294,7 +294,7 @@ make_partition_table_consistent:
             UModelIndex partitionIndex;
             // Get info
             name = visibleAsciiOrHex((UINT8*) partitions[i].ptEntry.Name, 4);
-            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\nPartition type: %02Xh\n",
+            info = usprintf("Full size: %Xh (%u)\nPartition type: %02Xh\n",
                 partition.size(), partition.size(),
                 partitions[i].ptEntry.Type);
 
@@ -310,7 +310,7 @@ make_partition_table_consistent:
         else if (partitions[i].type == Types::Padding) {
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", partition.size(), partition.size());
+            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
             
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
@@ -335,7 +335,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
     UByteArray header = region.left(ptSize);
     
     UString name = UString("IFWI 1.6 header");
-    UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n"
+    UString info = usprintf("Full size: %Xh (%u)\n"
                             "Data  partition offset: %Xh\nData  partition size:   %Xh\n"
                             "Boot1 partition offset: %Xh\nBoot1 partition size:   %Xh\n"
                             "Boot2 partition offset: %Xh\nBoot2 partition size:   %Xh\n"
@@ -457,7 +457,7 @@ make_partition_table_consistent:
             }
             
             // Get info
-            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n",
+            info = usprintf("Full size: %Xh (%u)\n",
                             partition.size(), partition.size());
             
             // Add tree item
@@ -477,7 +477,7 @@ make_partition_table_consistent:
         else if (partitions[i].type == Types::Padding) {
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", partition.size(), partition.size());
+            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
             
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
@@ -503,7 +503,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     UByteArray header = region.left(ptSize);
     
     UString name = UString("IFWI 1.7 header");
-    UString info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n"
+    UString info = usprintf("Full size: %Xh (%u)\n"
                             "Flags: %02Xh\n"
                             "Reserved: %02Xh\n"
                             "Checksum: %Xh\n"
@@ -643,7 +643,7 @@ make_partition_table_consistent:
             }
             
             // Get info
-            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")\n",
+            info = usprintf("Full size: %Xh (%u)\n",
                             partition.size(), partition.size());
             
             // Add tree item
@@ -663,7 +663,7 @@ make_partition_table_consistent:
         else if (partitions[i].type == Types::Padding) {
             // Get info
             name = UString("Padding");
-            info = usprintf("Full size: %" PRIXQ "h (%" PRIuQ ")", partition.size(), partition.size());
+            info = usprintf("Full size: %Xh (%u)", partition.size(), partition.size());
             
             // Add tree item
             model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);

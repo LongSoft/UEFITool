@@ -19,22 +19,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include <inttypes.h>
 
-#if QT_VERSION_MAJOR >= 6
-#  define PRIdQ        __PRI_64_LENGTH_MODIFIER__ "d"
-#  define PRIiQ        __PRI_64_LENGTH_MODIFIER__ "i"
-#  define PRIoQ        __PRI_64_LENGTH_MODIFIER__ "o"
-#  define PRIuQ        __PRI_64_LENGTH_MODIFIER__ "u"
-#  define PRIxQ        __PRI_64_LENGTH_MODIFIER__ "x"
-#  define PRIXQ        __PRI_64_LENGTH_MODIFIER__ "X"
-#else
-#  define PRIdQ        "d"
-#  define PRIiQ        "i"
-#  define PRIoQ        "o"
-#  define PRIuQ        "u"
-#  define PRIxQ        "x"
-#  define PRIXQ        "X"
-#endif
-
 #if defined(__clang__) || defined(__GNUC__)
 #define ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
 #else
