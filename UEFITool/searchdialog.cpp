@@ -1,15 +1,15 @@
 /* searchdialog.cpp
-
-  Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
-  This program and the accompanying materials
-  are licensed and made available under the terms and conditions of the BSD License
-  which accompanies this distribution.  The full text of the license may be found at
-  http://opensource.org/licenses/bsd-license.php
-
-  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-
-  */
+ 
+ Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
+ This program and the accompanying materials
+ are licensed and made available under the terms and conditions of the BSD License
+ which accompanies this distribution.  The full text of the license may be found at
+ http://opensource.org/licenses/bsd-license.php
+ 
+ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+ 
+ */
 
 #include "searchdialog.h"
 
@@ -28,10 +28,10 @@ guidValidator(QRegExp("[0-9a-fA-F\\.]{8}-[0-9a-fA-F\\.]{4}-[0-9a-fA-F\\.]{4}-[0-
     ui->setupUi(this);
     ui->hexEdit->setValidator(&hexValidator);
     ui->guidEdit->setValidator(&guidValidator);
-
+    
     // Connect
     connect(ui->tabWidget, SIGNAL(currentChanged(int)), this, SLOT(setEditFocus(int)));
-
+    
     // Set initial focus
     setEditFocus(ui->tabWidget->currentIndex());
 }

@@ -1,14 +1,14 @@
 /* guiddatabase.cpp
-
-Copyright (c) 2017, LongSoft. All rights reserved.
-This program and the accompanying materials
-are licensed and made available under the terms and conditions of the BSD License
-which accompanies this distribution.  The full text of the license may be found at
-http://opensource.org/licenses/bsd-license.php
-
-THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
-WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
-*/
+ 
+ Copyright (c) 2017, LongSoft. All rights reserved.
+ This program and the accompanying materials
+ are licensed and made available under the terms and conditions of the BSD License
+ which accompanies this distribution.  The full text of the license may be found at
+ http://opensource.org/licenses/bsd-license.php
+ 
+ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+ */
 
 #include "guiddatabase.h"
 #include "ubytearray.h"
@@ -53,17 +53,17 @@ static std::string readGuidDatabase(const UString &path) {
 void initGuidDatabase(const UString & path, UINT32* numEntries)
 {
     gLocalGuidDatabase.clear();
-
+    
     std::stringstream file(readGuidDatabase(path));
-
+    
     while (!file.eof()) {
         std::string line;
         std::getline(file, line);
-
+        
         // Use sharp symbol as commentary
         if (line.size() == 0 || line[0] == '#')
             continue;
-
+        
         // GUID and name are comma-separated
         std::vector<UString> lineParts;
         std::string::size_type prev = 0, curr = 0;
@@ -73,17 +73,17 @@ void initGuidDatabase(const UString & path, UINT32* numEntries)
             prev = ++curr;
         }
         lineParts.push_back(UString(line.substr(prev, curr-prev).c_str()));
-
+        
         if (lineParts.size() < 2)
             continue;
-
+        
         EFI_GUID guid;
         if (!ustringToGuid(lineParts[0], guid))
             continue;
-
+        
         gLocalGuidDatabase[guid] = lineParts[1];
     }
-
+    
     if (numEntries)
         *numEntries = (UINT32)gLocalGuidDatabase.size();
 }
@@ -111,19 +111,19 @@ UString guidDatabaseLookup(const EFI_GUID & guid)
 GuidDatabase guidDatabaseFromTreeRecursive(TreeModel * model, const UModelIndex index)
 {
     GuidDatabase db;
-
+    
     if (!index.isValid())
         return db;
-
+    
     for (int i = 0; i < model->rowCount(index); i++) {
         GuidDatabase tmpDb = guidDatabaseFromTreeRecursive(model, index.model()->index(i, index.column(), index));
-
+        
         db.insert(tmpDb.begin(), tmpDb.end());
     }
-
+    
     if (model->type(index) == Types::File && !model->text(index).isEmpty())
         db[readUnaligned((const EFI_GUID*)model->header(index).left(16).constData())] = model->text(index);
-
+    
     return db;
 }
 
@@ -137,6 +137,6 @@ USTATUS guidDatabaseExportToFile(const UString & outPath, GuidDatabase & db)
         std::string name(it->second.toLocal8Bit());
         outputFile << guid << ',' << name << '\n';
     }
-
+    
     return U_SUCCESS;
 }
