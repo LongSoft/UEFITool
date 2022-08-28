@@ -129,7 +129,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
         UINT32 lastVariableFlag = emptyByte ? 0xFFFFFF : 0;
 
         // Set default next to predefined last value
-        NVAR_ENTRY_PARSING_DATA pdata;
+        NVAR_ENTRY_PARSING_DATA pdata = {};
         pdata.emptyByte = emptyByte;
         pdata.next = lastVariableFlag;
 

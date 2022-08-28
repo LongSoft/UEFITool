@@ -49,7 +49,7 @@ const UByteArray EFI_FMP_CAPSULE_GUID // 6DCBD5ED-E82D-4C44-BDA1-7194199AD92A
 ("\xED\xD5\xCB\x6D\x2D\xE8\x44\x4C\xBD\xA1\x71\x94\x19\x9A\xD9\x2A", 16);
 
 // Standard EFI capsule GUID
-const UByteArray EFI_CAPSULE_GUID
+const UByteArray EFI_CAPSULE_GUID // 3B6686BD-0D76-4030-B70E-B5519E2FC5A0
 ("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
 
 // Intel capsule GUID
@@ -73,7 +73,7 @@ typedef struct TOSHIBA_CAPSULE_HEADER_ {
 } TOSHIBA_CAPSULE_HEADER;
 
 // Toshiba capsule GUID
-const UByteArray TOSHIBA_CAPSULE_GUID
+const UByteArray TOSHIBA_CAPSULE_GUID // 3BE07062-1D51-45D2-832B-F093257ED461
 ("\x62\x70\xE0\x3B\x51\x1D\xD2\x45\x83\x2B\xF0\x93\x25\x7E\xD4\x61", 16);
 
 // AMI Aptio extended capsule header

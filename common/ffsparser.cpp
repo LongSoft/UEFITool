@@ -607,7 +607,6 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Add descriptor tree item
     UModelIndex regionIndex = model->addItem(localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
 
-
     // Parse regions
     USTATUS result = U_SUCCESS;
     USTATUS parseResult = U_SUCCESS;
@@ -920,7 +919,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             break;
         }
 
-        // Parse current volume's header
+        // Parse current volume header
         if (itemType == Types::Volume) {
             UModelIndex volumeIndex;
             UByteArray volume = data.mid(itemOffset, itemSize);
@@ -1190,7 +1189,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     index = model->addItem(localOffset, Types::Volume, subtype, name, text, info, header, body, UByteArray(), Movable, parent);
 
     // Set parsing data for created volume
-    VOLUME_PARSING_DATA pdata;
+    VOLUME_PARSING_DATA pdata = {};
     pdata.emptyByte = emptyByte;
     pdata.ffsVersion = ffsVersion;
     pdata.hasExtendedHeader = hasExtendedHeader ? TRUE : FALSE;
@@ -1554,6 +1553,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
 
         // Move to next file
         fileOffset += fileSize;
+        // TODO: check that alignment bytes are all of erase polarity bit, warn if not so
         fileOffset = ALIGN8(fileOffset);
     }
 
@@ -1784,7 +1784,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     index = model->addItem(localOffset, Types::File, fileHeader->Type, name, text, info, header, body, tail, fixed, parent);
 
     // Set parsing data for created file
-    FILE_PARSING_DATA pdata;
+    FILE_PARSING_DATA pdata = {};
     pdata.emptyByte = (fileHeader->State & EFI_FILE_ERASE_POLARITY) ? 0xFF : 0x00;
     pdata.guid = fileHeader->Name;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
@@ -2012,7 +2012,7 @@ USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex 
         result = parseSectionHeader(sections.mid(sectionOffset, sectionSize), headerSize + sectionOffset, index, sectionIndex, insertIntoTree);
         if (result) {
             if (insertIntoTree)
-                msg(UString("parseSections: section header parsing failed with error ") + errorCodeToUString(result), index);
+                msg(usprintf("%s: section header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             else
                 return U_INVALID_SECTION;
         }
@@ -2205,7 +2205,7 @@ USTATUS FfsParser::parseCompressedSectionHeader(const UByteArray & section, cons
         index = model->addItem(localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
 
         // Set section parsing data
-        COMPRESSED_SECTION_PARSING_DATA pdata;
+        COMPRESSED_SECTION_PARSING_DATA pdata = {};
         pdata.compressionType = compressionType;
         pdata.uncompressedSize = uncompressedLength;
         model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
@@ -2378,7 +2378,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         index = model->addItem(localOffset, Types::Section, sectionHeader->Type, name, UString(), info, header, body, UByteArray(), Movable, parent);
 
         // Set parsing data
-        GUIDED_SECTION_PARSING_DATA pdata;
+        GUIDED_SECTION_PARSING_DATA pdata = {};
         pdata.guid = guid;
         model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
 
@@ -2462,7 +2462,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
         index = model->addItem(localOffset, Types::Section, type, name, UString(), info, header, body, UByteArray(), Movable, parent);
 
         // Set parsing data
-        FREEFORM_GUIDED_SECTION_PARSING_DATA pdata;
+        FREEFORM_GUIDED_SECTION_PARSING_DATA pdata = {};
         pdata.guid = guid;
         model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
 
@@ -2651,13 +2651,14 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     UByteArray efiDecompressed;
     USTATUS result = decompress(model->body(index), compressionType, algorithm, dictionarySize, decompressed, efiDecompressed);
     if (result) {
-        msg(UString("parseCompressedSectionBody: decompression failed with error ") + errorCodeToUString(result), index);
+        msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
         return U_SUCCESS;
     }
 
     // Check reported uncompressed size
     if (uncompressedSize != (UINT32)decompressed.size()) {
-        msg(usprintf("parseCompressedSectionBody: decompressed size stored in header %Xh (%u) differs from actual %" PRIXQ "h (%" PRIuQ ")",
+        msg(usprintf("%s: decompressed size stored in header %Xh (%u) differs from actual %" PRIXQ "h (%" PRIuQ ")",
+            __FUNCTION__,
             uncompressedSize, uncompressedSize,
             decompressed.size(), decompressed.size()),
             index);
@@ -2676,7 +2677,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
             decompressed = efiDecompressed;
         }
         else {
-            msg(UString("parseCompressedSectionBody: can't guess the correct decompression algorithm, both preparse steps are failed"), index);
+            msg(usprintf("%s: can't guess the correct decompression algorithm, both preparse steps are failed", __FUNCTION__), index);
         }
     }
 
@@ -2693,7 +2694,7 @@ USTATUS FfsParser::parseCompressedSectionBody(const UModelIndex & index)
     }
     
     // Set parsing data
-    COMPRESSED_SECTION_PARSING_DATA pdata;
+    COMPRESSED_SECTION_PARSING_DATA pdata = {};
     pdata.algorithm = algorithm;
     pdata.dictionarySize = dictionarySize;
     pdata.compressionType = compressionType;
@@ -2807,7 +2808,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
     model->addInfo(index, info);
 
     // Set parsing data
-    GUIDED_SECTION_PARSING_DATA pdata;
+    GUIDED_SECTION_PARSING_DATA pdata = {};
     pdata.dictionarySize = dictionarySize;
     model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
 
@@ -3175,7 +3176,7 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index)
     }
 
     // Update parsing data
-    TE_IMAGE_SECTION_PARSING_DATA pdata;
+    TE_IMAGE_SECTION_PARSING_DATA pdata = {};
     pdata.imageBaseType = EFI_IMAGE_TE_BASE_OTHER; // Will be determined later
     pdata.originalImageBase = (UINT32)teHeader->ImageBase;
     pdata.adjustedImageBase = (UINT32)(teHeader->ImageBase + teHeader->StrippedSize - sizeof(EFI_IMAGE_TE_HEADER));
@@ -3302,7 +3303,7 @@ USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
             }
 
             // Update parsing data
-            TE_IMAGE_SECTION_PARSING_DATA pdata;
+            TE_IMAGE_SECTION_PARSING_DATA pdata = {};
             pdata.imageBaseType = imageBaseType;
             pdata.originalImageBase = originalImageBase;
             pdata.adjustedImageBase = adjustedImageBase;
@@ -3372,7 +3373,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
                 } else {
                     // TODO: Explore this.
-                    msg(usprintf("%s: Suspicious BG protection offset", __FUNCTION__), index);
+                    msg(usprintf("%s: suspicious BG protection offset", __FUNCTION__), index);
                 }
                 protectedParts += openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
                 markProtectedRangeRecursive(index, bgProtectedRanges[i]);
@@ -3434,8 +3435,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 if (!dxeRootVolumeIndex.isValid()) {
                     msg(usprintf("%s: can't determine DXE volume offset, post-IBB protected range hash can't be checked", __FUNCTION__), index);
                 }
-                else
-                {
+                else {
                     bgProtectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
                     bgProtectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
                     protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
@@ -3473,7 +3473,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 markProtectedRangeRecursive(index, bgProtectedRanges[i]);
             } else {
                 // TODO: Explore this.
-                msg(usprintf("%s: Suspicious AMI new BG protection offset", __FUNCTION__), index);
+                msg(usprintf("%s: suspicious AMI new BG protection offset", __FUNCTION__), index);
             }
         }
         else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX
@@ -3722,7 +3722,7 @@ USTATUS FfsParser::parseFit(const UModelIndex & index)
 
     // Check fit header type
     if (fitHeader->Type != FIT_TYPE_HEADER) {
-        msg(UString("Invalid FIT header type"), fitIndex);
+        msg(usprintf("%s: invalid FIT header type", __FUNCTION__), fitIndex);
         return U_INVALID_FIT;
     }
 
@@ -4010,15 +4010,14 @@ USTATUS FfsParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
                     );
 
     // Add KM header info
-    securityInfo += usprintf(
-                              "Intel BootGuard Key manifest found at base %Xh\n"
-                              "Tag: __KEYM__ Version: %02Xh KmVersion: %02Xh KmSvn: %02Xh KmId: %02Xh",
-                              model->base(parent) + localOffset,
-                              header->Version,
-                              header->KmVersion,
-                              header->KmSvn,
-                              header->KmId
-                              );
+    securityInfo += usprintf("Intel BootGuard Key manifest found at base %Xh\n"
+                             "Tag: __KEYM__ Version: %02Xh KmVersion: %02Xh KmSvn: %02Xh KmId: %02Xh",
+                             model->base(parent) + localOffset,
+                             header->Version,
+                             header->KmVersion,
+                             header->KmSvn,
+                             header->KmId
+                             );
 
     // Add hash of Key Manifest PubKey, this hash will be written to FPFs
     UINT8 hash[SHA256_DIGEST_SIZE];
