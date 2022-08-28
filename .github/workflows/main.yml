@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -11,14 +11,32 @@ jobs:
   build_mac:
     name: Build on macOS
     runs-on: macos-12
+    env:
+        HAS_QT: 1
     steps:
       - uses: actions/checkout@v2
-      - run: ./unixbuild.sh
+    
+      - name: Get Qt
+        uses: actions/checkout@v2
+        with:
+          repository: LongSoft/qt-5.6.3-static-universal-macos-sdk12.3
+          path: qt
+          lfs: true
+          
+      - name: Unpack Qt
+        shell: bash
+        working-directory: qt
+        run: sudo unzip -q qt-5.6.3-static-universal-macos-sdk12.3.zip -d/opt && echo "/opt/qt56sm/bin" >> $GITHUB_PATH
+        
+      - name: Build everything
+        run: ./unixbuild.sh
+        
       - name: Upload to artifacts
         uses: actions/upload-artifact@v2
         with:
           name: macOS builds
           path: dist/*.zip
+          
       - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
@@ -30,17 +48,24 @@ jobs:
 
   build_linux:
     name: Build on Linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    env:
+        HAS_QT: 1
     steps:
       - uses: actions/checkout@v2
+      
       - name: Get Qt
         run: sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
-      - run: ./unixbuild.sh
+      
+      - name: Build everything
+        run: ./unixbuild.sh
+      
       - name: Upload to artifacts
         uses: actions/upload-artifact@v2
         with:
           name: Linux builds
           path: dist/*.zip
+
       - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
@@ -50,7 +75,7 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_win_extract:
+  build_win:
     name: Build on Windows
     runs-on: windows-2019
     steps:
@@ -62,24 +87,29 @@ jobs:
           repository: LongSoft/qt-5.6.3-static-x86-msvc2017
           path: qt
           lfs: true
+          
       - name: Unpack Qt
         shell: bash
         working-directory: qt
         run: 7z x qt-5.6.3-static-x86-msvc2017.7z -o../..
+        
       - name: Create dist directory
         shell: bash
         run: mkdir dist
 
       - name: Create UEFIExtract build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFIExtract
+        
       - name: Configure UEFIExtract
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIExtract
         run: cmake -G "Visual Studio 16 2019" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIExtract/
+      
       - name: Build UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract
         shell: bash
         run: cmake --build . --config Release
+      
       - name: Archive UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract/Release
         shell: bash
@@ -89,14 +119,17 @@ jobs:
 
       - name: Create UEFIFind build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFIFind
+      
       - name: Configure UEFIFind
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIFind
         run: cmake -G "Visual Studio 16 2019" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIFind/
+      
       - name: Build UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
         shell: bash
         run: cmake --build . --config Release
+      
       - name: Archive UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind/Release
         shell: bash
@@ -106,16 +139,19 @@ jobs:
 
       - name: Create UEFITool build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool
+      
       - name: Configure UEFITool
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFITool
         run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe ../../UEFITool/UEFITool/
+      
       - name: Build UEFITool
         working-directory: ${{runner.workspace}}/build/UEFITool
         shell: cmd
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
             nmake release
+      
       - name: Archive UEFITool
         working-directory: ${{runner.workspace}}/build/UEFITool/release
         shell: bash
@@ -128,7 +164,8 @@ jobs:
         with:
           name: Windows builds
           path: dist/*.zip
-      - name: Windows to releases
+      
+      - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
         with:
@@ -141,18 +178,27 @@ jobs:
     env:
       PROJECT_TYPE: TOOL
       JOB_TYPE: COVERITY
+      HAS_QT: 1
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: Analyze Coverity
-    runs-on: macos-12
+    name: Coverity
+    runs-on: ubuntu-latest
     steps:
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.4.0'
+          host: 'linux'
+          target: 'desktop'
+    
       - name: CI Bootstrap
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
       - uses: actions/checkout@v2
       - run: ./unixbuild.sh --configure
+
       - name: Run Coverity
         run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/coverity/covstrap.sh) && eval "$src" || exit 1
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/coverity/covstrap-linux.sh) && eval "$src" || exit 1
         env:
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}

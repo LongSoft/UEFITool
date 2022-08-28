@@ -9,6 +9,7 @@ elif [ "$1" = "--build" ]; then
   export PRECONFIGURED=1
 fi
 
+# Determine platform
 if [ "$UTARGET" = "Darwin" ]; then
   export UPLATFORM="mac"
 elif [ "$UTARGET" = "Linux" ]; then
@@ -21,7 +22,10 @@ else
   export UPLATFORM="$UTARGET"
 fi
 
-if [ "$UPLATFORM" = "mac" ]; then
+# Obtain Qt
+if [ "$HAS_QT" != "" ]; then
+   echo "Using externally supplied Qt"
+elif [ "$UPLATFORM" = "mac" ]; then
   if [ ! -d /opt/qt56sm ]; then
     curl -L -o /tmp/qt-5.6.3-static-universal-macos-sdk12.3.zip https://github.com/LongSoft/qt-5.6.3-static-universal-macos-sdk12.3/blob/main/qt-5.6.3-static-universal-macos-sdk12.3.zip?raw=true || exit 1
     qtsum=$(shasum -a 256 /tmp/qt-5.6.3-static-universal-macos-sdk12.3.zip | cut -f1 -d' ')
@@ -61,6 +65,7 @@ elif [ "$UPLATFORM" = "win32" ]; then
   export PATH="/c/Qt/5.6/mingw49_32_release_static/bin:$PATH"
 fi
 
+# Build
 echo "Attempting to build UEFITool NE for ${UPLATFORM}..."
 
 UEFITOOL_VER=$(cat version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/')
@@ -72,27 +77,28 @@ build_tool() {
     echo "Invalid $1 version!"
     exit 1
   fi
-  # Tools are in subdirectories
-  cd "$1" || exit 1
+  
+  # Create build directory
+  mkdir -p "build/$1" || exit 1
+  cd "build/$1" || exit 1
 
   # Build
   if [ "$PRECONFIGURED" != "1" ]; then
     if [ "$3" != "" ]; then
-      # -flto is flawed on CI atm
       if [ "$UPLATFORM" = "mac" ]; then
-        qmake $3 QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
+        qmake "../../$1/$3" QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
       elif [ "$UPLATFORM" = "win32" ]; then
-        qmake $3 QMAKE_CXXFLAGS="-static -flto -Os -std=c++11" QMAKE_LFLAGS="-static -flto -Os -std=c++11" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
+        qmake "../../$1/$3" QMAKE_CXXFLAGS="-static -flto -Os -std=c++11" QMAKE_LFLAGS="-static -flto -Os -std=c++11" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
       else
-        qmake $3 CONFIG+=optimize_size || exit 1
+        qmake "../../$1/$3" CONFIG+=optimize_size || exit 1
       fi
     else
       if [ "$UPLATFORM" = "mac" ]; then
-        cmake -G "Unix Makefiles" -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7" . || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_CXX_FLAGS="-stdlib=libc++ -flto -Os -mmacosx-version-min=10.7" -DCMAKE_C_FLAGS="-flto -Os -mmacosx-version-min=10.7"  "../../$1/" || exit 1
       elif [ "$UPLATFORM" = "win32" ]; then
-        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os -std=c++11" -DCMAKE_C_FLAGS="-static -Os" . || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-static -Os -std=c++11" -DCMAKE_C_FLAGS="-static -Os"  "../../$1/" || exit 1
       else
-        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os" . || exit 1
+        cmake -G "Unix Makefiles" -DCMAKE_CXX_FLAGS="-Os" -DCMAKE_C_FLAGS="-Os"  "../../$1/" || exit 1
       fi
     fi
   fi
@@ -108,25 +114,22 @@ build_tool() {
     # Archive
     if [ "$1" = "UEFITool" ] && [ "$UPLATFORM" = "mac" ]; then
       strip -x UEFITool.app/Contents/MacOS/UEFITool || exit 1
-      zip -qry ../dist/"${1}_NE_${2}_${UPLATFORM}.zip" UEFITool.app ${4} || exit 1
+      zip -qry ../../dist/"${1}_NE_${2}_${UPLATFORM}.zip" UEFITool.app ${4} || exit 1
     else
       strip -x "${1}${BINSUFFIX}" || exit 1
-      zip -qry ../dist/"${1}_NE_${2}_${UPLATFORM}.zip" "${1}${BINSUFFIX}" ${4} || exit 1
+      zip -qry ../../dist/"${1}_NE_${2}_${UPLATFORM}.zip" "${1}${BINSUFFIX}" ${4} || exit 1
     fi
   fi
 
   # Return to parent
-  cd - || exit 1
+  cd ../.. || exit 1
 }
 
 rm -rf dist
 mkdir -p dist || exit 1
 
 build_tool UEFITool    "$UEFITOOL_VER"  uefitool.pro
-# FIXME: cmake does not let overriding CC after generating files.
-if [ "$COVERITY_SCAN_TOKEN" = "" ]; then
-  build_tool UEFIExtract "$UEFITOOL_VER"  ""
-  build_tool UEFIFind    "$UEFITOOL_VER"  ""
-fi
+build_tool UEFIExtract "$UEFITOOL_VER"  ""
+build_tool UEFIFind    "$UEFITOOL_VER"  ""
 
 exit 0
