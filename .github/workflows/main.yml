@@ -75,6 +75,18 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
+  build_linux_meson:
+    name: Build on Linux with Meson
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get Deps
+        run: sudo apt-get install -qq zlib1g-dev meson qt5-default
+      - name: Configure build
+        run: mkdir build-meson && meson ./build-meson
+      - name: Build everything
+        run: ninja -C build-meson
+
   build_win:
     name: Build on Windows
     runs-on: windows-2019
