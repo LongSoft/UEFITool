@@ -12,7 +12,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
 #include "LzmaDecompress.h"
-#include "SDK/C/Types.h"
+#include "SDK/C/7zTypes.h"
 #include "SDK/C/7zVersion.h"
 
 #include <stdlib.h>
@@ -27,8 +27,8 @@ LShiftU64 (
     return Operand << Count;
 }
 
-static void * AllocForLzma(void *p, size_t size) { (void)p; return malloc(size); }
-static void FreeForLzma(void *p, void *address) { (void)p; free(address); }
+static void * AllocForLzma(ISzAllocPtr p, size_t size) { (void)p; return malloc(size); }
+static void FreeForLzma(ISzAllocPtr p, void *address) { (void)p; free(address); }
 static ISzAlloc SzAllocForLzma = { &AllocForLzma, &FreeForLzma };
 
 /*

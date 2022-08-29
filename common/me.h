@@ -27,12 +27,12 @@ typedef struct ME_VERSION_ {
     UINT16 Build;
 } ME_VERSION;
 
-const UByteArray ME_VERSION_SIGNATURE("\x24\x4D\x41\x4E", 4);  //$MAN
-const UByteArray ME_VERSION_SIGNATURE2("\x24\x4D\x4E\x32", 4); //$MN2
+#define ME_VERSION_SIGNATURE 0x4E414D24 //$MAN
+#define ME_VERSION_SIGNATURE2  0x324E4D24 //$MN2
 
 // FPT
 #define ME_ROM_BYPASS_VECTOR_SIZE 0x10
-const UByteArray FPT_HEADER_SIGNATURE("\x24\x46\x50\x54", 4); //$FPT
+#define FPT_HEADER_SIGNATURE 0x54504624 //$FPT
 
 // Header version 1.0 or 2.0, default
 typedef struct FPT_HEADER_ {

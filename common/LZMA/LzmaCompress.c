@@ -19,11 +19,11 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #define LZMA_HEADER_SIZE (LZMA_PROPS_SIZE + 8)
 
-static void * AllocForLzma(void *p, size_t size) { (void)p; return malloc(size); }
-static void FreeForLzma(void *p, void *address) { (void)p; free(address); }
+static void * AllocForLzma(ISzAllocPtr p, size_t size) { (void)p; return malloc(size); }
+static void FreeForLzma(ISzAllocPtr p, void *address) { (void)p; free(address); }
 static ISzAlloc SzAllocForLzma = { &AllocForLzma, &FreeForLzma };
 
-SRes OnProgress(void *p, UInt64 inSize, UInt64 outSize)
+SRes OnProgress(const ICompressProgress *p, UInt64 inSize, UInt64 outSize)
 {
     (void)p; (void)inSize; (void)outSize;
     return SZ_OK;

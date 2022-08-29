@@ -19,7 +19,6 @@
 #include "meparser.h"
 #include "parsingdata.h"
 #include "utility.h"
-#include "uinttypes.h"
 
 #ifdef U_ENABLE_ME_PARSING_SUPPORT
 
@@ -54,7 +53,7 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
     
     // Check ME signature to determine it's version
     // ME v11 and older layout
-    if (meRegion.left(sizeof(UINT32)) == FPT_HEADER_SIGNATURE || meRegion.mid(ME_ROM_BYPASS_VECTOR_SIZE, sizeof(UINT32)) == FPT_HEADER_SIGNATURE) {
+    if (*(UINT32*)meRegion.constData() == FPT_HEADER_SIGNATURE || *(UINT32*)(meRegion.constData() + ME_ROM_BYPASS_VECTOR_SIZE)  == FPT_HEADER_SIGNATURE) {
         UModelIndex ptIndex;
         return parseFptRegion(meRegion, index, ptIndex);
     }
@@ -73,7 +72,7 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
         return U_INVALID_ME_PARTITION_TABLE;
     }
     // Data partition always points to FPT header
-    if (meRegion.mid(ifwi16Header->DataPartition.Offset, sizeof(UINT32)) == FPT_HEADER_SIGNATURE) {
+    if (*(UINT32*)(meRegion.constData() + ifwi16Header->DataPartition.Offset) == FPT_HEADER_SIGNATURE) {
         UModelIndex ptIndex;
         return parseIfwi16Region(meRegion, index, ptIndex);
     }
@@ -91,7 +90,7 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
         return U_INVALID_ME_PARTITION_TABLE;
     }
     // Data partition always points to FPT header
-    if (meRegion.mid(ifwi17Header->DataPartition.Offset, sizeof(UINT32)) == FPT_HEADER_SIGNATURE) {
+    if (*(UINT32*)(meRegion.constData() + ifwi17Header->DataPartition.Offset)== FPT_HEADER_SIGNATURE) {
         UModelIndex ptIndex;
         return parseIfwi17Region(meRegion, index, ptIndex);
     }
@@ -112,7 +111,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     // Populate partition table header
     const FPT_HEADER* ptHeader = (const FPT_HEADER*)region.constData();
     UINT32 romBypassVectorSize = 0;
-    if (region.left(sizeof(UINT32)) != FPT_HEADER_SIGNATURE) {
+    if (*(UINT32*)region.constData() != FPT_HEADER_SIGNATURE) {
         // Adjust the header to skip ROM bypass vector
         romBypassVectorSize = ME_ROM_BYPASS_VECTOR_SIZE;
         ptHeader = (const FPT_HEADER*)(region.constData() + romBypassVectorSize);

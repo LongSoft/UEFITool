@@ -14,9 +14,100 @@
 
 #include "ffs.h"
 #include "guiddatabase.h"
+#include "ubytearray.h"
 
-// This is a workaround for the lack of static std::vector initializer before C++11
-const UByteArray FFSv2VolumesInt[] = {
+//
+// GUIDs mentioned in by ffs.h
+//
+// Standard FMP capsule GUID
+extern const UByteArray EFI_FMP_CAPSULE_GUID // 6DCBD5ED-E82D-4C44-BDA1-7194199AD92A
+("\xED\xD5\xCB\x6D\x2D\xE8\x44\x4C\xBD\xA1\x71\x94\x19\x9A\xD9\x2A", 16);
+// Standard EFI capsule GUID
+extern const UByteArray EFI_CAPSULE_GUID // 3B6686BD-0D76-4030-B70E-B5519E2FC5A0
+("\xBD\x86\x66\x3B\x76\x0D\x30\x40\xB7\x0E\xB5\x51\x9E\x2F\xC5\xA0", 16);
+// Intel capsule GUID
+extern const UByteArray INTEL_CAPSULE_GUID // 539182B9-ABB5-4391-B69A-E3A943F72FCC
+("\xB9\x82\x91\x53\xB5\xAB\x91\x43\xB6\x9A\xE3\xA9\x43\xF7\x2F\xCC", 16);
+// Lenovo capsule GUID
+extern const UByteArray LENOVO_CAPSULE_GUID // E20BAFD3-9914-4F4F-9537-3129E090EB3C
+("\xD3\xAF\x0B\xE2\x14\x99\x4F\x4F\x95\x37\x31\x29\xE0\x90\xEB\x3C", 16);
+// Another Lenovo capsule GUID
+extern const UByteArray LENOVO2_CAPSULE_GUID // 25B5FE76-8243-4A5C-A9BD-7EE3246198B5
+("\x76\xFE\xB5\x25\x43\x82\x5C\x4A\xA9\xBD\x7E\xE3\x24\x61\x98\xB5", 16);
+// Toshiba capsule GUID
+extern const UByteArray TOSHIBA_CAPSULE_GUID // 3BE07062-1D51-45D2-832B-F093257ED461
+("\x62\x70\xE0\x3B\x51\x1D\xD2\x45\x83\x2B\xF0\x93\x25\x7E\xD4\x61", 16);
+// AMI Aptio signed extended capsule GUID
+extern const UByteArray APTIO_SIGNED_CAPSULE_GUID // 4A3CA68B-7723-48FB-803D-578CC1FEC44D
+("\x8B\xA6\x3C\x4A\x23\x77\xFB\x48\x80\x3D\x57\x8C\xC1\xFE\xC4\x4D", 16);
+// AMI Aptio unsigned extended capsule GUID
+extern const UByteArray APTIO_UNSIGNED_CAPSULE_GUID // 14EEBB90-890A-43DB-AED1-5D3C4588A418
+("\x90\xBB\xEE\x14\x0A\x89\xDB\x43\xAE\xD1\x5D\x3C\x45\x88\xA4\x18", 16);
+// Standard file system GUIDs
+extern const UByteArray EFI_FIRMWARE_FILE_SYSTEM_GUID // 7A9354D9-0468-444A-81CE-0BF617D890DF
+("\xD9\x54\x93\x7A\x68\x04\x4A\x44\x81\xCE\x0B\xF6\x17\xD8\x90\xDF", 16);
+extern const UByteArray EFI_FIRMWARE_FILE_SYSTEM2_GUID // 8C8CE578-8A3D-4F1C-9935-896185C32DD3
+("\x78\xE5\x8C\x8C\x3D\x8A\x1C\x4F\x99\x35\x89\x61\x85\xC3\x2D\xD3", 16);
+extern const UByteArray EFI_FIRMWARE_FILE_SYSTEM3_GUID // 5473C07A-3DCB-4DCA-BD6F-1E9689E7349A
+("\x7A\xC0\x73\x54\xCB\x3D\xCA\x4D\xBD\x6F\x1E\x96\x89\xE7\x34\x9A", 16);
+// Vendor-specific file system GUIDs
+extern const UByteArray EFI_APPLE_IMMUTABLE_FV_GUID // 04ADEEAD-61FF-4D31-B6BA-64F8BF901F5A
+("\xAD\xEE\xAD\x04\xFF\x61\x31\x4D\xB6\xBA\x64\xF8\xBF\x90\x1F\x5A", 16);
+extern const UByteArray EFI_APPLE_AUTHENTICATION_FV_GUID // BD001B8C-6A71-487B-A14F-0C2A2DCF7A5D
+("\x8C\x1B\x00\xBD\x71\x6A\x7B\x48\xA1\x4F\x0C\x2A\x2D\xCF\x7A\x5D", 16);
+extern const UByteArray EFI_APPLE_MICROCODE_VOLUME_GUID // 153D2197-29BD-44DC-AC59-887F70E41A6B
+("\x97\x21\x3D\x15\xBD\x29\xDC\x44\xAC\x59\x88\x7F\x70\xE4\x1A\x6B", 16);
+extern const UByteArray EFI_INTEL_FILE_SYSTEM_GUID // AD3FFFFF-D28B-44C4-9F13-9EA98A97F9F0
+("\xFF\xFF\x3F\xAD\x8B\xD2\xC4\x44\x9F\x13\x9E\xA9\x8A\x97\xF9\xF0", 16);
+extern const UByteArray EFI_INTEL_FILE_SYSTEM2_GUID // D6A1CD70-4B33-4994-A6EA-375F2CCC5437
+("\x70\xCD\xA1\xD6\x33\x4B\x94\x49\xA6\xEA\x37\x5F\x2C\xCC\x54\x37", 16);
+extern const UByteArray EFI_SONY_FILE_SYSTEM_GUID // 4F494156-AED6-4D64-A537-B8A5557BCEEC
+("\x56\x41\x49\x4F\xD6\xAE\x64\x4D\xA5\x37\xB8\xA5\x55\x7B\xCE\xEC", 16);
+// PEI apriori file
+extern const UByteArray EFI_PEI_APRIORI_FILE_GUID // 1B45CC0A-156A-428A-AF62-49864DA0E6E6
+("\x0A\xCC\x45\x1B\x6A\x15\x8A\x42\xAF\x62\x49\x86\x4D\xA0\xE6\xE6", 16);
+// DXE apriori file
+extern const UByteArray EFI_DXE_APRIORI_FILE_GUID // FC510EE7-FFDC-11D4-BD41-0080C73C8881
+("\xE7\x0E\x51\xFC\xDC\xFF\xD4\x11\xBD\x41\x00\x80\xC7\x3C\x88\x81", 16);
+// Volume top file
+extern const UByteArray EFI_FFS_VOLUME_TOP_FILE_GUID // 1BA0062E-C779-4582-8566-336AE8F78F09
+("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
+// Pad file GUID
+extern const UByteArray EFI_FFS_PAD_FILE_GUID // E4536585-7909-4A60-B5C6-ECDEA6EBFB5
+("\x85\x65\x53\xE4\x09\x79\x60\x4A\xB5\xC6\xEC\xDE\xA6\xEB\xFB\x54", 16);
+// AMI DXE core file
+extern const UByteArray AMI_CORE_DXE_GUID // 5AE3F37E-4EAE-41AE-8240-35465B5E81EB
+("\x7E\xF3\xE3\x5A\xAE\x4E\xAE\x41\x82\x40\x35\x46\x5B\x5E\x81\xEB", 16);
+// EDK2 DXE core file
+extern const UByteArray EFI_DXE_CORE_GUID // D6A2CB7F-6A18-4E2F-B43B-9920A733700A
+("\x7F\xCB\xA2\xD6\x18\x6A\x2F\x4E\xB4\x3B\x99\x20\xA7\x33\x70\x0A", 16);
+// GUIDs of GUID-defined sections
+extern const UByteArray EFI_GUIDED_SECTION_CRC32 // FC1BCDB0-7D31-49AA-936A-A4600D9DD083
+("\xB0\xCD\x1B\xFC\x31\x7D\xAA\x49\x93\x6A\xA4\x60\x0D\x9D\xD0\x83", 16);
+extern const UByteArray EFI_GUIDED_SECTION_TIANO // A31280AD-481E-41B6-95E8-127F4C984779
+("\xAD\x80\x12\xA3\x1E\x48\xB6\x41\x95\xE8\x12\x7F\x4C\x98\x47\x79", 16);
+extern const UByteArray EFI_GUIDED_SECTION_LZMA // EE4E5898-3914-4259-9D6E-DC7BD79403CF
+("\x98\x58\x4E\xEE\x14\x39\x59\x42\x9D\x6E\xDC\x7B\xD7\x94\x03\xCF", 16);
+extern const UByteArray EFI_GUIDED_SECTION_LZMA_HP // 0ED85E23-F253-413F-A03C-901987B04397
+("\x23\x5E\xD8\x0E\x53\xF2\x3F\x41\xA0\x3C\x90\x19\x87\xB0\x43\x97", 16);
+extern const UByteArray EFI_GUIDED_SECTION_LZMAF86 // D42AE6BD-1352-4BFB-909A-CA72A6EAE889
+("\xBD\xE6\x2A\xD4\x52\x13\xFB\x4B\x90\x9A\xCA\x72\xA6\xEA\xE8\x89", 16);
+extern const UByteArray EFI_GUIDED_SECTION_GZIP // 1D301FE9-BE79-4353-91C2-D23BC959AE0C
+("\xE9\x1F\x30\x1D\x79\xBE\x53\x43\x91\xC2\xD2\x3B\xC9\x59\xAE\x0C", 16);
+extern const UByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID // 0F9D89E8-9259-4F76-A5AF-0C89E34023DF
+("\xE8\x89\x9D\x0F\x59\x92\x76\x4F\xA5\xAF\x0C\x89\xE3\x40\x23\xDF", 16);
+extern const UByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID // A7717414-C616-4977-9420-844712A735BF
+ ("\x14\x74\x71\xA7\x16\xC6\x77\x49\x94\x20\x84\x47\x12\xA7\x35\xBF");
+extern const UByteArray EFI_HASH_ALGORITHM_SHA256_GUID // 51AA59DE-FDF2-4EA3-BC63-875FB7842EE9
+("\xde\x59\xAA\x51\xF2\xFD\xA3\x4E\xBC\x63\x87\x5F\xB7\x84\x2E\xE9");
+
+// Protected range files
+extern const UByteArray PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_PHOENIX // 389CC6F2-1EA8-467B-AB8A-78E769AE2A15
+("\xF2\xC6\x9C\x38\xA8\x1E\x7B\x46\xAB\x8A\x78\xE7\x69\xAE\x2A\x15", 16);
+extern const UByteArray PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_AMI // CBC91F44-A4BC-4A5B-8696-703451D0B053
+("\x44\x1F\xC9\xCB\xBC\xA4\x5B\x4A\x86\x96\x70\x34\x51\xD0\xB0\x53", 16);
+
+const std::vector<UByteArray> FFSv2Volumes({
     EFI_FIRMWARE_FILE_SYSTEM_GUID,
     EFI_FIRMWARE_FILE_SYSTEM2_GUID,
     EFI_APPLE_AUTHENTICATION_FV_GUID,
@@ -24,12 +115,9 @@ const UByteArray FFSv2VolumesInt[] = {
     EFI_INTEL_FILE_SYSTEM_GUID,
     EFI_INTEL_FILE_SYSTEM2_GUID,
     EFI_SONY_FILE_SYSTEM_GUID
-};
-// This number must be updated if the array above is grown
-#define FFSv2VolumesIntSize 7
-const std::vector<UByteArray> FFSv2Volumes(FFSv2VolumesInt, FFSv2VolumesInt + FFSv2VolumesIntSize);
-// Luckily, FFSv3Volumes now only has 1 element
-const std::vector<UByteArray> FFSv3Volumes(1, EFI_FIRMWARE_FILE_SYSTEM3_GUID);
+});
+
+const std::vector<UByteArray> FFSv3Volumes({EFI_FIRMWARE_FILE_SYSTEM3_GUID});
 
 const UINT8 ffsAlignmentTable[] =
 { 0, 4, 7, 9, 10, 12, 15, 16 };
@@ -118,8 +206,8 @@ UString fileTypeToUString(const UINT8 type)
         case EFI_FV_FILETYPE_MM_STANDALONE:         return UString("MM standalone module");
         case EFI_FV_FILETYPE_MM_CORE_STANDALONE:    return UString("MM standalone core");
         case EFI_FV_FILETYPE_PAD:                   return UString("Pad");
-        default:                                    return usprintf("Unknown %u", type);
     };
+    return usprintf("Unknown %02Xh", type);
 }
 
 UString sectionTypeToUString(const UINT8 type)
@@ -142,8 +230,8 @@ UString sectionTypeToUString(const UINT8 type)
         case EFI_SECTION_MM_DEPEX:                  return UString("MM dependency");
         case INSYDE_SECTION_POSTCODE:               return UString("Insyde postcode");
         case PHOENIX_SECTION_POSTCODE:              return UString("Phoenix postcode");
-        default:                                    return usprintf("Unknown %u", type);
     }
+    return usprintf("Unknown %02Xh", type);
 }
 
 UString bpdtEntryTypeToUString(const UINT16 type)
@@ -179,8 +267,8 @@ UString bpdtEntryTypeToUString(const UINT16 type)
         case BPDT_ENTRY_TYPE_PCHC:               return UString("PCHC");
         case BPDT_ENTRY_TYPE_SAMF:               return UString("SAMF");
         case BPDT_ENTRY_TYPE_PPHY:               return UString("PPHY");
-        default:                                 return usprintf("Unknown %u", type);
     }
+    return usprintf("Unknown %04Xh", type);
 }
 
 UString cpdExtensionTypeToUstring(const UINT32 type)
@@ -218,6 +306,6 @@ UString cpdExtensionTypeToUstring(const UINT32 type)
         case CPD_EXT_TYPE_KEY_MANIFEST_EXT:          return UString("Extended Key Manifest");
         case CPD_EXT_TYPE_SIGNED_PACKAGE_INFO_EXT:   return UString("Extended Signed Package Info");
         case CPD_EXT_TYPE_SPS_PLATFORM_ID:           return UString("SPS Platform ID");
-        default:                                     return usprintf("Unknown %u", type);
     }
+    return usprintf("Unknown %08Xh", type);
 }

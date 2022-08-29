@@ -20,7 +20,7 @@
 #include "ffs.h"
 #include "gbe.h"
 #include "me.h"
-#include "fit.h"
+#include "intel_fit.h"
 #include "nvram.h"
 #include "peimage.h"
 #include "parsingdata.h"
@@ -29,7 +29,11 @@
 
 #include "nvramparser.h"
 #include "meparser.h"
-#include "uinttypes.h"
+#include "fitparser.h"
+
+#include "digest/sha1.h"
+#include "digest/sha2.h"
+#include "digest/sm3.h"
 
 #ifndef QT_CORE_LIB
 namespace Qt {
@@ -70,8 +74,8 @@ struct CPD_PARTITION_INFO {
 
 // Constructor
 FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
-imageBase(0), addressDiff(0x100000000ULL),
-bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgProtectedRegionsBase(0) {
+imageBase(0), addressDiff(0x100000000ULL), protectedRegionsBase(0) {
+    fitParser = new FitParser(treeModel, this);
     nvramParser = new NvramParser(treeModel, this);
     meParser = new MeParser(treeModel, this);
 }
@@ -80,16 +84,30 @@ bgAcmFound(false), bgKeyManifestFound(false), bgBootPolicyFound(false), bgProtec
 FfsParser::~FfsParser() {
     delete nvramParser;
     delete meParser;
+    delete fitParser;
 }
 
 // Obtain parser messages
 std::vector<std::pair<UString, UModelIndex> > FfsParser::getMessages() const {
     std::vector<std::pair<UString, UModelIndex> > meVector = meParser->getMessages();
     std::vector<std::pair<UString, UModelIndex> > nvramVector = nvramParser->getMessages();
+    std::vector<std::pair<UString, UModelIndex> > fitVector = fitParser->getMessages();
     std::vector<std::pair<UString, UModelIndex> > resultVector = messagesVector;
     resultVector.insert(resultVector.end(), meVector.begin(), meVector.end());
-    resultVector.insert(resultVector.end(), nvramVector.begin(), nvramVector.end());
+    resultVector.insert(resultVector.end(), nvramVector.begin(), nvramVector.end());\
+    resultVector.insert(resultVector.end(), fitVector.begin(), fitVector.end());
     return resultVector;
+}
+
+// Obtain FIT table from FIT parser
+std::vector<std::pair<std::vector<UString>, UModelIndex> > FfsParser::getFitTable() const
+{
+    return fitParser->getFitTable();
+}
+
+// Obtain security info from FIT parser
+UString FfsParser::getSecurityInfo() const {
+    return securityInfo + fitParser->getSecurityInfo();
 }
 
 // Firmware image parsing functions
@@ -101,21 +119,11 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
     openedImage = buffer;
     imageBase = 0;
     addressDiff = 0x100000000ULL;
-    bgAcmFound = false;
-    bgKeyManifestFound = false;
-    bgBootPolicyFound = false;
-    bgProtectedRegionsBase = 0;
-    lastVtf = UModelIndex();
-    fitTable.clear();
+    protectedRegionsBase = 0;
     securityInfo = "";
-    bgAcmFound = false;
-    bgKeyManifestFound = false;
-    bgBootPolicyFound = false;
-    bgKmHash = UByteArray();
-    bgBpHash = UByteArray();
-    bgBpDigest = UByteArray();
-    bgProtectedRanges.clear();
-    bgDxeCoreIndex = UModelIndex();
+    protectedRanges.clear();
+    lastVtf = UModelIndex();
+    dxeCore = UModelIndex();
     
     // Parse input buffer
     USTATUS result = performFirstPass(buffer, root);
@@ -136,7 +144,7 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
 {
     // Sanity check
     if (buffer.isEmpty()) {
-        return EFI_INVALID_PARAMETER;
+        return U_INVALID_PARAMETER;
     }
     
     USTATUS result;
@@ -167,7 +175,7 @@ USTATUS FfsParser::parseGenericImage(const UByteArray & buffer, const UINT32 loc
     index = model->addItem(localOffset, Types::Image, Subtypes::UefiImage, name, UString(), info, UByteArray(), buffer, UByteArray(), Fixed, parent);
     
     // Parse the image as raw area
-    bgProtectedRegionsBase = imageBase = model->base(parent) + localOffset;
+    protectedRegionsBase = imageBase = model->base(parent) + localOffset;
     return parseRawArea(index);
 }
 
@@ -514,7 +522,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Add offsets of actual regions
     for (size_t i = 0; i < regions.size(); i++) {
         if (regions[i].type != Subtypes::ZeroPadding && regions[i].type != Subtypes::OnePadding && regions[i].type != Subtypes::DataPadding)
-            info += UString("\n") + itemSubtypeToUString(Types::Region, regions[i].type)
+            info += "\n" + itemSubtypeToUString(Types::Region, regions[i].type)
             + usprintf(" region offset: %Xh", regions[i].offset + localOffset);
     }
     
@@ -597,7 +605,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         info += usprintf("\n%02X%02X%02X (", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1)
         + jedecId
         + UString(")");
-        if (jedecId == UString("Unknown")) {
+        if (jedecId.startsWith("Unknown")) {
             msg(usprintf("%s: SPI flash with unknown JEDEC ID %02X%02X%02X found in VSCC table", __FUNCTION__,
                          vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1), index);
         }
@@ -714,11 +722,15 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     }
     else {
         // Search for new signature
-        INT32 versionOffset = (INT32)me.indexOf(ME_VERSION_SIGNATURE2);
-        if (versionOffset < 0){ // New signature not found
+        UINT32 sig2Value = ME_VERSION_SIGNATURE2;
+        UByteArray sig2((const char*)&sig2Value, sizeof(sig2Value));
+        INT32 versionOffset = (INT32)me.indexOf(sig2);
+        if (versionOffset < 0) { // New signature not found
             // Search for old signature
-            versionOffset = (INT32)me.indexOf(ME_VERSION_SIGNATURE);
-            if (versionOffset < 0){
+            UINT32 sigValue = ME_VERSION_SIGNATURE;
+            UByteArray sig((const char*)&sigValue, sizeof(sigValue));
+            versionOffset = (INT32)me.indexOf(sig);
+            if (versionOffset < 0) {
                 info += ("\nVersion: unknown");
                 versionFound = false;
             }
@@ -865,7 +877,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
     // Set base of protected regions to be the first volume
     if (model->type(index) == Types::Region
         && model->subtype(index) == Subtypes::BiosRegion) {
-        bgProtectedRegionsBase = (UINT64)model->base(index) + prevItemOffset;
+        protectedRegionsBase = (UINT64)model->base(index) + prevItemOffset;
     }
     
     // First item is not at the beginning of this raw area
@@ -1795,8 +1807,8 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     }
     
     // Override first DXE core index, if needed
-    if (isDxeCore && !bgDxeCoreIndex.isValid()) {
-        bgDxeCoreIndex = index;
+    if (isDxeCore && !dxeCore.isValid()) {
+        dxeCore = index;
     }
     
     // Show messages
@@ -1874,7 +1886,7 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
             return nvramParser->parseNvarStore(index);
         }
         // Parse vendor hash file
-        else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
+        else if (fileGuid == PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_PHOENIX) {
             return parseVendorHashFile(fileGuid, index);
         }
         
@@ -2998,7 +3010,7 @@ USTATUS FfsParser::parseAprioriRawSection(const UByteArray & body, UString & par
     if (count > 0) {
         for (UINT32 i = 0; i < count; i++) {
             const EFI_GUID* guid = (const EFI_GUID*)body.constData() + i;
-            parsed += UString("\n") + guidToUString(readUnaligned(guid));
+            parsed += "\n" + guidToUString(readUnaligned(guid));
         }
     }
     
@@ -3014,7 +3026,7 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
     // Check for apriori file
     UModelIndex parentFile = model->findParentOfType(index, Types::File);
     if (!parentFile.isValid())
-        return U_INVALID_FILE; //TODO: better return code
+        return U_INVALID_RAW_AREA;
     
     // Get parent file parsing data
     UByteArray parentFileGuid(model->header(parentFile).constData(), sizeof(EFI_GUID));
@@ -3044,7 +3056,7 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
         // Parse NVAR area
         return nvramParser->parseNvarStore(index);
     }
-    else if (parentFileGuid == BG_VENDOR_HASH_FILE_GUID_AMI) { // AMI vendor hash file
+    else if (parentFileGuid == PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_AMI) { // AMI vendor hash file
         // Parse AMI vendor hash file
         return parseVendorHashFile(parentFileGuid, index);
     }
@@ -3209,7 +3221,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     parseResetVectorData();
     
     // Find and parse FIT
-    parseFit(index);
+    fitParser->parseFit(index);
     
     // Check protected ranges
     checkProtectedRanges(index);
@@ -3237,8 +3249,8 @@ USTATUS FfsParser::parseResetVectorData()
     UString info = usprintf("\nAP entry vector: %02X %02X %02X %02X %02X %02X %02X %02X\n"
                             "Reset vector: %02X %02X %02X %02X %02X %02X %02X %02X\n"
                             "PEI core entry point: %08Xh\n"
-                            "AP startup segment: %08X\n"
-                            "BootFV base address: %08X\n",
+                            "AP startup segment: %08Xh\n"
+                            "BootFV base address: %08Xh\n",
                             resetVectorData->ApEntryVector[0], resetVectorData->ApEntryVector[1], resetVectorData->ApEntryVector[2], resetVectorData->ApEntryVector[3],
                             resetVectorData->ApEntryVector[4], resetVectorData->ApEntryVector[5], resetVectorData->ApEntryVector[6], resetVectorData->ApEntryVector[7],
                             resetVectorData->ResetVector[0], resetVectorData->ResetVector[1], resetVectorData->ResetVector[2], resetVectorData->ResetVector[3],
@@ -3254,8 +3266,9 @@ USTATUS FfsParser::parseResetVectorData()
 USTATUS FfsParser::checkTeImageBase(const UModelIndex & index)
 {
     // Sanity check
-    if (!index.isValid())
-        return U_SUCCESS;
+    if (!index.isValid()) {
+        return U_INVALID_PARAMETER;
+    }
     
     // Determine relocation type of uncompressed TE image sections
     if (model->compressed(index) == false
@@ -3336,11 +3349,11 @@ USTATUS FfsParser::addInfoRecursive(const UModelIndex & index)
         if (address <= 0xFFFFFFFFUL) {
             UINT32 headerSize = (UINT32)model->header(index).size();
             if (headerSize) {
-                model->addInfo(index, usprintf("Data address: %08llXh\n", (unsigned long long)address + headerSize),false);
-                model->addInfo(index, usprintf("Header address: %08llXh\n", (unsigned long long)address), false);
+                model->addInfo(index, usprintf("Data address: %08Xh\n", (UINT32)address + headerSize),false);
+                model->addInfo(index, usprintf("Header address: %08Xh\n", (UINT32)address), false);
             }
             else {
-                model->addInfo(index, usprintf("Address: %08llXh\n", (unsigned long long)address), false);
+                model->addInfo(index, usprintf("Address: %08Xh\n", (UINT32)address), false);
             }
         }
         // Add base
@@ -3366,17 +3379,16 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
     UByteArray protectedParts;
     bool bgProtectedRangeFound = false;
     try {
-        for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
-            if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB && bgProtectedRanges[i].Size > 0) {
+        for (UINT32 i = 0; i < (UINT32)protectedRanges.size(); i++) {
+            if (protectedRanges[i].Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB && protectedRanges[i].Size > 0) {
                 bgProtectedRangeFound = true;
-                if ((UINT64)bgProtectedRanges[i].Offset >= addressDiff) {
-                    bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
+                if ((UINT64)protectedRanges[i].Offset >= addressDiff) {
+                    protectedRanges[i].Offset -= (UINT32)addressDiff;
                 } else {
-                    // TODO: Explore this.
-                    msg(usprintf("%s: suspicious BG protection offset", __FUNCTION__), index);
+                    msg(usprintf("%s: suspicious protected range offset", __FUNCTION__), index);
                 }
-                protectedParts += openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
-                markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+                protectedParts += openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
+                markProtectedRangeRecursive(index, protectedRanges[i]);
             }
         }
     } catch (...) {
@@ -3384,138 +3396,216 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
     }
     
     if (bgProtectedRangeFound) {
-        UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-        sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-        
-        if (digest != bgBpDigest) {
-            msg(usprintf("%s: BG-protected ranges hash mismatch, opened image may refuse to boot", __FUNCTION__), index);
+        UINT8 digest[SHA512_HASH_SIZE] = {};
+        UString digestString;
+        UString ibbDigests;
+        // SHA1
+        digestString = "";
+        sha1(protectedParts.constData(), protectedParts.size(), digest);
+        for (UINT8 i = 0; i < SHA1_HASH_SIZE; i++) {
+            digestString += usprintf("%02X", digest[i]);
         }
-    }
-    else if (bgBootPolicyFound) {
-        msg(usprintf("%s: BootPolicy doesn't define any BG-protected ranges", __FUNCTION__), index);
+        ibbDigests += UString("Computed IBB Hash (SHA1): ") + digestString + "\n";
+        // SHA256
+        digestString = "";
+        sha256(protectedParts.constData(), protectedParts.size(), digest);
+        for (UINT8 i = 0; i < SHA256_HASH_SIZE; i++) {
+            digestString += usprintf("%02X", digest[i]);
+        }
+        ibbDigests += UString("Computed IBB Hash (SHA256): ") + digestString + "\n";
+        // SHA384
+        digestString = "";
+        sha384(protectedParts.constData(), protectedParts.size(), digest);
+        for (UINT8 i = 0; i < SHA384_HASH_SIZE; i++) {
+            digestString += usprintf("%02X", digest[i]);
+        }
+        ibbDigests += UString("Computed IBB Hash (SHA384): ") + digestString + "\n";
+        // SHA512
+        digestString = "";
+        sha512(protectedParts.constData(), protectedParts.size(), digest);
+        for (UINT8 i = 0; i < SHA512_HASH_SIZE; i++) {
+            digestString += usprintf("%02X", digest[i]);
+        }
+        ibbDigests += UString("Computed IBB Hash (SHA512): ") + digestString + "\n";
+        // SM3
+        digestString = "";
+        sm3(protectedParts.constData(), protectedParts.size(), digest);
+        for (UINT8 i = 0; i < SM3_HASH_SIZE; i++) {
+            digestString += usprintf("%02X", digest[i]);
+        }
+        ibbDigests += UString("Computed IBB Hash (SM3): ") + digestString + "\n";
+        
+        securityInfo += ibbDigests + "\n";
     }
     
     // Calculate digests for vendor-protected ranges
-    for (UINT32 i = 0; i < (UINT32)bgProtectedRanges.size(); i++) {
-        if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD
-            && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF) {
-            if (!bgDxeCoreIndex.isValid()) {
+    for (UINT32 i = 0; i < (UINT32)protectedRanges.size(); i++) {
+        if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_AMI_V1) {
+            if (!dxeCore.isValid()) {
                 msg(usprintf("%s: can't determine DXE volume offset, old AMI protected range hash can't be checked", __FUNCTION__), index);
             }
             else {
                 // Offset will be determined as the offset of root volume with first DXE core
-                UModelIndex dxeRootVolumeIndex = model->findLastParentOfType(bgDxeCoreIndex, Types::Volume);
+                UModelIndex dxeRootVolumeIndex = model->findLastParentOfType(dxeCore, Types::Volume);
                 if (!dxeRootVolumeIndex.isValid()) {
                     msg(usprintf("%s: can't determine DXE volume offset, old AMI protected range hash can't be checked", __FUNCTION__), index);
                 }
                 else {
-                    bgProtectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
-                    protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+                    protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
+                    protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
                     
-                    UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
+                    UByteArray digest(SHA256_HASH_SIZE, '\x00');
                     sha256(protectedParts.constData(), protectedParts.size(), digest.data());
                     
-                    if (digest != bgProtectedRanges[i].Hash) {
+                    if (digest != protectedRanges[i].Hash) {
                         msg(usprintf("%s: old AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                                     bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                            model->findByBase(bgProtectedRanges[i].Offset));
+                                     protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                            model->findByBase(protectedRanges[i].Offset));
                     }
                     
-                    markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+                    markProtectedRangeRecursive(index, protectedRanges[i]);
                 }
             }
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB) {
-            if (!bgDxeCoreIndex.isValid()) {
+        else if (protectedRanges[i].Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB) {
+            if (!dxeCore.isValid()) {
                 msg(usprintf("%s: can't determine DXE volume offset, post-IBB protected range hash can't be checked", __FUNCTION__), index);
             }
             else {
                 // Offset will be determined as the offset of root volume with first DXE core
-                UModelIndex dxeRootVolumeIndex = model->findLastParentOfType(bgDxeCoreIndex, Types::Volume);
+                UModelIndex dxeRootVolumeIndex = model->findLastParentOfType(dxeCore, Types::Volume);
                 if (!dxeRootVolumeIndex.isValid()) {
                     msg(usprintf("%s: can't determine DXE volume offset, post-IBB protected range hash can't be checked", __FUNCTION__), index);
                 }
                 else {
-                    bgProtectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
-                    bgProtectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
-                    protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+                    protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
+                    protectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
+                    protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
                     
-                    UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-                    sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-                    
-                    if (digest != bgProtectedRanges[i].Hash) {
-                        msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                                     bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                            model->findByBase(bgProtectedRanges[i].Offset));
+                    // Calculate the hash
+                    UByteArray digest(SHA512_HASH_SIZE, '\x00');
+                    if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA1) {
+                        sha1(protectedParts.constData(), protectedParts.size(), digest.data());
+                        digest = digest.left(SHA1_HASH_SIZE);
+                    }
+                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA256) {
+                        sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                        digest = digest.left(SHA256_HASH_SIZE);
+                    }
+                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA384) {
+                        sha384(protectedParts.constData(), protectedParts.size(), digest.data());
+                        digest = digest.left(SHA384_HASH_SIZE);
+                    }
+                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA512) {
+                        sha512(protectedParts.constData(), protectedParts.size(), digest.data());
+                        digest = digest.left(SHA512_HASH_SIZE);
+                    }
+                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SM3) {
+                        sm3(protectedParts.constData(), protectedParts.size(), digest.data());
+                        digest = digest.left(SM3_HASH_SIZE);
+                    }
+                    else {
+                        msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] uses unknown hash algorithm %04Xh", __FUNCTION__,
+                                     protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size, protectedRanges[i].AlgorithmId),
+                            model->findByBase(protectedRanges[i].Offset));
                     }
                     
-                    markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+                    // Check the hash
+                    if (digest != protectedRanges[i].Hash) {
+                        msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                                     protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                            model->findByBase(protectedRanges[i].Offset));
+                    }
+                    
+                    markProtectedRangeRecursive(index, protectedRanges[i]);
                 }
             }
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW
-                 && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
-                 && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
-            
-            if ((UINT64)bgProtectedRanges[i].Offset >= addressDiff) {
-                bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
-                protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+        else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_AMI_V2) {
+            if ((UINT64)protectedRanges[i].Offset >= addressDiff) {
+                protectedRanges[i].Offset -= (UINT32)addressDiff;
+                protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
                 
-                UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
+                UByteArray digest(SHA256_HASH_SIZE, '\x00');
                 sha256(protectedParts.constData(), protectedParts.size(), digest.data());
                 
-                if (digest != bgProtectedRanges[i].Hash) {
+                if (digest != protectedRanges[i].Hash) {
                     msg(usprintf("%s: AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                                 bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                        model->findByBase(bgProtectedRanges[i].Offset));
+                                 protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                        model->findByBase(protectedRanges[i].Offset));
                 }
                 
-                markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+                markProtectedRangeRecursive(index, protectedRanges[i]);
             } else {
-                // TODO: Explore this.
                 msg(usprintf("%s: suspicious AMI new BG protection offset", __FUNCTION__), index);
             }
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX
-                 && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
-                 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
-            bgProtectedRanges[i].Offset += (UINT32)bgProtectedRegionsBase;
-            protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+        else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_PHOENIX
+                 && protectedRanges[i].Size != 0 && protectedRanges[i].Size != 0xFFFFFFFF
+                 && protectedRanges[i].Offset != 0xFFFFFFFF) {
+            protectedRanges[i].Offset += (UINT32)protectedRegionsBase;
+            protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
             
-            UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
+            UByteArray digest(SHA256_HASH_SIZE, '\x00');
             sha256(protectedParts.constData(), protectedParts.size(), digest.data());
             
-            if (digest != bgProtectedRanges[i].Hash) {
+            if (digest != protectedRanges[i].Hash) {
                 msg(usprintf("%s: Phoenix protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                             bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                    model->findByBase(bgProtectedRanges[i].Offset));
+                             protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                    model->findByBase(protectedRanges[i].Offset));
             }
             
-            markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+            markProtectedRangeRecursive(index, protectedRanges[i]);
         }
-        else if (bgProtectedRanges[i].Type == BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT
-                 && bgProtectedRanges[i].Size != 0 && bgProtectedRanges[i].Size != 0xFFFFFFFF
-                 && bgProtectedRanges[i].Offset != 0 && bgProtectedRanges[i].Offset != 0xFFFFFFFF) {
-            bgProtectedRanges[i].Offset -= (UINT32)addressDiff;
-            protectedParts = openedImage.mid(bgProtectedRanges[i].Offset, bgProtectedRanges[i].Size);
+        else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA
+                 && protectedRanges[i].Size != 0 && protectedRanges[i].Size != 0xFFFFFFFF
+                 && protectedRanges[i].Offset != 0 && protectedRanges[i].Offset != 0xFFFFFFFF) {
+            protectedRanges[i].Offset -= (UINT32)addressDiff;
+            protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
             
-            UByteArray digest(SHA256_DIGEST_SIZE, '\x00');
-            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-            
-            if (digest != bgProtectedRanges[i].Hash) {
-                msg(usprintf("%s: Microsoft protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                             bgProtectedRanges[i].Offset, bgProtectedRanges[i].Offset + bgProtectedRanges[i].Size),
-                    model->findByBase(bgProtectedRanges[i].Offset));
+            // Calculate the hash
+            UByteArray digest(SHA512_HASH_SIZE, '\x00');
+            if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA1) {
+                sha1(protectedParts.constData(), protectedParts.size(), digest.data());
+                digest = digest.left(SHA1_HASH_SIZE);
+            }
+            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA256) {
+                sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                digest = digest.left(SHA256_HASH_SIZE);
+            }
+            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA384) {
+                sha384(protectedParts.constData(), protectedParts.size(), digest.data());
+                digest = digest.left(SHA384_HASH_SIZE);
+            }
+            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA512) {
+                sha512(protectedParts.constData(), protectedParts.size(), digest.data());
+                digest = digest.left(SHA512_HASH_SIZE);
+            }
+            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SM3) {
+                sm3(protectedParts.constData(), protectedParts.size(), digest.data());
+                digest = digest.left(SM3_HASH_SIZE);
+            }
+            else {
+                msg(usprintf("%s: Microsoft PMDA protected range [%Xh:%Xh] uses unknown hash algorithm %04Xh", __FUNCTION__,
+                             protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size, protectedRanges[i].AlgorithmId),
+                    model->findByBase(protectedRanges[i].Offset));
             }
             
-            markProtectedRangeRecursive(index, bgProtectedRanges[i]);
+            // Check the hash
+            if (digest != protectedRanges[i].Hash) {
+                msg(usprintf("%s: Microsoft PMDA protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                             protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                    model->findByBase(protectedRanges[i].Offset));
+            }
+            
+            markProtectedRangeRecursive(index, protectedRanges[i]);
         }
     }
     
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const BG_PROTECTED_RANGE & range)
+USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const PROTECTED_RANGE & range)
 {
     if (!index.isValid())
         return U_SUCCESS;
@@ -3532,7 +3622,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
         
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
-                if (range.Type == BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
+                if (range.Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
                     model->setMarking(index, Qt::red);
                 }
                 else {
@@ -3554,24 +3644,26 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
 
 USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index)
 {
-    if (!index.isValid())
-        return EFI_INVALID_PARAMETER;
+    // Check sanity
+    if (!index.isValid()) {
+        return U_INVALID_PARAMETER;
+    }
     
-    if (fileGuid == BG_VENDOR_HASH_FILE_GUID_PHOENIX) {
+    if (fileGuid == PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_PHOENIX) {
         const UByteArray &body = model->body(index);
         UINT32 size = (UINT32)body.size();
         
         // File too small to have even a signature
-        if (size < sizeof(BG_VENDOR_HASH_FILE_SIGNATURE_PHOENIX)) {
+        if (size < sizeof(UINT64)) {
             msg(usprintf("%s: unknown or corrupted Phoenix hash file found", __FUNCTION__), index);
             model->setText(index, UString("Phoenix hash file"));
             return U_INVALID_FILE;
         }
         
-        const BG_VENDOR_HASH_FILE_HEADER_PHOENIX* header = (const BG_VENDOR_HASH_FILE_HEADER_PHOENIX*)body.constData();
+        const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_PHOENIX* header = (const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_PHOENIX*)body.constData();
         if (header->Signature == BG_VENDOR_HASH_FILE_SIGNATURE_PHOENIX) {
-            if (size < sizeof(BG_VENDOR_HASH_FILE_HEADER_PHOENIX) ||
-                size < sizeof(BG_VENDOR_HASH_FILE_HEADER_PHOENIX) + header->NumEntries * sizeof(BG_VENDOR_HASH_FILE_ENTRY)) {
+            if (size < sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_PHOENIX) ||
+                size < sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_PHOENIX) + header->NumEntries * sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY)) {
                 msg(usprintf("%s: unknown or corrupted Phoenix hash file found", __FUNCTION__), index);
                 model->setText(index, UString("Phoenix hash file"));
                 return U_INVALID_FILE;
@@ -3581,26 +3673,28 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 bool protectedRangesFound = false;
                 for (UINT32 i = 0; i < header->NumEntries; i++) {
                     protectedRangesFound = true;
-                    const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
+                    const PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
                     
-                    BG_PROTECTED_RANGE range = {};
-                    range.Offset = entry->Offset;
+                    PROTECTED_RANGE range = {};
+                    range.Offset = entry->Base;
                     range.Size = entry->Size;
+                    range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
                     range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
-                    range.Type = BG_PROTECTED_RANGE_VENDOR_HASH_PHOENIX;
-                    bgProtectedRanges.push_back(range);
+                    range.Type = PROTECTED_RANGE_VENDOR_HASH_PHOENIX;
+                    protectedRanges.push_back(range);
                 }
                 
                 if (protectedRangesFound) {
-                    securityInfo += usprintf("Phoenix hash file found at base %Xh\nProtected ranges:", model->base(index));
+                    securityInfo += usprintf("Phoenix hash file found at base %08Xh\nProtected ranges:", model->base(index));
                     for (UINT32 i = 0; i < header->NumEntries; i++) {
-                        const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
-                        securityInfo += usprintf("\nRelativeOffset: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
+                        const PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
+                        securityInfo += usprintf("RelativeOffset: %08Xh Size: %Xh\nHash: ", entry->Base, entry->Size);
                         for (UINT8 j = 0; j < sizeof(entry->Hash); j++) {
                             securityInfo += usprintf("%02X", entry->Hash[j]);
                         }
+                        securityInfo += "\n";
                     }
-                    securityInfo += UString("\n------------------------------------------------------------------------\n\n");
+                    securityInfo += "\n";
                 }
                 
                 msg(usprintf("%s: Phoenix hash file found", __FUNCTION__), index);
@@ -3612,54 +3706,67 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
             model->setText(index, UString("Phoenix hash file"));
         }
     }
-    else if (fileGuid == BG_VENDOR_HASH_FILE_GUID_AMI) {
+    else if (fileGuid == PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_AMI) {
         UModelIndex fileIndex = model->parent(index);
         const UByteArray &body = model->body(index);
         UINT32 size = (UINT32)body.size();
         if (size != (UINT32)body.count('\xFF')) {
-            if (size == sizeof(BG_VENDOR_HASH_FILE_HEADER_AMI_NEW)) {
-                bool protectedRangesFound = false;
-                UINT32 NumEntries = (UINT32)body.size() / sizeof(BG_VENDOR_HASH_FILE_ENTRY);
-                for (UINT32 i = 0; i < NumEntries; i++) {
-                    protectedRangesFound = true;
-                    const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(body.constData()) + i;
-                    BG_PROTECTED_RANGE range = {};
-                    range.Offset = entry->Offset;
-                    range.Size = entry->Size;
-                    range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
-                    range.Type = BG_PROTECTED_RANGE_VENDOR_HASH_AMI_NEW;
-                    bgProtectedRanges.push_back(range);
+            if (size == sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2)) {
+                const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2*)(body.constData());
+                
+                securityInfo += usprintf("AMI hash file v2 found at base %08Xh\nProtected ranges:", model->base(fileIndex));
+                securityInfo += usprintf("\nAddress: %08Xh, Size: %Xh\nHash (SHA256): ", entry->Hash0.Base, entry->Hash0.Size);
+                for (UINT8 j = 0; j < sizeof(entry->Hash0.Hash); j++) {
+                    securityInfo += usprintf("%02X", entry->Hash0.Hash[j]);
+                }
+                securityInfo += usprintf("\nAddress: %08Xh, Size: %Xh\nHash (SHA256): ", entry->Hash1.Base, entry->Hash1.Size);
+                for (UINT8 j = 0; j < sizeof(entry->Hash1.Hash); j++) {
+                    securityInfo += usprintf("%02X", entry->Hash1.Hash[j]);
+                }
+                securityInfo += "\n";
+                
+                if (entry->Hash0.Base != 0 && entry->Hash0.Size != 0
+                    && entry->Hash0.Base != 0xFFFFFFFF && entry->Hash0.Size != 0xFFFFFFFF) {
+                    PROTECTED_RANGE range = {};
+                    range.Offset = entry->Hash0.Base;
+                    range.Size = entry->Hash0.Size;
+                    range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
+                    range.Hash = UByteArray((const char*)entry->Hash0.Hash, sizeof(entry->Hash0.Hash));
+                    range.Type = PROTECTED_RANGE_VENDOR_HASH_AMI_V2;
+                    protectedRanges.push_back(range);
                 }
                 
-                if (protectedRangesFound) {
-                    securityInfo += usprintf("New AMI hash file found at base %Xh\nProtected ranges:", model->base(fileIndex));
-                    for (UINT32 i = 0; i < NumEntries; i++) {
-                        const BG_VENDOR_HASH_FILE_ENTRY* entry = (const BG_VENDOR_HASH_FILE_ENTRY*)(body.constData()) + i;
-                        securityInfo += usprintf("\nAddress: %08Xh Size: %Xh\nHash: ", entry->Offset, entry->Size);
-                        for (UINT8 j = 0; j < sizeof(entry->Hash); j++) {
-                            securityInfo += usprintf("%02X", entry->Hash[j]);
-                        }
-                    }
-                    securityInfo += UString("\n------------------------------------------------------------------------\n\n");
+                if (entry->Hash1.Base != 0 && entry->Hash1.Size != 0
+                    && entry->Hash1.Base != 0xFFFFFFFF && entry->Hash1.Size != 0xFFFFFFFF) {
+                    PROTECTED_RANGE range = {};
+                    range.Offset = entry->Hash1.Base;
+                    range.Size = entry->Hash1.Size;
+                    range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
+                    range.Hash = UByteArray((const char*)entry->Hash1.Hash, sizeof(entry->Hash1.Hash));
+                    range.Type = PROTECTED_RANGE_VENDOR_HASH_AMI_V2;
+                    protectedRanges.push_back(range);
                 }
-                
+                                
                 msg(usprintf("%s: new AMI hash file found", __FUNCTION__), fileIndex);
             }
-            else if (size == sizeof(BG_VENDOR_HASH_FILE_HEADER_AMI_OLD)) {
-                securityInfo += usprintf("Old AMI hash file found at base %Xh\nProtected range:", model->base(fileIndex));
-                const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD* entry = (const BG_VENDOR_HASH_FILE_HEADER_AMI_OLD*)(body.constData());
-                securityInfo += usprintf("\nSize: %Xh\nHash: ", entry->Size);
+            else if (size == sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V1)) {
+                securityInfo += usprintf("AMI hash file v1 found at base %08Xh\nProtected range:\n", model->base(fileIndex));
+                const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V1* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V1*)(body.constData());
+                securityInfo += usprintf("Size: %Xh\nHash (SHA256): ", entry->Size);
                 for (UINT8 i = 0; i < sizeof(entry->Hash); i++) {
                     securityInfo += usprintf("%02X", entry->Hash[i]);
                 }
-                securityInfo += UString("\n------------------------------------------------------------------------\n\n");
+                securityInfo += "\n\n";
                 
-                BG_PROTECTED_RANGE range = {};
-                range.Offset = 0;
-                range.Size = entry->Size;
-                range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
-                range.Type = BG_PROTECTED_RANGE_VENDOR_HASH_AMI_OLD;
-                bgProtectedRanges.push_back(range);
+                if (entry->Size != 0 && entry->Size != 0xFFFFFFFF) {
+                    PROTECTED_RANGE range = {};
+                    range.Offset = 0;
+                    range.Size = entry->Size;
+                    range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
+                    range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
+                    range.Type = PROTECTED_RANGE_VENDOR_HASH_AMI_V1;
+                    protectedRanges.push_back(range);
+                }
                 
                 msg(usprintf("%s: old AMI hash file found", __FUNCTION__), fileIndex);
             }
@@ -3676,610 +3783,6 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
     
     return U_SUCCESS;
 }
-
-#ifndef U_ENABLE_FIT_PARSING_SUPPORT
-USTATUS FfsParser::parseFit(const UModelIndex & index)
-{
-    U_UNUSED_PARAMETER(index);
-    return U_SUCCESS;
-}
-
-#else
-USTATUS FfsParser::parseFit(const UModelIndex & index)
-{
-    // Check sanity
-    if (!index.isValid())
-        return EFI_INVALID_PARAMETER;
-    
-    // Search for FIT
-    UModelIndex fitIndex;
-    UINT32 fitOffset;
-    findFitRecursive(index, fitIndex, fitOffset);
-    
-    // FIT not found
-    if (!fitIndex.isValid())
-        return U_SUCCESS;
-    
-    // Explicitly set the item containing FIT as fixed
-    model->setFixed(fitIndex, true);
-    
-    // Special case of FIT header
-    UByteArray fitBody = model->body(fitIndex);
-    const FIT_ENTRY* fitHeader = (const FIT_ENTRY*)(fitBody.constData() + fitOffset);
-    
-    // Check FIT checksum, if present
-    UINT32 fitSize = fitHeader->Size * sizeof(FIT_ENTRY);
-    if (fitHeader->CsFlag) {
-        // Calculate FIT entry checksum
-        UByteArray tempFIT = model->body(fitIndex).mid(fitOffset, fitSize);
-        FIT_ENTRY* tempFitHeader = (FIT_ENTRY*)tempFIT.data();
-        tempFitHeader->Checksum = 0;
-        UINT8 calculated = calculateChecksum8((const UINT8*)tempFitHeader, fitSize);
-        if (calculated != fitHeader->Checksum) {
-            msg(usprintf("%s: invalid FIT table checksum %02Xh, should be %02Xh", __FUNCTION__, fitHeader->Checksum, calculated), fitIndex);
-        }
-    }
-    
-    // Check fit header type
-    if (fitHeader->Type != FIT_TYPE_HEADER) {
-        msg(usprintf("%s: invalid FIT header type", __FUNCTION__), fitIndex);
-        return U_INVALID_FIT;
-    }
-    
-    // Add FIT header
-    std::vector<UString> currentStrings;
-    currentStrings.push_back(UString("_FIT_            "));
-    currentStrings.push_back(usprintf("%08Xh", fitSize));
-    currentStrings.push_back(usprintf("%04Xh", fitHeader->Version));
-    currentStrings.push_back(usprintf("%02Xh", fitHeader->Checksum));
-    currentStrings.push_back(fitEntryTypeToUString(fitHeader->Type));
-    currentStrings.push_back(UString()); // Empty info for FIT header
-    fitTable.push_back(std::pair<std::vector<UString>, UModelIndex>(currentStrings, fitIndex));
-    
-    // Process all other entries
-    UModelIndex acmIndex;
-    UModelIndex kmIndex;
-    UModelIndex bpIndex;
-    for (UINT32 i = 1; i < fitHeader->Size; i++) {
-        currentStrings.clear();
-        UString info;
-        UModelIndex itemIndex;
-        const FIT_ENTRY* currentEntry = fitHeader + i;
-        UINT32 currentEntrySize = currentEntry->Size;
-        
-        // Check sanity
-        if (currentEntry->Type == FIT_TYPE_HEADER) {
-            msg(usprintf("%s: second FIT header found, the table is damaged", __FUNCTION__), fitIndex);
-            return U_INVALID_FIT;
-        }
-        
-        // Special case of version 0 entries
-        if (currentEntry->Version == 0) {
-            const FIT_ENTRY_VERSION_0_CONFIG_POLICY* policy = (const FIT_ENTRY_VERSION_0_CONFIG_POLICY*)currentEntry;
-            info += usprintf("Index: %04Xh BitPosition: %02Xh AccessWidth: %02Xh DataRegAddr: %04Xh IndexRegAddr: %04Xh",
-                             policy->Index,
-                             policy->BitPosition,
-                             policy->AccessWidth,
-                             policy->DataRegisterAddress,
-                             policy->IndexRegisterAddress);
-        }
-        else if (currentEntry->Address > addressDiff && currentEntry->Address < 0xFFFFFFFFUL) { // Only elements in the image need to be parsed
-            UINT32 currentEntryBase = (UINT32)(currentEntry->Address - addressDiff);
-            itemIndex = model->findByBase(currentEntryBase);
-            if (itemIndex.isValid()) {
-                USTATUS status = U_INVALID_FIT;
-                UByteArray item = model->header(itemIndex) + model->body(itemIndex) + model->tail(itemIndex);
-                UINT32 localOffset = currentEntryBase - model->base(itemIndex);
-                
-                switch (currentEntry->Type) {
-                    case FIT_TYPE_MICROCODE:
-                        status = parseFitEntryMicrocode(item, localOffset, itemIndex, info, currentEntrySize);
-                        break;
-                        
-                    case FIT_TYPE_BIOS_AC_MODULE:
-                        status = parseFitEntryAcm(item, localOffset, itemIndex, info, currentEntrySize);
-                        acmIndex = itemIndex;
-                        break;
-                        
-                    case FIT_TYPE_AC_KEY_MANIFEST:
-                        status = parseFitEntryBootGuardKeyManifest(item, localOffset, itemIndex, info, currentEntrySize);
-                        kmIndex = itemIndex;
-                        break;
-                        
-                    case FIT_TYPE_AC_BOOT_POLICY:
-                        status = parseFitEntryBootGuardBootPolicy(item, localOffset, itemIndex, info, currentEntrySize);
-                        bpIndex = itemIndex;
-                        break;
-                        
-                    default:
-                        // Do nothing
-                        status = U_SUCCESS;
-                        break;
-                }
-                
-                if (status != U_SUCCESS)
-                    itemIndex = UModelIndex();
-            }
-            else {
-                msg(usprintf("%s: FIT entry #%d not found in the image", __FUNCTION__, i), fitIndex);
-            }
-        }
-        
-        if (itemIndex.isValid()) {
-            // Explicitly set the item referenced by FIT as fixed
-            // TODO: lift this restriction after FIT builder is ready
-            model->setFixed(itemIndex, true);
-        }
-        
-        // Add entry to fitTable
-        currentStrings.push_back(usprintf("%016" PRIX64 "h", currentEntry->Address));
-        currentStrings.push_back(usprintf("%08Xh", currentEntrySize));
-        currentStrings.push_back(usprintf("%04Xh", currentEntry->Version));
-        currentStrings.push_back(usprintf("%02Xh", currentEntry->Checksum));
-        currentStrings.push_back(fitEntryTypeToUString(currentEntry->Type));
-        currentStrings.push_back(info);
-        fitTable.push_back(std::pair<std::vector<UString>, UModelIndex>(currentStrings, itemIndex));
-    }
-    
-    // Perform validation of BootGuard stuff
-    if (bgAcmFound) {
-        if (!bgKeyManifestFound) {
-            msg(usprintf("%s: ACM found, but KeyManifest is not", __FUNCTION__), acmIndex);
-        }
-        else if (!bgBootPolicyFound) {
-            msg(usprintf("%s: ACM and KeyManifest found, BootPolicy is not", __FUNCTION__), kmIndex);
-        }
-        else {
-            // Check key hashes
-            if (!bgKmHash.isEmpty() && bgBpHash.isEmpty() && bgKmHash != bgBpHash) {
-                msg(usprintf("%s: BootPolicy key hash stored in KeyManifest differs from the hash of public key stored in BootPolicy", __FUNCTION__), bpIndex);
-                return U_SUCCESS;
-            }
-        }
-    }
-    
-    return U_SUCCESS;
-}
-
-void FfsParser::findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset)
-{
-    // Sanity check
-    if (!index.isValid()) {
-        return;
-    }
-    
-    // Process child items
-    for (int i = 0; i < model->rowCount(index); i++) {
-        findFitRecursive(index.model()->index(i, 0, index), found, fitOffset);
-        
-        if (found.isValid())
-            return;
-    }
-    
-    // Check for all FIT signatures in item's body
-    UByteArray lastVtfBody = model->body(lastVtf);
-    UINT32 storedFitAddress = *(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - FIT_POINTER_OFFSET);
-    for (INT32 offset = (INT32)model->body(index).indexOf(FIT_SIGNATURE);
-         offset >= 0;
-         offset = (INT32)model->body(index).indexOf(FIT_SIGNATURE, offset + 1)) {
-        // FIT candidate found, calculate its physical address
-        UINT32 fitAddress = (UINT32)(model->base(index) + (UINT32)addressDiff + model->header(index).size() + (UINT32)offset);
-        
-        // Check FIT address to be stored in the last VTF
-        if (fitAddress == storedFitAddress) {
-            found = index;
-            fitOffset = offset;
-            msg(usprintf("%s: real FIT table found at physical address %08Xh", __FUNCTION__, fitAddress), found);
-            break;
-        }
-        else if (model->rowCount(index) == 0) // Show messages only to leaf items
-            msg(usprintf("%s: FIT table candidate found, but not referenced from the last VTF", __FUNCTION__), index);
-    }
-}
-
-USTATUS FfsParser::parseFitEntryMicrocode(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)
-{
-    U_UNUSED_PARAMETER(parent);
-    if ((UINT32)microcode.size() - localOffset < sizeof(INTEL_MICROCODE_HEADER)) {
-        return U_INVALID_MICROCODE;
-    }
-    
-    const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)(microcode.constData() + localOffset);
-    if (!microcodeHeaderValid(ucodeHeader)) {
-        return U_INVALID_MICROCODE;
-    }
-    
-    if ((UINT32)microcode.size() - localOffset < ucodeHeader->TotalSize) {
-        return U_INVALID_MICROCODE;
-    }
-    
-    // Valid microcode found
-    info = usprintf("CpuSignature: %08Xh, Revision: %08Xh, Date: %02X.%02X.%04X",
-                    ucodeHeader->ProcessorSignature,
-                    ucodeHeader->UpdateRevision,
-                    ucodeHeader->DateDay,
-                    ucodeHeader->DateMonth,
-                    ucodeHeader->DateYear);
-    realSize = ucodeHeader->TotalSize;
-    return U_SUCCESS;
-}
-
-USTATUS FfsParser::parseFitEntryAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)
-{
-    if ((UINT32)acm.size() < localOffset + sizeof(INTEL_ACM_HEADER)) {
-        return U_INVALID_ACM;
-    }
-    
-    const INTEL_ACM_HEADER* header = (const INTEL_ACM_HEADER*)(acm.constData() + localOffset);
-    if (header->ModuleType != INTEL_ACM_MODULE_TYPE || header->ModuleVendor != INTEL_ACM_MODULE_VENDOR) {
-        return U_INVALID_ACM;
-    }
-    
-    UINT32 acmSize = header->ModuleSize * sizeof(UINT32);
-    if ((UINT32)acm.size() < localOffset + acmSize) {
-        return U_INVALID_ACM;
-    }
-    
-    // Valid ACM found
-    info = usprintf("LocalOffset: %08Xh, EntryPoint: %08Xh, ACM SVN: %04Xh, Date: %02X.%02X.%04X",
-                    localOffset,
-                    header->EntryPoint,
-                    header->AcmSvn,
-                    header->DateDay,
-                    header->DateMonth,
-                    header->DateYear
-                    );
-    realSize = acmSize;
-    
-    // Add ACM header info
-    UString acmInfo;
-    acmInfo += usprintf(" found at base %Xh\n"
-                        "ModuleType: %04Xh         ModuleSubtype: %04Xh     HeaderLength: %08lXh\n"
-                        "HeaderVersion: %08Xh  ChipsetId:  %04Xh        Flags: %04Xh\n"
-                        "ModuleVendor: %04Xh       Date: %02X.%02X.%04X         ModuleSize: %08lXh\n"
-                        "EntryPoint: %08Xh     AcmSvn: %04Xh            Unknown1: %08Xh\n"
-                        "Unknown2: %08Xh       GdtBase: %08Xh       GdtMax: %08Xh\n"
-                        "SegSel: %08Xh         KeySize: %08lXh       Unknown3: %08lXh",
-                        model->base(parent) + localOffset,
-                        header->ModuleType,
-                        header->ModuleSubtype,
-                        header->ModuleSize * sizeof(UINT32),
-                        header->HeaderVersion,
-                        header->ChipsetId,
-                        header->Flags,
-                        header->ModuleVendor,
-                        header->DateDay, header->DateMonth, header->DateYear,
-                        header->ModuleSize * sizeof(UINT32),
-                        header->EntryPoint,
-                        header->AcmSvn,
-                        header->Unknown1,
-                        header->Unknown2,
-                        header->GdtBase,
-                        header->GdtMax,
-                        header->SegmentSel,
-                        header->KeySize * sizeof(UINT32),
-                        header->Unknown4 * sizeof(UINT32)
-                        );
-    // Add PubKey
-    acmInfo += usprintf("\n\nACM RSA Public Key (Exponent: %Xh):", header->RsaPubExp);
-    for (UINT16 i = 0; i < sizeof(header->RsaPubKey); i++) {
-        if (i % 32 == 0)
-            acmInfo += UString("\n");
-        acmInfo += usprintf("%02X", header->RsaPubKey[i]);
-    }
-    // Add RsaSig
-    acmInfo += UString("\n\nACM RSA Signature:");
-    for (UINT16 i = 0; i < sizeof(header->RsaSig); i++) {
-        if (i % 32 == 0)
-            acmInfo += UString("\n");
-        acmInfo += usprintf("%02X", header->RsaSig[i]);
-    }
-    acmInfo += UString("\n------------------------------------------------------------------------\n\n");
-    
-    if(header->ModuleSubtype == INTEL_ACM_MODULE_SUBTYPE_TXT_ACM)
-        securityInfo += "TXT ACM" + acmInfo;
-    else if(header->ModuleSubtype == INTEL_ACM_MODULE_SUBTYPE_S_ACM)
-        securityInfo += "S-ACM" + acmInfo;
-    else if (header->ModuleSubtype == INTEL_ACM_MODULE_SUBTYPE_BOOTGUARD)
-        securityInfo += "BootGuard ACM" + acmInfo;
-    else
-        securityInfo += "Intel ACM" + acmInfo;
-    
-    bgAcmFound = true;
-    return U_SUCCESS;
-}
-
-USTATUS FfsParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManifest, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)
-{
-    U_UNUSED_PARAMETER(realSize);
-    if ((UINT32)keyManifest.size() < localOffset + sizeof(BG_KEY_MANIFEST)) {
-        return U_INVALID_BG_KEY_MANIFEST;
-    }
-    
-    const BG_KEY_MANIFEST* header = (const BG_KEY_MANIFEST*)(keyManifest.constData() + localOffset);
-    if (header->Tag != BG_KEY_MANIFEST_TAG) {
-        return U_INVALID_BG_KEY_MANIFEST;
-    }
-    
-    // Valid KM found
-    info = usprintf("LocalOffset: %08Xh, KM Version: %02Xh, KM SVN: %02Xh, KM ID: %02Xh",
-                    localOffset,
-                    header->KmVersion,
-                    header->KmSvn,
-                    header->KmId
-                    );
-    
-    // Add KM header info
-    securityInfo += usprintf("Intel BootGuard Key manifest found at base %Xh\n"
-                             "Tag: __KEYM__ Version: %02Xh KmVersion: %02Xh KmSvn: %02Xh KmId: %02Xh",
-                             model->base(parent) + localOffset,
-                             header->Version,
-                             header->KmVersion,
-                             header->KmSvn,
-                             header->KmId
-                             );
-    
-    // Add hash of Key Manifest PubKey, this hash will be written to FPFs
-    UINT8 hash[SHA256_DIGEST_SIZE];
-    sha256(&header->KeyManifestSignature.PubKey.Modulus, sizeof(header->KeyManifestSignature.PubKey.Modulus), hash);
-    securityInfo += UString("\n\nKey Manifest RSA Public Key Hash:\n");
-    for (UINT8 i = 0; i < sizeof(hash); i++) {
-        securityInfo += usprintf("%02X", hash[i]);
-    }
-    
-    // Add BpKeyHash
-    securityInfo += UString("\n\nBoot Policy RSA Public Key Hash:\n");
-    for (UINT8 i = 0; i < sizeof(header->BpKeyHash.HashBuffer); i++) {
-        securityInfo += usprintf("%02X", header->BpKeyHash.HashBuffer[i]);
-    }
-    bgKmHash = UByteArray((const char*)header->BpKeyHash.HashBuffer, sizeof(header->BpKeyHash.HashBuffer));
-    
-    // Add Key Manifest PubKey
-    securityInfo += usprintf("\n\nKey Manifest RSA Public Key (Exponent: %Xh):",
-                             header->KeyManifestSignature.PubKey.Exponent);
-    for (UINT16 i = 0; i < sizeof(header->KeyManifestSignature.PubKey.Modulus); i++) {
-        if (i % 32 == 0)
-            securityInfo += UString("\n");
-        securityInfo += usprintf("%02X", header->KeyManifestSignature.PubKey.Modulus[i]);
-    }
-    // Add Key Manifest Signature
-    securityInfo += UString("\n\nKey Manifest RSA Signature:");
-    for (UINT16 i = 0; i < sizeof(header->KeyManifestSignature.Signature.Signature); i++) {
-        if (i % 32 == 0)
-            securityInfo += UString("\n");
-        securityInfo += usprintf("%02X", header->KeyManifestSignature.Signature.Signature[i]);
-    }
-    securityInfo += UString("\n------------------------------------------------------------------------\n\n");
-    bgKeyManifestFound = true;
-    return U_SUCCESS;
-}
-
-USTATUS FfsParser::findNextBootGuardBootPolicyElement(const UByteArray & bootPolicy, const UINT32 elementOffset, UINT32 & nextElementOffset, UINT32 & nextElementSize)
-{
-    UINT32 dataSize = (UINT32)bootPolicy.size();
-    if (dataSize < sizeof(UINT64)) {
-        return U_ELEMENTS_NOT_FOUND;
-    }
-    
-    UINT32 offset = elementOffset;
-    for (; offset < dataSize - sizeof(UINT64); offset++) {
-        const UINT64* currentPos = (const UINT64*)(bootPolicy.constData() + offset);
-        if (*currentPos == BG_BOOT_POLICY_MANIFEST_IBB_ELEMENT_TAG && offset + sizeof(BG_IBB_ELEMENT) < dataSize) {
-            const BG_IBB_ELEMENT* header = (const BG_IBB_ELEMENT*)currentPos;
-            // Check that all segments are present
-            if (offset + sizeof(BG_IBB_ELEMENT) + sizeof(BG_IBB_SEGMENT_ELEMENT) * header->IbbSegCount < dataSize) {
-                nextElementOffset = offset;
-                nextElementSize = sizeof(BG_IBB_ELEMENT) + sizeof(BG_IBB_SEGMENT_ELEMENT) * header->IbbSegCount;
-                return U_SUCCESS;
-            }
-        }
-        else if (*currentPos == BG_BOOT_POLICY_MANIFEST_PLATFORM_MANUFACTURER_ELEMENT_TAG && offset + sizeof(BG_PLATFORM_MANUFACTURER_ELEMENT) < dataSize) {
-            const BG_PLATFORM_MANUFACTURER_ELEMENT* header = (const BG_PLATFORM_MANUFACTURER_ELEMENT*)currentPos;
-            // Check that data is present
-            if (offset + sizeof(BG_PLATFORM_MANUFACTURER_ELEMENT) + header->DataSize < dataSize) {
-                nextElementOffset = offset;
-                nextElementSize = sizeof(BG_PLATFORM_MANUFACTURER_ELEMENT) + header->DataSize;
-                return U_SUCCESS;
-            }
-        }
-        else if (*currentPos == BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT_TAG && offset + sizeof(BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT) < dataSize) {
-            nextElementOffset = offset;
-            nextElementSize = sizeof(BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT);
-            return U_SUCCESS;
-        }
-    }
-    
-    return U_ELEMENTS_NOT_FOUND;
-}
-
-USTATUS FfsParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolicy, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)
-{
-    U_UNUSED_PARAMETER(realSize);
-    if ((UINT32)bootPolicy.size() < localOffset + sizeof(BG_BOOT_POLICY_MANIFEST_HEADER)) {
-        return U_INVALID_BG_BOOT_POLICY;
-    }
-    
-    const BG_BOOT_POLICY_MANIFEST_HEADER* header = (const BG_BOOT_POLICY_MANIFEST_HEADER*)(bootPolicy.constData() + localOffset);
-    if (header->Tag != BG_BOOT_POLICY_MANIFEST_HEADER_TAG) {
-        return U_INVALID_BG_BOOT_POLICY;
-    }
-    
-    UINT32 bmSize = sizeof(BG_BOOT_POLICY_MANIFEST_HEADER);
-    if ((UINT32)bootPolicy.size() < localOffset + bmSize) {
-        return U_INVALID_BG_BOOT_POLICY;
-    }
-    
-    // Valid BPM found
-    info = usprintf("LocalOffset: %08Xh, BP SVN: %02Xh, ACM SVN: %02Xh",
-                    localOffset,
-                    header->BPSVN,
-                    header->ACMSVN
-                    );
-    
-    // Add BP header info
-    securityInfo += usprintf(
-                             "Intel BootGuard Boot Policy Manifest found at base %Xh\n"
-                             "Tag: __ACBP__ Version: %02Xh HeaderVersion: %02Xh\n"
-                             "PMBPMVersion: %02Xh PBSVN: %02Xh ACMSVN: %02Xh NEMDataStack: %04Xh\n",
-                             model->base(parent) + localOffset,
-                             header->Version,
-                             header->HeaderVersion,
-                             header->PMBPMVersion,
-                             header->BPSVN,
-                             header->ACMSVN,
-                             header->NEMDataSize
-                             );
-    
-    // Iterate over elements to get them all
-    UINT32 elementOffset = 0;
-    UINT32 elementSize = 0;
-    USTATUS status = findNextBootGuardBootPolicyElement(bootPolicy, localOffset + sizeof(BG_BOOT_POLICY_MANIFEST_HEADER), elementOffset, elementSize);
-    while (status == U_SUCCESS) {
-        const UINT64* currentPos = (const UINT64*)(bootPolicy.constData() + elementOffset);
-        if (*currentPos == BG_BOOT_POLICY_MANIFEST_IBB_ELEMENT_TAG) {
-            const BG_IBB_ELEMENT* elementHeader = (const BG_IBB_ELEMENT*)currentPos;
-            // Valid IBB element found
-            securityInfo += usprintf(
-                                     "\nInitial Boot Block Element found at base %Xh\n"
-                                     "Tag: __IBBS__       Version: %02Xh         Unknown: %02Xh\n"
-                                     "Flags: %08Xh    IbbMchBar: %08llXh VtdBar: %08llXh\n"
-                                     "PmrlBase: %08Xh PmrlLimit: %08Xh  EntryPoint: %08Xh",
-                                     model->base(parent) + localOffset + elementOffset,
-                                     elementHeader->Version,
-                                     elementHeader->Unknown,
-                                     elementHeader->Flags,
-                                     (unsigned long long)elementHeader->IbbMchBar,
-                                     (unsigned long long)elementHeader->VtdBar,
-                                     elementHeader->PmrlBase,
-                                     elementHeader->PmrlLimit,
-                                     elementHeader->EntryPoint
-                                     );
-            
-            // Add PostIbbHash
-            securityInfo += UString("\n\nPost IBB Hash:\n");
-            for (UINT8 i = 0; i < sizeof(elementHeader->IbbHash.HashBuffer); i++) {
-                securityInfo += usprintf("%02X", elementHeader->IbbHash.HashBuffer[i]);
-            }
-            
-            // Check for non-empry PostIbbHash
-            UByteArray postIbbHash((const char*)elementHeader->IbbHash.HashBuffer, sizeof(elementHeader->IbbHash.HashBuffer));
-            if (postIbbHash.count('\x00') != postIbbHash.size() && postIbbHash.count('\xFF') != postIbbHash.size()) {
-                BG_PROTECTED_RANGE range = {};
-                range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
-                range.Hash = postIbbHash;
-                bgProtectedRanges.push_back(range);
-            }
-            
-            // Add Digest
-            bgBpDigest = UByteArray((const char*)elementHeader->Digest.HashBuffer, sizeof(elementHeader->Digest.HashBuffer));
-            securityInfo += UString("\n\nIBB Digest:\n");
-            for (UINT8 i = 0; i < (UINT8)bgBpDigest.size(); i++) {
-                securityInfo += usprintf("%02X", (UINT8)bgBpDigest.at(i));
-            }
-            
-            // Add all IBB segments
-            securityInfo += UString("\n\nIBB Segments:\n");
-            const BG_IBB_SEGMENT_ELEMENT* segments = (const BG_IBB_SEGMENT_ELEMENT*)(elementHeader + 1);
-            for (UINT8 i = 0; i < elementHeader->IbbSegCount; i++) {
-                securityInfo += usprintf("Flags: %04Xh Address: %08Xh Size: %08Xh\n",
-                                         segments[i].Flags, segments[i].Base, segments[i].Size);
-                if (segments[i].Flags == BG_IBB_SEGMENT_FLAG_IBB) {
-                    BG_PROTECTED_RANGE range = {};
-                    range.Offset = segments[i].Base;
-                    range.Size = segments[i].Size;
-                    range.Type = BG_PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB;
-                    bgProtectedRanges.push_back(range);
-                }
-            }
-        }
-        else if (*currentPos == BG_BOOT_POLICY_MANIFEST_PLATFORM_MANUFACTURER_ELEMENT_TAG) {
-            const BG_PLATFORM_MANUFACTURER_ELEMENT* elementHeader = (const BG_PLATFORM_MANUFACTURER_ELEMENT*)currentPos;
-            securityInfo += usprintf(
-                                     "\nPlatform Manufacturer Data Element found at base %Xh\n"
-                                     "Tag: __PMDA__ Version: %02Xh DataSize: %02Xh",
-                                     model->base(parent) + localOffset + elementOffset,
-                                     elementHeader->Version,
-                                     elementHeader->DataSize
-                                     );
-            // Check for Microsoft PMDA hash data
-            const BG_MICROSOFT_PMDA_HEADER* pmdaHeader = (const BG_MICROSOFT_PMDA_HEADER*)(elementHeader + 1);
-            if (pmdaHeader->Version == BG_MICROSOFT_PMDA_VERSION
-                && elementHeader->DataSize == sizeof(BG_MICROSOFT_PMDA_HEADER) + sizeof(BG_MICROSOFT_PMDA_ENTRY)*pmdaHeader->NumEntries) {
-                // Add entries
-                securityInfo += UString("\nMicrosoft PMDA-based protected ranges:\n");
-                const BG_MICROSOFT_PMDA_ENTRY* entries = (const BG_MICROSOFT_PMDA_ENTRY*)(pmdaHeader + 1);
-                for (UINT32 i = 0; i < pmdaHeader->NumEntries; i++) {
-                    
-                    securityInfo += usprintf("Address: %08Xh Size: %08Xh\n", entries[i].Address, entries[i].Size);
-                    securityInfo += UString("Hash: ");
-                    for (UINT8 j = 0; j < sizeof(entries[i].Hash); j++) {
-                        securityInfo += usprintf("%02X", entries[i].Hash[j]);
-                    }
-                    securityInfo += UString("\n");
-                    
-                    BG_PROTECTED_RANGE range = {};
-                    range.Offset = entries[i].Address;
-                    range.Size = entries[i].Size;
-                    range.Hash = UByteArray((const char*)entries[i].Hash, sizeof(entries[i].Hash));
-                    range.Type = BG_PROTECTED_RANGE_VENDOR_HASH_MICROSOFT;
-                    bgProtectedRanges.push_back(range);
-                }
-            }
-            else {
-                // Add raw data
-                const UINT8* data = (const UINT8*)(elementHeader + 1);
-                for (UINT16 i = 0; i < elementHeader->DataSize; i++) {
-                    if (i % 32 == 0)
-                        securityInfo += UString("\n");
-                    securityInfo += usprintf("%02X", data[i]);
-                }
-                securityInfo += UString("\n");
-            }
-        }
-        else if (*currentPos == BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT_TAG) {
-            const BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT* elementHeader = (const BG_BOOT_POLICY_MANIFEST_SIGNATURE_ELEMENT*)currentPos;
-            securityInfo += usprintf(
-                                     "\nBoot Policy Signature Element found at base %Xh\n"
-                                     "Tag: __PMSG__ Version: %02Xh",
-                                     model->base(parent) + localOffset + elementOffset,
-                                     elementHeader->Version
-                                     );
-            
-            // Add PubKey
-            securityInfo += usprintf("\n\nBoot Policy RSA Public Key (Exponent: %Xh):", elementHeader->KeySignature.PubKey.Exponent);
-            for (UINT16 i = 0; i < sizeof(elementHeader->KeySignature.PubKey.Modulus); i++) {
-                if (i % 32 == 0)
-                    securityInfo += UString("\n");
-                securityInfo += usprintf("%02X", elementHeader->KeySignature.PubKey.Modulus[i]);
-            }
-            
-            // Calculate and add PubKey hash
-            UINT8 hash[SHA256_DIGEST_SIZE];
-            sha256(&elementHeader->KeySignature.PubKey.Modulus, sizeof(elementHeader->KeySignature.PubKey.Modulus), hash);
-            securityInfo += UString("\n\nBoot Policy RSA Public Key Hash:");
-            for (UINT8 i = 0; i < sizeof(hash); i++) {
-                if (i % 32 == 0)
-                    securityInfo += UString("\n");
-                securityInfo += usprintf("%02X", hash[i]);
-            }
-            bgBpHash = UByteArray((const char*)hash, sizeof(hash));
-            
-            // Add Signature
-            securityInfo += UString("\n\nBoot Policy RSA Signature:");
-            for (UINT16 i = 0; i < sizeof(elementHeader->KeySignature.Signature.Signature); i++) {
-                if (i % 32 == 0)
-                    securityInfo += UString("\n");
-                securityInfo += usprintf("%02X", elementHeader->KeySignature.Signature.Signature[i]);
-            }
-        }
-        status = findNextBootGuardBootPolicyElement(bootPolicy, elementOffset + elementSize, elementOffset, elementSize);
-    }
-    
-    securityInfo += UString("\n------------------------------------------------------------------------\n\n");
-    bgBootPolicyFound = true;
-    return U_SUCCESS;
-}
-#endif
 
 USTATUS FfsParser::parseMicrocodeVolumeBody(const UModelIndex & index)
 {
@@ -4645,7 +4148,7 @@ make_partition_table_consistent:
                 parseCpdRegion(partition, 0, partitionIndex, cpdIndex);
             }
             
-            // TODO: make this generic again
+            // There needs to be a more generic way to do it, but it is fine for now
             if (partitions[i].ptEntry.Type > BPDT_ENTRY_TYPE_TBT
                 && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_USB_PHY
                 && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_PCHC
@@ -4986,7 +4489,7 @@ make_partition_table_consistent:
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
                 
                 // Calculate SHA256 hash over the metadata and add it to its info
-                UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
+                UByteArray hash(SHA256_HASH_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nMetadata hash: ") + UString(hash.toHex().constData());
                 
@@ -5003,7 +4506,7 @@ make_partition_table_consistent:
                 + (partitions[i].ptEntry.Offset.HuffmanCompressed ? "Yes" : "No");
                 
                 // Calculate SHA256 hash over the code and add it to its info
-                UByteArray hash(SHA256_DIGEST_SIZE, '\x00');
+                UByteArray hash(SHA256_HASH_SIZE, '\x00');
                 sha256(partition.constData(), partition.size(), hash.data());
                 info += UString("\nHash: ") + UString(hash.toHex().constData());
                 
@@ -5040,7 +4543,8 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
     UINT32 offset = 0;
     while (offset < (UINT32)body.size()) {
         const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (body.constData() + offset);
-        if (extHeader->Length > 0 && extHeader->Length <= ((UINT32)body.size() - offset)) {
+        if (extHeader->Length > 0
+            && extHeader->Length <= ((UINT32)body.size() - offset)) {
             UByteArray partition = body.mid(offset, extHeader->Length);
             
             UString name = cpdExtensionTypeToUstring(extHeader->Type);
@@ -5146,7 +4650,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
             }
             
-            // TODO: make this generic again
+            // There needs to be a more generic way to do it, but it is fine for now
             if (extHeader->Type > CPD_EXT_TYPE_TBT_METADATA
                 && extHeader->Type != CPD_EXT_TYPE_GMF_CERTIFICATE
                 && extHeader->Type != CPD_EXT_TYPE_GMF_BODY
@@ -5229,9 +4733,9 @@ void FfsParser::outputInfo(void) {
     // Get security info
     UString secInfo = getSecurityInfo();
     if (!secInfo.isEmpty()) {
-        std::cout << "------------------------------------------------------------------------"  << std::endl;
+        std::cout << "---------------------------------------------------------------------------"  << std::endl;
         std::cout << "Security Info" << std::endl;
-        std::cout << "------------------------------------------------------------------------"  << std::endl;
+        std::cout << "---------------------------------------------------------------------------"  << std::endl;
         std::cout << (const char *)secInfo.toLocal8Bit() << std::endl;
     }
 }

@@ -13,7 +13,7 @@
 #include "ustring.h"
 #include "types.h"
 #include "ffs.h"
-#include "fit.h"
+#include "intel_fit.h"
 
 UString regionTypeToUString(const UINT8 type)
 {
@@ -36,7 +36,7 @@ UString regionTypeToUString(const UINT8 type)
         case Subtypes::PttRegion:         return UString("PTT");
     };
     
-    return  UString("Unknown");
+    return  usprintf("Unknown %02Xh", type);
 }
 
 UString itemTypeToUString(const UINT8 type)
@@ -66,7 +66,7 @@ UString itemTypeToUString(const UINT8 type)
         case Types::FlashMapEntry:  return UString("FlashMap entry");
         case Types::Microcode:      return UString("Microcode");
         case Types::SlicData:       return UString("SLIC data");
-            // ME-specific
+        // ME-specific
         case Types::FptStore:       return UString("FPT store");
         case Types::FptEntry:       return UString("FPT entry");
         case Types::IfwiHeader:     return UString("IFWI header");
@@ -82,7 +82,7 @@ UString itemTypeToUString(const UINT8 type)
         case Types::CpdSpiEntry:    return UString("CPD SPI entry");
     }
     
-    return  UString("Unknown");
+    return usprintf("Unknown %02Xh", type);
 }
 
 UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
@@ -157,14 +157,14 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
             if (subtype == Subtypes::GlutFptPartition)         return UString("GLUT");
             break;
         case Types::IfwiPartition:
-            if (subtype == Subtypes::BootIfwiPartition)         return UString("Boot");
-            if (subtype == Subtypes::DataIfwiPartition)         return UString("Data");
+            if (subtype == Subtypes::BootIfwiPartition)        return UString("Boot");
+            if (subtype == Subtypes::DataIfwiPartition)        return UString("Data");
             break;
         case Types::CpdPartition:
-            if (subtype == Subtypes::ManifestCpdPartition)         return UString("Manifest");
-            if (subtype == Subtypes::MetadataCpdPartition)         return UString("Metadata");
-            if (subtype == Subtypes::KeyCpdPartition)              return UString("Key");
-            if (subtype == Subtypes::CodeCpdPartition)             return UString("Code");
+            if (subtype == Subtypes::ManifestCpdPartition)     return UString("Manifest");
+            if (subtype == Subtypes::MetadataCpdPartition)     return UString("Metadata");
+            if (subtype == Subtypes::KeyCpdPartition)          return UString("Key");
+            if (subtype == Subtypes::CodeCpdPartition)         return UString("Code");
             break;
     }
     
@@ -182,7 +182,7 @@ UString compressionTypeToUString(const UINT8 algorithm)
         case COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY:       return UString("Intel legacy LZMA");
     }
     
-    return UString("Unknown");
+    return usprintf("Unknown %02Xh", algorithm);
 }
 
 UString actionTypeToUString(const UINT8 action)
@@ -197,23 +197,41 @@ UString actionTypeToUString(const UINT8 action)
         case Actions::Rebase:        return UString("Rebase");
     }
     
-    return UString("Unknown");
+    return usprintf("Unknown %02Xh", action);
 }
 
 UString fitEntryTypeToUString(const UINT8 type)
 {
     switch (type & 0x7F) {
-        case FIT_TYPE_HEADER:           return UString("FIT Header");
-        case FIT_TYPE_MICROCODE:        return UString("Microcode");
-        case FIT_TYPE_BIOS_AC_MODULE:   return UString("BIOS ACM");
-        case FIT_TYPE_BIOS_INIT_MODULE: return UString("BIOS Init");
-        case FIT_TYPE_TPM_POLICY:       return UString("TPM Policy");
-        case FIT_TYPE_BIOS_POLICY_DATA: return UString("BIOS Policy Data");
-        case FIT_TYPE_TXT_CONF_POLICY:  return UString("TXT Configuration Policy");
-        case FIT_TYPE_AC_KEY_MANIFEST:  return UString("BootGuard Key Manifest");
-        case FIT_TYPE_AC_BOOT_POLICY:   return UString("BootGuard Boot Policy");
-        case FIT_TYPE_EMPTY:            return UString("Empty");
+        case INTEL_FIT_TYPE_HEADER:                  return UString("FIT Header");
+        case INTEL_FIT_TYPE_MICROCODE:               return UString("Microcode");
+        case INTEL_FIT_TYPE_STARTUP_AC_MODULE:       return UString("Startup ACM");
+        case INTEL_FIT_TYPE_DIAG_AC_MODULE:          return UString("Diagnostic ACM");
+        case INTEL_FIT_TYPE_BIOS_STARTUP_MODULE:     return UString("BIOS Startup Module");
+        case INTEL_FIT_TYPE_TPM_POLICY:              return UString("TPM Policy");
+        case INTEL_FIT_TYPE_BIOS_POLICY:             return UString("BIOS Policy");
+        case INTEL_FIT_TYPE_TXT_POLICY:              return UString("TXT Policy");
+        case INTEL_FIT_TYPE_BOOT_GUARD_KEY_MANIFEST: return UString("BootGuard Key Manifest");
+        case INTEL_FIT_TYPE_BOOT_GUARD_BOOT_POLICY:  return UString("BootGuard Boot Policy");
+        case INTEL_FIT_TYPE_CSE_SECURE_BOOT:         return UString("CSE SecureBoot Settings");
+        case INTEL_FIT_TYPE_ACM_FEATURE_POLICY:      return UString("ACM Feature Policy");
+        case INTEL_FIT_TYPE_JMP_DEBUG_POLICY:        return UString("JMP Debug Policy");
+        case INTEL_FIT_TYPE_EMPTY:                   return UString("Empty");
     }
     
-    return UString("Unknown");
+    return usprintf("Unknown %02Xh", (type & 0x7F));
+}
+
+UString hashTypeToUString(const UINT16 algorithm_id)
+{
+    switch (algorithm_id) {
+        case TCG_HASH_ALGORITHM_ID_SHA1:   return UString("SHA1");
+        case TCG_HASH_ALGORITHM_ID_SHA256: return UString("SHA256");
+        case TCG_HASH_ALGORITHM_ID_SHA384: return UString("SHA384");
+        case TCG_HASH_ALGORITHM_ID_SHA512: return UString("SHA512");
+        case TCG_HASH_ALGORITHM_ID_NULL:   return UString("NULL");
+        case TCG_HASH_ALGORITHM_ID_SM3:    return UString("SM3");
+    }
+    
+    return usprintf("Unknown %04Xh", algorithm_id);
 }

@@ -2,6 +2,9 @@ QT += core gui widgets
 
 TARGET = UEFITool
 TEMPLATE = app
+
+CONFIG += c++11
+
 DEFINES += "U_ENABLE_FIT_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_NVRAM_PARSING_SUPPORT"
 DEFINES += "U_ENABLE_ME_PARSING_SUPPORT"
@@ -15,6 +18,7 @@ HEADERS += uefitool.h \
  guidlineedit.h \
  ffsfinder.h \
  hexspinbox.h \
+ ../common/fitparser.h \
  ../common/guiddatabase.h \
  ../common/nvram.h \
  ../common/nvramparser.h \
@@ -25,7 +29,6 @@ HEADERS += uefitool.h \
  ../common/gbe.h \
  ../common/me.h \
  ../common/ffs.h \
- ../common/fit.h \
  ../common/peimage.h \
  ../common/types.h \
  ../common/utility.h \
@@ -35,27 +38,28 @@ HEADERS += uefitool.h \
  ../common/ffsreport.h \
  ../common/treeitem.h \
  ../common/ffsutils.h \
+ ../common/intel_fit.h \
+ ../common/intel_microcode.h \
  ../common/treemodel.h \
  ../common/LZMA/LzmaCompress.h \
  ../common/LZMA/LzmaDecompress.h \
  ../common/Tiano/EfiTianoDecompress.h \
  ../common/Tiano/EfiTianoCompress.h \
- ../common/uinttypes.h \
  ../common/ustring.h \
  ../common/ubytearray.h \
- ../common/bootguard.h \
- ../common/sha256.h \
- ../common/zlib/zconf.h \
+ ../common/digest/sha1.h \
+ ../common/digest/sha2.h \
+ ../common/digest/sm3.h \
+ ../common/generated/intel_acbp_v1.h \
+ ../common/generated/intel_acbp_v2.h \
+ ../common/generated/intel_keym_v1.h \
+ ../common/generated/intel_keym_v2.h \
+ ../common/generated/intel_acm.h \
+ ../common/kaitai/kaitaistream.h \
+ ../common/kaitai/kaitaistruct.h \
+ ../common/kaitai/exceptions.h \
  ../common/zlib/zlib.h \
  ../common/zlib/crc32.h \
- ../common/zlib/deflate.h \
- ../common/zlib/gzguts.h \
- ../common/zlib/inffast.h \
- ../common/zlib/inffixed.h \
- ../common/zlib/inflate.h \
- ../common/zlib/inftrees.h \
- ../common/zlib/trees.h \
- ../common/zlib/zutil.h \
  ../version.h \
  qhexedit2/qhexedit.h \
  qhexedit2/chunks.h \
@@ -68,6 +72,7 @@ SOURCES += uefitool_main.cpp \
  guidlineedit.cpp \
  ffsfinder.cpp \
  hexspinbox.cpp \
+ ../common/fitparser.cpp \
  ../common/guiddatabase.cpp \
  ../common/nvram.cpp \
  ../common/nvramparser.cpp \
@@ -86,6 +91,8 @@ SOURCES += uefitool_main.cpp \
  ../common/treemodel.cpp \
  ../common/LZMA/LzmaCompress.c \
  ../common/LZMA/LzmaDecompress.c \
+ ../common/LZMA/SDK/C/CpuArch.c \
+ ../common/LZMA/SDK/C/Bra.c \
  ../common/LZMA/SDK/C/Bra86.c \
  ../common/LZMA/SDK/C/LzFind.c \
  ../common/LZMA/SDK/C/LzmaDec.c \
@@ -94,7 +101,16 @@ SOURCES += uefitool_main.cpp \
  ../common/Tiano/EfiTianoCompress.c \
  ../common/Tiano/EfiTianoCompressLegacy.c \
  ../common/ustring.cpp \
- ../common/sha256.c \
+ ../common/digest/sha1.c \
+ ../common/digest/sha256.c \
+ ../common/digest/sha512.c \
+ ../common/digest/sm3.c \
+ ../common/generated/intel_acbp_v1.cpp \
+ ../common/generated/intel_acbp_v2.cpp \
+ ../common/generated/intel_keym_v1.cpp \
+ ../common/generated/intel_keym_v2.cpp \
+ ../common/generated/intel_acm.cpp \
+ ../common/kaitai/kaitaistream.cpp \
  ../common/zlib/adler32.c \
  ../common/zlib/compress.c \
  ../common/zlib/crc32.c \

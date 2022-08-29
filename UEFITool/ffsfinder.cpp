@@ -21,7 +21,7 @@
 
 USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode)
 {
-    //TODO: use FfsUtils.
+    // TODO: use FfsUtils.
     
     if (!index.isValid())
         return U_SUCCESS;

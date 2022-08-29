@@ -22,7 +22,7 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
-#include "../uinttypes.h"
+#include "../basetypes.h"
 
 #if !defined (BSTRLIB_VSNP_OK) && !defined (BSTRLIB_NOVSNP)
 # if defined (__TURBOC__) && !defined (__BORLANDC__)

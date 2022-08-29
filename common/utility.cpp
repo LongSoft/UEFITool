@@ -359,6 +359,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
                 return U_CUSTOMIZED_DECOMPRESSION_FAILED;
             }
             
+            // TODO: need to correctly handle non-x86 architecture of the FW image
             // After LZMA decompression, the data need to be converted to the raw data.
             UINT32 state = 0;
             const UINT8 x86LookAhead = 4;

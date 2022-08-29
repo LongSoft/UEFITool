@@ -22,7 +22,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "treemodel.h"
 #include "ffsparser.h"
-#include "sha256.h"
+
+#include "digest/sha2.h"
 
 #ifdef U_ENABLE_ME_PARSING_SUPPORT
 class MeParser

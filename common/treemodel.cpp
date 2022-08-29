@@ -158,7 +158,7 @@ int TreeModel::rowCount(const UModelIndex &parent) const
 
 UINT32 TreeModel::base(const UModelIndex &current) const
 {
-    // TODO: rewrite this as loop if we ever see an image that is too deep for this naive implementation
+    // Rewrite this as loop if we ever see an image that is too deep for this naive implementation
     if (!current.isValid())
         return 0;
     

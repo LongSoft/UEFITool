@@ -14,7 +14,6 @@
 #include "ffsreport.h"
 #include "ffs.h"
 #include "utility.h"
-#include "uinttypes.h"
 
 std::vector<UString> FfsReport::generate()
 {
