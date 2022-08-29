@@ -4504,8 +4504,8 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         
         // Get info
         name = bpdtEntryTypeToUString(ptEntry->Type);
-        info = usprintf("Full size: %lXh (%lu)\nType: %Xh\nPartition offset: %Xh\nPartition length: %Xh",
-                        sizeof(BPDT_ENTRY), sizeof(BPDT_ENTRY),
+        info = usprintf("Full size: %Xh (%u)\nType: %Xh\nPartition offset: %Xh\nPartition length: %Xh",
+                        (UINT32)sizeof(BPDT_ENTRY), (UINT32)sizeof(BPDT_ENTRY),
                         ptEntry->Type,
                         ptEntry->Offset,
                         ptEntry->Size) +
@@ -4954,22 +4954,22 @@ make_partition_table_consistent:
                         UByteArray body = partition.mid(manifestHeader->HeaderLength * sizeof(UINT32));
                         
                         info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)"
-                                        "\nHeader type: %u\nHeader length: %lXh (%lu)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
-                                        "Date: %Xh\nSize: %lXh (%lu)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %lXh (%lu)\nExponent size: %lXh (%lu)",
+                                        "\nHeader type: %u\nHeader length: %Xh (%u)\nHeader version: %Xh\nFlags: %08Xh\nVendor: %Xh\n"
+                                        "Date: %Xh\nSize: %Xh (%u)\nVersion: %u.%u.%u.%u\nSecurity version number: %u\nModulus size: %Xh (%u)\nExponent size: %Xh (%u)",
                                         (UINT32)partition.size(), (UINT32)partition.size(),
                                         (UINT32)header.size(), (UINT32)header.size(),
                                         (UINT32)body.size(), (UINT32)body.size(),
                                         manifestHeader->HeaderType,
-                                        manifestHeader->HeaderLength * sizeof(UINT32), manifestHeader->HeaderLength * sizeof(UINT32),
+                                        manifestHeader->HeaderLength * (UINT32)sizeof(UINT32), manifestHeader->HeaderLength * (UINT32)sizeof(UINT32),
                                         manifestHeader->HeaderVersion,
                                         manifestHeader->Flags,
                                         manifestHeader->Vendor,
                                         manifestHeader->Date,
-                                        manifestHeader->Size * sizeof(UINT32), manifestHeader->Size * sizeof(UINT32),
+                                        manifestHeader->Size * (UINT32)sizeof(UINT32), manifestHeader->Size * (UINT32)sizeof(UINT32),
                                         manifestHeader->VersionMajor, manifestHeader->VersionMinor, manifestHeader->VersionBugfix, manifestHeader->VersionBuild,
                                         manifestHeader->SecurityVersion,
-                                        manifestHeader->ModulusSize * sizeof(UINT32), manifestHeader->ModulusSize * sizeof(UINT32),
-                                        manifestHeader->ExponentSize * sizeof(UINT32), manifestHeader->ExponentSize * sizeof(UINT32));
+                                        manifestHeader->ModulusSize * (UINT32)sizeof(UINT32), manifestHeader->ModulusSize * (UINT32)sizeof(UINT32),
+                                        manifestHeader->ExponentSize * (UINT32)sizeof(UINT32), manifestHeader->ExponentSize * (UINT32)sizeof(UINT32));
                         
                         // Add tree item
                         UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::ManifestCpdPartition, name, UString(), info, header, body, UByteArray(), Fixed, parent);
@@ -5115,7 +5115,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index)
                 // Add tree item
                 extIndex = model->addItem(offset, Types::CpdExtension, 0, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, index);
                 if (msgHashSizeMismatch) {
-                    msg(usprintf("%s: IFWI Partition Manifest hash size is %u, maximum allowed is %lu, truncated", __FUNCTION__, attrHeader->HashSize, sizeof(attrHeader->CompletePartitionHash)), extIndex);
+                    msg(usprintf("%s: IFWI Partition Manifest hash size is %u, maximum allowed is %u, truncated", __FUNCTION__, attrHeader->HashSize, (UINT32)sizeof(attrHeader->CompletePartitionHash)), extIndex);
                 }
             }
             // Parse Module Attributes a bit further

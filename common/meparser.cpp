@@ -190,8 +190,8 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         
         // Get info
         name = visibleAsciiOrHex((UINT8*)ptEntry->Name, 4);
-        info = usprintf("Full size: %lXh (%lu)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
-                        sizeof(FPT_HEADER_ENTRY), sizeof(FPT_HEADER_ENTRY),
+        info = usprintf("Full size: %Xh (%u)\nPartition offset: %Xh\nPartition length: %Xh\nPartition type: %02Xh",
+                        (UINT32)sizeof(FPT_HEADER_ENTRY), (UINT32)sizeof(FPT_HEADER_ENTRY),
                         ptEntry->Offset,
                         ptEntry->Size,
                         ptEntry->Type);
@@ -342,7 +342,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             "Boot3 partition offset: %Xh\nBoot3 partition size:   %Xh\n"
                             "Boot4 partition offset: %Xh\nBoot4 partition size:   %Xh\n"
                             "Boot5 partition offset: %Xh\nBoot5 partition size:   %Xh\n"
-                            "Checksum: %llXh",
+                            "Checksum: %" PRIX64 "h",
                             (UINT32)header.size(), (UINT32)header.size(),
                             ifwiHeader->DataPartition.Offset, ifwiHeader->DataPartition.Size,
                             ifwiHeader->BootPartition[0].Offset, ifwiHeader->BootPartition[0].Size,
@@ -350,7 +350,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             ifwiHeader->BootPartition[2].Offset, ifwiHeader->BootPartition[2].Size,
                             ifwiHeader->BootPartition[3].Offset, ifwiHeader->BootPartition[3].Size,
                             ifwiHeader->BootPartition[4].Offset, ifwiHeader->BootPartition[4].Size,
-                            (unsigned long long)ifwiHeader->Checksum);
+                            ifwiHeader->Checksum);
     // Add tree item
     index = model->addItem(0, Types::IfwiHeader, 0, name, UString(), info, UByteArray(), header, UByteArray(), Fixed, parent);
     
