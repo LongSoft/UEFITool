@@ -12,8 +12,6 @@
  
  */
 
-//TODO: relax fixed restrictions once NVRAM builder is ready
-
 #include <map>
 
 #include "nvramparser.h"
@@ -21,8 +19,7 @@
 #include "utility.h"
 #include "nvram.h"
 #include "ffs.h"
-#include "fit.h"
-#include "uinttypes.h"
+#include "intel_microcode.h"
 
 #ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
@@ -308,7 +305,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             pdata.isValid = FALSE;
         }
         else // Add GUID info for valid entries
-            info += UString("Variable GUID: ") + guid + UString("\n");
+            info += UString("Variable GUID: ") + guid + "\n";
         
         // Add GUID index information
         if (hasGuidIndex)
@@ -537,6 +534,8 @@ USTATUS NvramParser::findNextStore(const UModelIndex & index, const UByteArray &
         return U_STORES_NOT_FOUND;
     
     // TODO: add checks for restSize
+    // TODO: remove misaligned access by doing the signature checks differently, the current way is UB is C++
+    // TODO: rewrite this all as Kaitai-based parser
     UINT32 offset = storeOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(volume.constData() + offset);
@@ -1504,7 +1503,7 @@ USTATUS NvramParser::parseVssStoreBody(const UModelIndex & index, UINT8 alignmen
         }
         else { // Add GUID and text for valid variables
             name = guidToUString(readUnaligned(variableGuid));
-            info += UString("Variable GUID: ") + guidToUString(readUnaligned(variableGuid), false) + UString("\n");
+            info += UString("Variable GUID: ") + guidToUString(readUnaligned(variableGuid), false) + "\n";
             
 #if QT_VERSION_MAJOR >= 6
             text = UString::fromUtf16((char16_t *)variableName);
@@ -1859,7 +1858,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
                     model->setName(current, guid);
                 }
                 model->setText(current, name);
-                model->addInfo(current, UString("GUID: ") + guid + UString("\nName: ") + name + UString("\n"), false);
+                model->addInfo(current, UString("GUID: ") + guid + UString("\nName: ") + name + "\n", false);
             }
         }
     }
@@ -1910,10 +1909,10 @@ USTATUS NvramParser::parseFlashMapBody(const UModelIndex & index)
         // Add info
         UString info = UString("Entry GUID: ") + guidToUString(entryHeader->Guid, false) +
         usprintf("\nFull size: 24h (36)\nHeader size: 24h (36)\nBody size: 0h (0)\n"
-                 "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08llXh\nSize: %08Xh\nOffset: %08Xh",
+                 "Entry type: %04Xh\nData type: %04Xh\nMemory address: %08Xh\nSize: %08Xh\nOffset: %08Xh",
                  entryHeader->EntryType,
                  entryHeader->DataType,
-                 (unsigned long long)entryHeader->PhysicalAddress,
+                 (UINT32)entryHeader->PhysicalAddress,
                  entryHeader->Size,
                  entryHeader->Offset);
         

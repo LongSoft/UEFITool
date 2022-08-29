@@ -1,6 +1,10 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1.0 FATAL_ERROR)
 
 PROJECT(UEFIExtract)
+
+SET(CMAKE_CXX_STANDARD 11)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_EXTENSIONS OFF)
 
 SET(PROJECT_SOURCES
  uefiextract_main.cpp
@@ -14,19 +18,31 @@ SET(PROJECT_SOURCES
  ../common/nvramparser.cpp
  ../common/meparser.cpp
  ../common/ffsparser.cpp
+ ../common/fitparser.cpp
  ../common/ffsreport.cpp
  ../common/peimage.cpp
  ../common/treeitem.cpp
  ../common/treemodel.cpp
  ../common/utility.cpp
  ../common/LZMA/LzmaDecompress.c
+ ../common/LZMA/SDK/C/Bra.c
  ../common/LZMA/SDK/C/Bra86.c
+ ../common/LZMA/SDK/C/CpuArch.c
  ../common/LZMA/SDK/C/LzmaDec.c
  ../common/Tiano/EfiTianoDecompress.c
  ../common/ustring.cpp
- ../common/sha256.c
  ../common/bstrlib/bstrlib.c
  ../common/bstrlib/bstrwrap.cpp
+ ../common/generated/intel_acbp_v1.cpp
+ ../common/generated/intel_acbp_v2.cpp
+ ../common/generated/intel_keym_v1.cpp
+ ../common/generated/intel_keym_v2.cpp
+ ../common/generated/intel_acm.cpp
+ ../common/kaitai/kaitaistream.cpp
+ ../common/digest/sha1.c
+ ../common/digest/sha256.c
+ ../common/digest/sha512.c
+ ../common/digest/sm3.c
  ../common/zlib/adler32.c
  ../common/zlib/compress.c
  ../common/zlib/crc32.c
@@ -44,48 +60,7 @@ SET(PROJECT_SOURCES
  ../common/zlib/zutil.c
 )
 
-SET(PROJECT_HEADERS
- ffsdumper.h
- uefidump.h
- ../common/guiddatabase.h
- ../common/basetypes.h
- ../common/descriptor.h
- ../common/gbe.h
- ../common/me.h
- ../common/ffs.h
- ../common/nvram.h
- ../common/nvramparser.h
- ../common/ffsparser.h
- ../common/ffsreport.h
- ../common/peimage.h
- ../common/types.h
- ../common/treeitem.h
- ../common/treemodel.h
- ../common/utility.h
- ../common/LZMA/LzmaDecompress.h
- ../common/Tiano/EfiTianoDecompress.h
- ../common/ubytearray.h
- ../common/ustring.h
- ../common/bootguard.h
- ../common/sha256.h
- ../common/filesystem.h
- ../common/bstrlib/bstrlib.h
- ../common/bstrlib/bstrwrap.h
- ../common/zlib/zconf.h
- ../common/zlib/zlib.h
- ../common/zlib/crc32.h
- ../common/zlib/deflate.h
- ../common/zlib/gzguts.h
- ../common/zlib/inffast.h
- ../common/zlib/inffixed.h
- ../common/zlib/inflate.h
- ../common/zlib/inftrees.h
- ../common/zlib/trees.h
- ../common/zlib/zutil.h
- ../version.h
-)
-
 ADD_DEFINITIONS(-DU_ENABLE_NVRAM_PARSING_SUPPORT -DU_ENABLE_ME_PARSING_SUPPORT  -DU_ENABLE_FIT_PARSING_SUPPORT -DU_ENABLE_GUID_DATABASE_SUPPORT)
 
-ADD_EXECUTABLE(UEFIExtract ${PROJECT_SOURCES} ${PROJECT_HEADERS})
+ADD_EXECUTABLE(UEFIExtract ${PROJECT_SOURCES})
 

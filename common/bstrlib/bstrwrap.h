@@ -52,7 +52,7 @@
 #include <stdlib.h>
 #include "bstrlib.h"
 #include "../ubytearray.h"
-#include "../uinttypes.h"
+#include "../basetypes.h"
 
 #ifdef __cplusplus
 
@@ -365,6 +365,7 @@ struct CBString : public tagbstring {
 	// QString compatibility methods
 	const char *toLocal8Bit() const { return *this; }
 	bool contains(const char *str) { return find(str) >= 0; }
+    bool startsWith(const char *str) { return find(str) == 0; }
 	bool endsWith(const char *str) { int len = strlen(str); return (slen >= len && (find(str, slen - len) == (slen - len))); }
 	bool isEmpty() const { return slen == 0; }
 	void clear() { *this = ""; }

@@ -1,6 +1,6 @@
-/* fit.h
+/* intel_microcode.h
 
-Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
+Copyright (c) 2022, Nikolaj Schlej. All rights reserved.
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -10,8 +10,8 @@ THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
 WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 */
 
-#ifndef FIT_H
-#define FIT_H
+#ifndef INTEL_MICROCODE_H
+#define INTEL_MICROCODE_H
 
 #include "basetypes.h"
 #include "ubytearray.h"
@@ -19,46 +19,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Make sure we use right packing rules
 #pragma pack(push, 1)
 
-// Memory address of a pointer to FIT, 40h back from the end of flash chip
-#define FIT_POINTER_OFFSET 0x40
-
-// Entry types
-#define FIT_TYPE_HEADER            0x00
-#define FIT_TYPE_MICROCODE         0x01
-#define FIT_TYPE_BIOS_AC_MODULE    0x02
-#define FIT_TYPE_BIOS_INIT_MODULE  0x07
-#define FIT_TYPE_TPM_POLICY        0x08
-#define FIT_TYPE_BIOS_POLICY_DATA  0x09
-#define FIT_TYPE_TXT_CONF_POLICY   0x0A
-#define FIT_TYPE_AC_KEY_MANIFEST   0x0B
-#define FIT_TYPE_AC_BOOT_POLICY    0x0C
-#define FIT_TYPE_EMPTY             0x7F
-
-#define FIT_HEADER_VERSION         0x0100
-#define FIT_MICROCODE_VERSION      0x0100
-
-const UByteArray FIT_SIGNATURE
-("\x5F\x46\x49\x54\x5F\x20\x20\x20", 8);
-
-typedef struct FIT_ENTRY_ {
-    UINT64 Address;
-    UINT32 Size : 24;
-    UINT32 : 8;
-    UINT16 Version;
-    UINT8  Type : 7;
-    UINT8  CsFlag : 1;
-    UINT8  Checksum;
-} FIT_ENTRY;
-
-typedef struct {
-    UINT16 IndexRegisterAddress;
-    UINT16 DataRegisterAddress;
-    UINT8  AccessWidth;
-    UINT8  BitPosition;
-    UINT16 Index;
-} FIT_ENTRY_VERSION_0_CONFIG_POLICY;
-
-// This scructure is described in Section 9.11.1 of the Intel Software Developer manual Volume 3A Part 1
+// This structure is described in Section 9.11.1 of the Intel Software Developer manual Volume 3A Part 1
 typedef struct INTEL_MICROCODE_HEADER_ {
     UINT32 HeaderVersion;             // 0x00000001
     UINT32 UpdateRevision;
@@ -102,8 +63,8 @@ typedef struct INTEL_MICROCODE_EXTENDED_HEADER_ENTRY_ {
                               // Checksum is correct when the summation of all DWORDs that comprise the created Extended Processor Patch results in 00000000H.
 } INTEL_MICROCODE_EXTENDED_HEADER_ENTRY;
 
-#define INTEL_MICROCODE_HEADER_VERSION_1    0x00000001
+#define INTEL_MICROCODE_HEADER_VERSION_1 0x00000001
 
 #pragma pack(pop)
 
-#endif // FIT_H
+#endif // INTEL_MICROCODE_H

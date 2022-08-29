@@ -64,8 +64,8 @@ typedef size_t USTATUS;
 #define U_INVALID_FIT                     42
 #define U_INVALID_MICROCODE               43
 #define U_INVALID_ACM                     44
-#define U_INVALID_BG_KEY_MANIFEST         45
-#define U_INVALID_BG_BOOT_POLICY          46
+#define U_INVALID_BOOT_GUARD_KEY_MANIFEST 45
+#define U_INVALID_BOOT_GUARD_BOOT_POLICY  46
 #define U_INVALID_TXT_CONF                47
 #define U_ELEMENTS_NOT_FOUND              48
 #define U_PEI_CORE_ENTRY_POINT_NOT_FOUND  49
@@ -203,7 +203,30 @@ typedef struct EFI_TIME_ {
 #include <assert.h>
 #define ASSERT(x) assert(x)
 
-// SHA256 hash size in bytes
+// Hash sizes in bytes
+#define SHA1_HASH_SIZE   0x14
 #define SHA256_HASH_SIZE 0x20
+#define SHA384_HASH_SIZE 0x30
+#define SHA512_HASH_SIZE 0x40
+#define SM3_HASH_SIZE    0x20
+
+// TCG Algorithm Registry: Table 2
+#define TCG_HASH_ALGORITHM_ID_SHA1   0x0004
+#define TCG_HASH_ALGORITHM_ID_SHA256 0x000B
+#define TCG_HASH_ALGORITHM_ID_SHA384 0x000C
+#define TCG_HASH_ALGORITHM_ID_SHA512 0x000D
+#define TCG_HASH_ALGORITHM_ID_NULL   0x0010
+#define TCG_HASH_ALGORITHM_ID_SM3    0x0012
+
+// A workaround for compilers not supporting c++11 and c11
+// for using PRIX64.
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
+#if defined(__clang__) || defined(__GNUC__)
+#define ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#else
+#define ATTRIBUTE_FORMAT_(t,f,a)
+#endif
 
 #endif // BASETYPES_H
