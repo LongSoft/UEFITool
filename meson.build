@@ -9,3 +9,4 @@ zlib = dependency('zlib')
 
 subdir('common')
 subdir('UEFIExtract')
+subdir('UEFIFind')
