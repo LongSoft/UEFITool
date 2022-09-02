@@ -192,13 +192,13 @@ jobs:
       JOB_TYPE: COVERITY
       HAS_QT: 1
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: Coverity
+    name: Coverity Static Analysis
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.2.4'
+          version: '6.3.1'
           host: 'linux'
           target: 'desktop'
     
@@ -215,3 +215,47 @@ jobs:
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
           COVERITY_BUILD_COMMAND: ./unixbuild.sh --build
+
+  analyze_pvs_studio:
+    if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
+    name: PVS-Studio Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.3.1'
+          host: 'linux'
+          target: 'desktop'
+
+      - name: Check out
+        uses: actions/checkout@v2
+
+      - name: Install PVS-Studio
+        run: |
+          wget -q -O - https://files.pvs-studio.com/etc/pubkey.txt \
+            | sudo apt-key add -
+          sudo wget -O /etc/apt/sources.list.d/viva64.list \
+            https://files.pvs-studio.com/etc/viva64.list
+          sudo apt update
+          sudo apt install pvs-studio
+          pvs-studio-analyzer credentials ${{ secrets.PVS_STUDIO_CREDENTIALS }}
+          
+      - name: Build
+        run: |
+          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build UEFITool
+          cmake --build build -j
+          
+      - name: Analyze
+        run: |
+          pvs-studio-analyzer analyze -f build/compile_commands.json -j
+          
+      - name: Convert report
+        run: |
+          plog-converter -t sarif -o pvs-report.sarif PVS-Studio.log
+          
+      - name: Publish report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: pvs-report.sarif
+          category: PVS-Studio
