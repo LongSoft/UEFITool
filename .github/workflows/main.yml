@@ -216,9 +216,9 @@ jobs:
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
           COVERITY_BUILD_COMMAND: ./unixbuild.sh --build
 
-  analyze_pvs_studio:
+  analyze_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: PVS-Studio Static Analysis
+    name: PVS-Studio and CodeQL Static Analysis
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
@@ -240,21 +240,29 @@ jobs:
           sudo apt update
           sudo apt install pvs-studio
           pvs-studio-analyzer credentials ${{ secrets.PVS_STUDIO_CREDENTIALS }}
-          
-      - name: Build
+      
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: cpp
+    
+      - name: Build everything using CMake
         run: |
-          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build UEFITool
+          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build .
           cmake --build build -j
-          
-      - name: Analyze
+    
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v2
+    
+      - name: Perform PVS-Studio analysis
         run: |
           pvs-studio-analyzer analyze -f build/compile_commands.json -j
           
-      - name: Convert report
+      - name: Convert PVS-Studio report
         run: |
           plog-converter -t sarif -o pvs-report.sarif PVS-Studio.log
           
-      - name: Publish report
+      - name: Publish  PVS-Studio report
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: pvs-report.sarif
