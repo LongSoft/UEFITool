@@ -33,7 +33,7 @@ uefitoolcommon = static_library('uefitoolcommon',
     'ustring.cpp',
     'sha256.c',
   ],
-  c_args: [
+  cpp_args: [
     '-DU_ENABLE_NVRAM_PARSING_SUPPORT',
     '-DU_ENABLE_ME_PARSING_SUPPORT',
     '-DU_ENABLE_FIT_PARSING_SUPPORT',
