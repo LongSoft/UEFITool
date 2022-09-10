@@ -278,12 +278,10 @@ USTATUS FitParser::parseFitEntryMicrocode(const UByteArray & microcode, const UI
 
 USTATUS FitParser::parseFitEntryAcm(const UByteArray & acm, const UINT32 localOffset, const UModelIndex & parent, UString & info, UINT32 &realSize)
 {
-    // Parse Intel ACM using Kaitai-generated parser
-    // TODO: need to do something with the copy here, probably implement a custom wrapper
-    std::istringstream is(std::string(acm.constData(), acm.size()));
-    is.seekg(localOffset, is.beg);
-    kaitai::kstream ks(&is);
     try {
+        std::istringstream is(std::string(acm.constData(), acm.size()));
+        is.seekg(localOffset, is.beg);
+        kaitai::kstream ks(&is);
         intel_acm_t parsed(&ks);
         intel_acm_t::header_t* header = parsed.header();
         
@@ -396,11 +394,9 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
 {
     U_UNUSED_PARAMETER(realSize);
     
-    // TODO: need to do something with the copy here, probably implement a custom wrapper
-    std::istringstream is(std::string(keyManifest.constData(), keyManifest.size()));
-    
     // v1
     try {
+        std::istringstream is(std::string(keyManifest.constData(), keyManifest.size()));
         is.seekg(localOffset, is.beg);
         kaitai::kstream ks(&is);
         intel_keym_v1_t parsed(&ks);
@@ -469,6 +465,7 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
     
     // v2
     try {
+        std::istringstream is(std::string(keyManifest.constData(), keyManifest.size()));
         is.seekg(localOffset, is.beg);
         kaitai::kstream ks(&is);
         intel_keym_v2_t parsed(&ks);
@@ -564,11 +561,9 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
 {
     U_UNUSED_PARAMETER(realSize);
     
-    // TODO: need to do something with the copy here, probably implement a custom wrapper
-    std::istringstream is(std::string(bootPolicy.constData(), bootPolicy.size()));
-
     // v1
     try {
+        std::istringstream is(std::string(bootPolicy.constData(), bootPolicy.size()));
         is.seekg(localOffset, is.beg);
         kaitai::kstream ks(&is);
         intel_acbp_v1_t parsed(&ks);
@@ -826,6 +821,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
     
     // v2
     try {
+        std::istringstream is(std::string(bootPolicy.constData(), bootPolicy.size()));
         is.seekg(localOffset, is.beg);
         kaitai::kstream ks(&is);
         intel_acbp_v2_t parsed(&ks); // This already verified the version to be >= 0x20

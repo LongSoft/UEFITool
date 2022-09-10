@@ -90,7 +90,6 @@ types:
       type: u2
     - id: version
       type: u2
-      valid: 3
     - id: hash
       type: hash
   
@@ -102,6 +101,7 @@ types:
       type: u2
     - id: version
       type: u4
+      valid: 3
     - id: num_entries
       type: u4
     - id: entries

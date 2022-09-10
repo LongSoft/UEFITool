@@ -308,9 +308,6 @@ void intel_acbp_v2_t::pmda_entry_v3_t::_read() {
     m_size = m__io->read_u4le();
     m_total_entry_size = m__io->read_u2le();
     m_version = m__io->read_u2le();
-    if (!(version() == 3)) {
-        throw kaitai::validation_not_equal_error<uint16_t>(3, version(), _io(), std::string("/types/pmda_entry_v3/seq/4"));
-    }
     m_hash = new hash_t(m__io, this, m__root);
 }
 
@@ -421,6 +418,9 @@ void intel_acbp_v2_t::pmda_body_t::_read() {
     m_reserved = m__io->read_u2le();
     m_total_size = m__io->read_u2le();
     m_version = m__io->read_u4le();
+    if (!(version() == 3)) {
+        throw kaitai::validation_not_equal_error<uint32_t>(3, version(), _io(), std::string("/types/pmda_body/seq/2"));
+    }
     m_num_entries = m__io->read_u4le();
     m_entries = new std::vector<pmda_entry_v3_t*>();
     const int l_entries = num_entries();
