@@ -39,9 +39,13 @@
 namespace Qt {
 enum GlobalColor {
     red = 7,
+    darkRed = 13,
     green = 8,
+    darkGreen = 14,
     cyan = 10,
+    darkCyan = 16,
     yellow = 12,
+    darkMagenta = 17
 };
 }
 #endif
@@ -3623,6 +3627,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
         UINT32 currentSize = (UINT32)(model->header(index).size() + model->body(index).size() + model->tail(index).size());
         
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
+#ifndef DARK_MODE
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
                 if (range.Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
                     model->setMarking(index, Qt::red);
@@ -3634,6 +3639,19 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
             else { // Mark as partially in range
                 model->setMarking(index, Qt::yellow);
             }
+#else
+            if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
+                if (range.Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
+                    model->setMarking(index, Qt::darkRed);
+                }
+                else {
+                    model->setMarking(index, Qt::darkCyan);
+                }
+            }
+            else { // Mark as partially in range
+                model->setMarking(index, Qt::darkMagenta);
+            }
+#endif
         }
     }
     
