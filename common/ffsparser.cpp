@@ -2886,6 +2886,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
                 return U_SUCCESS;
             }
+            // No further parsing required
             return U_SUCCESS;
         case EFI_DEP_AFTER:
             if (body.size() != 2 * EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID)){
@@ -2899,6 +2900,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
                 return U_SUCCESS;
             }
+            // No further parsing required
             return U_SUCCESS;
         case EFI_DEP_SOR:
             if (body.size() <= 2 * EFI_DEP_OPCODE_SIZE) {
@@ -2967,8 +2969,8 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 break;
             default:
                 msg(usprintf("%s: unknown opcode %02Xh", __FUNCTION__, *current), index);
+                // No further parsing required
                 return U_SUCCESS;
-                break;
         }
     }
     

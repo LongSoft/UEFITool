@@ -1539,7 +1539,7 @@ std::istream& operator >> (std::istream& sin, CBString& b) {
 	do {
 		b.gets ((bNgetc) istreamGets, &sin, '\n');
 		if (b.slen > 0 && b.data[b.slen-1] == '\n') b.slen--;
-	} while (b.slen == 0 && !sin.eof ());
+	} while (b.slen == 0 && !sin.eof() && !sin.fail());
  	return sin;
 }
 
