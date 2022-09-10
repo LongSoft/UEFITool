@@ -348,7 +348,7 @@ extern const UByteArray EFI_DXE_APRIORI_FILE_GUID; // FC510EE7-FFDC-11D4-BD41-00
 // Volume top file
 extern const UByteArray EFI_FFS_VOLUME_TOP_FILE_GUID; // 1BA0062E-C779-4582-8566-336AE8F78F09
 
-// AMI pad file GUID
+// AMI padding file GUID
 extern const UByteArray EFI_FFS_PAD_FILE_GUID; // E4536585-7909-4A60-B5C6-ECDEA6EBFB5
 
 // AMI DXE core file
@@ -529,6 +529,13 @@ typedef struct POSTCODE_SECTION_ {
 /// EFI_DEP_SOR is only used by DXE drivers
 ///
 #define EFI_DEP_SOR           0x09
+
+//*****************************************************************************
+// X86 Startup AP Data
+//*****************************************************************************
+#define RECOVERY_STARTUP_AP_DATA_X86_SIZE 0x10
+extern const UByteArray RECOVERY_STARTUP_AP_DATA_X86_64K;
+extern const UByteArray RECOVERY_STARTUP_AP_DATA_X86_128K;
 
 //*****************************************************************************
 // X86 Reset Vector Data
