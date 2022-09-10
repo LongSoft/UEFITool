@@ -317,7 +317,7 @@ char * r;
 
 	if (b == NULL || b->slen < 0 || b->data == NULL) return NULL;
 	l = b->slen;
-	r = (char *) bstr__alloc ((size_t) (l + 1));
+	r = (char *) bstr__alloc ((size_t)l + 1);
 	if (r == NULL) return r;
 
 	for (i=0; i < l; i ++) {

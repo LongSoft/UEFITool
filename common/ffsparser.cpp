@@ -4513,7 +4513,7 @@ make_partition_table_consistent:
                 info += UString("\nHash: ") + UString(hash.toHex().constData());
                 
                 UModelIndex codeIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::CodeCpdPartition, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-                parseRawArea(codeIndex);
+                (void)parseRawArea(codeIndex);
             }
         }
         else if (partitions[i].type == Types::Padding) {
