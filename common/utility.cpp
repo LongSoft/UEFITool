@@ -67,7 +67,7 @@ UString uniqueItemName(const UModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
-        return UString("Invalid_index");
+        return UString("InvalidIndex");
     
     // Get model from index
     const TreeModel* model = (const TreeModel*)index.model();

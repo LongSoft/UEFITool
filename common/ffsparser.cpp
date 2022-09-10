@@ -1368,7 +1368,8 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemOffset = offset - EFI_FV_SIGNATURE_OFFSET;
             break;
         }
-        else if (readUnaligned(currentPos) == BPDT_GREEN_SIGNATURE || readUnaligned(currentPos) == BPDT_YELLOW_SIGNATURE) {
+        else if (readUnaligned(currentPos) == BPDT_GREEN_SIGNATURE
+                 || readUnaligned(currentPos) == BPDT_YELLOW_SIGNATURE) {
             // Check data size
             if (restSize < sizeof(BPDT_HEADER))
                 continue;
@@ -1548,8 +1549,8 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
         
         // We aren't at the end of empty space
         // Check that the remaining space can still have a file in it
-        if (volumeBodySize - fileOffset < sizeof(EFI_FFS_FILE_HEADER) || // Remaining space is smaller than the smallest possible file
-            volumeBodySize - fileOffset < fileSize) { // Remaining space is smaller than non-empty file size
+        if (volumeBodySize - fileOffset < sizeof(EFI_FFS_FILE_HEADER) // Remaining space is smaller than the smallest possible file
+            || volumeBodySize - fileOffset < fileSize) { // Remaining space is smaller than non-empty file size
             // Parse non-UEFI data
             parseVolumeNonUefiData(volumeBody.mid(fileOffset), volumeHeaderSize + fileOffset, index);
             
@@ -1573,8 +1574,9 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex current = index.model()->index(i, 0, index);
         
-        // Skip non-file entries and pad files
-        if (model->type(current) != Types::File || model->subtype(current) == EFI_FV_FILETYPE_PAD) {
+        // Skip non-file entries and padding files
+        if (model->type(current) != Types::File
+            || model->subtype(current) == EFI_FV_FILETYPE_PAD) {
             continue;
         }
         
@@ -1755,7 +1757,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (fileHeader->Type != EFI_FV_FILETYPE_PAD) {
         name = guidToUString(fileHeader->Name);
     } else {
-        name = UString("Pad-file");
+        name = UString("Padding file");
     }
     
     info = UString("File GUID: ") + guidToUString(fileHeader->Name, false) +
@@ -1864,7 +1866,7 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
     if (model->type(index) != Types::File)
         return U_SUCCESS;
     
-    // Parse pad-file body
+    // Parse padding file body
     if (model->subtype(index) == EFI_FV_FILETYPE_PAD)
         return parsePadFileBody(index);
     
@@ -1915,7 +1917,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
         emptyByte = pdata->emptyByte;
     }
     
-    // Check if the while PAD file is empty
+    // Check if the while padding file is empty
     if (body.size() == body.count(emptyByte))
         return U_SUCCESS;
     
@@ -1950,20 +1952,39 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     // ... and all bytes after as a padding
     UByteArray padding = body.mid(nonEmptyByteOffset);
     
-    // Get info
-    UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
+    // Check for that data to be recovery startup AP data for x86
+    // https://github.com/tianocore/edk2/blob/stable/202011/BaseTools/Source/C/GenFv/GenFvInternalLib.c#L106
+    if (padding.left(RECOVERY_STARTUP_AP_DATA_X86_SIZE) == RECOVERY_STARTUP_AP_DATA_X86_128K) {
+        // Get info
+        UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
+        
+        // Add tree item
+        (void)model->addItem(headerSize + nonEmptyByteOffset, Types::StartupApDataEntry, Subtypes::x86128kStartupApDataEntry, UString("Startup AP data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+        
+        // Rename the file
+        model->setName(index, UString("Startup AP data padding file"));
+        
+        // Do not parse contents
+        return U_SUCCESS;
+    }
+    else { // Not a data array
+        // Get info
+        UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
+        
+        // Add tree item
+        UModelIndex dataIndex = model->addItem(headerSize + nonEmptyByteOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+        
+        // Show message
+        msg(usprintf("%s: non-UEFI data found in padding file", __FUNCTION__), dataIndex);
+        
+        // Rename the file
+        model->setName(index, UString("Non-empty padding file"));
+        
+        // Do not parse contents
+        return U_SUCCESS;
+    }
     
-    // Add tree item
-    UModelIndex dataIndex = model->addItem(headerSize + nonEmptyByteOffset, Types::Padding, Subtypes::DataPadding, UString("Non-UEFI data"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
-    
-    // Show message
-    msg(usprintf("%s: non-UEFI data found in pad-file", __FUNCTION__), dataIndex);
-    
-    // Rename the file
-    model->setName(index, UString("Non-empty pad-file"));
-    
-    // Parse contents as RAW area
-    return parseRawArea(dataIndex);
+    return U_SUCCESS;
 }
 
 USTATUS FfsParser::parseSections(const UByteArray & sections, const UModelIndex & index, const bool insertIntoTree)

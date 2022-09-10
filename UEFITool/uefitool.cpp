@@ -215,6 +215,7 @@ void UEFITool::populateUi(const QModelIndex &current)
                                      || type == Types::CpdEntry
                                      || type == Types::CpdExtension
                                      || type == Types::CpdSpiEntry
+                                     || type == Types::StartupApDataEntry
                                      );
     ui->menuStoreActions->setEnabled(type == Types::VssStore
                                      || type == Types::Vss2Store
@@ -441,7 +442,6 @@ void UEFITool::replaceBody()
 void UEFITool::replace(const UINT8 mode)
 {
     U_UNUSED_PARAMETER(mode);
-    
 }
 
 void UEFITool::extractAsIs()
@@ -507,7 +507,7 @@ void UEFITool::extract(const UINT8 mode)
                 if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey to file"), name + ".spk", tr("SLIC pubkey files (*.spk *.bin);;All files (*)"));
                 else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker to file"), name + ".smk", tr("SLIC marker files (*.smk *.bin);;All files (*)"));
                 break;
-            default:                    path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+            default: path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
     else if (mode == EXTRACT_MODE_BODY || mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
@@ -534,6 +534,7 @@ void UEFITool::extract(const UINT8 mode)
             case Types::VssEntry:
             case Types::EvsaEntry:
             case Types::FlashMapEntry:
+            case Types::StartupApDataEntry:
             case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
             case Types::VssStore:
             case Types::Vss2Store:
@@ -547,10 +548,10 @@ void UEFITool::extract(const UINT8 mode)
                 if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey body to file"), name + ".spb", tr("SLIC pubkey body files (*.spb *.bin);;All files (*)"));
                 else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker body to file"), name + ".smb", tr("SLIC marker body files (*.smb *.bin);;All files (*)"));
                 break;
-            default:                                     path = QFileDialog::getSaveFileName(this, tr("Save object to file"),           name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+            default: path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
-    else                                             path = QFileDialog::getSaveFileName(this, tr("Save object to file"),           name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+    else path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
     
     if (path.trimmed().isEmpty())
         return;
@@ -578,17 +579,23 @@ void UEFITool::remove()
 
 void UEFITool::about()
 {
-    QMessageBox::about(this, tr("About UEFITool"), tr(
-                                                      "Copyright (c) 2019, Nikolaj Schlej.<br>"
-                                                      "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br>"
-                                                      "The program uses QHexEdit2 library made by <a href=https://github.com/Simsys/>Simsys</a>.<br>"
-                                                      "Qt-less engine is using Bstrlib made by <a href=https://github.com/websnarf/>Paul Hsieh</a>.<br><br>"
-                                                      "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
-                                                      "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD License.<br>"
-                                                      "The full text of the license may be found at <a href=http://opensource.org/licenses/bsd-license.php>OpenSource.org</a>.<br><br>"
-                                                      "<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
-                                                      "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
-                                                      "EITHER EXPRESS OR IMPLIED.</b>"));
+    QMessageBox::about(this, tr("About UEFITool"),
+                       tr("Copyright (c) 2013-2022, Nikolaj Schlej.<br><br>"
+                          "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
+                          "GUI uses QHexEdit2 library made by <a href=https://github.com/Simsys>Simsys</a>.<br>"
+                          "Qt-less engine uses Bstrlib made by <a href=https://github.com/websnarf>Paul Hsieh</a>.<br>"
+                          "Engine uses Tiano compression code made by <a href=https://github.com/tianocore>TianoCore developers</a>.<br>"
+                          "Engine uses LZMA compression code made by <a href=https://www.7-zip.org/sdk.html>Igor Pavlov</a>.<br>"
+                          "Engine uses zlib compression code made by <a href=https://github.com/madler>Mark Adler</a>.<br>"
+                          "Engine uses LibTomCrypt hashing code made by <a href=https://github.com/libtom>LibTom developers</a>.<br>"
+                          "Engine uses KaitaiStruct runtime made by <a href=https://github.com/kaitai-io>Kaitai team</a>.<br><br>"
+                          "The program is dedicated to <b>RevoGirl</b>. Rest in peace, young genius.<br><br>"
+                          "The program and the accompanying materials are licensed and made available under the terms and conditions of the BSD-2-Clause License.<br>"
+                          "The full text of the license may be found at <a href=https://opensource.org/licenses/BSD-2-Clause>OpenSource.org</a>.<br><br>"
+                          "<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
+                          "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
+                          "EITHER EXPRESS OR IMPLIED.</b>"
+                          ));
 }
 
 void UEFITool::aboutQt()
@@ -801,309 +808,312 @@ void UEFITool::showParserMessages()
 #if QT_VERSION_MAJOR < 6
     std::pair<QString, QModelIndex> msg;
     
-    foreach (msg, messages) {
+    foreach (msg, messages)
 #else
-        for (const auto &msg : messages) {
+    for (const auto &msg : messages)
 #endif
-            QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
-            item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
-            ui->parserMessagesListWidget->addItem(item);
-        }
+    {
+        QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
+        item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
+        ui->parserMessagesListWidget->addItem(item);
+    }
         
-        ui->messagesTabWidget->setCurrentIndex(TAB_PARSER);
-        ui->parserMessagesListWidget->scrollToBottom();
+    ui->messagesTabWidget->setCurrentIndex(TAB_PARSER);
+    ui->parserMessagesListWidget->scrollToBottom();
+}
+
+void UEFITool::showFinderMessages()
+{
+    ui->finderMessagesListWidget->clear();
+    if (!ffsParser)
+        return;
+    
+    std::vector<std::pair<QString, QModelIndex> > messages = ffsFinder->getMessages();
+    
+#if QT_VERSION_MAJOR < 6
+    std::pair<QString, QModelIndex> msg;
+    
+    foreach (msg, messages)
+#else
+    for (const auto &msg : messages)
+#endif
+    {
+        QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
+        item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));;
+        ui->finderMessagesListWidget->addItem(item);
     }
     
-    void UEFITool::showFinderMessages()
+    ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, true);
+    ui->messagesTabWidget->setCurrentIndex(TAB_SEARCH);
+    ui->finderMessagesListWidget->scrollToBottom();
+}
+
+void UEFITool::showBuilderMessages()
+{
+    ui->builderMessagesListWidget->clear();
+    if (!ffsBuilder)
+        return;
+    
+    std::vector<std::pair<QString, QModelIndex> > messages = ffsBuilder->getMessages();
+    
+#if QT_VERSION_MAJOR < 6
+    std::pair<QString, QModelIndex> msg;
+    
+    foreach (msg, messages)
+#else
+    for (const auto &msg : messages)
+#endif
     {
-        ui->finderMessagesListWidget->clear();
-        if (!ffsParser)
-            return;
-        
-        std::vector<std::pair<QString, QModelIndex> > messages = ffsFinder->getMessages();
-        
-#if QT_VERSION_MAJOR < 6
-        std::pair<QString, QModelIndex> msg;
-        
-        foreach (msg, messages) {
-#else
-            for (const auto &msg : messages) {
-#endif
-                QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
-                item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));;
-                ui->finderMessagesListWidget->addItem(item);
-            }
-            
-            ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, true);
-            ui->messagesTabWidget->setCurrentIndex(TAB_SEARCH);
-            ui->finderMessagesListWidget->scrollToBottom();
-        }
-        
-        void UEFITool::showBuilderMessages()
-        {
-            ui->builderMessagesListWidget->clear();
-            if (!ffsBuilder)
-                return;
-            
-            std::vector<std::pair<QString, QModelIndex> > messages = ffsBuilder->getMessages();
-            
-#if QT_VERSION_MAJOR < 6
-            std::pair<QString, QModelIndex> msg;
-            
-            foreach (msg, messages) {
-#else
-                for (const auto &msg : messages) {
-#endif
-                    QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
-                    item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
-                    ui->builderMessagesListWidget->addItem(item);
-                }
-                
-                ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, true);
-                ui->messagesTabWidget->setCurrentIndex(TAB_BUILDER);
-                ui->builderMessagesListWidget->scrollToBottom();
-            }
-            
-            void UEFITool::scrollTreeView(QListWidgetItem* item)
-            {
-                QByteArray second = item->data(Qt::UserRole).toByteArray();
-                QModelIndex *index = (QModelIndex *)second.data();
-                if (index && index->isValid()) {
-                    ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
-                    ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
-                }
-            }
-            
-            void UEFITool::scrollTreeView(QTableWidgetItem* item)
-            {
-                QByteArray second = item->data(Qt::UserRole).toByteArray();
-                QModelIndex *index = (QModelIndex *)second.data();
-                if (index && index->isValid()) {
-                    ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
-                    ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
-                }
-            }
-            
-            void UEFITool::contextMenuEvent(QContextMenuEvent* event)
-            {
-                // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
-                // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
-                // For this reason we reimplement this manually.
-                if (ui->parserMessagesListWidget->rect().contains(ui->parserMessagesListWidget->mapFromGlobal(event->globalPos())) ||
-                    ui->finderMessagesListWidget->rect().contains(ui->finderMessagesListWidget->mapFromGlobal(event->globalPos())) ||
-                    ui->builderMessagesListWidget->rect().contains(ui->builderMessagesListWidget->mapFromGlobal(event->globalPos()))) {
-                    ui->menuMessageActions->exec(event->globalPos());
-                    return;
-                }
-                
-                
-                if (!ui->structureTreeView->rect().contains(ui->structureTreeView->mapFromGlobal(event->globalPos())))
-                    return;
-                
-                QPoint pt = event->pos();
-                QModelIndex index = ui->structureTreeView->indexAt(ui->structureTreeView->viewport()->mapFrom(this, pt));
-                if (!index.isValid()) {
-                    return;
-                }
-                
-                switch (model->type(index))
-                {
-                    case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
-                    case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
-                    case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
-                    case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());      break;
-                    case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());       break;
-                    case Types::File:           ui->menuFileActions->exec(event->globalPos());         break;
-                    case Types::Section:        ui->menuSectionActions->exec(event->globalPos());      break;
-                    case Types::VssStore:
-                    case Types::Vss2Store:
-                    case Types::FdcStore:
-                    case Types::FsysStore:
-                    case Types::EvsaStore:
-                    case Types::FtwStore:
-                    case Types::FlashMapStore:
-                    case Types::CmdbStore:
-                    case Types::FptStore:
-                    case Types::CpdStore:
-                    case Types::BpdtStore:      ui->menuStoreActions->exec(event->globalPos());        break;
-                    case Types::FreeSpace:      break; // No menu needed for FreeSpace item
-                    default:                    ui->menuEntryActions->exec(event->globalPos());        break;
-                }
-            }
-            
-            void UEFITool::readSettings()
-            {
-                QSettings settings(this);
-                restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
-                restoreState(settings.value("mainWindow/windowState").toByteArray());
-                QList<int> horList, vertList;
-                horList.append(settings.value("mainWindow/treeWidth", 600).toInt());
-                horList.append(settings.value("mainWindow/infoWidth", 180).toInt());
-                vertList.append(settings.value("mainWindow/treeHeight", 400).toInt());
-                vertList.append(settings.value("mainWindow/messageHeight", 180).toInt());
-                ui->infoSplitter->setSizes(horList);
-                ui->messagesSplitter->setSizes(vertList);
-                ui->structureTreeView->setColumnWidth(0, settings.value("tree/columnWidth0", ui->structureTreeView->columnWidth(0)).toInt());
-                ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
-                ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
-                ui->structureTreeView->setColumnWidth(3, settings.value("tree/columnWidth3", ui->structureTreeView->columnWidth(3)).toInt());
-                markingEnabled = settings.value("tree/markingEnabled", true).toBool();
-                ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
-                
-                // Set monospace font for some controls
-                QString fontName;
-                int fontSize;
+        QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
+        item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
+        ui->builderMessagesListWidget->addItem(item);
+    }
+    
+    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, true);
+    ui->messagesTabWidget->setCurrentIndex(TAB_BUILDER);
+    ui->builderMessagesListWidget->scrollToBottom();
+}
+
+void UEFITool::scrollTreeView(QListWidgetItem* item)
+{
+    QByteArray second = item->data(Qt::UserRole).toByteArray();
+    QModelIndex *index = (QModelIndex *)second.data();
+    if (index && index->isValid()) {
+        ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    }
+}
+
+void UEFITool::scrollTreeView(QTableWidgetItem* item)
+{
+    QByteArray second = item->data(Qt::UserRole).toByteArray();
+    QModelIndex *index = (QModelIndex *)second.data();
+    if (index && index->isValid()) {
+        ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    }
+}
+
+void UEFITool::contextMenuEvent(QContextMenuEvent* event)
+{
+    // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
+    // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
+    // For this reason we reimplement this manually.
+    if (ui->parserMessagesListWidget->rect().contains(ui->parserMessagesListWidget->mapFromGlobal(event->globalPos())) ||
+        ui->finderMessagesListWidget->rect().contains(ui->finderMessagesListWidget->mapFromGlobal(event->globalPos())) ||
+        ui->builderMessagesListWidget->rect().contains(ui->builderMessagesListWidget->mapFromGlobal(event->globalPos()))) {
+        ui->menuMessageActions->exec(event->globalPos());
+        return;
+    }
+    
+    
+    if (!ui->structureTreeView->rect().contains(ui->structureTreeView->mapFromGlobal(event->globalPos())))
+        return;
+    
+    QPoint pt = event->pos();
+    QModelIndex index = ui->structureTreeView->indexAt(ui->structureTreeView->viewport()->mapFrom(this, pt));
+    if (!index.isValid()) {
+        return;
+    }
+    
+    switch (model->type(index))
+    {
+        case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
+        case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
+        case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
+        case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());      break;
+        case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());       break;
+        case Types::File:           ui->menuFileActions->exec(event->globalPos());         break;
+        case Types::Section:        ui->menuSectionActions->exec(event->globalPos());      break;
+        case Types::VssStore:
+        case Types::Vss2Store:
+        case Types::FdcStore:
+        case Types::FsysStore:
+        case Types::EvsaStore:
+        case Types::FtwStore:
+        case Types::FlashMapStore:
+        case Types::CmdbStore:
+        case Types::FptStore:
+        case Types::CpdStore:
+        case Types::BpdtStore:      ui->menuStoreActions->exec(event->globalPos());        break;
+        case Types::FreeSpace:      break; // No menu needed for FreeSpace item
+        default:                    ui->menuEntryActions->exec(event->globalPos());        break;
+    }
+}
+
+void UEFITool::readSettings()
+{
+    QSettings settings(this);
+    restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
+    restoreState(settings.value("mainWindow/windowState").toByteArray());
+    QList<int> horList, vertList;
+    horList.append(settings.value("mainWindow/treeWidth", 600).toInt());
+    horList.append(settings.value("mainWindow/infoWidth", 180).toInt());
+    vertList.append(settings.value("mainWindow/treeHeight", 400).toInt());
+    vertList.append(settings.value("mainWindow/messageHeight", 180).toInt());
+    ui->infoSplitter->setSizes(horList);
+    ui->messagesSplitter->setSizes(vertList);
+    ui->structureTreeView->setColumnWidth(0, settings.value("tree/columnWidth0", ui->structureTreeView->columnWidth(0)).toInt());
+    ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
+    ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
+    ui->structureTreeView->setColumnWidth(3, settings.value("tree/columnWidth3", ui->structureTreeView->columnWidth(3)).toInt());
+    markingEnabled = settings.value("tree/markingEnabled", true).toBool();
+    ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
+    
+    // Set monospace font for some controls
+    QString fontName;
+    int fontSize;
 #if defined Q_OS_OSX
-                fontName = settings.value("mainWindow/fontName", QString("Menlo")).toString();
-                fontSize = settings.value("mainWindow/fontSize", 10).toInt();
+    fontName = settings.value("mainWindow/fontName", QString("Menlo")).toString();
+    fontSize = settings.value("mainWindow/fontSize", 10).toInt();
 #elif defined Q_OS_WIN
-                fontName = settings.value("mainWindow/fontName", QString("Consolas")).toString();
-                fontSize = settings.value("mainWindow/fontSize", 9).toInt();
+    fontName = settings.value("mainWindow/fontName", QString("Consolas")).toString();
+    fontSize = settings.value("mainWindow/fontSize", 9).toInt();
 #else
-                fontName = settings.value("mainWindow/fontName", QString("Courier New")).toString();
-                fontSize = settings.value("mainWindow/fontSize", 10).toInt();
+    fontName = settings.value("mainWindow/fontName", QString("Courier New")).toString();
+    fontSize = settings.value("mainWindow/fontSize", 10).toInt();
 #endif
-                currentFont = QFont(fontName, fontSize);
-                ui->infoEdit->setFont(currentFont);
-                ui->parserMessagesListWidget->setFont(currentFont);
-                ui->finderMessagesListWidget->setFont(currentFont);
-                ui->builderMessagesListWidget->setFont(currentFont);
-                ui->fitTableWidget->setFont(currentFont);
-                ui->securityEdit->setFont(currentFont);
-                ui->structureTreeView->setFont(currentFont);
-                searchDialog->ui->guidEdit->setFont(currentFont);
-                searchDialog->ui->hexEdit->setFont(currentFont);
-                hexViewDialog->setFont(currentFont);
-                goToAddressDialog->ui->hexSpinBox->setFont(currentFont);
-                goToBaseDialog->ui->hexSpinBox->setFont(currentFont);
-            }
-            
-            void UEFITool::writeSettings()
-            {
-                QSettings settings(this);
-                settings.setValue("mainWindow/geometry", saveGeometry());
-                settings.setValue("mainWindow/windowState", saveState());
-                settings.setValue("mainWindow/treeWidth", ui->structureGroupBox->width());
-                settings.setValue("mainWindow/infoWidth", ui->infoGroupBox->width());
-                settings.setValue("mainWindow/treeHeight", ui->structureGroupBox->height());
-                settings.setValue("mainWindow/messageHeight", ui->messagesTabWidget->height());
-                settings.setValue("tree/columnWidth0", ui->structureTreeView->columnWidth(0));
-                settings.setValue("tree/columnWidth1", ui->structureTreeView->columnWidth(1));
-                settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
-                settings.setValue("tree/columnWidth3", ui->structureTreeView->columnWidth(3));
-                settings.setValue("tree/markingEnabled", markingEnabled);
-                settings.setValue("mainWindow/fontName", currentFont.family());
-                settings.setValue("mainWindow/fontSize", currentFont.pointSize());
-            }
-            
-            void UEFITool::showFitTable()
-            {
-                std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable = ffsParser->getFitTable();
-                if (fitTable.empty()) {
-                    // Disable FIT tab
-                    ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
-                    return;
+    currentFont = QFont(fontName, fontSize);
+    ui->infoEdit->setFont(currentFont);
+    ui->parserMessagesListWidget->setFont(currentFont);
+    ui->finderMessagesListWidget->setFont(currentFont);
+    ui->builderMessagesListWidget->setFont(currentFont);
+    ui->fitTableWidget->setFont(currentFont);
+    ui->securityEdit->setFont(currentFont);
+    ui->structureTreeView->setFont(currentFont);
+    searchDialog->ui->guidEdit->setFont(currentFont);
+    searchDialog->ui->hexEdit->setFont(currentFont);
+    hexViewDialog->setFont(currentFont);
+    goToAddressDialog->ui->hexSpinBox->setFont(currentFont);
+    goToBaseDialog->ui->hexSpinBox->setFont(currentFont);
+}
+
+void UEFITool::writeSettings()
+{
+    QSettings settings(this);
+    settings.setValue("mainWindow/geometry", saveGeometry());
+    settings.setValue("mainWindow/windowState", saveState());
+    settings.setValue("mainWindow/treeWidth", ui->structureGroupBox->width());
+    settings.setValue("mainWindow/infoWidth", ui->infoGroupBox->width());
+    settings.setValue("mainWindow/treeHeight", ui->structureGroupBox->height());
+    settings.setValue("mainWindow/messageHeight", ui->messagesTabWidget->height());
+    settings.setValue("tree/columnWidth0", ui->structureTreeView->columnWidth(0));
+    settings.setValue("tree/columnWidth1", ui->structureTreeView->columnWidth(1));
+    settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
+    settings.setValue("tree/columnWidth3", ui->structureTreeView->columnWidth(3));
+    settings.setValue("tree/markingEnabled", markingEnabled);
+    settings.setValue("mainWindow/fontName", currentFont.family());
+    settings.setValue("mainWindow/fontSize", currentFont.pointSize());
+}
+
+void UEFITool::showFitTable()
+{
+    std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable = ffsParser->getFitTable();
+    if (fitTable.empty()) {
+        // Disable FIT tab
+        ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
+        return;
+    }
+    
+    // Enable FIT tab
+    ui->messagesTabWidget->setTabEnabled(TAB_FIT, true);
+    
+    // Set up the FIT table
+    ui->fitTableWidget->clear();
+    ui->fitTableWidget->setRowCount((int)fitTable.size());
+    ui->fitTableWidget->setColumnCount(6);
+    ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Checksum") << tr("Type") << tr("Information"));
+    ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->fitTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->fitTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->fitTableWidget->horizontalHeader()->setStretchLastSection(true);
+    
+    // Add all data to the table widget
+    for (size_t i = 0; i < fitTable.size(); i++) {
+        for (UINT8 j = 0; j < 6; j++) {
+            QTableWidgetItem* item = new QTableWidgetItem(fitTable[i].first[j]);
+            item->setData(Qt::UserRole, QByteArray((const char*)&fitTable[i].second, sizeof(fitTable[i].second)));
+            ui->fitTableWidget->setItem((int)i, j, item);
+        }
+    }
+    
+    ui->fitTableWidget->resizeColumnsToContents();
+    ui->fitTableWidget->resizeRowsToContents();
+    ui->messagesTabWidget->setCurrentIndex(TAB_FIT);
+}
+
+void UEFITool::showSecurityInfo()
+{
+    // Get security info
+    UString secInfo = ffsParser->getSecurityInfo();
+    if (secInfo.isEmpty()) {
+        ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
+        return;
+    }
+    
+    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, true);
+    ui->securityEdit->setPlainText(secInfo);
+    ui->messagesTabWidget->setCurrentIndex(TAB_SECURITY);
+}
+
+void UEFITool::currentTabChanged(int index)
+{
+    U_UNUSED_PARAMETER(index);
+    
+    ui->menuMessageActions->setEnabled(false);
+    ui->actionMessagesCopy->setEnabled(false);
+    ui->actionMessagesCopyAll->setEnabled(false);
+    ui->actionMessagesClear->setEnabled(false);
+}
+
+void UEFITool::loadGuidDatabase()
+{
+    QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), currentDir, tr("Comma-separated values files (*.csv);;All files (*)"));
+    if (!path.isEmpty()) {
+        initGuidDatabase(path);
+        if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("New GUID database loaded"), tr("Apply new GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
+            openImageFile(currentPath);
+    }
+}
+
+void UEFITool::unloadGuidDatabase()
+{
+    initGuidDatabase();
+    if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("GUID database unloaded"), tr("Apply changes on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
+        openImageFile(currentPath);
+}
+
+void UEFITool::loadDefaultGuidDatabase()
+{
+    initGuidDatabase(":/guids.csv");
+    if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("Default GUID database loaded"), tr("Apply default GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
+        openImageFile(currentPath);
+}
+
+void UEFITool::exportDiscoveredGuids()
+{
+    GuidDatabase db = guidDatabaseFromTreeRecursive(model, model->index(0, 0));
+    if (!db.empty()) {
+        QString path = QFileDialog::getSaveFileName(this, tr("Save parsed GUIDs to database"), currentPath + ".guids.csv", tr("Comma-separated values files (*.csv);;All files (*)"));
+        if (!path.isEmpty())
+            guidDatabaseExportToFile(path, db);
+    }
+}
+
+void UEFITool::generateReport()
+{
+    QString path = QFileDialog::getSaveFileName(this, tr("Save report to text file"), currentPath + ".report.txt", tr("Text files (*.txt);;All files (*)"));
+    if (!path.isEmpty()) {
+        std::vector<QString> report = ffsReport->generate();
+        if (report.size()) {
+            QFile file;
+            file.setFileName(path);
+            if (file.open(QFile::Text | QFile::WriteOnly)) {
+                for (size_t i = 0; i < report.size(); i++) {
+                    file.write(report[i].toLatin1().append('\n'));
                 }
-                
-                // Enable FIT tab
-                ui->messagesTabWidget->setTabEnabled(TAB_FIT, true);
-                
-                // Set up the FIT table
-                ui->fitTableWidget->clear();
-                ui->fitTableWidget->setRowCount((int)fitTable.size());
-                ui->fitTableWidget->setColumnCount(6);
-                ui->fitTableWidget->setHorizontalHeaderLabels(QStringList() << tr("Address") << tr("Size") << tr("Version") << tr("Checksum") << tr("Type") << tr("Information"));
-                ui->fitTableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-                ui->fitTableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-                ui->fitTableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
-                ui->fitTableWidget->horizontalHeader()->setStretchLastSection(true);
-                
-                // Add all data to the table widget
-                for (size_t i = 0; i < fitTable.size(); i++) {
-                    for (UINT8 j = 0; j < 6; j++) {
-                        QTableWidgetItem* item = new QTableWidgetItem(fitTable[i].first[j]);
-                        item->setData(Qt::UserRole, QByteArray((const char*)&fitTable[i].second, sizeof(fitTable[i].second)));
-                        ui->fitTableWidget->setItem((int)i, j, item);
-                    }
-                }
-                
-                ui->fitTableWidget->resizeColumnsToContents();
-                ui->fitTableWidget->resizeRowsToContents();
-                ui->messagesTabWidget->setCurrentIndex(TAB_FIT);
+                file.close();
             }
-            
-            void UEFITool::showSecurityInfo()
-            {
-                // Get security info
-                UString secInfo = ffsParser->getSecurityInfo();
-                if (secInfo.isEmpty()) {
-                    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
-                    return;
-                }
-                
-                ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, true);
-                ui->securityEdit->setPlainText(secInfo);
-                ui->messagesTabWidget->setCurrentIndex(TAB_SECURITY);
-            }
-            
-            void UEFITool::currentTabChanged(int index)
-            {
-                U_UNUSED_PARAMETER(index);
-                
-                ui->menuMessageActions->setEnabled(false);
-                ui->actionMessagesCopy->setEnabled(false);
-                ui->actionMessagesCopyAll->setEnabled(false);
-                ui->actionMessagesClear->setEnabled(false);
-            }
-            
-            void UEFITool::loadGuidDatabase()
-            {
-                QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), currentDir, tr("Comma-separated values files (*.csv);;All files (*)"));
-                if (!path.isEmpty()) {
-                    initGuidDatabase(path);
-                    if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("New GUID database loaded"), tr("Apply new GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
-                        openImageFile(currentPath);
-                }
-            }
-            
-            void UEFITool::unloadGuidDatabase()
-            {
-                initGuidDatabase();
-                if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("GUID database unloaded"), tr("Apply changes on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
-                    openImageFile(currentPath);
-            }
-            
-            void UEFITool::loadDefaultGuidDatabase()
-            {
-                initGuidDatabase(":/guids.csv");
-                if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("Default GUID database loaded"), tr("Apply default GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
-                    openImageFile(currentPath);
-            }
-            
-            void UEFITool::exportDiscoveredGuids()
-            {
-                GuidDatabase db = guidDatabaseFromTreeRecursive(model, model->index(0, 0));
-                if (!db.empty()) {
-                    QString path = QFileDialog::getSaveFileName(this, tr("Save parsed GUIDs to database"), currentPath + ".guids.csv", tr("Comma-separated values files (*.csv);;All files (*)"));
-                    if (!path.isEmpty())
-                        guidDatabaseExportToFile(path, db);
-                }
-            }
-            
-            void UEFITool::generateReport()
-            {
-                QString path = QFileDialog::getSaveFileName(this, tr("Save report to text file"), currentPath + ".report.txt", tr("Text files (*.txt);;All files (*)"));
-                if (!path.isEmpty()) {
-                    std::vector<QString> report = ffsReport->generate();
-                    if (report.size()) {
-                        QFile file;
-                        file.setFileName(path);
-                        if (file.open(QFile::Text | QFile::WriteOnly)) {
-                            for (size_t i = 0; i < report.size(); i++) {
-                                file.write(report[i].toLatin1().append('\n'));
-                            }
-                            file.close();
-                        }
-                    }
-                }
-            }
+        }
+    }
+}

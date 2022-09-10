@@ -72,7 +72,7 @@ extern const UByteArray EFI_DXE_APRIORI_FILE_GUID // FC510EE7-FFDC-11D4-BD41-008
 // Volume top file
 extern const UByteArray EFI_FFS_VOLUME_TOP_FILE_GUID // 1BA0062E-C779-4582-8566-336AE8F78F09
 ("\x2E\x06\xA0\x1B\x79\xC7\x82\x45\x85\x66\x33\x6A\xE8\xF7\x8F\x09", 16);
-// Pad file GUID
+// Padding file GUID
 extern const UByteArray EFI_FFS_PAD_FILE_GUID // E4536585-7909-4A60-B5C6-ECDEA6EBFB5
 ("\x85\x65\x53\xE4\x09\x79\x60\x4A\xB5\xC6\xEC\xDE\xA6\xEB\xFB\x54", 16);
 // AMI DXE core file
@@ -124,6 +124,9 @@ const UINT8 ffsAlignmentTable[] =
 
 const UINT8 ffsAlignment2Table[] =
 { 17, 18, 19, 20, 21, 22, 23, 24 };
+
+extern const UByteArray RECOVERY_STARTUP_AP_DATA_X86_128K // jmp far F000:FFD0, EAD0FF00F0
+("\xEA\xD0\xFF\x00\xF0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x27\x2D", RECOVERY_STARTUP_AP_DATA_X86_SIZE);
 
 VOID uint32ToUint24(UINT32 size, UINT8* ffsSize)
 {
