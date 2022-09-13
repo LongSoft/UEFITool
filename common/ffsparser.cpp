@@ -1890,12 +1890,35 @@ USTATUS FfsParser::parseFileBody(const UModelIndex & index)
             return nvramParser->parseNvarStore(index);
         }
         else if (fileGuid == NVRAM_NVAR_BB_DEFAULTS_FILE_GUID) {
-            model->setText(index, UString("NVAR bb defaults"));
+            model->setText(index, UString("NVAR BB defaults"));
             return nvramParser->parseNvarStore(index);
         }
         // Parse vendor hash file
         else if (fileGuid == PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_PHOENIX) {
             return parseVendorHashFile(fileGuid, index);
+        }
+        // Parse AMI ROM hole
+        else if (fileGuid == AMI_ROM_HOLE_FILE_GUID_0
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_1
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_2
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_3
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_4
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_5
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_6
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_7
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_8
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_9
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_10
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_11
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_12
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_13
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_14
+                 || fileGuid == AMI_ROM_HOLE_FILE_GUID_15) {
+            model->setText(index, UString("AMI ROM hole"));
+            // Mark ROM hole file as Fixed in the image
+            model->setFixed(index, Fixed);
+            // No need to parse further
+            return U_SUCCESS;
         }
         
         return parseRawArea(index);
