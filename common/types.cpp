@@ -164,6 +164,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
             else if (subtype == Subtypes::MetadataCpdPartition)         return UString("Metadata");
             else if (subtype == Subtypes::KeyCpdPartition)              return UString("Key");
             else if (subtype == Subtypes::CodeCpdPartition)             return UString("Code");
+            break;
         case Types::StartupApDataEntry:
             if      (subtype == Subtypes::x86128kStartupApDataEntry)    return UString("X86 128K");
             break;
