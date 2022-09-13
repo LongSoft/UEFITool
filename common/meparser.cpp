@@ -212,8 +212,18 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
             partitions.push_back(partition);
         }
     }
+    // Check for empty set of partitions
+    if (partitions.empty()) {
+        // Add a single padding partition in this case
+        FPT_PARTITION_INFO padding = {};
+        padding.ptEntry.Offset = offset;
+        padding.ptEntry.Size = (UINT32)(region.size() - padding.ptEntry.Offset);
+        padding.type = Types::Padding;
+        partitions.push_back(padding);
+    }
     
 make_partition_table_consistent:
+
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
