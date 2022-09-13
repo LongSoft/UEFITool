@@ -431,6 +431,12 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         }
     }
     
+    // Regions can not be empty here
+    if (regions.empty()) {
+        msg(usprintf("%s: descriptor parsing failed, no regions found", __FUNCTION__));
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    
     // Sort regions in ascending order
     std::sort(regions.begin(), regions.end());
     
@@ -4057,18 +4063,14 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         }
     }
     
-    // Add padding if there's no partions to add
-    if (partitions.size() == 0) {
-        UByteArray partition = region.mid(ptSize);
-        
-        // Get info
-        name = UString("Padding");
-        info = usprintf("Full size: %Xh (%u)",
-                        (UINT32)partition.size(), (UINT32)partition.size());
-        
-        // Add tree item
-        model->addItem(localOffset + ptSize, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
-        return U_SUCCESS;
+    // Check for empty set of partitions
+    if (partitions.empty()) {
+        // Add a single padding partition in this case
+        BPDT_PARTITION_INFO padding = {};
+        padding.ptEntry.Offset = offset;
+        padding.ptEntry.Size = (UINT32)(region.size() - padding.ptEntry.Offset);
+        padding.type = Types::Padding;
+        partitions.push_back(padding);
     }
     
 make_partition_table_consistent:
