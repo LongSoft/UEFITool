@@ -22,7 +22,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ffs.h"
 #include "utility.h"
 
-struct OperatorLessForGuids : public std::binary_function<EFI_GUID, EFI_GUID, bool>
+struct OperatorLessForGuids
 {
     bool operator()(const EFI_GUID& lhs, const EFI_GUID& rhs) const
     {
