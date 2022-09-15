@@ -2,6 +2,7 @@
 
 #define KS_STR_ENCODING_NONE
 
+// macOS
 #if defined(__APPLE__)
 #include <machine/endian.h>
 #include <libkern/OSByteOrder.h>
@@ -11,7 +12,8 @@
 #define __BYTE_ORDER    BYTE_ORDER
 #define __BIG_ENDIAN    BIG_ENDIAN
 #define __LITTLE_ENDIAN LITTLE_ENDIAN
-#elif defined(_MSC_VER) // !__APPLE__
+// Windows with MS compiler
+#elif defined(_MSC_VER)
 #include <stdlib.h>
 #define __LITTLE_ENDIAN     1234
 #define __BIG_ENDIAN        4321
@@ -19,12 +21,14 @@
 #define bswap_16(x) _byteswap_ushort(x)
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
-#elif defined(__FreeBSD__)
+// BSD
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 #include <sys/endian.h>
 #define bswap_16(x) bswap16(x)
 #define bswap_32(x) bswap32(x)
 #define bswap_64(x) bswap64(x)
-#else // !__APPLE__ or !_MSC_VER
+// Everything else
+#else
 #include <endian.h>
 #include <byteswap.h>
 #endif
