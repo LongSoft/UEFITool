@@ -2,6 +2,14 @@
 
 UTARGET=$(uname)
 BINSUFFIX=""
+QMAKE="qmake"
+
+# Fedora does not have qmake, only qmake-qt5
+if ! command -v qmake > /dev/null; then
+  if command -v qmake-qt5 > /dev/null; then
+    QMAKE="qmake-qt5"
+  fi
+fi
 
 if [ "$1" = "--configure" ]; then
   export NOBUILD=1
@@ -86,11 +94,11 @@ build_tool() {
   if [ "$PRECONFIGURED" != "1" ]; then
     if [ "$3" != "" ]; then
       if [ "$UPLATFORM" = "mac" ]; then
-        qmake "../../$1/$3" QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
+        $QMAKE "../../$1/$3" QMAKE_CXXFLAGS+=-flto QMAKE_LFLAGS+=-flto CONFIG+=optimize_size || exit 1
       elif [ "$UPLATFORM" = "win32" ]; then
-        qmake "../../$1/$3" QMAKE_CXXFLAGS="-static -flto -Os -std=c++11" QMAKE_LFLAGS="-static -flto -Os -std=c++11" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
+        $QMAKE "../../$1/$3" QMAKE_CXXFLAGS="-static -flto -Os -std=c++11" QMAKE_LFLAGS="-static -flto -Os -std=c++11" CONFIG+=optimize_size CONFIG+=staticlib CONFIG+=static || exit 1
       else
-        qmake "../../$1/$3" CONFIG+=optimize_size || exit 1
+        $QMAKE "../../$1/$3" CONFIG+=optimize_size || exit 1
       fi
     else
       if [ "$UPLATFORM" = "mac" ]; then
