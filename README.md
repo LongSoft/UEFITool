@@ -46,7 +46,7 @@ Right now there are some alternatives to UEFITool that you could find useful too
 ## Installation
 
 You can either use [pre-built binaries for Windows and macOS](https://github.com/LongSoft/UEFITool/releases) or build a binary yourself.  
-* To build a binary that uses Qt library (UEFITool) you need a C++ compiler and an instance of [Qt5](https://www.qt.io) library. Install both of them, get the sources, generate makefiles using qmake (`qmake UEFITool.pro`) and use your system's make command on that generated files (i.e. `nmake release`, `make release` and so on).
+* To build a binary that uses Qt library (UEFITool) you need a C++ compiler and an instance of [Qt5](https://www.qt.io) library. Install both of them, get the sources, generate makefiles using qmake (`qmake ./UEFITool/uefitool.pro`) and use your system's make command on that generated files (i.e. `nmake release`, `make release` and so on).
 * To build a binary that doesn't use Qt (UEFIExtract, UEFIFind), you need a C++ compiler and [CMAKE](https://cmake.org) utility to generate a makefile for your OS and build environment. Install both of them, get the sources, generate makefiles using cmake (`cmake UEFIExtract`) and use your system's make command on that generated files (i.e. `nmake release`, `make release` and so on).
 
 ## Known issues
