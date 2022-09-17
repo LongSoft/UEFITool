@@ -112,7 +112,7 @@ build_tool() {
   fi
 
   if [ "$NOBUILD" != "1" ]; then
-    make || exit 1
+    make -j$(getconf _NPROCESSORS_ONLN) || exit 1
 
     # Move the binary out of the dir
     if [ "$UPLATFORM" = "win32" ] && [ -f "release/${1}${BINSUFFIX}" ]; then
