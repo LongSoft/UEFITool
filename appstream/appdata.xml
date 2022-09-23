@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+  <id>com.github.LongSoft.UEFITool</id>
+  <launchable type="desktop-id">com.github.LongSoft.UEFITool.desktop</launchable>
+  <name>UEFITool</name>
+  <summary>UEFI firmware image viewer and editor</summary>
+  <description>
+    <p>UEFITool is a cross-platform open source application written in C++/Qt, that parses UEFI-compatible firmware image into a tree structure, verifies image's integrity and provides a GUI to manipulate image's elements. Project development started in the middle of 2013 because of the lack of cross-platform open source utilities for tinkering with UEFI images.</p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source">https://github.com/flathub/flathub/raw/7d1734965e0da08c5a6622456550629ef4ea3acb/UEFITool.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="A61" date="2022-09-10" />
+  </releases>
+  <url type="homepage">https://github.com/LongSoft/UEFITool</url>
+  <developer_name>LongSoft</developer_name>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>BSD-2-Clause</project_license>
+  <content_rating type="oars-1.1" />
+</component>
