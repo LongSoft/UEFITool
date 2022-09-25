@@ -5,11 +5,11 @@
   <name>UEFITool</name>
   <summary>UEFI firmware image viewer and editor</summary>
   <description>
-    <p>UEFITool is a cross-platform open source application written in C++/Qt, that parses UEFI-compatible firmware image into a tree structure, verifies image's integrity and provides a GUI to manipulate image's elements. Project development started in the middle of 2013 because of the lack of cross-platform open source utilities for tinkering with UEFI images.</p>
+    <p>UEFITool is a cross-platform open source application, that parses UEFI PI-compatible firmware image into a tree structure, verifies image integrity and provides a GUI to manipulate image elements.</p>
   </description>
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://github.com/flathub/flathub/raw/7d1734965e0da08c5a6622456550629ef4ea3acb/UEFITool.png</image>
+      <image type="source">https://github.com/LongSoft/UEFITool/blob/new_engine/appstream/UEFITool.png?raw=true</image>
     </screenshot>
   </screenshots>
   <releases>
