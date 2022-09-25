@@ -428,7 +428,7 @@ BoolInt CPU_IsSupported_AES (void) { return APPLE_CRYPTO_SUPPORT_VAL; }
 #ifdef __linux__
   #define MY_HWCAP_CHECK_FUNC_2(name1, name2) \
   BoolInt CPU_IsSupported_ ## name1() { return (getauxval(AT_HWCAP)  & (HWCAP_  ## name2)) ? 1 : 0; }
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
   #define MY_HWCAP_CHECK_FUNC_2(name1, name2) \
   BoolInt CPU_IsSupported_ ## name1() { uint32_t hwcaps = 0; elf_aux_info(AT_HWCAP, &hwcaps, sizeof(hwcaps)); return (hwcaps  & (HWCAP_  ## name2)) ? 1 : 0; }
 #endif
