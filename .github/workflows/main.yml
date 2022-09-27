@@ -201,10 +201,11 @@ jobs:
           version: '6.3.1'
           host: 'windows'
           target: 'desktop'
+          arch: 'win64_mingw'
           
       - name: Build everything using CMake and MinGW
         run: |
-          cmake -G "MinGW" -B build .
+          cmake -G "MinGW Makefiles" -B build .
           cmake --build build -j
 
   analyze_coverity:
