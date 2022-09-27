@@ -13,7 +13,7 @@
 #define __BIG_ENDIAN    BIG_ENDIAN
 #define __LITTLE_ENDIAN LITTLE_ENDIAN
 // Windows with MS or MinGW compilers
-#elif defined(_MSC_VER) || || defined(__MINGW32__)
+#elif defined(_MSC_VER) || defined(__MINGW32__)
 #include <stdlib.h>
 #define __LITTLE_ENDIAN     1234
 #define __BIG_ENDIAN        4321
