@@ -87,7 +87,7 @@ jobs:
       - name: Build everything
         run: ninja -C build-meson
 
-  build_win:
+  build_windows:
     name: Build on Windows
     runs-on: windows-2019
     steps:
@@ -186,14 +186,11 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_win_mingw:
+  build_windows_mingw:
     name: Build on Windows with MinGW
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v2
-      
-      - name: Install MinGW
-        uses: egor-tensin/setup-mingw@v2
       
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
