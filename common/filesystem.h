@@ -20,7 +20,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <sys/stat.h>
 #include <fstream>
 
-#ifdef WIN32
+#if defined(_WIN32) || defined(__MINGW32__)
 #include <direct.h>
 #include <stdlib.h>
 static inline bool isExistOnFs(const UString & path) {
