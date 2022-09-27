@@ -115,7 +115,7 @@ jobs:
       - name: Configure UEFIExtract
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIExtract
-        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIExtract/
+        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIExtract/
       
       - name: Build UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract
@@ -135,7 +135,7 @@ jobs:
       - name: Configure UEFIFind
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIFind
-        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" -DU_STATIC_RT=YES ../../UEFITool/UEFIFind/
+        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIFind/
       
       - name: Build UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
@@ -185,6 +185,27 @@ jobs:
           file: dist/*.zip
           tag: ${{ github.ref }}
           file_glob: true
+
+  build_win_mingw:
+    name: Build on Windows with MinGW
+    runs-on: windows-2019
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Install MinGW
+        uses: egor-tensin/setup-mingw@v2
+      
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.3.1'
+          host: 'windows'
+          target: 'desktop'
+          
+      - name: Build everything using CMake and MinGW
+        run: |
+          cmake -G "MinGW" -B build .
+          cmake --build build -j
 
   analyze_coverity:
     env:
@@ -262,7 +283,7 @@ jobs:
         run: |
           plog-converter -t sarif -o pvs-report.sarif PVS-Studio.log
           
-      - name: Publish  PVS-Studio report
+      - name: Publish PVS-Studio report
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: pvs-report.sarif
