@@ -258,6 +258,7 @@ uint64_t kaitai::kstream::read_u8le() {
 // Big-endian
 // ........................................................................
 
+/*
 float kaitai::kstream::read_f4be() {
     uint32_t t;
     m_io->read(reinterpret_cast<char *>(&t), 4);
@@ -297,6 +298,7 @@ double kaitai::kstream::read_f8le() {
 #endif
     return reinterpret_cast<double &>(t);
 }
+*/
 
 // ========================================================================
 // Unaligned bit values
