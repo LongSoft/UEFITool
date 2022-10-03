@@ -87,6 +87,42 @@ jobs:
       - name: Build everything
         run: ninja -C build-meson
 
+  build_freebsd:
+    name: Build on FreeBSD
+    runs-on: macos-12
+    env:
+      HAS_QT: 1
+   
+    steps:
+      - uses: actions/checkout@v2
+    
+      - name: Build on FreeBSD inside macOS VM
+        id: test
+        uses: vmactions/freebsd-vm@v0
+        with:
+          usesh: true
+          envs: "HAS_QT"
+          prepare: |
+            pkg install -y bash zip cmake qt5-qmake qt5-buildtools qt5-core qt5-gui qt5-widgets
+
+          run: |
+            bash unixbuild.sh
+            
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: FreeBSD builds
+          path: dist/*.zip
+
+      - name: Upload to releases
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
+
   build_windows:
     name: Build on Windows
     runs-on: windows-2019
