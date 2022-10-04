@@ -9,7 +9,7 @@
   </description>
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://github.com/LongSoft/UEFITool/blob/new_engine/appstream/UEFITool.png?raw=true</image>
+      <image type="source">https://github.com/LongSoft/UEFITool/raw/new_engine/appstream/UEFITool.png</image>
     </screenshot>
   </screenshots>
   <releases>
