@@ -1469,12 +1469,14 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     UINT8 emptyByte = 0xFF;
     UINT8 ffsVersion = 2;
     UINT32 usedSpace = 0;
+    UINT8 revision = 2;
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
         emptyByte = pdata->emptyByte;
         ffsVersion = pdata->ffsVersion;
         usedSpace = pdata->usedSpace;
+        revision = pdata->revision;
     }
     
     // Check for unknown FFS version
@@ -1488,7 +1490,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     UINT32 fileOffset = 0;
     
     while (fileOffset < volumeBodySize) {
-        UINT32 fileSize = getFileSize(volumeBody, fileOffset, ffsVersion);
+        UINT32 fileSize = getFileSize(volumeBody, fileOffset, ffsVersion, revision);
         
         if (fileSize == 0) {
             msg(usprintf("%s: file header parsing failed with invalid size", __FUNCTION__), index);
@@ -1628,7 +1630,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     return U_SUCCESS;
 }
 
-UINT32 FfsParser::getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion)
+UINT32 FfsParser::getFileSize(const UByteArray & volume, const UINT32 fileOffset, const UINT8 ffsVersion, const UINT8 revision)
 {
     if ((UINT32)volume.size() < fileOffset + sizeof(EFI_FFS_FILE_HEADER)) {
         return 0;
@@ -1637,7 +1639,18 @@ UINT32 FfsParser::getFileSize(const UByteArray & volume, const UINT32 fileOffset
     const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)(volume.constData() + fileOffset);
     
     if (ffsVersion == 2) {
-        return uint24ToUint32(fileHeader->Size);
+        UINT32 size = uint24ToUint32(fileHeader->Size);
+        // Special case of Lenovo large file insize FFSv2 Rev2 volume
+        if (revision == 2 && (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
+            if ((UINT32)volume.size() < fileOffset + sizeof(EFI_FFS_FILE_HEADER2_LENOVO)) {
+                return 0;
+            }
+            
+            const EFI_FFS_FILE_HEADER2_LENOVO* fileHeader2Lenovo = (const EFI_FFS_FILE_HEADER2_LENOVO*)(volume.constData() + fileOffset);
+            return (UINT32)fileHeader2Lenovo->ExtendedSize;
+        }
+        
+        return size;
     }
     else if (ffsVersion == 3) {
         if (fileHeader->Attributes & FFS_ATTRIB_LARGE_FILE) {
@@ -1646,7 +1659,7 @@ UINT32 FfsParser::getFileSize(const UByteArray & volume, const UINT32 fileOffset
             }
             
             const EFI_FFS_FILE_HEADER2* fileHeader2 = (const EFI_FFS_FILE_HEADER2*)(volume.constData() + fileOffset);
-            return (UINT32) fileHeader2->ExtendedSize;
+            return (UINT32)fileHeader2->ExtendedSize;
         }
         
         return uint24ToUint32(fileHeader->Size);
@@ -1683,10 +1696,17 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     // Get file header
     UByteArray header = file.left(sizeof(EFI_FFS_FILE_HEADER));
     EFI_FFS_FILE_HEADER* tempFileHeader = (EFI_FFS_FILE_HEADER*)header.data();
-    if (ffsVersion == 3 && (tempFileHeader->Attributes & FFS_ATTRIB_LARGE_FILE)) {
-        if ((UINT32)file.size() < sizeof(EFI_FFS_FILE_HEADER2))
-            return U_INVALID_FILE;
-        header = file.left(sizeof(EFI_FFS_FILE_HEADER2));
+    if (tempFileHeader->Attributes & FFS_ATTRIB_LARGE_FILE) {
+        if (ffsVersion == 2 && volumeRevision == 2) {
+            if ((UINT32)file.size() < sizeof(EFI_FFS_FILE_HEADER2_LENOVO))
+                return U_INVALID_FILE;
+            header = file.left(sizeof(EFI_FFS_FILE_HEADER2_LENOVO));
+        }
+        if (ffsVersion == 3) {
+            if ((UINT32)file.size() < sizeof(EFI_FFS_FILE_HEADER2))
+                return U_INVALID_FILE;
+            header = file.left(sizeof(EFI_FFS_FILE_HEADER2));
+        }
     }
     const EFI_FFS_FILE_HEADER* fileHeader = (const EFI_FFS_FILE_HEADER*)header.constData();
     

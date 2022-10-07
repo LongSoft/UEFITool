@@ -280,10 +280,21 @@ EFI_GUID                Name;
 EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
 UINT8                   Type;
 UINT8                   Attributes;
-UINT8                   Size[3]; // Set to 0xFFFFFF
+UINT8                   Size[3]; // Set to 0xFFFFFF or 0x000000
 UINT8                   State;
 UINT64                  ExtendedSize;
 } EFI_FFS_FILE_HEADER2;
+
+// Lenovo large file header
+typedef struct EFI_FFS_FILE_HEADER_LENOVO_ {
+EFI_GUID                Name;
+EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
+UINT8                   Type;
+UINT8                   Attributes;
+UINT8                   Size[3]; // Set to 0x000000
+UINT8                   State;
+UINT32                  ExtendedSize;
+} EFI_FFS_FILE_HEADER2_LENOVO;
 
 // Standard data checksum, used if FFS_ATTRIB_CHECKSUM is clear
 #define FFS_FIXED_CHECKSUM   0x5A
@@ -317,8 +328,8 @@ UINT64                  ExtendedSize;
 // File attributes
 #define FFS_ATTRIB_TAIL_PRESENT       0x01 // Valid only for revision 1 volumes
 #define FFS_ATTRIB_RECOVERY           0x02 // Valid only for revision 1 volumes
-#define FFS_ATTRIB_LARGE_FILE         0x01 // Valid only for FFSv3 volumes
-#define FFS_ATTRIB_DATA_ALIGNMENT2    0x02 // Volaid only for revision 2 volumes, added in UEFI PI 1.6
+#define FFS_ATTRIB_LARGE_FILE         0x01 // Valid only for FFSv3 volumes or FFSv2 volumes with Lenovo large files
+#define FFS_ATTRIB_DATA_ALIGNMENT2    0x02 // Valid only for revision 2 volumes, added in UEFI PI 1.6
 #define FFS_ATTRIB_FIXED              0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT     0x38
 #define FFS_ATTRIB_CHECKSUM           0x40
@@ -377,13 +388,6 @@ typedef struct EFI_COMMON_SECTION_HEADER2_ {
     UINT32   ExtendedSize;
 } EFI_COMMON_SECTION_HEADER2;
 
-// Apple common section header
-typedef struct EFI_COMMON_SECTION_HEADER_APPLE {
-    UINT8    Size[3];
-    UINT8    Type;
-    UINT32   Reserved;   // Must be 0x7FFF for this header to be used
-} EFI_COMMON_SECTION_HEADER_APPLE;
-
 // Section2 usage indicator
 #define EFI_SECTION2_IS_USED 0xFFFFFF
 
@@ -417,11 +421,6 @@ typedef struct EFI_COMPRESSION_SECTION_ {
     UINT8    CompressionType;
 } EFI_COMPRESSION_SECTION;
 
-typedef struct EFI_COMPRESSION_SECTION_APPLE_ {
-    UINT32   UncompressedLength;
-    UINT32   CompressionType;
-} EFI_COMPRESSION_SECTION_APPLE;
-
 // Compression types
 #define EFI_NOT_COMPRESSED                 0x00
 #define EFI_STANDARD_COMPRESSION           0x01
@@ -434,13 +433,6 @@ typedef struct EFI_GUID_DEFINED_SECTION_ {
     UINT16   DataOffset;
     UINT16   Attributes;
 } EFI_GUID_DEFINED_SECTION;
-
-typedef struct EFI_GUID_DEFINED_SECTION_APPLE_ {
-    EFI_GUID SectionDefinitionGuid;
-    UINT16   DataOffset;
-    UINT16   Attributes;
-    UINT32   Reserved;
-} EFI_GUID_DEFINED_SECTION_APPLE;
 
 // Attributes for GUID defined section
 #define EFI_GUIDED_SECTION_PROCESSING_REQUIRED  0x01
