@@ -486,6 +486,22 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
         }
         kmInfo += "\n";
         
+        // Calculate the hashes of public key modulus only
+        // One of those hashes is what's getting written into Field Programmable Fuses
+        UINT8 hash[SHA384_HASH_SIZE] = {};
+        sha256(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length(), hash);
+        kmInfo += usprintf("Key Manifest Public Key Hash (SHA256): ");
+        for (UINT8 i = 0; i < SHA256_HASH_SIZE; i++) {
+            kmInfo += usprintf("%02X", hash[i]);
+        }
+        kmInfo += "\n";
+        sha384(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length(), hash);
+        kmInfo += usprintf("Key Manifest Public Key Hash (SHA384): ");
+        for (UINT8 i = 0; i < SHA384_HASH_SIZE; i++) {
+            kmInfo += usprintf("%02X", hash[i]);
+        }
+        kmInfo += "\n";
+        
         // Add Signature
         kmInfo += UString("Key Manifest Signature: ");
         for (UINT16 i = 0; i < (UINT16)key_signature->signature()->signature().length(); i++) {
@@ -493,7 +509,7 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
             kmInfo += usprintf("%02X", (UINT8)key_signature->signature()->signature().at(i));
         }
         kmInfo += "\n";
-                
+                        
         securityInfo += kmInfo + "\n";
         bgKeyManifestFound = true;
         return U_SUCCESS;
@@ -578,6 +594,22 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
         }
         kmInfo += "\n";
         
+        // Calculate the hashes of public key modulus only
+        // One of those hashes is what's getting written into Field Programmable Fuses
+        UINT8 hash[SHA384_HASH_SIZE] = {};
+        sha256(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length(), hash);
+        kmInfo += usprintf("Key Manifest Public Key Hash (SHA256): ");
+        for (UINT8 i = 0; i < SHA256_HASH_SIZE; i++) {
+            kmInfo += usprintf("%02X", hash[i]);
+        }
+        kmInfo += "\n";
+        sha384(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length(), hash);
+        kmInfo += usprintf("Key Manifest Public Key Hash (SHA384): ");
+        for (UINT8 i = 0; i < SHA384_HASH_SIZE; i++) {
+            kmInfo += usprintf("%02X", hash[i]);
+        }
+        kmInfo += "\n";
+        
         // Add Signature
         kmInfo += UString("Key Manifest Signature: ");
         for (UINT16 i = 0; i < (UINT16)key_signature->signature()->signature().length(); i++) {
@@ -585,7 +617,7 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
             kmInfo += usprintf("%02X", (UINT8)key_signature->signature()->signature().at(i));
         }
         kmInfo += "\n";
-        
+                
         securityInfo += kmInfo + "\n";
         bgKeyManifestFound = true;
         return U_SUCCESS;

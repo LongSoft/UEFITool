@@ -3766,7 +3766,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                 }
                 
                 if (protectedRangesFound) {
-                    securityInfo += usprintf("Phoenix hash file found at base %08Xh\nProtected ranges:", model->base(index));
+                    securityInfo += usprintf("Phoenix hash file found at base %08Xh\nProtected ranges:\n", model->base(index));
                     for (UINT32 i = 0; i < header->NumEntries; i++) {
                         const PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_ENTRY*)(header + 1) + i;
                         securityInfo += usprintf("RelativeOffset: %08Xh Size: %Xh\nHash: ", entry->Base, entry->Size);
@@ -3828,7 +3828,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     protectedRanges.push_back(range);
                 }
                                 
-                msg(usprintf("%s: new AMI hash file found", __FUNCTION__), fileIndex);
+                msg(usprintf("%s: AMI hash file v2 found", __FUNCTION__), fileIndex);
             }
             else if (size == sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V1)) {
                 securityInfo += usprintf("AMI hash file v1 found at base %08Xh\nProtected range:\n", model->base(fileIndex));
@@ -3849,7 +3849,7 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
                     protectedRanges.push_back(range);
                 }
                 
-                msg(usprintf("%s: old AMI hash file found", __FUNCTION__), fileIndex);
+                msg(usprintf("%s: AMI hash file v1 found", __FUNCTION__), fileIndex);
             }
             else {
                 msg(usprintf("%s: unknown or corrupted AMI hash file found", __FUNCTION__), index);
