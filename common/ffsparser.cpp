@@ -929,7 +929,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             
             // Add tree item
             UModelIndex paddingIndex = model->addItem(headerSize + itemOffset, Types::Padding, getPaddingType(padding), name, UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
-            msg(usprintf("%s: one of volumes inside overlaps the end of data", __FUNCTION__), paddingIndex);
+            msg(usprintf("%s: one of objects inside overlaps the end of data", __FUNCTION__), paddingIndex);
             
             // Update variables
             prevItemOffset = itemOffset;
@@ -1381,8 +1381,17 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
                 continue;
             
             const BPDT_HEADER *bpdtHeader = (const BPDT_HEADER *)currentPos;
-            // Check version
-            if (bpdtHeader->HeaderVersion != BPDT_HEADER_VERSION_1) // IFWI 2.0 only for now
+                        
+            // Check NumEntries to be sane
+            if (bpdtHeader->NumEntries > 0x100)
+                continue;
+            
+            // Check HeaderVersion to be 1
+            if (bpdtHeader->HeaderVersion != BPDT_HEADER_VERSION_1) // Check only for IFWI 2.0 headers in raw areas
+                continue;
+            
+            // Check RedundancyFlag to be 0 or 1
+            if (bpdtHeader->RedundancyFlag != 0 && bpdtHeader->RedundancyFlag != 1) // Check only for IFWI 2.0 headers in raw areas
                 continue;
             
             UINT32 ptBodySize = bpdtHeader->NumEntries * sizeof(BPDT_ENTRY);
@@ -4053,13 +4062,15 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
     UByteArray body = region.mid(sizeof(BPDT_HEADER), ptBodySize);
     
     UString name = UString("BPDT partition table");
-    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nNumber of entries: %u\nVersion: %2Xh\n"
+    UString info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n"
+                            "Number of entries: %u\nVersion: %02Xh\nRedundancyFlag: %Xh\n"
                             "IFWI version: %Xh\nFITC version: %u.%u.%u.%u",
                             ptSize, ptSize,
                             (UINT32)header.size(), (UINT32)header.size(),
                             ptBodySize, ptBodySize,
                             ptHeader->NumEntries,
                             ptHeader->HeaderVersion,
+                            ptHeader->RedundancyFlag,
                             ptHeader->IfwiVersion,
                             ptHeader->FitcMajor, ptHeader->FitcMinor, ptHeader->FitcHotfix, ptHeader->FitcBuild);
     
@@ -4204,7 +4215,7 @@ make_partition_table_consistent:
             UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset, Types::BpdtPartition, 0, name, text, info, UByteArray(), partition, UByteArray(), Fixed, parent);
             
             // Special case of S-BPDT
-            if (partitions[i].ptEntry.Type == BPDT_ENTRY_TYPE_SBPDT) {
+            if (partitions[i].ptEntry.Type == BPDT_ENTRY_TYPE_S_BPDT) {
                 UModelIndex sbpdtIndex;
                 parseBpdtRegion(partition, 0, partitions[i].ptEntry.Offset, partitionIndex, sbpdtIndex); // Third parameter is a fixup for S-BPDT offset entries, because they are calculated from the start of BIOS region
             }
@@ -4216,12 +4227,8 @@ make_partition_table_consistent:
                 parseCpdRegion(partition, 0, partitionIndex, cpdIndex);
             }
             
-            // There needs to be a more generic way to do it, but it is fine for now
-            if (partitions[i].ptEntry.Type > BPDT_ENTRY_TYPE_TBT
-                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_USB_PHY
-                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_PCHC
-                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_SAMF
-                && partitions[i].ptEntry.Type != BPDT_ENTRY_TYPE_PPHY) {
+            // Check for entry type to be known
+            if (partitions[i].ptEntry.Type > BPDT_ENTRY_TYPE_PSEP) {
                 msg(usprintf("%s: BPDT entry of unknown type found", __FUNCTION__), partitionIndex);
             }
         }

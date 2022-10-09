@@ -286,7 +286,7 @@ UINT64                  ExtendedSize;
 } EFI_FFS_FILE_HEADER2;
 
 // Lenovo large file header
-typedef struct EFI_FFS_FILE_HEADER_LENOVO_ {
+typedef struct EFI_FFS_FILE_HEADER2_LENOVO_ {
 EFI_GUID                Name;
 EFI_FFS_INTEGRITY_CHECK IntegrityCheck;
 UINT8                   Type;
@@ -579,36 +579,53 @@ typedef struct BPDT_ENTRY_ {
     UINT32 Size;
 } BPDT_ENTRY;
 
-#define BPDT_ENTRY_TYPE_OEM_SMIP         0
-#define BPDT_ENTRY_TYPE_OEM_RBE          1
-#define BPDT_ENTRY_TYPE_CSE_BUP          2
-#define BPDT_ENTRY_TYPE_UCODE            3
-#define BPDT_ENTRY_TYPE_IBB              4
-#define BPDT_ENTRY_TYPE_SBPDT            5
-#define BPDT_ENTRY_TYPE_OBB              6
-#define BPDT_ENTRY_TYPE_CSE_MAIN         7
-#define BPDT_ENTRY_TYPE_ISH              8
-#define BPDT_ENTRY_TYPE_CSE_IDLM         9
-#define BPDT_ENTRY_TYPE_IFP_OVERRIDE     10
-#define BPDT_ENTRY_TYPE_DEBUG_TOKENS     11
-#define BPDT_ENTRY_TYPE_USF_PHY_CONFIG   12
-#define BPDT_ENTRY_TYPE_USF_GPP_LUN_ID   13
-#define BPDT_ENTRY_TYPE_PMC              14
-#define BPDT_ENTRY_TYPE_IUNIT            15
-#define BPDT_ENTRY_TYPE_NVM_CONFIG       16
-#define BPDT_ENTRY_TYPE_UEP              17
-#define BPDT_ENTRY_TYPE_WLAN_UCODE       18
-#define BPDT_ENTRY_TYPE_LOCL_SPRITES     19
-#define BPDT_ENTRY_TYPE_OEM_KEY_MANIFEST 20
-#define BPDT_ENTRY_TYPE_DEFAULTS         21
-#define BPDT_ENTRY_TYPE_PAVP             22
-#define BPDT_ENTRY_TYPE_TCSS_FW_IOM      23
-#define BPDT_ENTRY_TYPE_TCSS_FW_PHY      24
-#define BPDT_ENTRY_TYPE_TBT              25
-#define BPDT_ENTRY_TYPE_USB_PHY          31
-#define BPDT_ENTRY_TYPE_PCHC             32
-#define BPDT_ENTRY_TYPE_SAMF             41
-#define BPDT_ENTRY_TYPE_PPHY             42
+// https://github.com/platomav/MEAnalyzer/blob/master/MEA.py#L10595
+#define BPDT_ENTRY_TYPE_SMIP        0
+#define BPDT_ENTRY_TYPE_RBEP        1
+#define BPDT_ENTRY_TYPE_FTPR        2
+#define BPDT_ENTRY_TYPE_UCOD        3
+#define BPDT_ENTRY_TYPE_IBBP        4
+#define BPDT_ENTRY_TYPE_S_BPDT      5
+#define BPDT_ENTRY_TYPE_OBBP        6
+#define BPDT_ENTRY_TYPE_NFTP        7
+#define BPDT_ENTRY_TYPE_ISHC        8
+#define BPDT_ENTRY_TYPE_DLMP        9
+#define BPDT_ENTRY_TYPE_UEBP        10
+#define BPDT_ENTRY_TYPE_UTOK        11
+#define BPDT_ENTRY_TYPE_UFS_PHY     12
+#define BPDT_ENTRY_TYPE_UFS_GPP_LUN 13
+#define BPDT_ENTRY_TYPE_PMCP        14
+#define BPDT_ENTRY_TYPE_IUNP        15
+#define BPDT_ENTRY_TYPE_NVMC        16
+#define BPDT_ENTRY_TYPE_UEP         17
+#define BPDT_ENTRY_TYPE_WCOD        18
+#define BPDT_ENTRY_TYPE_LOCL        19
+#define BPDT_ENTRY_TYPE_OEMP        20
+#define BPDT_ENTRY_TYPE_FITC        21
+#define BPDT_ENTRY_TYPE_PAVP        22
+#define BPDT_ENTRY_TYPE_IOMP        23
+#define BPDT_ENTRY_TYPE_XPHY        24
+#define BPDT_ENTRY_TYPE_TBTP        25
+#define BPDT_ENTRY_TYPE_PLTS        26
+#define BPDT_ENTRY_TYPE_RES27       27
+#define BPDT_ENTRY_TYPE_RES28       28
+#define BPDT_ENTRY_TYPE_RES29       29
+#define BPDT_ENTRY_TYPE_RES30       30
+#define BPDT_ENTRY_TYPE_DPHY        31
+#define BPDT_ENTRY_TYPE_PCHC        32
+#define BPDT_ENTRY_TYPE_ISIF        33
+#define BPDT_ENTRY_TYPE_ISIC        34
+#define BPDT_ENTRY_TYPE_HBMI        35
+#define BPDT_ENTRY_TYPE_OMSM        36
+#define BPDT_ENTRY_TYPE_GTGP        37
+#define BPDT_ENTRY_TYPE_MDFI        38
+#define BPDT_ENTRY_TYPE_PUNP        39
+#define BPDT_ENTRY_TYPE_PHYP        40
+#define BPDT_ENTRY_TYPE_SAMF        41
+#define BPDT_ENTRY_TYPE_PPHY        42
+#define BPDT_ENTRY_TYPE_GBST        43
+#define BPDT_ENTRY_TYPE_TCCP        44
+#define BPDT_ENTRY_TYPE_PSEP        45
 
 // CPD
 #define CPD_SIGNATURE 0x44504324 //$CPD
