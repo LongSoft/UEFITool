@@ -400,11 +400,12 @@ USTATUS FitParser::parseFitEntryAcm(const UByteArray & acm, const UINT32 localOf
         
         // Add RsaPublicKey
         if (header->_is_null_rsa_exponent() == false) {
-            acmInfo += usprintf("ACM RSA Public Key (Exponent: %Xh):", header->rsa_exponent());
+            acmInfo += usprintf("ACM RSA Public Key Exponent: %Xh\n", header->rsa_exponent());
         }
         else {
-            acmInfo += usprintf("ACM RSA Public Key (Exponent: %Xh):", INTEL_ACM_HARDCODED_RSA_EXPONENT);
+            acmInfo += usprintf("ACM RSA Public Key Exponent: %Xh\n", INTEL_ACM_HARDCODED_RSA_EXPONENT);
         }
+        acmInfo += usprintf("ACM RSA Public Key: ");
         for (UINT32 i = 0; i < header->rsa_public_key().size(); i++) {
             if (i % 32 == 0) acmInfo += "\n";
             acmInfo += usprintf("%02X", (UINT8)header->rsa_public_key().at(i));
@@ -479,7 +480,8 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
                            key_signature->sig_scheme());
                            
         // Add PubKey
-        kmInfo += usprintf("Key Manifest Public Key (Exponent: %Xh): ", key_signature->public_key()->exponent());
+        kmInfo += usprintf("Key Manifest Public Key Exponent: %Xh\n", key_signature->public_key()->exponent());
+        kmInfo += usprintf("Key Manifest Public Key :");
         for (UINT16 i = 0; i < (UINT16)key_signature->public_key()->modulus().length(); i++) {
             if (i % 32 == 0) kmInfo += UString("\n");
             kmInfo += usprintf("%02X", (UINT8)key_signature->public_key()->modulus().at(i));
@@ -587,7 +589,8 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
                            key_signature->sig_scheme());
                            
         // Add PubKey
-        kmInfo += usprintf("Key Manifest Public Key (Exponent: %Xh): ", key_signature->public_key()->exponent());
+        kmInfo += usprintf("Key Manifest Public Key Exponent: %Xh\n", key_signature->public_key()->exponent());
+        kmInfo += usprintf("Key Manifest Public Key: ");
         for (UINT16 i = 0; i < (UINT16)key_signature->public_key()->modulus().length(); i++) {
             if (i % 32 == 0) kmInfo += UString("\n");
             kmInfo += usprintf("%02X", (UINT8)key_signature->public_key()->modulus().at(i));
@@ -846,7 +849,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                                    key_signature->sig_scheme());
                                    
                 // Add PubKey
-                bpInfo += usprintf("Boot Policy Public Key (Exponent: %Xh): ", key_signature->public_key()->exponent());
+                bpInfo += usprintf("Boot Policy Public Key Exponent: %Xh\n", key_signature->public_key()->exponent());
+                bpInfo += usprintf("Boot Policy Public Key: ");
                 for (UINT16 i = 0; i < (UINT16)key_signature->public_key()->modulus().length(); i++) {
                     if (i % 32 == 0) bpInfo += UString("\n");
                     bpInfo += usprintf("%02X", (UINT8)key_signature->public_key()->modulus().at(i));
@@ -1137,7 +1141,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                            key_signature->sig_scheme());
                            
         // Add PubKey
-        bpInfo += usprintf("Boot Policy Public Key (Exponent: %Xh): ", key_signature->public_key()->exponent());
+        bpInfo += usprintf("Boot Policy Public Key Exponent: %Xh\n", key_signature->public_key()->exponent());
+        bpInfo += usprintf("Boot Policy Public Key: ");
         for (UINT16 i = 0; i < (UINT16)key_signature->public_key()->modulus().length(); i++) {
             if (i % 32 == 0) bpInfo += UString("\n");
             bpInfo += usprintf("%02X", (UINT8)key_signature->public_key()->modulus().at(i));
