@@ -481,7 +481,7 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
                            
         // Add PubKey
         kmInfo += usprintf("Key Manifest Public Key Exponent: %Xh\n", key_signature->public_key()->exponent());
-        kmInfo += usprintf("Key Manifest Public Key :");
+        kmInfo += usprintf("Key Manifest Public Key: ");
         for (UINT16 i = 0; i < (UINT16)key_signature->public_key()->modulus().length(); i++) {
             if (i % 32 == 0) kmInfo += UString("\n");
             kmInfo += usprintf("%02X", (UINT8)key_signature->public_key()->modulus().at(i));
