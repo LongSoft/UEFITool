@@ -3456,12 +3456,18 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
     if (!index.isValid())
         return U_INVALID_PARAMETER;
     
+    // QByteArray (Qt builds) supports obtaining data from invalid offsets in QByteArray,
+    // so mid() here doesn't throw anything for UEFITool, just returns ranges with all zeroes
+    // UByteArray (non-Qt builds) throws an exception that needs to be caught every time or the tools will crash.
+    // TODO: add sanity checks everythere so non-Qt UByteArray stuff don't need to throw
+    
     // Calculate digest for BG-protected ranges
     UByteArray protectedParts;
     bool bgProtectedRangeFound = false;
     try {
         for (UINT32 i = 0; i < (UINT32)protectedRanges.size(); i++) {
-            if (protectedRanges[i].Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB && protectedRanges[i].Size > 0) {
+            if (protectedRanges[i].Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB
+                && protectedRanges[i].Size > 0) {
                 bgProtectedRangeFound = true;
                 if ((UINT64)protectedRanges[i].Offset >= addressDiff) {
                     protectedRanges[i].Offset -= (UINT32)addressDiff;
@@ -3532,19 +3538,24 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     msg(usprintf("%s: can't determine DXE volume offset, old AMI protected range hash can't be checked", __FUNCTION__), index);
                 }
                 else {
-                    protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
-                    protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
-                    
-                    UByteArray digest(SHA256_HASH_SIZE, '\x00');
-                    sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-                    
-                    if (digest != protectedRanges[i].Hash) {
-                        msg(usprintf("%s: old AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                                     protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
-                            model->findByBase(protectedRanges[i].Offset));
+                    try {
+                        protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
+                        protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
+                        
+                        UByteArray digest(SHA256_HASH_SIZE, '\x00');
+                        sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                        
+                        if (digest != protectedRanges[i].Hash) {
+                            msg(usprintf("%s: old AMI protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                                         protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                                model->findByBase(protectedRanges[i].Offset));
+                        }
+                        
+                        markProtectedRangeRecursive(index, protectedRanges[i]);
                     }
-                    
-                    markProtectedRangeRecursive(index, protectedRanges[i]);
+                    catch(...) {
+                        // Do nothing, this range is likely not found in the image
+                    }
                 }
             }
         }
@@ -3559,51 +3570,56 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                     msg(usprintf("%s: can't determine DXE volume offset, post-IBB protected range hash can't be checked", __FUNCTION__), index);
                 }
                 else {
-                    protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
-                    protectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
-                    protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
-                    
-                    // Calculate the hash
-                    UByteArray digest(SHA512_HASH_SIZE, '\x00');
-                    if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA1) {
-                        sha1(protectedParts.constData(), protectedParts.size(), digest.data());
-                        digest = digest.left(SHA1_HASH_SIZE);
+                    try {
+                        protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
+                        protectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
+                        protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
+                        
+                        // Calculate the hash
+                        UByteArray digest(SHA512_HASH_SIZE, '\x00');
+                        if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA1) {
+                            sha1(protectedParts.constData(), protectedParts.size(), digest.data());
+                            digest = digest.left(SHA1_HASH_SIZE);
+                        }
+                        else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA256) {
+                            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                            digest = digest.left(SHA256_HASH_SIZE);
+                        }
+                        else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA384) {
+                            sha384(protectedParts.constData(), protectedParts.size(), digest.data());
+                            digest = digest.left(SHA384_HASH_SIZE);
+                        }
+                        else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA512) {
+                            sha512(protectedParts.constData(), protectedParts.size(), digest.data());
+                            digest = digest.left(SHA512_HASH_SIZE);
+                        }
+                        else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SM3) {
+                            sm3(protectedParts.constData(), protectedParts.size(), digest.data());
+                            digest = digest.left(SM3_HASH_SIZE);
+                        }
+                        else {
+                            msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] uses unknown hash algorithm %04Xh", __FUNCTION__,
+                                         protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size, protectedRanges[i].AlgorithmId),
+                                model->findByBase(protectedRanges[i].Offset));
+                        }
+                        
+                        // Check the hash
+                        if (digest != protectedRanges[i].Hash) {
+                            msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                                         protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                                model->findByBase(protectedRanges[i].Offset));
+                        }
+                        
+                        markProtectedRangeRecursive(index, protectedRanges[i]);
                     }
-                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA256) {
-                        sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-                        digest = digest.left(SHA256_HASH_SIZE);
+                    catch(...) {
+                        // Do nothing, this range is likely not found in the image
                     }
-                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA384) {
-                        sha384(protectedParts.constData(), protectedParts.size(), digest.data());
-                        digest = digest.left(SHA384_HASH_SIZE);
-                    }
-                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA512) {
-                        sha512(protectedParts.constData(), protectedParts.size(), digest.data());
-                        digest = digest.left(SHA512_HASH_SIZE);
-                    }
-                    else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SM3) {
-                        sm3(protectedParts.constData(), protectedParts.size(), digest.data());
-                        digest = digest.left(SM3_HASH_SIZE);
-                    }
-                    else {
-                        msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] uses unknown hash algorithm %04Xh", __FUNCTION__,
-                                     protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size, protectedRanges[i].AlgorithmId),
-                            model->findByBase(protectedRanges[i].Offset));
-                    }
-                    
-                    // Check the hash
-                    if (digest != protectedRanges[i].Hash) {
-                        msg(usprintf("%s: post-IBB protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                                     protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
-                            model->findByBase(protectedRanges[i].Offset));
-                    }
-                    
-                    markProtectedRangeRecursive(index, protectedRanges[i]);
                 }
             }
         }
         else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_AMI_V2) {
-            if ((UINT64)protectedRanges[i].Offset >= addressDiff) {
+            try {
                 protectedRanges[i].Offset -= (UINT32)addressDiff;
                 protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
                 
@@ -3617,69 +3633,80 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 }
                 
                 markProtectedRangeRecursive(index, protectedRanges[i]);
-            } else {
-                msg(usprintf("%s: suspicious AMI new BG protection offset", __FUNCTION__), index);
+            }
+            catch(...) {
+                // Do nothing, this range is likely not found in the image
             }
         }
         else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_PHOENIX
                  && protectedRanges[i].Size != 0 && protectedRanges[i].Size != 0xFFFFFFFF
                  && protectedRanges[i].Offset != 0xFFFFFFFF) {
-            protectedRanges[i].Offset += (UINT32)protectedRegionsBase;
-            protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
-            
-            UByteArray digest(SHA256_HASH_SIZE, '\x00');
-            sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-            
-            if (digest != protectedRanges[i].Hash) {
-                msg(usprintf("%s: Phoenix protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                             protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
-                    model->findByBase(protectedRanges[i].Offset));
+            try {
+                protectedRanges[i].Offset += (UINT32)protectedRegionsBase;
+                protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
+                
+                UByteArray digest(SHA256_HASH_SIZE, '\x00');
+                sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                
+                if (digest != protectedRanges[i].Hash) {
+                    msg(usprintf("%s: Phoenix protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                                 protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                        model->findByBase(protectedRanges[i].Offset));
+                }
+                
+                markProtectedRangeRecursive(index, protectedRanges[i]);
             }
-            
-            markProtectedRangeRecursive(index, protectedRanges[i]);
+            catch(...) {
+                // Do nothing, this range is likely not found in the image
+            }
         }
         else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA
                  && protectedRanges[i].Size != 0 && protectedRanges[i].Size != 0xFFFFFFFF
                  && protectedRanges[i].Offset != 0 && protectedRanges[i].Offset != 0xFFFFFFFF) {
-            protectedRanges[i].Offset -= (UINT32)addressDiff;
-            protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
-            
-            // Calculate the hash
-            UByteArray digest(SHA512_HASH_SIZE, '\x00');
-            if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA1) {
-                sha1(protectedParts.constData(), protectedParts.size(), digest.data());
-                digest = digest.left(SHA1_HASH_SIZE);
+            try {
+                protectedRanges[i].Offset -= (UINT32)addressDiff;
+                protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
+                
+                // Calculate the hash
+                UByteArray digest(SHA512_HASH_SIZE, '\x00');
+                if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA1) {
+                    sha1(protectedParts.constData(), protectedParts.size(), digest.data());
+                    digest = digest.left(SHA1_HASH_SIZE);
+                }
+                else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA256) {
+                    sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+                    digest = digest.left(SHA256_HASH_SIZE);
+                }
+                else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA384) {
+                    sha384(protectedParts.constData(), protectedParts.size(), digest.data());
+                    digest = digest.left(SHA384_HASH_SIZE);
+                }
+                else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA512) {
+                    sha512(protectedParts.constData(), protectedParts.size(), digest.data());
+                    digest = digest.left(SHA512_HASH_SIZE);
+                }
+                else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SM3) {
+                    sm3(protectedParts.constData(), protectedParts.size(), digest.data());
+                    digest = digest.left(SM3_HASH_SIZE);
+                }
+                else {
+                    msg(usprintf("%s: Microsoft PMDA protected range [%Xh:%Xh] uses unknown hash algorithm %04Xh", __FUNCTION__,
+                                 protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size, protectedRanges[i].AlgorithmId),
+                        model->findByBase(protectedRanges[i].Offset));
+                }
+                
+                // Check the hash
+                if (digest != protectedRanges[i].Hash) {
+                    msg(usprintf("%s: Microsoft PMDA protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
+                                 protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
+                        model->findByBase(protectedRanges[i].Offset));
+                }
+                
+                markProtectedRangeRecursive(index, protectedRanges[i]);
             }
-            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA256) {
-                sha256(protectedParts.constData(), protectedParts.size(), digest.data());
-                digest = digest.left(SHA256_HASH_SIZE);
+            catch(...) {
+                // Do nothing, this range is likely not found in the image
             }
-            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA384) {
-                sha384(protectedParts.constData(), protectedParts.size(), digest.data());
-                digest = digest.left(SHA384_HASH_SIZE);
-            }
-            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SHA512) {
-                sha512(protectedParts.constData(), protectedParts.size(), digest.data());
-                digest = digest.left(SHA512_HASH_SIZE);
-            }
-            else if (protectedRanges[i].AlgorithmId == TCG_HASH_ALGORITHM_ID_SM3) {
-                sm3(protectedParts.constData(), protectedParts.size(), digest.data());
-                digest = digest.left(SM3_HASH_SIZE);
-            }
-            else {
-                msg(usprintf("%s: Microsoft PMDA protected range [%Xh:%Xh] uses unknown hash algorithm %04Xh", __FUNCTION__,
-                             protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size, protectedRanges[i].AlgorithmId),
-                    model->findByBase(protectedRanges[i].Offset));
-            }
-            
-            // Check the hash
-            if (digest != protectedRanges[i].Hash) {
-                msg(usprintf("%s: Microsoft PMDA protected range [%Xh:%Xh] hash mismatch, opened image may refuse to boot", __FUNCTION__,
-                             protectedRanges[i].Offset, protectedRanges[i].Offset + protectedRanges[i].Size),
-                    model->findByBase(protectedRanges[i].Offset));
-            }
-            
-            markProtectedRangeRecursive(index, protectedRanges[i]);
         }
     }
     
