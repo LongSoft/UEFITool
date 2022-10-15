@@ -378,6 +378,13 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     if (regionSection->MeLimit) {
         me.offset = calculateRegionOffset(regionSection->MeBase);
         me.length = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+        if (intelImage.size() < me.offset + me.length) {
+            msg(usprintf("%s: ", __FUNCTION__)
+                + itemSubtypeToUString(Types::Region, me.type)
+                + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
+                index);
+            return U_TRUNCATED_IMAGE;
+        }
         me.data = intelImage.mid(me.offset, me.length);
         regions.push_back(me);
     }
@@ -398,13 +405,16 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             // Use ME region end as BIOS region offset
             bios.offset = me.offset + me.length;
             bios.length = (UINT32)intelImage.size() - bios.offset;
-            bios.data = intelImage.mid(bios.offset, bios.length);
         }
-        // Normal descriptor map
-        else {
-            bios.data = intelImage.mid(bios.offset, bios.length);
+
+        if (intelImage.size() < bios.offset + bios.length) {
+            msg(usprintf("%s: ", __FUNCTION__)
+                + itemSubtypeToUString(Types::Region, bios.type)
+                + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
+                index);
+            return U_TRUNCATED_IMAGE;
         }
-        
+        bios.data = intelImage.mid(bios.offset, bios.length);
         regions.push_back(bios);
     }
     else {
@@ -425,6 +435,13 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             region.offset = calculateRegionOffset(*RegionBase);
             region.length = calculateRegionSize(*RegionBase, *RegionLimit);
             if (region.length != 0) {
+                if (intelImage.size() < region.offset + region.length) {
+                    msg(usprintf("%s: ", __FUNCTION__)
+                        + itemSubtypeToUString(Types::Region, region.type)
+                        + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
+                        index);
+                    return U_TRUNCATED_IMAGE;
+                }
                 region.data = intelImage.mid(region.offset, region.length);
                 regions.push_back(region);
             }
@@ -444,7 +461,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     REGION_INFO region;
     // Check intersection with the descriptor
     if (regions.front().offset < FLASH_DESCRIPTOR_SIZE) {
-        msg(usprintf("%s: ", __FUNCTION__) + itemSubtypeToUString(Types::Region, regions.front().type)
+        msg(usprintf("%s: ", __FUNCTION__)
+            + itemSubtypeToUString(Types::Region, regions.front().type)
             + UString(" region has intersection with flash descriptor"),
             index);
         return U_INVALID_FLASH_DESCRIPTOR;
@@ -460,18 +478,12 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Check for intersections/paddings between regions
     for (size_t i = 1; i < regions.size(); i++) {
         UINT32 previousRegionEnd = regions[i-1].offset + regions[i-1].length;
-        // Check that current region is fully present in the image
-        if ((UINT64)regions[i].offset + (UINT64)regions[i].length > (UINT64)intelImage.size()) {
-            msg(usprintf("%s: ", __FUNCTION__) + itemSubtypeToUString(Types::Region, regions[i].type)
-                + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
-                index);
-            return U_TRUNCATED_IMAGE;
-        }
-        
         // Check for intersection with previous region
         if (regions[i].offset < previousRegionEnd) {
-            msg(usprintf("%s: ", __FUNCTION__) + itemSubtypeToUString(Types::Region, regions[i].type)
-                + UString(" region has intersection with ") + itemSubtypeToUString(Types::Region, regions[i - 1].type) +UString(" region"),
+            msg(usprintf("%s: ", __FUNCTION__)
+                + itemSubtypeToUString(Types::Region, regions[i].type)
+                + UString(" region has intersection with ") + itemSubtypeToUString(Types::Region, regions[i - 1].type)
+                + UString(" region"),
                 index);
             return U_INVALID_FLASH_DESCRIPTOR;
         }
