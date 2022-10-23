@@ -505,9 +505,9 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
         kmInfo += "\n";
         // Calculate the hashes of public key modulus + exponent
         UByteArray dataToHash;
-        dataToHash.append(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length());
+        dataToHash += UByteArray(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length());
         UINT32 exponent = key_signature->public_key()->exponent();
-        dataToHash.append((const char*)&exponent, sizeof(exponent));
+        dataToHash += UByteArray((const char*)&exponent, sizeof(exponent));
         sha256(dataToHash.constData(), dataToHash.size(), hash);
         kmInfo += usprintf("Key Manifest Public Key Hash (Modulus+Exponent, SHA256): ");
         for (UINT8 i = 0; i < SHA256_HASH_SIZE; i++) {
@@ -631,9 +631,9 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
         kmInfo += "\n";
         // Calculate the hashes of public key modulus + exponent
         UByteArray dataToHash;
-        dataToHash.append(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length());
+        dataToHash += UByteArray(key_signature->public_key()->modulus().data(), key_signature->public_key()->modulus().length());
         UINT32 exponent = key_signature->public_key()->exponent();
-        dataToHash.append((const char*)&exponent, sizeof(exponent));
+        dataToHash += UByteArray((const char*)&exponent, sizeof(exponent));
         sha256(dataToHash.constData(), dataToHash.size(), hash);
         kmInfo += usprintf("Key Manifest Public Key Hash (Modulus+Exponent, SHA256): ");
         for (UINT8 i = 0; i < SHA256_HASH_SIZE; i++) {
