@@ -1372,8 +1372,10 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemAlternativeSize = 0;
             const EFI_FV_BLOCK_MAP_ENTRY* entry = (const EFI_FV_BLOCK_MAP_ENTRY*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
             while (entry->NumBlocks != 0 && entry->Length != 0) {
-                if ((void*)entry >= data.constData() + data.size()) {
-                    continue;
+                if ((void*)entry >= data.constData() + dataSize) {
+		    // Reset the size since we failed to parse the EFI_FV_BLOCK_MAP_ENTRY array
+		    nextItemAlternativeSize = 0;
+                    break;
                 }
                 
                 nextItemAlternativeSize += entry->NumBlocks * entry->Length;
