@@ -378,7 +378,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     if (regionSection->MeLimit) {
         me.offset = calculateRegionOffset(regionSection->MeBase);
         me.length = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
-        if (intelImage.size() < me.offset + me.length) {
+        if ((UINT32)intelImage.size() < me.offset + me.length) {
             msg(usprintf("%s: ", __FUNCTION__)
                 + itemSubtypeToUString(Types::Region, me.type)
                 + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
@@ -407,7 +407,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             bios.length = (UINT32)intelImage.size() - bios.offset;
         }
 
-        if (intelImage.size() < bios.offset + bios.length) {
+        if ((UINT32)intelImage.size() < bios.offset + bios.length) {
             msg(usprintf("%s: ", __FUNCTION__)
                 + itemSubtypeToUString(Types::Region, bios.type)
                 + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
@@ -435,7 +435,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             region.offset = calculateRegionOffset(*RegionBase);
             region.length = calculateRegionSize(*RegionBase, *RegionLimit);
             if (region.length != 0) {
-                if (intelImage.size() < region.offset + region.length) {
+                if ((UINT32)intelImage.size() < region.offset + region.length) {
                     msg(usprintf("%s: ", __FUNCTION__)
                         + itemSubtypeToUString(Types::Region, region.type)
                         + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
