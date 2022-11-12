@@ -22,11 +22,13 @@
 HexLineEdit::HexLineEdit(QWidget * parent)
 :QLineEdit(parent)
 {
+    m_editAsGuid = false;
 }
 
 HexLineEdit::HexLineEdit(const QString & contents, QWidget * parent)
 :QLineEdit(contents, parent)
 {
+    m_editAsGuid = false;
 }
 
 HexLineEdit::~HexLineEdit()
