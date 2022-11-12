@@ -1,4 +1,4 @@
-/* guidlineedit.h
+/* hexlineedit.h
 
   Copyright (c) 2014, Nikolaj Schlej. All rights reserved.
   This program and the accompanying materials
@@ -11,9 +11,11 @@
 
   */
 
-#ifndef GUIDLINEEDIT_H
-#define GUIDLINEEDIT_H
+#ifndef HEXLINEEDIT_H
+#define HEXLINEEDIT_H
 
+#include <QApplication>
+#include <QClipboard>
 #include <QLineEdit>
 #include <QKeyEvent>
 #include <QKeySequence>
@@ -21,16 +23,29 @@
 
 #include "../common/basetypes.h"
 
-class GuidLineEdit : public QLineEdit
+class HexLineEdit : public QLineEdit
 {
+     Q_OBJECT
+     Q_PROPERTY(bool editAsGuid READ editAsGuid WRITE setEditAsGuid)
+
 public:
-    GuidLineEdit(QWidget * parent = 0);
-    GuidLineEdit(const QString & contents, QWidget * parent = 0);
-    ~GuidLineEdit();
+    HexLineEdit(QWidget * parent = 0);
+    HexLineEdit(const QString & contents, QWidget * parent = 0);
+    ~HexLineEdit();
+
+    void setEditAsGuid(bool editAsGuid)
+    {
+        m_editAsGuid = editAsGuid;
+    }
+    bool editAsGuid() const
+    { return m_editAsGuid; }
+
+private:
+    bool m_editAsGuid;
 
 protected:
     void keyPressEvent(QKeyEvent * event);
 
 };
 
-#endif // GUIDLINEEDIT_H
+#endif // HEXLINEEDIT_H

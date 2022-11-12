@@ -32,7 +32,7 @@ SET(PROJECT_SOURCES
  uefitool.cpp
  searchdialog.cpp
  hexviewdialog.cpp
- guidlineedit.cpp
+ hexlineedit.cpp
  ffsfinder.cpp
  hexspinbox.cpp
  qhexedit2/qhexedit.cpp

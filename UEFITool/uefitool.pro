@@ -15,7 +15,7 @@ HEADERS += uefitool.h \
  hexviewdialog.h \
  gotobasedialog.h \
  gotoaddressdialog.h \
- guidlineedit.h \
+ hexlineedit.h \
  ffsfinder.h \
  hexspinbox.h \
  ../common/fitparser.h \
@@ -69,7 +69,7 @@ SOURCES += uefitool_main.cpp \
  uefitool.cpp \
  searchdialog.cpp \
  hexviewdialog.cpp \
- guidlineedit.cpp \
+ hexlineedit.cpp \
  ffsfinder.cpp \
  hexspinbox.cpp \
  ../common/fitparser.cpp \
