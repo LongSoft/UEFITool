@@ -35,7 +35,10 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="QLineEdit" name="hexEdit">
+        <widget class="HexLineEdit" name="hexEdit">
+         <property name="editAsGuid">
+          <bool>false</bool>
+         </property>
          <property name="inputMask">
           <string/>
          </property>
@@ -89,7 +92,10 @@
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="GuidLineEdit" name="guidEdit">
+        <widget class="HexLineEdit" name="guidEdit">
+         <property name="editAsGuid">
+          <bool>true</bool>
+         </property>
          <property name="inputMask">
           <string>xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</string>
          </property>
@@ -241,9 +247,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>GuidLineEdit</class>
+   <class>HexLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>guidlineedit.h</header>
+   <header>hexlineedit.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>
