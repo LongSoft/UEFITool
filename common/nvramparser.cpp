@@ -1693,7 +1693,7 @@ USTATUS NvramParser::parseEvsaStoreBody(const UModelIndex & index)
         
         // Check entry size
         variableSize = sizeof(EVSA_ENTRY_HEADER);
-        if (unparsedSize < variableSize || unparsedSize < entryHeader->Size) {
+        if (unparsedSize < variableSize || unparsedSize < entryHeader->Size || entryHeader->Size < 2) {
             body = data.mid(offset);
             info = usprintf("Full size: %Xh (%u)", (UINT32)body.size(), (UINT32)body.size());
             
