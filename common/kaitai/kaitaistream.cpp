@@ -22,11 +22,16 @@
 #define bswap_32(x) _byteswap_ulong(x)
 #define bswap_64(x) _byteswap_uint64(x)
 // BSD
-#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 #include <sys/endian.h>
 #define bswap_16(x) bswap16(x)
 #define bswap_32(x) bswap32(x)
 #define bswap_64(x) bswap64(x)
+#elif defined(__OpenBSD__)
+#include <endian.h>
+#define bswap_16(x) swap16(x)
+#define bswap_32(x) swap32(x)
+#define bswap_64(x) swap64(x)
 // Everything else
 #else
 #include <endian.h>
