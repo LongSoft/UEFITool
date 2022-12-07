@@ -1,6 +1,6 @@
 /* uefitool.cpp
  
- Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
+ Copyright (c) 2022, Nikolaj Schlej. All rights reserved.
  This program and the accompanying materials
  are licensed and made available under the terms and conditions of the BSD License
  which accompanies this distribution.  The full text of the license may be found at
@@ -974,18 +974,8 @@ void UEFITool::readSettings()
     fontSize = settings.value("mainWindow/fontSize", 10).toInt();
 #endif
     currentFont = QFont(fontName, fontSize);
-    ui->infoEdit->setFont(currentFont);
-    ui->parserMessagesListWidget->setFont(currentFont);
-    ui->finderMessagesListWidget->setFont(currentFont);
-    ui->builderMessagesListWidget->setFont(currentFont);
-    ui->fitTableWidget->setFont(currentFont);
-    ui->securityEdit->setFont(currentFont);
-    ui->structureTreeView->setFont(currentFont);
-    searchDialog->ui->guidEdit->setFont(currentFont);
-    searchDialog->ui->hexEdit->setFont(currentFont);
-    hexViewDialog->setFont(currentFont);
-    goToAddressDialog->ui->hexSpinBox->setFont(currentFont);
-    goToBaseDialog->ui->hexSpinBox->setFont(currentFont);
+    currentFont.setStyleHint(QFont::Monospace);
+    QApplication::setFont(currentFont);
 }
 
 void UEFITool::writeSettings()
