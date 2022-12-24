@@ -75,13 +75,14 @@ typedef size_t USTATUS;
 #define U_UNKNOWN_PATCH_TYPE              53
 #define U_PATCH_OFFSET_OUT_OF_BOUNDS      54
 #define U_INVALID_SYMBOL                  55
+#define U_ZLIB_DECOMPRESSION_FAILED       56
 
 #define U_INVALID_MANIFEST                251
 #define U_UNKNOWN_MANIFEST_HEADER_VERSION 252
 #define U_INVALID_ME_PARTITION_TABLE      253
 #define U_INVALID_ME_PARTITION            254
 
-#define U_NOT_IMPLEMENTED                 0xFF
+#define U_NOT_IMPLEMENTED                 255
 
 // EDK2 porting definitions
 typedef uint8_t      BOOLEAN;

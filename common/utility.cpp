@@ -526,20 +526,20 @@ USTATUS gzipDecompress(const UByteArray & input, UByteArray & output)
     if (input.size() == 0)
         return U_SUCCESS;
     
-    z_stream stream;
+    z_stream stream = {};
     stream.next_in = (z_const Bytef *)input.data();
     stream.avail_in = (uInt)input.size();
     stream.zalloc = Z_NULL;
     stream.zfree = Z_NULL;
     stream.opaque = Z_NULL;
     
-    // 15 for the maximum history buffer, 16 for gzip only input.
+    // 15 for the maximum history buffer, 16 for gzip only input
     int ret = inflateInit2(&stream, 15U | 16U);
     if (ret != Z_OK)
         return U_GZIP_DECOMPRESSION_FAILED;
     
     while (ret == Z_OK) {
-        Bytef out[4096];
+        Bytef out[0x1000] = {};
         stream.next_out = out;
         stream.avail_out = sizeof(out);
         
@@ -550,4 +550,37 @@ USTATUS gzipDecompress(const UByteArray & input, UByteArray & output)
     
     inflateEnd(&stream);
     return ret == Z_STREAM_END ? U_SUCCESS : U_GZIP_DECOMPRESSION_FAILED;
+}
+
+USTATUS zlibDecompress(const UByteArray& input, UByteArray& output)
+{
+    output.clear();
+
+    if (input.size() == 0)
+        return U_SUCCESS;
+
+    z_stream stream = {};
+    stream.next_in = (z_const Bytef*)input.data();
+    stream.avail_in = (uInt)input.size();
+    stream.zalloc = Z_NULL;
+    stream.zfree = Z_NULL;
+    stream.opaque = Z_NULL;
+
+    // 15 for the maximum history buffer
+    int ret = inflateInit2(&stream, 15U);
+    if (ret != Z_OK)
+        return U_ZLIB_DECOMPRESSION_FAILED;
+
+    while (ret == Z_OK) {
+        Bytef out[0x1000] = {};
+        stream.next_out = out;
+        stream.avail_out = sizeof(out);
+
+        ret = inflate(&stream, Z_NO_FLUSH);
+        if ((ret == Z_OK || ret == Z_STREAM_END) && stream.avail_out != sizeof(out))
+            output += UByteArray((char*)out, sizeof(out) - stream.avail_out);
+    }
+
+    inflateEnd(&stream);
+    return ret == Z_STREAM_END ? U_SUCCESS : U_ZLIB_DECOMPRESSION_FAILED;
 }

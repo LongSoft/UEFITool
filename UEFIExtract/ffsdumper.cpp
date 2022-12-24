@@ -30,7 +30,7 @@ USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const Du
 
     USTATUS result = recursiveDump(root, path, dumpMode, sectionType, guid);
     if (result) {
-        printf("Error %lu returned from recursiveDump (directory \"%s\").\n", result, (const char*)path.toLocal8Bit());
+        printf("Error %zu returned from recursiveDump (directory \"%s\").\n", result, (const char*)path.toLocal8Bit());
         return result;
     } else if (!dumped) {
         removeDirectory(path);
@@ -199,7 +199,7 @@ USTATUS FfsDumper::recursiveDump(const UModelIndex & index, const UString & path
         }
         result = recursiveDump(childIndex, childPath, dumpMode, sectionType, guid);
         if (result) {
-            printf("Error %lu returned from recursiveDump (child directory \"%s\").\n", result, (const char*)childPath.toLocal8Bit());
+            printf("Error %zu returned from recursiveDump (child directory \"%s\").\n", result, (const char*)childPath.toLocal8Bit());
             return result;
         }
     }

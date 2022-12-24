@@ -41,6 +41,9 @@ USTATUS decompress(const UByteArray & compressed, const UINT8 compressionType, U
 // GZIP decompression routine
 USTATUS gzipDecompress(const UByteArray & compressed, UByteArray & decompressed);
 
+// ZLIB decompression routine
+USTATUS zlibDecompress(const UByteArray& compressed, UByteArray& decompressed);
+
 // 8bit sum calculation routine
 UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize);
 
@@ -66,7 +69,7 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
 // Safely dereferences misaligned pointers
 template <typename T>
 inline T readUnaligned(const T *v) {
-    T tmp;
+    T tmp = {};
     memcpy(&tmp, v, sizeof(T));
     return tmp;
 }

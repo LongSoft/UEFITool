@@ -83,9 +83,4 @@ void HexLineEdit::keyPressEvent(QKeyEvent * event)
     
     // Call original event handler
     QLineEdit::keyPressEvent(event);
-
-    if (event == QKeySequence::Paste)
-    {
-        clipboard->setText(originalText);
-    }
 }

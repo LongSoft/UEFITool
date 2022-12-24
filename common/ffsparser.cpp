@@ -46,32 +46,6 @@ enum GlobalColor {
 }
 #endif
 
-// Region info
-struct REGION_INFO {
-    UINT32 offset;
-    UINT32 length;
-    UINT8  type;
-    UByteArray data;
-    friend bool operator< (const REGION_INFO & lhs, const REGION_INFO & rhs){ return lhs.offset < rhs.offset; }
-};
-
-// BPDT partition info
-struct BPDT_PARTITION_INFO {
-    BPDT_ENTRY ptEntry;
-    UINT8 type;
-    UModelIndex index;
-    friend bool operator< (const BPDT_PARTITION_INFO & lhs, const BPDT_PARTITION_INFO & rhs){ return lhs.ptEntry.Offset < rhs.ptEntry.Offset; }
-};
-
-// CPD partition info
-struct CPD_PARTITION_INFO {
-    CPD_ENTRY ptEntry;
-    UINT8 type;
-    bool hasMetaData;
-    UModelIndex index;
-    friend bool operator< (const CPD_PARTITION_INFO & lhs, const CPD_PARTITION_INFO & rhs){ return lhs.ptEntry.Offset.Offset < rhs.ptEntry.Offset.Offset; }
-};
-
 // Constructor
 FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
 imageBase(0), addressDiff(0x100000000ULL), protectedRegionsBase(0) {
@@ -175,7 +149,8 @@ USTATUS FfsParser::parseGenericImage(const UByteArray & buffer, const UINT32 loc
     index = model->addItem(localOffset, Types::Image, Subtypes::UefiImage, name, UString(), info, UByteArray(), buffer, UByteArray(), Fixed, parent);
     
     // Parse the image as raw area
-    protectedRegionsBase = imageBase = model->base(parent) + localOffset;
+    imageBase = model->base(parent) + localOffset;
+    protectedRegionsBase = imageBase;
     return parseRawArea(index);
 }
 
@@ -1372,8 +1347,10 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemAlternativeSize = 0;
             const EFI_FV_BLOCK_MAP_ENTRY* entry = (const EFI_FV_BLOCK_MAP_ENTRY*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
             while (entry->NumBlocks != 0 && entry->Length != 0) {
-                if ((void*)entry >= data.constData() + data.size()) {
-                    continue;
+                // Check if we are past the end of the volume
+                if ((const void*)entry >= data.constData() + data.size()) {
+                    // This volume is broken, but we can't use continue here because we need to continue the outer loop
+                    goto continue_searching;
                 }
                 
                 nextItemAlternativeSize += entry->NumBlocks * entry->Length;
@@ -1385,6 +1362,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             nextItemSize = (UINT32)volumeHeader->FvLength;
             nextItemOffset = offset - EFI_FV_SIGNATURE_OFFSET;
             break;
+continue_searching: {}
         }
         else if (readUnaligned(currentPos) == BPDT_GREEN_SIGNATURE
                  || readUnaligned(currentPos) == BPDT_YELLOW_SIGNATURE) {
@@ -2371,6 +2349,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     bool msgUnknownCertType = false;
     bool msgUnknownCertSubtype = false;
     bool msgProcessingRequiredAttributeOnUnknownGuidedSection = false;
+    bool msgInvalidCompressedSize = false;
     if (baGuid == EFI_GUIDED_SECTION_CRC32) {
         if ((attributes & EFI_GUIDED_SECTION_AUTH_STATUS_VALID) == 0) { // Check that AuthStatusValid attribute is set on compressed GUIDed sections
             msgNoAuthStatusAttribute = true;
@@ -2390,13 +2369,37 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
             additionalInfo += usprintf("\nChecksum: %08Xh, invalid, should be %08Xh", crc, calculated);
             msgInvalidCrc = true;
         }
-        // No need to change dataOffset here
+
+        // Adjust dataOffset
+        dataOffset += sizeof(UINT32);
     }
-    else if (baGuid == EFI_GUIDED_SECTION_LZMA || baGuid == EFI_GUIDED_SECTION_LZMA_HP || baGuid == EFI_GUIDED_SECTION_LZMAF86 || baGuid == EFI_GUIDED_SECTION_TIANO || baGuid == EFI_GUIDED_SECTION_GZIP) {
+    else if (baGuid == EFI_GUIDED_SECTION_LZMA
+        || baGuid == EFI_GUIDED_SECTION_LZMA_HP
+        || baGuid == EFI_GUIDED_SECTION_LZMAF86
+        || baGuid == EFI_GUIDED_SECTION_TIANO
+        || baGuid == EFI_GUIDED_SECTION_GZIP) {
         if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on compressed GUIDed sections
             msgNoProcessingRequiredAttributeCompressed = true;
         }
         // No need to change dataOffset here
+    }
+    else if (baGuid == EFI_GUIDED_SECTION_ZLIB_AMD) {
+        if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on compressed GUIDed sections
+            msgNoProcessingRequiredAttributeCompressed = true;
+        }
+
+        if ((UINT32)section.size() < headerSize + sizeof(EFI_AMD_ZLIB_SECTION_HEADER))
+            return U_INVALID_SECTION;
+
+        const EFI_AMD_ZLIB_SECTION_HEADER* amdZlibSectionHeader = (const EFI_AMD_ZLIB_SECTION_HEADER*)(section.constData() + headerSize);
+
+        // Check the compressed size to be sane
+        if ((UINT32)section.size() != headerSize + sizeof(EFI_AMD_ZLIB_SECTION_HEADER) + amdZlibSectionHeader->CompressedSize) {
+            msgInvalidCompressedSize = true;
+        }
+
+        // Adjust dataOffset
+        dataOffset += sizeof(EFI_AMD_ZLIB_SECTION_HEADER);
     }
     else if (baGuid == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
         if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on signed GUIDed sections
@@ -2465,12 +2468,11 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     // Get info
     UString name = guidToUString(guid);
     UString info = UString("Section GUID: ") + guidToUString(guid, false) +
-    usprintf("\nType: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nData offset: %Xh\nAttributes: %04Xh",
+    usprintf("\nType: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nAttributes: %04Xh",
              sectionHeader->Type,
              (UINT32)section.size(), (UINT32)section.size(),
              (UINT32)header.size(), (UINT32)header.size(),
              (UINT32)body.size(), (UINT32)body.size(),
-             dataOffset,
              attributes);
     
     // Append additional info
@@ -2487,7 +2489,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         
         // Show messages
         if (msgSignedSectionFound)
-            msg(usprintf("%s: section signature may become invalid after any modification", __FUNCTION__), index);
+            msg(usprintf("%s: GUIDed section signature may become invalid after modification", __FUNCTION__), index);
         if (msgNoAuthStatusAttribute)
             msg(usprintf("%s: CRC32 GUIDed section without AuthStatusValid attribute", __FUNCTION__), index);
         if (msgNoProcessingRequiredAttributeCompressed)
@@ -2495,13 +2497,15 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         if (msgNoProcessingRequiredAttributeSigned)
             msg(usprintf("%s: signed GUIDed section without ProcessingRequired attribute", __FUNCTION__), index);
         if (msgInvalidCrc)
-            msg(usprintf("%s: GUID defined section with invalid CRC32", __FUNCTION__), index);
+            msg(usprintf("%s: CRC32 GUIDed section with invalid checksum", __FUNCTION__), index);
         if (msgUnknownCertType)
-            msg(usprintf("%s: signed GUIDed section with unknown type", __FUNCTION__), index);
+            msg(usprintf("%s: signed GUIDed section with unknown certificate type", __FUNCTION__), index);
         if (msgUnknownCertSubtype)
-            msg(usprintf("%s: signed GUIDed section with unknown subtype", __FUNCTION__), index);
+            msg(usprintf("%s: signed GUIDed section with unknown certificate subtype", __FUNCTION__), index);
         if (msgProcessingRequiredAttributeOnUnknownGuidedSection)
             msg(usprintf("%s: processing required bit set for GUIDed section with unknown GUID", __FUNCTION__), index);
+        if (msgInvalidCompressedSize)
+            msg(usprintf("%s: AMD Zlib-compressed section with invalid compressed size", __FUNCTION__), index);
     }
     
     return U_SUCCESS;
@@ -2706,11 +2710,11 @@ USTATUS FfsParser::parseSectionBody(const UModelIndex & index)
     const EFI_COMMON_SECTION_HEADER* sectionHeader = (const EFI_COMMON_SECTION_HEADER*)(header.constData());
     
     switch (sectionHeader->Type) {
-            // Encapsulation
+        // Encapsulation
         case EFI_SECTION_COMPRESSION:           return parseCompressedSectionBody(index);
         case EFI_SECTION_GUID_DEFINED:          return parseGuidedSectionBody(index);
         case EFI_SECTION_DISPOSABLE:            return parseSections(model->body(index), index, true);
-            // Leaf
+        // Leaf
         case EFI_SECTION_FREEFORM_SUBTYPE_GUID: return parseRawArea(index);
         case EFI_SECTION_VERSION:               return parseVersionSectionBody(index);
         case EFI_SECTION_DXE_DEPEX:
@@ -2722,7 +2726,7 @@ USTATUS FfsParser::parseSectionBody(const UModelIndex & index)
         case EFI_SECTION_USER_INTERFACE:        return parseUiSectionBody(index);
         case EFI_SECTION_FIRMWARE_VOLUME_IMAGE: return parseRawArea(index);
         case EFI_SECTION_RAW:                   return parseRawSectionBody(index);
-            // No parsing needed
+        // No parsing needed
         case EFI_SECTION_COMPATIBILITY16:
         case PHOENIX_SECTION_POSTCODE:
         case INSYDE_SECTION_POSTCODE:
@@ -2904,6 +2908,17 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
         }
         
         info += UString("\nCompression algorithm: GZip");
+        info += usprintf("\nDecompressed size: %Xh (%u)", (UINT32)processed.size(), (UINT32)processed.size());
+    }
+    // Zlib compressed section
+    else if (baGuid == EFI_GUIDED_SECTION_ZLIB_AMD) {
+        USTATUS result = zlibDecompress(model->body(index), processed);
+        if (result) {
+            msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+            return U_SUCCESS;
+        }
+
+        info += UString("\nCompression algorithm: Zlib");
         info += usprintf("\nDecompressed size: %Xh (%u)", (UINT32)processed.size(), (UINT32)processed.size());
     }
     
@@ -3212,7 +3227,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index)
              imageFileHeader->NumberOfSections,
              imageFileHeader->Characteristics);
     
-    EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION optionalHeader;
+    EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION optionalHeader = {};
     optionalHeader.H32 = (const EFI_IMAGE_OPTIONAL_HEADER32*)(imageFileHeader + 1);
     if (body.size() < (UINT8*)optionalHeader.H32 - (UINT8*)dosHeader) {
         info += UString("\nPE optional header: invalid");

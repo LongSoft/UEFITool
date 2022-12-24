@@ -33,10 +33,10 @@ extern UString cpdExtensionTypeToUstring(const UINT32 type);
 //*****************************************************************************
 // Capsule header
 typedef struct EFI_CAPSULE_HEADER_ {
-    EFI_GUID  CapsuleGuid;
-    UINT32    HeaderSize;
-    UINT32    Flags;
-    UINT32    CapsuleImageSize;
+    EFI_GUID CapsuleGuid;
+    UINT32   HeaderSize;
+    UINT32   Flags;
+    UINT32   CapsuleImageSize;
 } EFI_CAPSULE_HEADER;
 
 // Capsule flags
@@ -61,10 +61,10 @@ extern const UByteArray LENOVO2_CAPSULE_GUID; // 25B5FE76-8243-4A5C-A9BD-7EE3246
 
 // Toshiba EFI Capsule header
 typedef struct TOSHIBA_CAPSULE_HEADER_ {
-    EFI_GUID  CapsuleGuid;
-    UINT32    HeaderSize;
-    UINT32    FullSize;
-    UINT32    Flags;
+    EFI_GUID CapsuleGuid;
+    UINT32   HeaderSize;
+    UINT32   FullSize;
+    UINT32   Flags;
 } TOSHIBA_CAPSULE_HEADER;
 
 // Toshiba capsule GUID
@@ -72,11 +72,11 @@ extern const UByteArray TOSHIBA_CAPSULE_GUID; // 3BE07062-1D51-45D2-832B-F093257
 
 // AMI Aptio extended capsule header
 typedef struct APTIO_CAPSULE_HEADER_ {
-    EFI_CAPSULE_HEADER    CapsuleHeader;
-    UINT16                RomImageOffset;  // offset in bytes from the beginning of the capsule header to the start of the capsule volume
-    UINT16                RomLayoutOffset; // offset to the table of the module descriptors in the capsule's volume that are included in the signature calculation
-    //FW_CERTIFICATE      FWCert;
-    //ROM_AREA            RomAreaMap[1];
+    EFI_CAPSULE_HEADER CapsuleHeader;
+    UINT16             RomImageOffset;  // offset in bytes from the beginning of the capsule header to the start of the capsule volume
+    UINT16             RomLayoutOffset; // offset to the table of the module descriptors in the capsule's volume that are included in the signature calculation
+    //FW_CERTIFICATE   FWCert;
+    //ROM_AREA         RomAreaMap[];
 } APTIO_CAPSULE_HEADER;
 
 // AMI Aptio signed extended capsule GUID
@@ -91,22 +91,22 @@ extern const UByteArray APTIO_UNSIGNED_CAPSULE_GUID; // 14EEBB90-890A-43DB-AED1-
 // Firmware block map entry
 // FvBlockMap ends with an entry {0x00000000, 0x00000000}
 typedef struct EFI_FV_BLOCK_MAP_ENTRY_ {
-    UINT32  NumBlocks;
-    UINT32  Length;
+    UINT32 NumBlocks;
+    UINT32 Length;
 } EFI_FV_BLOCK_MAP_ENTRY;
 
 // Volume header
 typedef struct EFI_FIRMWARE_VOLUME_HEADER_ {
-    UINT8                  ZeroVector[16];
-    EFI_GUID               FileSystemGuid;
-    UINT64                 FvLength;
-    UINT32                 Signature;
-    UINT32                 Attributes;
-    UINT16                 HeaderLength;
-    UINT16                 Checksum;
-    UINT16                 ExtHeaderOffset;  //Reserved in Revision 1
-    UINT8                  Reserved;
-    UINT8                  Revision;
+    UINT8    ZeroVector[16];
+    EFI_GUID FileSystemGuid;
+    UINT64   FvLength;
+    UINT32   Signature;
+    UINT32   Attributes;
+    UINT16   HeaderLength;
+    UINT16   Checksum;
+    UINT16   ExtHeaderOffset;  //Reserved in Revision 1
+    UINT8    Reserved;
+    UINT8    Revision;
     //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
 } EFI_FIRMWARE_VOLUME_HEADER;
 
@@ -224,8 +224,8 @@ extern const std::vector<UByteArray> FFSv3Volumes;
 
 // Extended firmware volume header
 typedef struct EFI_FIRMWARE_VOLUME_EXT_HEADER_ {
-    EFI_GUID          FvName;
-    UINT32            ExtHeaderSize;
+    EFI_GUID FvName;
+    UINT32   ExtHeaderSize;
 } EFI_FIRMWARE_VOLUME_EXT_HEADER;
 
 // Extended header entry
@@ -233,16 +233,16 @@ typedef struct EFI_FIRMWARE_VOLUME_EXT_HEADER_ {
 // terminated by ExtHeaderType EFI_FV_EXT_TYPE_END
 #define EFI_FV_EXT_TYPE_END        0x0000
 typedef struct EFI_FIRMWARE_VOLUME_EXT_ENTRY_ {
-    UINT16  ExtEntrySize;
-    UINT16  ExtEntryType;
+    UINT16 ExtEntrySize;
+    UINT16 ExtEntryType;
 } EFI_FIRMWARE_VOLUME_EXT_ENTRY;
 
 // GUID that maps OEM file types to GUIDs
 #define EFI_FV_EXT_TYPE_OEM_TYPE   0x0001
 typedef struct EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE_ {
-    EFI_FIRMWARE_VOLUME_EXT_ENTRY    Header;
-    UINT32                           TypeMask;
-    //EFI_GUID                       Types[];
+    EFI_FIRMWARE_VOLUME_EXT_ENTRY Header;
+    UINT32                        TypeMask;
+    //EFI_GUID                    Types[];
 } EFI_FIRMWARE_VOLUME_EXT_HEADER_OEM_TYPE;
 
 #define EFI_FV_EXT_TYPE_GUID_TYPE  0x0002
@@ -340,7 +340,6 @@ extern const UINT8 ffsAlignmentTable[];
 // Extended FFS alignment table, added in UEFI PI 1.6
 extern const UINT8 ffsAlignment2Table[];
 
-
 // File states
 #define EFI_FILE_HEADER_CONSTRUCTION    0x01
 #define EFI_FILE_HEADER_VALID           0x02
@@ -377,15 +376,15 @@ extern UINT32 uint24ToUint32(const UINT8* ffsSize);
 //*****************************************************************************
 // Common section header
 typedef struct EFI_COMMON_SECTION_HEADER_ {
-    UINT8    Size[3];
-    UINT8    Type;
+    UINT8 Size[3];
+    UINT8 Type;
 } EFI_COMMON_SECTION_HEADER;
 
 // Large file common section header
 typedef struct EFI_COMMON_SECTION_HEADER2_ {
-    UINT8    Size[3];    // Must be 0xFFFFFF for this header to be used
-    UINT8    Type;
-    UINT32   ExtendedSize;
+    UINT8  Size[3];    // Must be 0xFFFFFF for this header to be used
+    UINT8  Type;
+    UINT32 ExtendedSize;
 } EFI_COMMON_SECTION_HEADER2;
 
 // Section2 usage indicator
@@ -417,8 +416,8 @@ typedef struct EFI_COMMON_SECTION_HEADER2_ {
 
 // Compression section
 typedef struct EFI_COMPRESSION_SECTION_ {
-    UINT32   UncompressedLength;
-    UINT8    CompressionType;
+    UINT32 UncompressedLength;
+    UINT8  CompressionType;
 } EFI_COMPRESSION_SECTION;
 
 // Compression types
@@ -445,10 +444,18 @@ extern const UByteArray EFI_GUIDED_SECTION_LZMA; // EE4E5898-3914-4259-9D6E-DC7B
 extern const UByteArray EFI_GUIDED_SECTION_LZMA_HP; // 0ED85E23-F253-413F-A03C-901987B04397
 extern const UByteArray EFI_GUIDED_SECTION_LZMAF86; // D42AE6BD-1352-4BFB-909A-CA72A6EAE889
 extern const UByteArray EFI_GUIDED_SECTION_GZIP; // 1D301FE9-BE79-4353-91C2-D23BC959AE0C
+extern const UByteArray EFI_GUIDED_SECTION_ZLIB_AMD; // CE3233F5-2CD6-4D87-9152-4A238BB6D1C4
 extern const UByteArray EFI_FIRMWARE_CONTENTS_SIGNED_GUID; // 0F9D89E8-9259-4F76-A5AF-0C89E34023DF
 
-//#define WIN_CERT_TYPE_PKCS_SIGNED_DATA 0x0002
-#define WIN_CERT_TYPE_EFI_GUID         0x0EF1
+#define WIN_CERT_TYPE_EFI_GUID 0x0EF1
+
+// AMD Zlib-compressed section header
+typedef struct EFI_AMD_ZLIB_SECTION_HEADER_ {
+    UINT8    ZeroHeader[0x14];
+    UINT32   CompressedSize;
+    UINT8    ZeroFooter[0x100 - sizeof(UINT32) - 0x14];
+    //UINT8  CompressedData[]
+} EFI_AMD_ZLIB_SECTION_HEADER;
 
 typedef struct WIN_CERTIFICATE_ {
     UINT32  Length;
@@ -458,9 +465,9 @@ typedef struct WIN_CERTIFICATE_ {
 } WIN_CERTIFICATE;
 
 typedef struct WIN_CERTIFICATE_UEFI_GUID_ {
-    WIN_CERTIFICATE   Header;     // Standard WIN_CERTIFICATE
-    EFI_GUID          CertType;   // Determines format of CertData
-    // UINT8          CertData[]; // Certificate data follows
+    WIN_CERTIFICATE Header;     // Standard WIN_CERTIFICATE
+    EFI_GUID        CertType;   // Determines format of CertData
+    // UINT8        CertData[]; // Certificate data follows
 } WIN_CERTIFICATE_UEFI_GUID;
 
 // WIN_CERTIFICATE_UEFI_GUID.CertType
@@ -468,16 +475,16 @@ extern const UByteArray EFI_CERT_TYPE_RSA2048_SHA256_GUID; // A7717414-C616-4977
 
 // WIN_CERTIFICATE_UEFI_GUID.CertData
 typedef struct EFI_CERT_BLOCK_RSA2048_SHA256_ {
-    EFI_GUID  HashType;
-    UINT8     PublicKey[256];
-    UINT8     Signature[256];
+    EFI_GUID HashType;
+    UINT8    PublicKey[256];
+    UINT8    Signature[256];
 } EFI_CERT_BLOCK_RSA2048_SHA256;
 
 extern const UByteArray EFI_HASH_ALGORITHM_SHA256_GUID; // 51AA59DE-FDF2-4EA3-BC63-875FB7842EE9
 
 // Version section
 typedef struct EFI_VERSION_SECTION_ {
-    UINT16   BuildNumber;
+    UINT16 BuildNumber;
 } EFI_VERSION_SECTION;
 
 // Freeform subtype GUID section
@@ -487,11 +494,11 @@ typedef struct EFI_FREEFORM_SUBTYPE_GUID_SECTION_ {
 
 // Phoenix SCT and Insyde postcode section
 typedef struct POSTCODE_SECTION_ {
-    UINT32   Postcode;
+    UINT32 Postcode;
 } POSTCODE_SECTION;
 
 //*****************************************************************************
-// EFI Dependency Expression
+// EFI DXE Dependency Expression
 //*****************************************************************************
 #define EFI_DEP_OPCODE_SIZE   1
 
