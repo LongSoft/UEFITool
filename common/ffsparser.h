@@ -20,8 +20,36 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "treemodel.h"
 #include "intel_microcode.h"
+#include "ffs.h"
 #include "fitparser.h"
 
+// Region info
+typedef struct REGION_INFO_ {
+    UINT32 offset = 0;
+    UINT32 length = 0;
+    UINT8  type = 0;
+    UByteArray data;
+    friend bool operator< (const struct REGION_INFO_ & lhs, const struct REGION_INFO_ & rhs) { return lhs.offset < rhs.offset; }
+} REGION_INFO;
+
+// BPDT partition info
+typedef struct BPDT_PARTITION_INFO_ {
+    BPDT_ENTRY ptEntry = {};
+    UINT8 type = 0;
+    UModelIndex index;
+    friend bool operator< (const struct BPDT_PARTITION_INFO_ & lhs, const struct BPDT_PARTITION_INFO_ & rhs) { return lhs.ptEntry.Offset < rhs.ptEntry.Offset; }
+} BPDT_PARTITION_INFO;
+
+// CPD partition info
+typedef struct CPD_PARTITION_INFO_ {
+    CPD_ENTRY ptEntry = {};
+    UINT8 type = 0;
+    bool hasMetaData = false;
+    UModelIndex index;
+    friend bool operator< (const struct CPD_PARTITION_INFO_ & lhs, const struct CPD_PARTITION_INFO_ & rhs) { return lhs.ptEntry.Offset.Offset < rhs.ptEntry.Offset.Offset; }
+} CPD_PARTITION_INFO;
+
+// Protected range
 typedef struct PROTECTED_RANGE_ {
     UINT32     Offset;
     UINT32     Size;
