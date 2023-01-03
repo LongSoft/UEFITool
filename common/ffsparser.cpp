@@ -2369,9 +2369,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
             additionalInfo += usprintf("\nChecksum: %08Xh, invalid, should be %08Xh", crc, calculated);
             msgInvalidCrc = true;
         }
-
-        // Adjust dataOffset
-        dataOffset += sizeof(UINT32);
+        // No need to change dataOffset here
     }
     else if (baGuid == EFI_GUIDED_SECTION_LZMA
         || baGuid == EFI_GUIDED_SECTION_LZMA_HP
