@@ -57,6 +57,11 @@ typedef struct PROTECTED_RANGE_ {
     UINT8      Type;
     UINT8      : 8;
     UByteArray Hash;
+
+    // Additional offsets and sizes.
+    UINT32     AddOffsets[3];
+    UINT32     AddSizes[3];
+    UINT32     AddCount;
 } PROTECTED_RANGE;
 
 #define PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB       0x01

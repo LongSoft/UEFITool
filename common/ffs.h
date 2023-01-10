@@ -828,11 +828,20 @@ typedef struct PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2_
     BG_VENDOR_HASH_FILE_ENTRY Hash1;
 } PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2;
 
+// Not sure why the first 3 are in an array, and the next is on its own, but
+// it looks like an attempt at extend the existing struct without modifying the
+// format. It also looks like 0xFFFFFFFF is used for padding in order to
+// detect uninitialized values for future backwards compatibility.
 typedef struct PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V3_
 {
     UINT8 Hash[SHA256_HASH_SIZE];
-    // UINT32 Base[SOME_HARDCODED_N]
-    // UINT32 Size[SOME_HARDCODED_N];
+    UINT32 Base[3];
+    UINT32 Size[3];
+
+    UINT32 Base3;
+    UINT32 Size3;
+
+    UINT32 Padding[12]; // 0xFFFFFFFF
 } PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V3;
 
 //

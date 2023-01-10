@@ -3663,6 +3663,37 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 // Do nothing, this range is likely not found in the image
             }
         }
+        else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_AMI_V3) {
+            try {
+                UByteArray protectedParts;
+
+                protectedRanges[i].Offset -= (UINT32)addressDiff;
+                protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
+
+                for (UINT32 j = 0; j < protectedRanges[i].AddCount; j++) {
+                    protectedRanges[i].AddOffsets[j] -= (UINT32)addressDiff;
+                    protectedParts += openedImage.mid(protectedRanges[i].AddOffsets[j], protectedRanges[i].AddSizes[j]);
+                }
+
+                UByteArray digest(SHA256_HASH_SIZE, '\x00');
+                sha256(protectedParts.constData(), protectedParts.size(), digest.data());
+
+                if (digest != protectedRanges[i].Hash) {
+                    UString computed = "";
+                    for (UINT8 j = 0; j < SHA256_HASH_SIZE; j++) {
+                        computed += usprintf("%02X", (uint8_t)(digest.data()[j]));
+                    }
+
+                    msg(usprintf("%s: AMI protected range hash mismatch, opened image may refuse to boot ", __FUNCTION__) + computed,
+                        model->findByBase(protectedRanges[i].Offset));
+                }
+
+                markProtectedRangeRecursive(index, protectedRanges[i]);
+            }
+            catch(...) {
+                // Do nothing, this range is likely not found in the image
+            }
+        }
         else if (protectedRanges[i].Type == PROTECTED_RANGE_VENDOR_HASH_PHOENIX
                  && protectedRanges[i].Size != 0 && protectedRanges[i].Size != 0xFFFFFFFF
                  && protectedRanges[i].Offset != 0xFFFFFFFF) {
@@ -3766,6 +3797,21 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
                 model->setMarking(index, Qt::yellow);
             }
         }
+
+        if (range.Type == PROTECTED_RANGE_VENDOR_HASH_AMI_V3) {
+            for (UINT32 i = 0; i < range.AddCount; i++) {
+                UINT32 offset = range.AddOffsets[i];
+                UINT32 size = range.AddSizes[i];
+                if (std::min(currentOffset + currentSize, offset + size) > std::max(currentOffset, offset)) {
+                    if (offset <= currentOffset && currentOffset + currentSize <= offset + size) { // Mark as fully in range
+                        model->setMarking(index, Qt::cyan);
+                    }
+                    else { // Mark as partially in range
+                        model->setMarking(index, Qt::yellow);
+                    }
+                }
+            }
+        }
     }
     
     for (int i = 0; i < model->rowCount(index); i++) {
@@ -3844,7 +3890,61 @@ USTATUS FfsParser::parseVendorHashFile(const UByteArray & fileGuid, const UModel
         const UByteArray &body = model->body(index);
         UINT32 size = (UINT32)body.size();
         if (size != (UINT32)body.count('\xFF')) {
-            if (size == sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2)) {
+            if (size == sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V3)) {
+                const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V3* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V3*)(body.constData());
+
+                securityInfo += usprintf("AMI hash file v3 found at base %08Xh\nProtected ranges:", model->base(fileIndex));
+                for (int i = 0; i < 3; i++) {
+                    securityInfo += usprintf("\nAddress: %08Xh, Size: %Xh", entry->Base[i], entry->Size[i]);
+                }
+                securityInfo += usprintf("\nAddress: %08Xh, Size: %Xh", entry->Base3, entry->Size3);
+                securityInfo += usprintf("\nHash (SHA256): ");
+                for (UINT8 j = 0; j < sizeof(entry->Hash); j++) {
+                    securityInfo += usprintf("%02X", entry->Hash[j]);
+                }
+
+                bool unknownPadding = false;
+                securityInfo += "\nPadding:";
+                for (size_t i = 0; i < 12; i++) {
+                    securityInfo += usprintf(" %08Xh", entry->Padding[i]);
+                    if (entry->Padding[i] != 0xFFFFFFFF) {
+                        unknownPadding = true;
+                    }
+                }
+                securityInfo += "\n\n";
+
+                // The offset and size calculations seem to work when the
+                // first two base values are present, but have not tried
+                // for others.
+                PROTECTED_RANGE range = {};
+                range.Offset = entry->Base[0];
+                range.Size = entry->Size[0];
+                range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
+                range.Hash = UByteArray((const char*)entry->Hash, sizeof(entry->Hash));
+                range.Type = PROTECTED_RANGE_VENDOR_HASH_AMI_V3;
+
+                for (int i = 1; i < 3; i++) {
+                    if (entry->Size[i] > 0 && entry->Base[i] != 0xFFFFFFFF) {
+                        range.AddOffsets[range.AddCount] = entry->Base[i];
+                        range.AddSizes[range.AddCount] = entry->Size[i];
+                        range.AddCount++;
+                    }
+                }
+
+                if (entry->Base3 > 0) {
+                    range.AddOffsets[range.AddCount] = entry->Base3;
+                    range.AddSizes[range.AddCount] = entry->Size3;
+                    range.AddCount++;
+                }
+
+                protectedRanges.push_back(range);
+                msg(usprintf("%s: AMI hash file v3 found", __FUNCTION__), fileIndex);
+
+                if (unknownPadding) {
+                    msg(usprintf("%s: AMI hash file v3 has unknown padding", __FUNCTION__), fileIndex);
+                }
+            }
+            else if (size == sizeof(PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2)) {
                 const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2* entry = (const PROTECTED_RANGE_VENDOR_HASH_FILE_HEADER_AMI_V2*)(body.constData());
                 
                 securityInfo += usprintf("AMI hash file v2 found at base %08Xh\nProtected ranges:", model->base(fileIndex));
