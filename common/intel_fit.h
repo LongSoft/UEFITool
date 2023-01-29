@@ -23,37 +23,45 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define INTEL_FIT_POINTER_OFFSET 0x40
 
 // Entry types
-// https://www.intel.com/content/dam/develop/external/us/en/documents/firmware-interface-table-bios-specification-r1p2p1.pdf
-#define INTEL_FIT_TYPE_HEADER                  0x00
-#define INTEL_FIT_TYPE_MICROCODE               0x01
-#define INTEL_FIT_TYPE_STARTUP_AC_MODULE       0x02
-#define INTEL_FIT_TYPE_DIAG_AC_MODULE          0x03
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_04     0x04
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_05     0x05
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_06     0x06
-#define INTEL_FIT_TYPE_BIOS_STARTUP_MODULE     0x07
-#define INTEL_FIT_TYPE_TPM_POLICY              0x08
-#define INTEL_FIT_TYPE_BIOS_POLICY             0x09
-#define INTEL_FIT_TYPE_TXT_POLICY              0x0A
-#define INTEL_FIT_TYPE_BOOT_GUARD_KEY_MANIFEST 0x0B
-#define INTEL_FIT_TYPE_BOOT_GUARD_BOOT_POLICY  0x0C
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_0D     0x0D
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_0E     0x0E
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_0F     0x0F
-#define INTEL_FIT_TYPE_CSE_SECURE_BOOT         0x10
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_11     0x11
+// https://cdrdv2-public.intel.com/599500/Firmware-Interface-Table-BIOS-Specification-r1p4.pdf
+#define INTEL_FIT_TYPE_HEADER                     0x00
+#define INTEL_FIT_TYPE_MICROCODE                  0x01
+#define INTEL_FIT_TYPE_STARTUP_AC_MODULE          0x02
+#define INTEL_FIT_TYPE_DIAG_AC_MODULE             0x03
+#define INTEL_FIT_TYPE_PLATFORM_BOOT_POLICY       0x04
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_05        0x05
+#define INTEL_FIT_TYPE_FIT_RESET_STATE            0x06
+#define INTEL_FIT_TYPE_BIOS_STARTUP_MODULE        0x07
+#define INTEL_FIT_TYPE_TPM_POLICY                 0x08
+#define INTEL_FIT_TYPE_BIOS_POLICY                0x09
+#define INTEL_FIT_TYPE_TXT_POLICY                 0x0A
+#define INTEL_FIT_TYPE_BOOT_GUARD_KEY_MANIFEST    0x0B
+#define INTEL_FIT_TYPE_BOOT_GUARD_BOOT_POLICY     0x0C
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_0D        0x0D
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_0E        0x0E
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_0F        0x0F
+#define INTEL_FIT_TYPE_CSE_SECURE_BOOT            0x10
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_11        0x11
 //...
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_2C     0x2C
-#define INTEL_FIT_TYPE_ACM_FEATURE_POLICY      0x2D
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_2E     0x2E
-#define INTEL_FIT_TYPE_JMP_DEBUG_POLICY        0x2F
-#define INTEL_FIT_TYPE_OEM_RESERVED_30         0x30
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_19        0x19
+#define INTEL_FIT_TYPE_VAB_PROVISIONING_TABLE     0x1A
+#define INTEL_FIT_TYPE_VAB_KEY_MANIFEST           0x1B
+#define INTEL_FIT_TYPE_VAB_IMAGE_MANIFEST         0x1C
+#define INTEL_FIT_TYPE_VAB_IMAGE_HASH_DESCRIPTORS 0x1D
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_1E        0x1E
 //...
-#define INTEL_FIT_TYPE_OEM_RESERVED_70         0x70
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_71     0x71
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_2B        0x2B
+#define INTEL_FIT_TYPE_SACM_DEBUG_RECORD          0x2C
+#define INTEL_FIT_TYPE_ACM_FEATURE_POLICY         0x2D
+#define INTEL_FIT_TYPE_SCRTM_ERROR_RECORD         0x2E
+#define INTEL_FIT_TYPE_JMP_DEBUG_POLICY           0x2F
+#define INTEL_FIT_TYPE_OEM_RESERVED_30            0x30
 //...
-//#define INTEL_FIT_TYPE_INTEL_RESERVED_7E     0x7E
-#define INTEL_FIT_TYPE_EMPTY                   0x7F
+#define INTEL_FIT_TYPE_OEM_RESERVED_70            0x70
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_71        0x71
+//...
+//#define INTEL_FIT_TYPE_INTEL_RESERVED_7E        0x7E
+#define INTEL_FIT_TYPE_EMPTY                      0x7F
 
 typedef struct INTEL_FIT_ENTRY_ {
     UINT64 Address;          // Base address of the component, must be 16-byte aligned
@@ -66,15 +74,15 @@ typedef struct INTEL_FIT_ENTRY_ {
 } INTEL_FIT_ENTRY;
 
 //
-// FIT Header
+// FIT Header (0x00)
 //
 // Can be exactly one entry of this type, the first one.
 // If ChecksumValid bit is set, the whole FIT table must checksum8 to zero.
+// Version must be 0x0100
 #define INTEL_FIT_SIGNATURE 0x2020205F5449465FULL // '_FIT_   '
-#define INTEL_FIT_HEADER_VERSION 0x0100
 
 //
-// Microcode
+// Microcode (0x01)
 //
 // At least one entry is required, more is optional
 // Each entry must point to a valid base address
@@ -85,7 +93,7 @@ typedef struct INTEL_FIT_ENTRY_ {
 // Size is not used, should be set to 0
 
 //
-// Startup Authenticated Code Module
+// Startup Authenticated Code Module (0x02)
 //
 // Optional, required for AC boot and BootGuard
 // Address must point to a valid base address
@@ -97,34 +105,11 @@ typedef struct INTEL_FIT_ENTRY_ {
 // Authenticated Code Execution Area (ACEA) and should not contain any code or data that is not the Startup ACM itself
 // ChecksumValid bit must be 0
 // Size is not used, should be set to 0
-#define INTEL_FIT_STARTUP_ACM_VERSION 0x0100
+// Version must be 0x0100
 #define INTEL_ACM_HARDCODED_RSA_EXPONENT 0x10001
 
 //
-// Diagnostic Authenticated Code Module
-//
-// Optional
-// Address must point to a valid base address
-// Points to the first byte of ACM header, that must be 4Kb-aligned
-// ChecksumValid bit must be 0
-// Size is not used, should be set to 0
-#define INTEL_FIT_DIAG_ACM_VERSION 0x0100
-
-//
-// BIOS Startup Module
-//
-// Optional, used for legacy TXT FIT boot
-// Address must point to a valid base address
-// At least one entry of this type must point to an item containing the reset vector
-// At least one entry of this type must point to an item containing the FIT pointer
-// No entries of this type can point to an item containing an item pointed by INTEL_FIT_TYPE_BIOS_POLICY entry
-// Items pointed by entries of this type can not overlap with one another or the Startup ACM
-// ChecksumValid bit must be 0
-// Size is used and in 16-byte multiples
-#define INTEL_FIT_BIOS_STARTUP_MODULE_VERSION 0x0100
-
-//
-// TPM Boot Policy
+// TPM Boot Policy (0x08)
 //
 // Optional, used for legacy TXT FIT boot, if used, can be only one
 // Address entry is INTEL_FIT_POLICY_PTR.IndexIo if Version is 0,
@@ -152,52 +137,13 @@ typedef union INTEL_FIT_POLICY_PTR_ {
 #define INTEL_FIT_POLICY_ENABLED 1
 
 //
-// BIOS Policy
-//
-// Optional, used for legacy TXT FIT boot, if used, can be only one
-// Address must point to a valid base address
-// Points to the first byte of LCP_POLICY_DATA structure
-// ChecksumValid bit must be 0
-// Size must not be less than the size of LCP_POLICY_DATA structure
-#define INTEL_FIT_BIOS_POLICY_VERSION 0x0100
-
-
-//
-// TXT Boot Policy
-//
-// Optional, if used, can be only one
-// Address entry is INTEL_FIT_POLICY_PTR.IndexIo if Version is 0,
-// or INTEL_FIT_INDEX_IO_ADDRESS.FlatMemoryAddress if Version is 1
-// Bit 0 at the pointed address holds the TXT policy, 0 - TXT disabled, 1 - TXT enabled
-// ChecksumValid bit must be 0
-// Size is not used, should be set to 0
-
-//
-// BootGuard Key Manifest
-//
-// Optional, can be multiple, entries must be grouped together
-// Address must point to a valid base address
-// ChecksumValid bit must be 0
-// Size must not be less than the size of INTEL_BOOT_GUARD_KEY_MANIFEST structure
-#define INTEL_FIT_BOOT_GUARD_KEY_MANIFEST_VERSION 0x0100
-
-//
-// BootGuard Boot Policy Manifest
-//
-// Optional, can be multiple, only the first one will be used
-// Address must point to a valid base address
-// ChecksumValid bit must be 0
-// Size must not be less than the size of INTEL_BOOT_GUARD_BOOT_POLICY structure
-#define INTEL_FIT_BOOT_GUARD_KEY_MANIFEST_VERSION 0x0100
-
-//
-// CSE SecureBoot
+// CSE SecureBoot (0x10)
 //
 // Optional, can be multiple, order is not important
 // If present, BootGuardKeyManifest and BootGuardBootPolicy should also be present
-// Reserved field further dermines the subtype of this entry
+// Reserved field further determines the subtype of this entry
 // ChecksumValid bit must be 0
-#define INTEL_FIT_CSE_SECURE_BOOT_VERSION 0x0100
+// Version must be 0x0100
 
 #define INTEL_FIT_CSE_SECURE_BOOT_RESERVED 0
 #define INTEL_FIT_CSE_SECURE_BOOT_KEY_HASH 1
@@ -213,13 +159,6 @@ typedef union INTEL_FIT_POLICY_PTR_ {
 #define INTEL_FIT_CSE_SECURE_BOOT_BOOT_DEVICE_INDICATOR 11 // 1 => SPI, 2 => eMMC, 3 => UFS, rest => reserved
 #define INTEL_FIT_CSE_SECURE_BOOT_FIT_PATCH_MANIFEST 12
 #define INTEL_FIT_CSE_SECURE_BOOT_AC_MODULE_MANIFEST 13
-
-//
-// ACM Feature Policy Record
-//
-// Optional, can be multiple
-// ChecksumValid bit must be 0
-#define INTEL_FIT_ACM_FEATURE_POLICY_VERSION 0x0100
 
 #pragma pack(pop)
 

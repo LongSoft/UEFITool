@@ -79,7 +79,7 @@ UString itemTypeToUString(const UINT8 type)
         case Types::CpdPartition:          return UString("CPD partition");
         case Types::CpdExtension:          return UString("CPD extension");
         case Types::CpdSpiEntry:           return UString("CPD SPI entry");
-        case Types::StartupApDataEntry: return UString("Startup AP data");
+        case Types::StartupApDataEntry:    return UString("Startup AP data");
     }
     
     return usprintf("Unknown %02Xh", type);
@@ -182,6 +182,9 @@ UString compressionTypeToUString(const UINT8 algorithm)
         case COMPRESSION_ALGORITHM_UNDECIDED:               return UString("Undecided Tiano/EFI 1.1");
         case COMPRESSION_ALGORITHM_LZMA:                    return UString("LZMA");
         case COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY:       return UString("Intel legacy LZMA");
+        case COMPRESSION_ALGORITHM_LZMAF86:                 return UString("LZMAF86");
+        case COMPRESSION_ALGORITHM_GZIP:                    return UString("GZip");
+        case COMPRESSION_ALGORITHM_ZLIB:                    return UString("Zlib");
     }
     
     return usprintf("Unknown %02Xh", algorithm);
@@ -205,20 +208,28 @@ UString actionTypeToUString(const UINT8 action)
 UString fitEntryTypeToUString(const UINT8 type)
 {
     switch (type & 0x7F) {
-        case INTEL_FIT_TYPE_HEADER:                  return UString("FIT Header");
-        case INTEL_FIT_TYPE_MICROCODE:               return UString("Microcode");
-        case INTEL_FIT_TYPE_STARTUP_AC_MODULE:       return UString("Startup ACM");
-        case INTEL_FIT_TYPE_DIAG_AC_MODULE:          return UString("Diagnostic ACM");
-        case INTEL_FIT_TYPE_BIOS_STARTUP_MODULE:     return UString("BIOS Startup Module");
-        case INTEL_FIT_TYPE_TPM_POLICY:              return UString("TPM Policy");
-        case INTEL_FIT_TYPE_BIOS_POLICY:             return UString("BIOS Policy");
-        case INTEL_FIT_TYPE_TXT_POLICY:              return UString("TXT Policy");
-        case INTEL_FIT_TYPE_BOOT_GUARD_KEY_MANIFEST: return UString("BootGuard Key Manifest");
-        case INTEL_FIT_TYPE_BOOT_GUARD_BOOT_POLICY:  return UString("BootGuard Boot Policy");
-        case INTEL_FIT_TYPE_CSE_SECURE_BOOT:         return UString("CSE SecureBoot Settings");
-        case INTEL_FIT_TYPE_ACM_FEATURE_POLICY:      return UString("ACM Feature Policy");
-        case INTEL_FIT_TYPE_JMP_DEBUG_POLICY:        return UString("JMP Debug Policy");
-        case INTEL_FIT_TYPE_EMPTY:                   return UString("Empty");
+        case INTEL_FIT_TYPE_HEADER:                     return UString("FIT Header");
+        case INTEL_FIT_TYPE_MICROCODE:                  return UString("Microcode");
+        case INTEL_FIT_TYPE_STARTUP_AC_MODULE:          return UString("Startup ACM");
+        case INTEL_FIT_TYPE_DIAG_AC_MODULE:             return UString("Diagnostic ACM");
+        case INTEL_FIT_TYPE_PLATFORM_BOOT_POLICY:       return UString("Platform Boot Policy");
+        case INTEL_FIT_TYPE_FIT_RESET_STATE:            return UString("FIT Reset State");
+        case INTEL_FIT_TYPE_BIOS_STARTUP_MODULE:        return UString("BIOS Startup Module");
+        case INTEL_FIT_TYPE_TPM_POLICY:                 return UString("TPM Policy");
+        case INTEL_FIT_TYPE_BIOS_POLICY:                return UString("BIOS Policy");
+        case INTEL_FIT_TYPE_TXT_POLICY:                 return UString("TXT Policy");
+        case INTEL_FIT_TYPE_BOOT_GUARD_KEY_MANIFEST:    return UString("BootGuard Key Manifest");
+        case INTEL_FIT_TYPE_BOOT_GUARD_BOOT_POLICY:     return UString("BootGuard Boot Policy");
+        case INTEL_FIT_TYPE_CSE_SECURE_BOOT:            return UString("CSE SecureBoot Settings");
+        case INTEL_FIT_TYPE_VAB_PROVISIONING_TABLE:     return UString("VAB Provisioning Table");
+        case INTEL_FIT_TYPE_VAB_KEY_MANIFEST:           return UString("VAB Key Manifest");
+        case INTEL_FIT_TYPE_VAB_IMAGE_MANIFEST:         return UString("VAB Image Manifest");
+        case INTEL_FIT_TYPE_VAB_IMAGE_HASH_DESCRIPTORS: return UString("VAB Image Hash Descriptors");
+        case INTEL_FIT_TYPE_SACM_DEBUG_RECORD:          return UString("SACM Debug Record");
+        case INTEL_FIT_TYPE_ACM_FEATURE_POLICY:         return UString("ACM Feature Policy");
+        case INTEL_FIT_TYPE_SCRTM_ERROR_RECORD:         return UString("SCRTM Error Record");
+        case INTEL_FIT_TYPE_JMP_DEBUG_POLICY:           return UString("JMP Debug Policy");
+        case INTEL_FIT_TYPE_EMPTY:                      return UString("Empty");
     }
     
     return usprintf("Unknown %02Xh", (type & 0x7F));
