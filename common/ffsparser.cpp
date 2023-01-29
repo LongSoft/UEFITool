@@ -2904,7 +2904,8 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
             msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             return U_SUCCESS;
         }
-        
+
+        algorithm = COMPRESSION_ALGORITHM_GZIP;
         info += UString("\nCompression algorithm: GZip");
         info += usprintf("\nDecompressed size: %Xh (%u)", (UINT32)processed.size(), (UINT32)processed.size());
     }
@@ -2916,6 +2917,7 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
             return U_SUCCESS;
         }
 
+        algorithm = COMPRESSION_ALGORITHM_ZLIB;
         info += UString("\nCompression algorithm: Zlib");
         info += usprintf("\nDecompressed size: %Xh (%u)", (UINT32)processed.size(), (UINT32)processed.size());
     }

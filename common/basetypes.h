@@ -135,6 +135,7 @@ typedef ptrdiff_t    INTN;
 #define COMPRESSION_ALGORITHM_LZMA_INTEL_LEGACY      6
 #define COMPRESSION_ALGORITHM_LZMAF86                7
 #define COMPRESSION_ALGORITHM_GZIP                   8
+#define COMPRESSION_ALGORITHM_ZLIB                   9
 
 
 // Item create modes
