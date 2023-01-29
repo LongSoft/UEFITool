@@ -85,19 +85,19 @@ typedef size_t USTATUS;
 #define U_NOT_IMPLEMENTED                 255
 
 // EDK2 porting definitions
-typedef uint8_t      BOOLEAN;
-typedef int8_t       INT8;
-typedef uint8_t      UINT8;
-typedef int16_t      INT16;
-typedef uint16_t     UINT16;
-typedef int32_t      INT32;
-typedef uint32_t     UINT32;
-typedef int64_t      INT64;
-typedef uint64_t     UINT64;
-typedef char         CHAR8;
-typedef uint16_t     CHAR16;
-typedef size_t       UINTN;
-typedef ptrdiff_t    INTN;
+typedef uint8_t   BOOLEAN;
+typedef int8_t    INT8;
+typedef uint8_t   UINT8;
+typedef int16_t   INT16;
+typedef uint16_t  UINT16;
+typedef int32_t   INT32;
+typedef uint32_t  UINT32;
+typedef int64_t   INT64;
+typedef uint64_t  UINT64;
+typedef char      CHAR8;
+typedef uint16_t  CHAR16;
+typedef size_t    UINTN;
+typedef ptrdiff_t INTN;
 
 #define CONST  const
 #define VOID   void
@@ -136,7 +136,6 @@ typedef ptrdiff_t    INTN;
 #define COMPRESSION_ALGORITHM_LZMAF86                7
 #define COMPRESSION_ALGORITHM_GZIP                   8
 #define COMPRESSION_ALGORITHM_ZLIB                   9
-
 
 // Item create modes
 #define CREATE_MODE_APPEND    0

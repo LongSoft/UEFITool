@@ -469,10 +469,10 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
         return -1;
     
     while (dataOff + patternSize < dataSize) {
-        BOOLEAN matches = TRUE;
+        bool matches = true;
         for (UINTN i = 0; i < patternSize; i++) {
             if ((data[dataOff + i] & patternMask[i]) != pattern[i]) {
-                matches = FALSE;
+                matches = true;
                 break;
             }
         }
@@ -486,12 +486,12 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
     return -1;
 }
 
-BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask)
+bool makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask)
 {
     UINTN len = std::strlen(textPattern);
     
     if (len == 0 || len % 2 != 0)
-        return FALSE;
+        return false;
     
     len /= 2;
     
@@ -503,7 +503,7 @@ BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::
         int v2 = char2hex(std::toupper(textPattern[i * 2 + 1]));
         
         if (v1 == -1 || v2 == -1)
-            return FALSE;
+            return false;
         
         if (v1 != -2) {
             patternMask[i] = 0xF0;
@@ -516,7 +516,7 @@ BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::
         }
     }
     
-    return TRUE;
+    return true;
 }
 
 USTATUS gzipDecompress(const UByteArray & input, UByteArray & output)

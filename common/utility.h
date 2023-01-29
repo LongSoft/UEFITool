@@ -60,7 +60,7 @@ UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize);
 UINT8 getPaddingType(const UByteArray & padding);
 
 // Make pattern from a hexstring with an assumption of . being any char
-BOOLEAN makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask);
+bool makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask);
 
 // Find pattern in a binary blob
 INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSize,

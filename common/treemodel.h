@@ -117,7 +117,7 @@ public:
     UString headerData(int section, int orientation, int role = 0) const;
 
     TreeModel() : markingEnabledFlag(false) {
-        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), TRUE, FALSE);
+        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), true, false);
     }
 
     bool hasIndex(int row, int column, const UModelIndex &parent = UModelIndex()) const {
@@ -162,7 +162,7 @@ public:
 
     UString info(const UModelIndex &index) const;
     void setInfo(const UModelIndex &index, const UString &info);
-    void addInfo(const UModelIndex &index, const UString &info, const bool append = TRUE);
+    void addInfo(const UModelIndex &index, const UString &info, const bool append = true);
 
     bool fixed(const UModelIndex &index) const;
     void setFixed(const UModelIndex &index, const bool fixed);

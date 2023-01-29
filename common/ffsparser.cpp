@@ -1222,20 +1222,10 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     return U_SUCCESS;
 }
 
-BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader)
+bool FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader)
 {
-    // Check main reserved bytes to be zero
     bool reservedBytesValid = true;
-    for (UINT32 i = 0; i < sizeof(ucodeHeader->Reserved); i++) {
-        if (ucodeHeader->Reserved[i] != 0x00) {
-            reservedBytesValid = false;
-            break;
-        }
-    }
-    if (!reservedBytesValid) {
-        return FALSE;
-    }
-    
+
     // Check CpuFlags reserved bytes to be zero
     for (UINT32 i = 0; i < sizeof(ucodeHeader->ProcessorFlagsReserved); i++) {
         if (ucodeHeader->ProcessorFlagsReserved[i] != 0x00) {
@@ -1244,19 +1234,19 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         }
     }
     if (!reservedBytesValid) {
-        return FALSE;
+        return false;
     }
     
     // Check data size to be multiple of 4 and less than 0x1000000
     if (ucodeHeader->DataSize % 4 != 0 ||
         ucodeHeader->DataSize > 0xFFFFFF) {
-        return FALSE;
+        return false;
     }
     
     // Check TotalSize to be greater or equal than DataSize and less than 0x1000000
     if (ucodeHeader->TotalSize < ucodeHeader->DataSize ||
         ucodeHeader->TotalSize > 0xFFFFFF) {
-        return FALSE;
+        return false;
     }
     
     // Check date to be sane
@@ -1266,7 +1256,7 @@ BOOLEAN FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeade
         (ucodeHeader->DateDay > 0x19 && ucodeHeader->DateDay < 0x20) ||
         (ucodeHeader->DateDay > 0x29 && ucodeHeader->DateDay < 0x30) ||
         ucodeHeader->DateDay > 0x31) {
-        return FALSE;
+        return false;
     }
     // Check month to be in 0x01-0x09, 0x10-0x12
     if (ucodeHeader->DateMonth < 0x01 ||

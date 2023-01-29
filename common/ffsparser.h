@@ -175,7 +175,7 @@ private:
     UINT32  getSectionSize(const UByteArray & file, const UINT32 sectionOffset, const UINT8 ffsVersion);
     
     USTATUS parseIntelMicrocodeHeader(const UByteArray & store, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    BOOLEAN microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader);
+    bool microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader);
 
     USTATUS parseVendorHashFile(const UByteArray & fileGuid, const UModelIndex & index);
 
