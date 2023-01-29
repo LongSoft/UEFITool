@@ -14,10 +14,10 @@ jobs:
     env:
         HAS_QT: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
     
       - name: Get Qt
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: LongSoft/qt-5.6.3-static-universal-macos-sdk12.3
           path: qt
@@ -32,7 +32,7 @@ jobs:
         run: ./unixbuild.sh
         
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: macOS builds
           path: dist/*.zip
@@ -52,7 +52,7 @@ jobs:
     env:
         HAS_QT: 1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - name: Get Qt
         run: sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
@@ -61,7 +61,7 @@ jobs:
         run: ./unixbuild.sh
       
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Linux builds
           path: dist/*.zip
@@ -79,7 +79,7 @@ jobs:
     name: Build on Linux with Meson
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Get Deps
         run: sudo apt-get install -qq zlib1g-dev meson qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
       - name: Configure build
@@ -94,7 +94,7 @@ jobs:
       HAS_QT: 1
    
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
     
       - name: Build on FreeBSD inside macOS VM
         id: test
@@ -109,7 +109,7 @@ jobs:
             bash unixbuild.sh
             
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: FreeBSD builds
           path: dist/*.zip
@@ -127,10 +127,10 @@ jobs:
     name: Build on Windows
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Get Qt
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: LongSoft/qt-5.6.3-static-x86-msvc2017
           path: qt
@@ -208,7 +208,7 @@ jobs:
           7z a ../../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win32.zip UEFITool.exe
 
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Windows builds
           path: dist/*.zip
@@ -226,7 +226,7 @@ jobs:
     name: Build on Windows with MinGW
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
@@ -260,7 +260,7 @@ jobs:
       - name: CI Bootstrap
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: ./unixbuild.sh --configure
 
       - name: Run Coverity
@@ -284,7 +284,7 @@ jobs:
           target: 'desktop'
 
       - name: Check out
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install PVS-Studio
         run: |
@@ -339,7 +339,7 @@ jobs:
           host: 'linux'
           target: 'desktop'
         
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
           
