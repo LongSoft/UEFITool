@@ -75,10 +75,18 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
                 // For patterns that cross header|body boundary, skip patterns entirely located in body, since
                 // children search above has already found them.
                 if (!(hasChildren && mode == SEARCH_MODE_ALL && offset/2 >= model->header(index).size())) {
+                    UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
+                    UString name = model->name(index);
+                    if (model->parent(index) == parentFileIndex) {
+                        name = model->name(parentFileIndex) + UString("/") + name;
+                    }
+                    else if (parentFileIndex.isValid()) {
+                        name = model->name(parentFileIndex) + UString("/.../") + name;
+                    }
+
                     msg(UString("Hex pattern \"") + UString(hexPattern)
                         + UString("\" found as \"") + hexBody.mid(offset, hexPattern.length()).toUpper()
-                        + UString("\" in ") + model->name(model->parent(index))
-                        + UString("/") + model->name(index)
+                        + UString("\" in ") + name
                         + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                         index);
                 }
@@ -160,10 +168,18 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
         
         while (offset >= 0) {
             if (offset % 2 == 0) {
+                UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
+                UString name = model->name(index);
+                if (model->parent(index) == parentFileIndex) {
+                    name = model->name(parentFileIndex) + UString("/") + name;
+                }
+                else if (parentFileIndex.isValid()) {
+                    name = model->name(parentFileIndex) + UString("/.../") + name;
+                }
+
                 msg(UString("GUID pattern \"") + UString(guidPattern)
                     + UString("\" found as \"") + hexBody.mid(offset, hexPattern.length()).toUpper()
-                    + UString("\" in ") + model->name(model->parent(index))
-                    + UString("/") + model->name(index)
+                    + UString("\" in ") + name
                     + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                     index);
             }
@@ -210,7 +226,7 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
 #if QT_VERSION_MAJOR >= 6
             data = UString::fromUtf16((const char16_t*)body.constData(), (int)(body.length() / 2));
 #else
-        data = UString::fromUtf16((const ushort*)body.constData(), (int)(body.length() / 2));
+            data = UString::fromUtf16((const ushort*)body.constData(), (int)(body.length() / 2));
 #endif
         else
             data = UString::fromLatin1((const char*)body.constData(), body.length());
@@ -218,9 +234,17 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
         int offset = -1;
         while ((offset = (int)data.indexOf(pattern, (int)(offset + 1), caseSensitive)) >= 0) {
             
+            UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
+            UString name = model->name(index);
+            if (model->parent(index) == parentFileIndex) {
+                name = model->name(parentFileIndex) + UString("/") + name;
+            }
+            else if (parentFileIndex.isValid()) {
+                name = model->name(parentFileIndex) + UString("/.../") + name;
+            }
+
             msg((unicode ? UString("Unicode") : UString("ASCII")) + UString(" text \"") + UString(pattern)
-                + UString("\" in ") + model->name(model->parent(index))
-                + UString("/") + model->name(index)
+                + UString("\" found in ") + name
                 + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", (unicode ? offset * 2 : offset)),
                 index);
         }
