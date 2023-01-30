@@ -1559,7 +1559,7 @@ Returns: (VOID)
   INT32    i;
   UINT16   Start[18];
 
-  Start[1] = 0;
+  memset(Start, 0, sizeof(Start));
   for (i = 1; i <= 16; i++) {
     Start[i + 1] = (UINT16)((Start[i] + mLenCnt[i]) << 1);
   }
