@@ -75,7 +75,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Get Qt
-        run: sudo apt-get install -qq cmake libgl1-mesa-dev libglx-dev qmake6 libqt6opengl6-dev qt6-base-dev
+        run: |
+          sudo apt update
+          sudo apt-get install -qq cmake libgl1-mesa-dev libglx-dev qmake6 libqt6opengl6-dev qt6-base-dev
       - name: Make a debug build of UEFITool with Clang sanitizers enabled
         run: |
           mkdir build 
@@ -94,7 +96,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Get Deps
-        run: sudo apt-get install -qq zlib1g-dev meson qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
+        run: | 
+          sudo apt update
+          sudo apt-get install -qq zlib1g-dev meson qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
       - name: Configure build
         run: mkdir build-meson && meson ./build-meson
       - name: Build everything
