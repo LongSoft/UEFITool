@@ -9,7 +9,7 @@ on:
 
 jobs:
   build_mac:
-    name: Build on macOS
+    name: Build on macOS 12
     runs-on: macos-12
     env:
         HAS_QT: 1
@@ -22,21 +22,17 @@ jobs:
           repository: LongSoft/qt-5.6.3-static-universal-macos-sdk12.3
           path: qt
           lfs: true
-          
       - name: Unpack Qt
         shell: bash
         working-directory: qt
         run: sudo unzip -q qt-5.6.3-static-universal-macos-sdk12.3.zip -d/opt && echo "/opt/qt56sm/bin" >> $GITHUB_PATH
-        
       - name: Build everything
         run: ./unixbuild.sh
-        
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
           name: macOS builds
           path: dist/*.zip
-          
       - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@v2
@@ -47,25 +43,21 @@ jobs:
           file_glob: true
 
   build_linux:
-    name: Build on Linux
+    name: Build on Ubuntu 20.04 LTS
     runs-on: ubuntu-20.04
     env:
         HAS_QT: 1
     steps:
       - uses: actions/checkout@v3
-      
       - name: Get Qt
         run: sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
-      
       - name: Build everything
         run: ./unixbuild.sh
-      
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
           name: Linux builds
           path: dist/*.zip
-
       - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@v2
@@ -75,8 +67,29 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
+  build_linux_sanitizers:
+    name: Build on Ubuntu Latest with Clang sanitizers
+    runs-on: ubuntu-latest
+    env:
+        HAS_QT: 1
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get Qt
+        run: sudo apt-get install -qq cmake libgl1-mesa-dev libglx-dev qmake6 libqt6opengl6-dev qt6-base-dev
+      - name: Make a debug build of UEFITool with Clang sanitizers enabled
+        run: |
+          mkdir build 
+          cd build
+          CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug ../UEFITool
+          make
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Linux builds with Clang sanitizers enabled
+          path: build/UEFITool
+
   build_linux_meson:
-    name: Build on Linux with Meson
+    name: Build on Ubuntu Latest with Meson
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -92,10 +105,8 @@ jobs:
     runs-on: macos-12
     env:
       HAS_QT: 1
-   
     steps:
       - uses: actions/checkout@v3
-    
       - name: Build on FreeBSD inside macOS VM
         id: test
         uses: vmactions/freebsd-vm@v0
@@ -104,16 +115,13 @@ jobs:
           envs: "HAS_QT"
           prepare: |
             pkg install -y bash zip cmake qt5-qmake qt5-buildtools qt5-core qt5-gui qt5-widgets
-
           run: |
             bash unixbuild.sh
-            
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
           name: FreeBSD builds
           path: dist/*.zip
-
       - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@v2
@@ -124,95 +132,78 @@ jobs:
           file_glob: true
 
   build_windows:
-    name: Build on Windows
+    name: Build on Windows 2019
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
-
       - name: Get Qt
         uses: actions/checkout@v3
         with:
           repository: LongSoft/qt-5.6.3-static-x86-msvc2017
           path: qt
           lfs: true
-          
       - name: Unpack Qt
         shell: bash
         working-directory: qt
         run: 7z x qt-5.6.3-static-x86-msvc2017.7z -o../..
-        
       - name: Create dist directory
         shell: bash
         run: mkdir dist
-
       - name: Create UEFIExtract build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFIExtract
-        
       - name: Configure UEFIExtract
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIExtract
         run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIExtract/
-      
       - name: Build UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract
         shell: bash
         run: cmake --build . --config Release
-      
       - name: Archive UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract/Release
         shell: bash
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           7z a ../../../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_win32.zip UEFIExtract.exe
-
       - name: Create UEFIFind build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFIFind
-      
       - name: Configure UEFIFind
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIFind
         run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIFind/
-      
       - name: Build UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
         shell: bash
         run: cmake --build . --config Release
-      
       - name: Archive UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind/Release
         shell: bash
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           7z a ../../../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_win32.zip UEFIFind.exe
-
       - name: Create UEFITool build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool
-      
       - name: Configure UEFITool
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFITool
         run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe ../../UEFITool/UEFITool/
-      
       - name: Build UEFITool
         working-directory: ${{runner.workspace}}/build/UEFITool
         shell: cmd
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
             nmake release
-      
       - name: Archive UEFITool
         working-directory: ${{runner.workspace}}/build/UEFITool/release
         shell: bash
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           7z a ../../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win32.zip UEFITool.exe
-
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
           name: Windows builds
           path: dist/*.zip
-      
       - name: Upload to releases
         if: github.event_name == 'release'
         uses: svenstaro/upload-release-action@v2
@@ -223,11 +214,10 @@ jobs:
           file_glob: true
 
   build_windows_mingw:
-    name: Build on Windows with MinGW
+    name: Build on Windows Latest with MinGW
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
@@ -235,7 +225,6 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_mingw'
-          
       - name: Build everything using CMake and MinGW
         run: |
           cmake -G "MinGW Makefiles" -B build .
@@ -247,7 +236,7 @@ jobs:
       JOB_TYPE: COVERITY
       HAS_QT: 1
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: Coverity Static Analysis
+    name: Coverity Static Analysis on Ubuntu Latest
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
@@ -256,13 +245,11 @@ jobs:
           version: '6.3.1'
           host: 'linux'
           target: 'desktop'
-    
       - name: CI Bootstrap
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
       - uses: actions/checkout@v3
       - run: ./unixbuild.sh --configure
-
       - name: Run Coverity
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/coverity/covstrap-linux.sh) && eval "$src" || exit 1
@@ -273,7 +260,7 @@ jobs:
 
   analyze_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: PVS-Studio and CodeQL Static Analysis
+    name: PVS-Studio and CodeQL Static Analysis on Ubuntu Latest
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
@@ -282,10 +269,8 @@ jobs:
           version: '6.3.1'
           host: 'linux'
           target: 'desktop'
-
       - name: Check out
         uses: actions/checkout@v3
-
       - name: Install PVS-Studio
         run: |
           wget -q -O - https://files.pvs-studio.com/etc/pubkey.txt \
@@ -295,28 +280,22 @@ jobs:
           sudo apt update
           sudo apt install pvs-studio
           pvs-studio-analyzer credentials ${{ secrets.PVS_STUDIO_CREDENTIALS }}
-      
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
           languages: cpp
-    
       - name: Build everything using CMake
         run: |
           cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build .
           cmake --build build -j
-    
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v2
-    
       - name: Perform PVS-Studio analysis
         run: |
           pvs-studio-analyzer analyze -f build/compile_commands.json -j
-          
       - name: Convert PVS-Studio report
         run: |
           plog-converter -t sarif -o pvs-report.sarif PVS-Studio.log
-          
       - name: Publish PVS-Studio report
         uses: github/codeql-action/upload-sarif@v2
         with:
@@ -325,7 +304,7 @@ jobs:
           
   analyze_sonarcloud:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: SonarCloud Static Analysis
+    name: SonarCloud Static Analysis on Ubuntu Latest
     runs-on: ubuntu-latest
     env:
       SONAR_SCANNER_VERSION: 4.7.0.2747
@@ -338,17 +317,14 @@ jobs:
           version: '6.3.1'
           host: 'linux'
           target: 'desktop'
-        
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-          
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: 11
-          
       - name: Download and set up sonar-scanner
         env:
           SONAR_SCANNER_DOWNLOAD_URL: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_SCANNER_VERSION }}-linux.zip
@@ -357,7 +333,6 @@ jobs:
           curl -sSLo $HOME/.sonar/sonar-scanner.zip ${{ env.SONAR_SCANNER_DOWNLOAD_URL }}
           unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
           echo "$HOME/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" >> $GITHUB_PATH
-          
       - name: Download and set up build-wrapper
         env:
           BUILD_WRAPPER_DOWNLOAD_URL: ${{ env.SONAR_SERVER_URL }}/static/cpp/build-wrapper-linux-x86.zip
@@ -365,12 +340,10 @@ jobs:
           curl -sSLo $HOME/.sonar/build-wrapper-linux-x86.zip ${{ env.BUILD_WRAPPER_DOWNLOAD_URL }}
           unzip -o $HOME/.sonar/build-wrapper-linux-x86.zip -d $HOME/.sonar/
           echo "$HOME/.sonar/build-wrapper-linux-x86" >> $GITHUB_PATH
-          
       - name: Run build-wrapper
         run: |
           cmake -B build .
           build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build -j
-          
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
