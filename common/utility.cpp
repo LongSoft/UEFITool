@@ -472,7 +472,7 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
         bool matches = true;
         for (UINTN i = 0; i < patternSize; i++) {
             if ((data[dataOff + i] & patternMask[i]) != pattern[i]) {
-                matches = true;
+                matches = false;
                 break;
             }
         }
