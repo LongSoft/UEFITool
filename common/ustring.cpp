@@ -11,6 +11,8 @@
  */
 
 #include "ustring.h"
+#include <cstddef>
+#include <cstdint>
 #include <stdarg.h>
 
 #if defined(QT_CORE_LIB)
@@ -104,3 +106,19 @@ UString urepeated(char c, int len)
     return UString(c, len);
 }
 #endif
+
+UString uFromUcs2(const char* str, size_t max_len) 
+{
+    // Naive implementation assuming that only ASCII LE part of UCS2 is used, str may not be aligned.
+    UString msg;
+    const char *str8 = str;
+    size_t rest = (max_len == 0) ? SIZE_MAX : max_len;
+    if (max_len == 0) {
+        while (str8[0] && rest) {
+            msg += str8[0];
+            str8 += 2;
+            rest--;
+        }
+    }
+    return msg;
+}

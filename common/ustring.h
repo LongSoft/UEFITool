@@ -29,5 +29,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 UString usprintf(const char* fmt, ...) ATTRIBUTE_FORMAT_(printf, 1, 2);
 UString urepeated(char c, int len);
+UString uFromUcs2(const char* str, size_t max_len = 0);
 
 #endif // USTRING_H

@@ -1122,7 +1122,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     
     // Check attributes
     // Determine value of empty byte
-    UINT8 emptyByte = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? '\xFF' : '\x00';
+    UINT8 emptyByte = volumeHeader->Attributes & EFI_FVB_ERASE_POLARITY ? 0xFF : 0x00;
     
     // Check for AppleCRC32 and UsedSpace in ZeroVector
     bool hasAppleCrc32 = false;
@@ -2941,11 +2941,7 @@ USTATUS FfsParser::parseVersionSectionBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
     
     // Add info
-#if QT_VERSION_MAJOR >= 6
-    model->addInfo(index, UString("\nVersion string: ") + UString::fromUtf16((const char16_t*)model->body(index).constData()));
-#else
-    model->addInfo(index, UString("\nVersion string: ") + UString::fromUtf16((const CHAR16*)model->body(index).constData()));
-#endif
+    model->addInfo(index, UString("\nVersion string: ") + uFromUcs2(model->body(index).constData()));
     
     return U_SUCCESS;
 }
@@ -3082,11 +3078,7 @@ USTATUS FfsParser::parseUiSectionBody(const UModelIndex & index)
     if (!index.isValid())
         return U_INVALID_PARAMETER;
     
-#if QT_VERSION_MAJOR >= 6
-    UString text = UString::fromUtf16((const char16_t*)model->body(index).constData());
-#else
-    UString text = UString::fromUtf16((const CHAR16*)model->body(index).constData());
-#endif
+    UString text = uFromUcs2(model->body(index).constData());
     
     // Add info
     model->addInfo(index, UString("\nText: ") + text);

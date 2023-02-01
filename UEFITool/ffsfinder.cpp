@@ -61,14 +61,12 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
     QRegularExpressionMatch regexpmatch;
     
     INT32 offset = 0;
-    while ((offset = (INT32)hexBody.indexOf(regexp, (qsizetype)offset, &regexpmatch)) != -1)
-    {
+    while ((offset = (INT32)hexBody.indexOf(regexp, (qsizetype)offset, &regexpmatch)) != -1) {
 #else
-        QRegExp regexp = QRegExp(UString(hexPattern), Qt::CaseInsensitive);
-        
-        INT32 offset = regexp.indexIn(hexBody);
-        
-        while (offset >= 0) {
+    QRegExp regexp = QRegExp(UString(hexPattern), Qt::CaseInsensitive);
+
+    INT32 offset = regexp.indexIn(hexBody);  
+    while (offset >= 0) {
 #endif
             
             if (offset % 2 == 0) {
@@ -223,11 +221,7 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
         
         UString data;
         if (unicode)
-#if QT_VERSION_MAJOR >= 6
-            data = UString::fromUtf16((const char16_t*)body.constData(), (int)(body.length() / 2));
-#else
-            data = UString::fromUtf16((const ushort*)body.constData(), (int)(body.length() / 2));
-#endif
+            data = uFromUcs2(body.constData(), body.length() / 2);
         else
             data = UString::fromLatin1((const char*)body.constData(), body.length());
         
