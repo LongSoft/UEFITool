@@ -18,7 +18,7 @@ public:
     class signature_t;
     class key_signature_t;
 
-    enum structure_ids_t {
+    enum structure_ids_t : uint64_t {
         STRUCTURE_IDS_KEYM = 6872296602200661855LL
     };
 

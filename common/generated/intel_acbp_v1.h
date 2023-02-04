@@ -31,7 +31,7 @@ public:
         IBB_SEGMENT_TYPE_NON_IBB = 1
     };
 
-    enum structure_ids_t {
+    enum structure_ids_t : uint64_t {
         STRUCTURE_IDS_PMDA = 6872283318001360735LL,
         STRUCTURE_IDS_PMSG = 6872289979495636831LL,
         STRUCTURE_IDS_ACBP = 6872299801917087583LL,

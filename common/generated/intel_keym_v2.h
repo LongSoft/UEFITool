@@ -20,7 +20,7 @@ public:
     class public_key_t;
     class header_t;
 
-    enum structure_ids_t {
+    enum structure_ids_t : uint64_t {
         STRUCTURE_IDS_KEYM = 6872296602200661855LL
     };
 

@@ -5,13 +5,17 @@ UTARGET=$(uname)
 # Determine platform
 if [ "$UTARGET" = "Darwin" ]; then
   export UPLATFORM="mac"
+  export UFIND="find -E"
+  export UFINDOPT=""
+  export USEDOPT="''"
 elif [ "$UTARGET" = "Linux" ]; then
   export UPLATFORM="linux_$(uname -m)"
-elif [ "${UTARGET/MINGW32/}" != "$UTARGET" ]; then
-  export UPLATFORM="win32"
+  export UFIND="find"
+  export UFINDOPT="-regextype posix-extended"
+  export USEDOPT=""
 else
-  # Fallback to something...
   export UPLATFORM="$UTARGET"
+  echo "Please run this script on Linux or macOS"
 fi
 
 # Generate
@@ -19,23 +23,28 @@ echo "Attempting to to generate parsers from Kaitai KSY files on ${UPLATFORM}...
 kaitai-struct-compiler --target cpp_stl --outdir common/generated common/ksy/* || exit 1
 
 # Show generated files
-find -E common/generated \
+${UFIND} common/generated ${UFINDOPT} \
  -regex '.*\.(cpp|h)' \
  -print || exit 1
 
 # Replace global includes for kaitai with local ones (<> -> "")
-find -E common/generated \
+${UFIND} common/generated ${UFINDOPT} \
  -regex '.*\.(cpp|h)' \
- -exec sed -i '' '/^#include <kaitai/s/[<>]/\"/g' {} + || exit 1
+ -exec sed -i ${USEDOPT} '/^#include <kaitai/s/[<>]/\"/g' {} + || exit 1
 
 # Add .. to the include path for kaitai includes
-find -E common/generated \
+${UFIND} common/generated ${UFINDOPT} \
  -regex '.*\.(cpp|h)' \
- -exec sed -i '' '/^#include \"kaitai\//s/kaitai\//..\/kaitai\//g' {} + || exit 1
+ -exec sed -i ${USEDOPT} '/^#include \"kaitai\//s/kaitai\//..\/kaitai\//g' {} + || exit 1
 
 # Suppress "p__root - unused parameter" warning
-find -E common/generated \
+${UFIND} common/generated ${UFINDOPT} \
  -regex '.*\.(cpp)' \
- -exec sed -i '' '/^    m__root = this;/s/;/; (void)p__root;/g' {} + || exit 1
+ -exec sed -i ${USEDOPT} '/^    m__root = this;/s/;/; (void)p__root;/g' {} + || exit 1
 
+# Add uint64_t to enum structure_ids_t
+${UFIND} common/generated ${UFINDOPT} \
+ -regex '.*\.(h)' \
+ -exec sed -i ${USEDOPT} '/^    enum structure_ids_t {/s/{/: uint64_t {/g' {} + || exit 1
+ 
 exit 0
