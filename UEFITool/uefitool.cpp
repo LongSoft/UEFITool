@@ -579,8 +579,10 @@ void UEFITool::remove()
 
 void UEFITool::about()
 {
-    QMessageBox::about(this, tr("About UEFITool"),
-                       tr("Copyright (c) 2013-2023, Nikolaj Schlej.<br><br>"
+    QMessageBox::about(this,
+                       tr("About UEFITool"),
+                       tr("<b>UEFITool %1.</b><br><br>"
+                          "Copyright (c) 2013-2023, Nikolaj Schlej.<br><br>"
                           "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
                           "GUI uses QHexEdit2 library made by <a href=https://github.com/Simsys>Simsys</a>.<br>"
                           "Qt-less engine uses Bstrlib made by <a href=https://github.com/websnarf>Paul Hsieh</a>.<br>"
@@ -595,7 +597,8 @@ void UEFITool::about()
                           "<b>THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN \"AS IS\" BASIS, "
                           "WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, "
                           "EITHER EXPRESS OR IMPLIED.</b>"
-                          ));
+                          "").arg(version)
+                       );
 }
 
 void UEFITool::aboutQt()
