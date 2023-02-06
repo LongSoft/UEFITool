@@ -703,7 +703,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
         for (intel_acbp_v1_t::acbp_element_t* element : *elements) {
             const intel_acbp_v1_t::common_header_t* element_header = element->header();
             
-            UINT64 structure_id = element_header->structure_id();
+            UINT64 structure_id = (UINT64) element_header->structure_id();
             const char* structure_id_bytes = (const char*)&structure_id;
             
             bpInfo += usprintf("StructureId: '%c%c%c%c%c%c%c%c'\n"
@@ -788,7 +788,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                                            current_segment->base(),
                                            current_segment->size());
                         
-                        if (current_segment->flags() == intel_acbp_v1_t::IBB_SEGMENT_TYPE_IBB) {
+                        if (current_segment->flags() == intel_acbp_v1_t::IBB_SEGMENT_TYPE_IBB
+                            && current_segment->base() != 0xFFFFFFFF && current_segment->size() != 0 && current_segment->size() != 0xFFFFFFFF) {
                             PROTECTED_RANGE range = {};
                             range.Offset = current_segment->base();
                             range.Size = current_segment->size();
@@ -833,13 +834,15 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                             bpInfo += "\n";
                             
                             // Add protected range
-                            PROTECTED_RANGE range = {};
-                            range.Offset = current_element->base();
-                            range.Size = current_element->size();
-                            range.Type = PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA;
-                            range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
-                            range.Hash = UByteArray(current_element->hash().data(), current_element->hash().size());
-                            ffsParser->protectedRanges.push_back(range);
+                            if (current_element->base() != 0xFFFFFFFF && current_element->size() != 0 && current_element->size() != 0xFFFFFFFF) {
+                                PROTECTED_RANGE range = {};
+                                range.Offset = current_element->base();
+                                range.Size = current_element->size();
+                                range.Type = PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA;
+                                range.AlgorithmId = TCG_HASH_ALGORITHM_ID_SHA256;
+                                range.Hash = UByteArray(current_element->hash().data(), current_element->hash().size());
+                                ffsParser->protectedRanges.push_back(range);
+                            }
                         }
                     }
                     // v2 entries
@@ -860,13 +863,15 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                             bpInfo += "\n";
                             
                             // Add protected range
-                            PROTECTED_RANGE range = {};
-                            range.Offset = current_element->base();
-                            range.Size = current_element->size();
-                            range.Type = PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA;
-                            range.AlgorithmId = current_element->hash()->hash_algorithm_id();
-                            range.Hash = UByteArray(current_element->hash()->hash().data(), current_element->hash()->hash().size());
-                            ffsParser->protectedRanges.push_back(range);
+                            if (current_element->base() != 0xFFFFFFFF && current_element->size() != 0 && current_element->size() != 0xFFFFFFFF) {
+                                PROTECTED_RANGE range = {};
+                                range.Offset = current_element->base();
+                                range.Size = current_element->size();
+                                range.Type = PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA;
+                                range.AlgorithmId = current_element->hash()->hash_algorithm_id();
+                                range.Hash = UByteArray(current_element->hash()->hash().data(), current_element->hash()->hash().size());
+                                ffsParser->protectedRanges.push_back(range);
+                            }
                         }
                     }
                 }
@@ -1099,7 +1104,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                                            current_segment->base(),
                                            current_segment->size());
                         
-                        if (current_segment->flags() == intel_acbp_v2_t::IBB_SEGMENT_TYPE_IBB) {
+                        if (current_segment->flags() == intel_acbp_v2_t::IBB_SEGMENT_TYPE_IBB
+                            && current_segment->base() != 0xFFFFFFFF && current_segment->size() != 0 && current_segment->size() != 0xFFFFFFFF) {
                             PROTECTED_RANGE range = {};
                             range.Offset = current_segment->base();
                             range.Size =current_segment->size();
@@ -1151,13 +1157,15 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                         bpInfo += "\n";
                         
                         // Add protected range
-                        PROTECTED_RANGE range = {};
-                        range.Offset = current_entry->base();
-                        range.Size = current_entry->size();
-                        range.Type = PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA;
-                        range.AlgorithmId = current_entry->hash()->hash_algorithm_id();
-                        range.Hash = UByteArray(current_entry->hash()->hash().data(), current_entry->hash()->hash().size());
-                        ffsParser->protectedRanges.push_back(range);
+                        if (current_entry->base() != 0xFFFFFFFF && current_entry->size() != 0 && current_entry->size() != 0xFFFFFFFF) {
+                            PROTECTED_RANGE range = {};
+                            range.Offset = current_entry->base();
+                            range.Size = current_entry->size();
+                            range.Type = PROTECTED_RANGE_VENDOR_HASH_MICROSOFT_PMDA;
+                            range.AlgorithmId = current_entry->hash()->hash_algorithm_id();
+                            range.Hash = UByteArray(current_entry->hash()->hash().data(), current_entry->hash()->hash().size());
+                            ffsParser->protectedRanges.push_back(range);
+                        }
                     }
                 }
             }
