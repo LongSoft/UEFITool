@@ -482,73 +482,30 @@ void UEFITool::extract(const UINT8 mode)
     QString path;
     if (mode == EXTRACT_MODE_AS_IS) {
         switch (type) {
-            case Types::Capsule:        path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),          name + ".cap",  tr("Capsule files (*.cap *.bin);;All files (*)"));          break;
-            case Types::Image:          path = QFileDialog::getSaveFileName(this, tr("Save image to file"),            name + ".rom",  tr("Image files (*.rom *.bin);;All files (*)"));            break;
-            case Types::Region:         path = QFileDialog::getSaveFileName(this, tr("Save region to file"),           name + ".rgn",  tr("Region files (*.rgn *.bin);;All files (*)"));           break;
-            case Types::Padding:        path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),          name + ".pad",  tr("Padding files (*.pad *.bin);;All files (*)"));          break;
-            case Types::Volume:         path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),           name + ".vol",  tr("Volume files (*.vol *.bin);;All files (*)"));           break;
-            case Types::File:           path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),         name + ".ffs",  tr("FFS files (*.ffs *.bin);;All files (*)"));              break;
-            case Types::Section:        path = QFileDialog::getSaveFileName(this, tr("Save section to file"),          name + ".sct",  tr("Section files (*.sct *.bin);;All files (*)"));          break;
-            case Types::NvarEntry:      path = QFileDialog::getSaveFileName(this, tr("Save NVAR entry to file"),       name + ".nvar", tr("NVAR entry files (*.nvar *.bin);;All files (*)"));      break;
-            case Types::VssEntry:       path = QFileDialog::getSaveFileName(this, tr("Save VSS entry to file"),        name + ".vss",  tr("VSS entry files (*.vss *.bin);;All files (*)"));        break;
-            case Types::FsysEntry:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys entry to file"),       name + ".fse",  tr("Fsys entry files (*.fse *.bin);;All files (*)"));       break;
-            case Types::EvsaEntry:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA entry to file"),       name + ".evse", tr("EVSA entry files (*.evse *.bin);;All files (*)"));      break;
-            case Types::FlashMapEntry:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap entry to file"),   name + ".fme",  tr("FlashMap entry files (*.fme *.bin);;All files (*)"));   break;
-            case Types::VssStore:       path = QFileDialog::getSaveFileName(this, tr("Save VSS store to file"),        name + ".vss",  tr("VSS store files (*.vss *.bin);;All files (*)"));        break;
-            case Types::Vss2Store:      path = QFileDialog::getSaveFileName(this, tr("Save VSS2 store to file"),       name + ".vss2", tr("VSS2 store files (*.vss2 *.bin);;All files (*)"));      break;
-            case Types::FdcStore:       path = QFileDialog::getSaveFileName(this, tr("Save FDC store to file"),        name + ".fdc",  tr("FDC store files (*.fdc *.bin);;All files (*)"));        break;
-            case Types::FsysStore:      path = QFileDialog::getSaveFileName(this, tr("Save Fsys store to file"),       name + ".fsys", tr("Fsys store files (*.fsys *.bin);;All files (*)"));      break;
-            case Types::EvsaStore:      path = QFileDialog::getSaveFileName(this, tr("Save EVSA store to file"),       name + ".evsa", tr("EVSA store files (*.evsa *.bin);;All files (*)"));      break;
-            case Types::FtwStore:       path = QFileDialog::getSaveFileName(this, tr("Save FTW store to file"),        name + ".ftw",  tr("FTW store files (*.ftw *.bin);;All files (*)"));        break;
-            case Types::FlashMapStore:  path = QFileDialog::getSaveFileName(this, tr("Save FlashMap store to file"),   name + ".fmap", tr("FlashMap store files (*.fmap *.bin);;All files (*)"));  break;
-            case Types::CmdbStore:      path = QFileDialog::getSaveFileName(this, tr("Save CMDB store to file"),       name + ".cmdb", tr("CMDB store files (*.cmdb *.bin);;All files (*)"));      break;
-            case Types::Microcode:      path = QFileDialog::getSaveFileName(this, tr("Save microcode binary to file"), name + ".ucd",  tr("Microcode binary files (*.ucd *.bin);;All files (*)")); break;
-            case Types::SlicData:
-                if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey to file"), name + ".spk", tr("SLIC pubkey files (*.spk *.bin);;All files (*)"));
-                else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker to file"), name + ".smk", tr("SLIC marker files (*.smk *.bin);;All files (*)"));
-                break;
-            default: path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+            case Types::Capsule: path = QFileDialog::getSaveFileName(this, tr("Save capsule to file"),          name + ".cap",  tr("Capsule files (*.cap *.bin);;All files (*)"));          break;
+            case Types::Image:   path = QFileDialog::getSaveFileName(this, tr("Save image to file"),            name + ".rom",  tr("Image files (*.rom *.bin);;All files (*)"));            break;
+            case Types::Region:  path = QFileDialog::getSaveFileName(this, tr("Save region to file"),           name + ".rgn",  tr("Region files (*.rgn *.bin);;All files (*)"));           break;
+            case Types::Padding: path = QFileDialog::getSaveFileName(this, tr("Save padding to file"),          name + ".pad",  tr("Padding files (*.pad *.bin);;All files (*)"));          break;
+            case Types::Volume:  path = QFileDialog::getSaveFileName(this, tr("Save volume to file"),           name + ".vol",  tr("Volume files (*.vol *.bin);;All files (*)"));           break;
+            case Types::File:    path = QFileDialog::getSaveFileName(this, tr("Save FFS file to file"),         name + ".ffs",  tr("FFS files (*.ffs *.bin);;All files (*)"));              break;
+            case Types::Section: path = QFileDialog::getSaveFileName(this, tr("Save section to file"),          name + ".sct",  tr("Section files (*.sct *.bin);;All files (*)"));          break;
+            default:             path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
     else if (mode == EXTRACT_MODE_BODY || mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
         switch (type) {
-            case Types::Capsule:                         path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", tr("Image files (*.rom *.bin);;All files (*)"));       break;
-            case Types::Volume:                          path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", tr("Volume body files (*.vbd *.bin);;All files (*)")); break;
-            case Types::File:
-                if (subtype    == EFI_FV_FILETYPE_ALL
-                    || subtype == EFI_FV_FILETYPE_RAW)   path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to raw file"),  name + ".raw", tr("Raw files (*.raw *.bin);;All files (*)"));
-                else                                     path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
-                break;
+            case Types::Capsule: path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", tr("Image files (*.rom *.bin);;All files (*)"));       break;
+            case Types::Volume:  path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", tr("Volume body files (*.vbd *.bin);;All files (*)")); break;
+            case Types::File:    path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
             case Types::Section:
-                if (subtype    == EFI_SECTION_COMPRESSION
-                    || subtype == EFI_SECTION_GUID_DEFINED
-                    || subtype == EFI_SECTION_DISPOSABLE)              path = QFileDialog::getSaveFileName(this, tr("Save encapsulation section body to FFS body file"), name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
-                else if (subtype == EFI_SECTION_FIRMWARE_VOLUME_IMAGE) path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"),                 name + ".vol", tr("Volume files (*.vol *.bin);;All files (*)"));
-                else if (subtype == EFI_SECTION_RAW)                   path = QFileDialog::getSaveFileName(this, tr("Save section body to raw file"),                    name + ".raw", tr("Raw files (*.raw *.bin);;All files (*)"));
+                if (subtype == EFI_SECTION_FIRMWARE_VOLUME_IMAGE) 
+                                 path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"), name + ".vol", tr("Volume files (*.vol *.bin);;All files (*)"));
                 else if (subtype == EFI_SECTION_PE32
                          || subtype == EFI_SECTION_TE
-                         || subtype == EFI_SECTION_PIC)                     path = QFileDialog::getSaveFileName(this, tr("Save section body to EFI executable file"),         name + ".efi", tr("EFI executable files (*.efi *.bin);;All files (*)"));
-                else                                                   path = QFileDialog::getSaveFileName(this, tr("Save section body to file"),                        name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+                         || subtype == EFI_SECTION_PIC) 
+                                 path = QFileDialog::getSaveFileName(this, tr("Save section body to EFI executable file"), name + ".efi", tr("EFI executable files (*.efi *.bin);;All files (*)"));
                 break;
-            case Types::NvarEntry:
-            case Types::VssEntry:
-            case Types::EvsaEntry:
-            case Types::FlashMapEntry:
-            case Types::StartupApDataEntry:
-            case Types::FsysEntry:                       path = QFileDialog::getSaveFileName(this, tr("Save entry body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
-            case Types::VssStore:
-            case Types::Vss2Store:
-            case Types::FtwStore:
-            case Types::FdcStore:
-            case Types::FsysStore:
-            case Types::FlashMapStore:
-            case Types::CmdbStore:                       path = QFileDialog::getSaveFileName(this, tr("Save store body to file"),       name + ".bin", tr("Binary files (*.bin);;All files (*)")); break;
-            case Types::Microcode:                       path = QFileDialog::getSaveFileName(this, tr("Save microcode body to file"),   name + ".ucb", tr("Microcode body files (*.ucb *.bin);;All files (*)")); break;
-            case Types::SlicData:
-                if (subtype == Subtypes::PubkeySlicData) path = QFileDialog::getSaveFileName(this, tr("Save SLIC pubkey body to file"), name + ".spb", tr("SLIC pubkey body files (*.spb *.bin);;All files (*)"));
-                else                                     path = QFileDialog::getSaveFileName(this, tr("Save SLIC marker body to file"), name + ".smb", tr("SLIC marker body files (*.smb *.bin);;All files (*)"));
-                break;
-            default: path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
+            default:             path = QFileDialog::getSaveFileName(this, tr("Save object body to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
         }
     }
     else path = QFileDialog::getSaveFileName(this, tr("Save object to file"), name + ".bin", tr("Binary files (*.bin);;All files (*)"));
