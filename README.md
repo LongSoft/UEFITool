@@ -30,18 +30,14 @@ The missing parts are in development and the version with a new engine will be m
 There are some other projects that use UEFITool's engine:
 * UEFIExtract, which uses ffsParser to parse supplied firmware image into a tree structure and dumps the parsed structure recursively on the FS. Jethro Beekman's [tree](https://github.com/jethrogb/uefireverse) utility can be used to work with the extracted tree.
 * UEFIFind, which uses ffsParser to find image elements containing a specified pattern. It was developed for [UBU](http://www.win-raid.com/t154f16-Tool-Guide-News-quot-UEFI-BIOS-Updater-quot-UBU.html) project.
-* [OZMTool](https://github.com/tuxuser/UEFITool/tree/OZM/OZMTool), which uses UEFITool's engine to perform various "hackintosh"-related firmware modifications.
 
 ## Alternatives
 
 Right now there are some alternatives to UEFITool that you could find useful too:
 * **[Fiano](https://github.com/linuxboot/fiano)** by Google and Facebook. Go-based cross-platform open source toolset for modifying UEFI firmware images.
-* **[PhoenixTool](http://forums.mydigitallife.info/threads/13194-Tool-to-Insert-Replace-SLIC-in-Phoenix-Insyde-Dell-EFI-BIOSes)** by [AndyP](http://forums.mydigitallife.info/members/39295-andyp). Windows-only freeware GUI application written in C#. Used mostly for SLIC-related modifications, but it not limited to this task. Requires Microsoft .NET 3.5 to work properly. Supports unpacking firmware images from various vendor-specific formats like encrypted HP update files and Dell installers.  
+* **[PhoenixTool](http://forums.mydigitallife.info/threads/13194-Tool-to-Insert-Replace-SLIC-in-Phoenix-Insyde-Dell-EFI-BIOSes)** by [AndyP](http://forums.mydigitallife.info/members/39295-andyp). Windows-only freeware GUI application written in C#. Used mostly for SLIC-related modifications, but it not limited to this task. Requires Microsoft .NET 3.5 to work properly. Supports unpacking firmware images from various vendor-specific formats like encrypted HP update files and Dell installers.
 * **[uefi-firmware-parser](https://github.com/theopolis/uefi-firmware-parser)** by [Teddy Reed](https://github.com/theopolis). Cross-platform open source console application written in Python. Very tinker-friendly due to use of Python. Can be used in scripts to automate firmware patching.
 * **[Chipsec](https://github.com/chipsec/chipsec)** by Intel. Cross-platform partially open source console application written in Python and C. Can be used to test Intel-based platforms for various security-related misconfigurations, but also has NVRAM parser and other components aimed to firmware modification.
-* **MMTool** by AMI. Windows-only proprietary application available to AMI clients. Works only with Aptio4- and AptioV-based firmware images, but has some interesting features including OptionROM replacement and microcode update. Must be licensed from AMI.
-* **H2OEZE** by Insyde. Windows-only proprietary application available to Insyde clients. Works only with InsydeH2O-based firmware images. Must be licensed from Insyde.
-* **SCT BIOS Editor** by Phoenix. Windows-only proprietary application available to Phoenix clients. Works only with Phoenix SCT-based firmware images. Must be licensed from Phoenix.
 
 ## Installation
 
