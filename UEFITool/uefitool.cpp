@@ -494,9 +494,9 @@ void UEFITool::extract(const UINT8 mode)
     }
     else if (mode == EXTRACT_MODE_BODY || mode == EXTRACT_MODE_BODY_UNCOMPRESSED) {
         switch (type) {
-            case Types::Capsule: path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", tr("Image files (*.rom *.bin);;All files (*)"));       break;
-            case Types::Volume:  path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", tr("Volume body files (*.vbd *.bin);;All files (*)")); break;
-            case Types::File:    path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));
+            case Types::Capsule: path = QFileDialog::getSaveFileName(this, tr("Save capsule body to image file"), name + ".rom", tr("Image files (*.rom *.bin);;All files (*)"));           break;
+            case Types::Volume:  path = QFileDialog::getSaveFileName(this, tr("Save volume body to file"),        name + ".vbd", tr("Volume body files (*.vbd *.bin);;All files (*)"));     break;
+            case Types::File:    path = QFileDialog::getSaveFileName(this, tr("Save FFS file body to file"),      name + ".fbd", tr("FFS file body files (*.fbd *.bin);;All files (*)"));   break;
             case Types::Section:
                 if (subtype == EFI_SECTION_FIRMWARE_VOLUME_IMAGE) 
                                  path = QFileDialog::getSaveFileName(this, tr("Save section body to volume file"), name + ".vol", tr("Volume files (*.vol *.bin);;All files (*)"));
