@@ -615,15 +615,14 @@ void UEFITool::openImageFile(QString path)
     
     // Parse the image
     USTATUS result = ffsParser->parse(buffer);
-    
     showParserMessages();
     if (result) {
         QMessageBox::critical(this, tr("Image parsing failed"), errorCodeToUString(result), QMessageBox::Ok);
         return;
     }
-    else
+    else {
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
-    
+    }
     ffsParser->outputInfo();
     
     // Enable or disable FIT tab
@@ -728,7 +727,7 @@ void UEFITool::toggleBootGuardMarking(bool enabled)
     markingEnabled = enabled;
 }
 
-/* emit double click signal of QListWidget on enter/return key pressed */
+// Emit double click signal of QListWidget on enter/return key pressed
 bool UEFITool::eventFilter(QObject* obj, QEvent* event)
 {
     if (event->type() == QEvent::KeyPress) {
@@ -917,7 +916,7 @@ void UEFITool::readSettings()
     markingEnabled = settings.value("tree/markingEnabled", true).toBool();
     ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
     
-    // Set monospace font for some controls
+    // Set monospace font
     QString fontName;
     int fontSize;
 #if defined Q_OS_OSX

@@ -134,20 +134,65 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_windows:
-    name: Build on Windows 2019
+  build_windows_64:
+    name: Build on Windows 2022 (64-bit)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v3 
+      - name: Get Qt 6.4.2
+        uses: actions/checkout@v3
+        with:
+          repository: LongSoft/qt-6.4.2-static-x64-msvc2022
+          path: qt6
+          lfs: true
+      - name: Unpack Qt 6.4.2
+        shell: bash
+        working-directory: qt6
+        run: 7z x qt-6.4.2-static-x64-msvc2022.7z -o../..
+      - name: Create UEFITool win64 build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool_win64
+      - name: Configure UEFITool win64
+        working-directory: ${{runner.workspace}}/build/UEFITool_win64
+        shell: cmd
+        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.4.2-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ..\..\UEFITool\UEFITool
+      - name: Build UEFITool win64
+        working-directory: ${{runner.workspace}}/build/UEFITool_win64
+        shell: bash
+        run: cmake --build . --config Release
+      - name: Archive UEFITool win64
+        working-directory: ${{runner.workspace}}/build/UEFITool_win64/Release
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
+          7z a ../../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win64.zip UEFITool.exe   
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows 64-bit builds
+          path: dist/*.zip
+      - name: Upload to releases
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
+
+  build_windows_32:
+    name: Build on Windows 2019 (32-bit)
     runs-on: windows-2019
     steps:
-      - uses: actions/checkout@v3
-      - name: Get Qt
+      - uses: actions/checkout@v3 
+      - name: Get Qt 5.6.3
         uses: actions/checkout@v3
         with:
           repository: LongSoft/qt-5.6.3-static-x86-msvc2017
-          path: qt
+          path: qt5
           lfs: true
-      - name: Unpack Qt
+      - name: Unpack Qt 5.6.3
         shell: bash
-        working-directory: qt
+        working-directory: qt5
         run: 7z x qt-5.6.3-static-x86-msvc2017.7z -o../..
       - name: Create dist directory
         shell: bash
@@ -171,8 +216,8 @@ jobs:
       - name: Create UEFIFind build directory
         run: cmake -E make_directory ${{runner.workspace}}/build/UEFIFind
       - name: Configure UEFIFind
-        shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIFind
+        shell: bash
         run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIFind/
       - name: Build UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
@@ -184,20 +229,20 @@ jobs:
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           7z a ../../../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_win32.zip UEFIFind.exe
-      - name: Create UEFITool build directory
-        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool
-      - name: Configure UEFITool
+      - name: Create UEFITool win32 build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool_win32
+      - name: Configure UEFITool win32
         shell: bash
-        working-directory: ${{runner.workspace}}/build/UEFITool
+        working-directory: ${{runner.workspace}}/build/UEFITool_win32
         run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe -tp vc ../../UEFITool/UEFITool/
-      - name: Build UEFITool
-        working-directory: ${{runner.workspace}}/build/UEFITool
+      - name: Build UEFITool win32
+        working-directory: ${{runner.workspace}}/build/UEFITool_win32
         shell: cmd
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
             msbuild -t:Rebuild -p:PlatformToolset=v141_xp;Configuration=Release
-      - name: Archive UEFITool
-        working-directory: ${{runner.workspace}}/build/UEFITool/release
+      - name: Archive UEFITool win32
+        working-directory: ${{runner.workspace}}/build/UEFITool_win32/release
         shell: bash
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
@@ -205,7 +250,7 @@ jobs:
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Windows builds
+          name: Windows 32-bit builds
           path: dist/*.zip
       - name: Upload to releases
         if: github.event_name == 'release'
