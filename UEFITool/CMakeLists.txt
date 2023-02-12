@@ -140,9 +140,15 @@ SET_TARGET_PROPERTIES(UEFITool PROPERTIES
  AUTOUIC ON
 )
 
-IF(UNIX AND (NOT APPLE))
- SET_TARGET_PROPERTIES(UEFITool PROPERTIES 
-  OUTPUT_NAME uefitool)
+IF(UNIX AND (NOT APPLE) AND (NOT CYGWIN))
+ SET_TARGET_PROPERTIES(UEFITool PROPERTIES OUTPUT_NAME uefitool)
+ INSTALL(FILES icons/uefitool_16x16.png   DESTINATION share/icons/hicolor/16x16/apps   RENAME uefitool.png)
+ INSTALL(FILES icons/uefitool_32x32.png   DESTINATION share/icons/hicolor/32x32/apps   RENAME uefitool.png)
+ INSTALL(FILES icons/uefitool_64x64.png   DESTINATION share/icons/hicolor/64x64/apps   RENAME uefitool.png)
+ INSTALL(FILES icons/uefitool_128x128.png DESTINATION share/icons/hicolor/128x128/apps RENAME uefitool.png)
+ INSTALL(FILES icons/uefitool_256x256.png DESTINATION share/icons/hicolor/256x256/apps RENAME uefitool.png)
+ INSTALL(FILES icons/uefitool_512x512.png DESTINATION share/icons/hicolor/512x512/apps RENAME uefitool.png)
+ INSTALL(FILES uefitool.desktop DESTINATION share/applications)
 ENDIF()
 
 INSTALL(TARGETS UEFITool BUNDLE DESTINATION "/Applications" )
