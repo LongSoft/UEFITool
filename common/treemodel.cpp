@@ -28,8 +28,17 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
     }
 #if defined (QT_GUI_LIB)
     else if (role == Qt::BackgroundRole) {
-        if (markingEnabledFlag && marking(index) > 0) {
-            return QBrush((Qt::GlobalColor)marking(index));
+        if (markingEnabledFlag && marking(index) != BootGuardMarking::None) {
+            // Use light colors by default
+            uint8_t bgFullyInRange = Qt::red;
+            uint8_t vendorFullyInRange = Qt::cyan;
+            uint8_t partiallyInRange = Qt::yellow;
+
+            switch (marking(index)) {
+                case BootGuardMarking::BootGuardFullyInRange: return QBrush((Qt::GlobalColor)bgFullyInRange); break;
+                case BootGuardMarking::VendorFullyInRange: return QBrush((Qt::GlobalColor)vendorFullyInRange); break;
+                case BootGuardMarking::PartiallyInRange: return QBrush((Qt::GlobalColor)partiallyInRange); break;
+            }
         }
     }
 #endif

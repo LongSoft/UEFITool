@@ -31,6 +31,7 @@
 #include <QProcess>
 #include <QSettings>
 #include <QSplitter>
+#include <QStyleFactory>
 #include <QString>
 #include <QTableWidget>
 #include <QTreeView>

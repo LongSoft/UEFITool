@@ -148,7 +148,7 @@ void UEFITool::init()
     model->setMarkingEnabled(markingEnabled);
     ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
     
-    // Connect
+    // Connect signals to slots
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
             this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
@@ -162,10 +162,17 @@ void UEFITool::init()
     connect(ui->fitTableWidget, SIGNAL(itemDoubleClicked(QTableWidgetItem*)), this, SLOT(scrollTreeView(QTableWidgetItem*)));
     connect(ui->messagesTabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentTabChanged(int)));
     
-    // allow enter/return pressing to scroll tree view
+    // Allow enter/return pressing to scroll tree view
     ui->parserMessagesListWidget->installEventFilter(this);
     ui->finderMessagesListWidget->installEventFilter(this);
     ui->builderMessagesListWidget->installEventFilter(this);
+
+    // Switch default window style to Fusion on Qt6 Windows builds
+    // TOOD: remove this one default style gains dark theme support
+#if defined Q_OS_WIN and QT_VERSION_MAJOR >= 6
+    QApplication::setStyle(QStyleFactory::create("Fusion"));
+    QApplication::setPalette(QApplication::style()->standardPalette());
+#endif
 }
 
 void UEFITool::populateUi(const QItemSelection &selected)

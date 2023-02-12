@@ -19,6 +19,13 @@ enum ItemFixedState {
     Fixed
 };
 
+enum BootGuardMarking {
+    None = 0, // Needs to be zero
+    PartiallyInRange,
+    BootGuardFullyInRange,
+    VendorFullyInRange
+};
+
 #if defined(QT_CORE_LIB)
 // Use Qt classes
 #include <QAbstractItemModel>

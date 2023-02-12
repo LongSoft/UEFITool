@@ -35,17 +35,6 @@
 #include "digest/sha2.h"
 #include "digest/sm3.h"
 
-#ifndef QT_CORE_LIB
-namespace Qt {
-enum GlobalColor {
-    red = 7,
-    green = 8,
-    cyan = 10,
-    yellow = 12,
-};
-}
-#endif
-
 // Constructor
 FfsParser::FfsParser(TreeModel* treeModel) : model(treeModel),
 imageBase(0), addressDiff(0x100000000ULL), protectedRegionsBase(0) {
@@ -3778,14 +3767,14 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
                 if (range.Type == PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB) {
-                    model->setMarking(index, Qt::red);
+                    model->setMarking(index, BootGuardMarking::BootGuardFullyInRange);
                 }
                 else {
-                    model->setMarking(index, Qt::cyan);
+                    model->setMarking(index, BootGuardMarking::VendorFullyInRange);
                 }
             }
             else { // Mark as partially in range
-                model->setMarking(index, Qt::yellow);
+                model->setMarking(index, BootGuardMarking::PartiallyInRange);
             }
         }
     }
