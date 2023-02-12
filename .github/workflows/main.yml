@@ -9,7 +9,7 @@ on:
 
 jobs:
   build_mac:
-    name: Build on macOS 12
+    name: Build on macOS 12 (universal, static Qt 6.4.2)
     runs-on: macos-12
     env:
         HAS_QT: 1
@@ -18,15 +18,32 @@ jobs:
       - name: Get Qt
         uses: actions/checkout@v3
         with:
-          repository: LongSoft/qt-5.6.3-static-universal-macos-sdk12.3
+          repository: LongSoft/qt-6.4.2-static-universal-macos12.3
           path: qt
           lfs: true
       - name: Unpack Qt
         shell: bash
         working-directory: qt
-        run: sudo unzip -q qt-5.6.3-static-universal-macos-sdk12.3.zip -d/opt && echo "/opt/qt56sm/bin" >> $GITHUB_PATH
+        run: sudo unzip -q qt-6.4.2-static-universal-macos12.3.zip -d/opt
+      - name: Create build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure everything
+        working-directory: ${{runner.workspace}}/build
+        run: cmake -DCMAKE_PREFIX_PATH="/opt/qt-6.4.2-static-universal-macos12.3" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" ../UEFITool
       - name: Build everything
-        run: ./unixbuild.sh
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config Release
+      - name: Create dist directory
+        run: cmake -E make_directory ${{runner.workspace}}/UEFITool/dist
+      - name: Archive everything
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
+          zip -qry ../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_universal_mac.zip UEFIExtract/UEFIExtract
+          zip -qry ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_universal_mac.zip UEFIFind/UEFIFind
+          zip -qry ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_universal_mac.zip UEFITool/UEFITool.app
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -42,7 +59,7 @@ jobs:
           file_glob: true
 
   build_linux:
-    name: Build on Ubuntu 20.04 LTS
+    name: Build on Ubuntu 20.04 LTS (Qt 5)
     runs-on: ubuntu-20.04
     env:
         HAS_QT: 1
@@ -67,7 +84,7 @@ jobs:
           file_glob: true
 
   build_linux_sanitizers:
-    name: Build on Ubuntu Latest with Clang sanitizers
+    name: Build on Ubuntu Latest with Clang sanitizers (Qt 6)
     runs-on: ubuntu-latest
     env:
         HAS_QT: 1
@@ -90,7 +107,7 @@ jobs:
           path: build/UEFITool
 
   build_linux_meson:
-    name: Build on Ubuntu Latest with Meson
+    name: Build on Ubuntu Latest with Meson (Qt 5)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -104,7 +121,7 @@ jobs:
         run: ninja -C build-meson
 
   build_freebsd:
-    name: Build on FreeBSD
+    name: Build on FreeBSD (Qt 5)
     runs-on: macos-12
     env:
       HAS_QT: 1
@@ -135,7 +152,7 @@ jobs:
           file_glob: true
 
   build_windows_64:
-    name: Build on Windows 2022 (64-bit)
+    name: Build on Windows 2022 (64-bit, static Qt 6.4.2)
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v3 
@@ -180,7 +197,7 @@ jobs:
           file_glob: true
 
   build_windows_32:
-    name: Build on Windows 2019 (32-bit)
+    name: Build on Windows 2019 (32-bit, static Qt 5.6.3)
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3 
@@ -262,14 +279,14 @@ jobs:
           file_glob: true
 
   build_windows_mingw:
-    name: Build on Windows Latest with MinGW
+    name: Build on Windows Latest with MinGW (Qt 6.4.2)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.3.1'
+          version: '6.4.2'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_mingw'
@@ -284,13 +301,13 @@ jobs:
       JOB_TYPE: COVERITY
       HAS_QT: 1
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: Coverity Static Analysis on Ubuntu Latest
+    name: Coverity Static Analysis on Ubuntu Latest (Qt 6.4.2)
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.3.1'
+          version: '6.4.2'
           host: 'linux'
           target: 'desktop'
       - name: CI Bootstrap
@@ -308,13 +325,13 @@ jobs:
 
   analyze_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: PVS-Studio and CodeQL Static Analysis on Ubuntu Latest
+    name: PVS-Studio and CodeQL Static Analysis on Ubuntu Latest (Qt 6.4.2)
     runs-on: ubuntu-latest
     steps:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.3.1'
+          version: '6.4.2'
           host: 'linux'
           target: 'desktop'
       - name: Check out
@@ -352,7 +369,7 @@ jobs:
           
   analyze_sonarcloud:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: SonarCloud Static Analysis on Ubuntu Latest
+    name: SonarCloud Static Analysis on Ubuntu Latest (Qt 6.4.2)
     runs-on: ubuntu-latest
     env:
       SONAR_SCANNER_VERSION: 4.7.0.2747
@@ -362,7 +379,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.3.1'
+          version: '6.4.2'
           host: 'linux'
           target: 'desktop'
       - uses: actions/checkout@v3
