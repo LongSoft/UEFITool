@@ -27,6 +27,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QPalette>
 #include <QPlainTextEdit>
 #include <QProcess>
 #include <QSettings>
