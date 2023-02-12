@@ -8,11 +8,10 @@ on:
     types: [published]
 
 jobs:
-  build_mac:
-    name: Build on macOS 12 (universal, static Qt 6.4.2)
+# Release builds
+  build_release_macos:
+    name: Release build (macOS universal, static Qt 6.4.2)
     runs-on: macos-12
-    env:
-        HAS_QT: 1
     steps:
       - uses: actions/checkout@v3
       - name: Get Qt
@@ -41,9 +40,9 @@ jobs:
         shell: bash
         run: |
           UEFITOOL_VER=$(cat ../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
-          zip -qry ../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_universal_mac.zip UEFIExtract/UEFIExtract
-          zip -qry ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_universal_mac.zip UEFIFind/UEFIFind
-          zip -qry ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_universal_mac.zip UEFITool/UEFITool.app
+          zip -qryj ../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFIExtract/UEFIExtract
+          zip -qryj ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFIFind/UEFIFind
+          zip -qryj ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFITool/UEFITool.app
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -58,17 +57,34 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_linux:
-    name: Build on Ubuntu 20.04 LTS (Qt 5)
-    runs-on: ubuntu-20.04
-    env:
-        HAS_QT: 1
+  build_release_linux:
+    name: Release build (Linux x64, shared Qt 6.x)
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Get Qt
-        run: sudo apt-get install -qq qt5-default qt5-qmake qtbase5-dev-tools cmake
+        run: | 
+          sudo apt update
+          sudo apt-get install -qq zip cmake libgl1-mesa-dev qt6-base-dev
+      - name: Create build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure everything
+        working-directory: ${{runner.workspace}}/build
+        run: cmake ../UEFITool
       - name: Build everything
-        run: ./unixbuild.sh
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config Release
+      - name: Create dist directory
+        run: cmake -E make_directory ${{runner.workspace}}/UEFITool/dist
+      - name: Archive everything
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
+          zip -qryj ../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_x64_linux.zip ./UEFIExtract/uefiextract
+          zip -qryj ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_x64_linux.zip ./UEFIFind/uefifind
+          zip -qryj ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_x64_linux.zip ./UEFITool/uefitool
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -83,48 +99,9 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_linux_sanitizers:
-    name: Build on Ubuntu Latest with Clang sanitizers (Qt 6)
-    runs-on: ubuntu-latest
-    env:
-        HAS_QT: 1
-    steps:
-      - uses: actions/checkout@v3
-      - name: Get Qt
-        run: |
-          sudo apt update
-          sudo apt-get install -qq cmake libgl1-mesa-dev libglx-dev qmake6 libqt6opengl6-dev qt6-base-dev
-      - name: Make a debug build of UEFITool with Clang sanitizers enabled
-        run: |
-          mkdir build 
-          cd build
-          CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -DCMAKE_BUILD_TYPE=Debug ../UEFITool
-          make
-      - name: Upload to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Linux builds with Clang sanitizers enabled
-          path: build/UEFITool
-
-  build_linux_meson:
-    name: Build on Ubuntu Latest with Meson (Qt 5)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Get Deps
-        run: | 
-          sudo apt update
-          sudo apt-get install -qq zlib1g-dev meson qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools
-      - name: Configure build
-        run: mkdir build-meson && meson ./build-meson
-      - name: Build everything
-        run: ninja -C build-meson
-
-  build_freebsd:
-    name: Build on FreeBSD (Qt 5)
+  build_release_freebsd:
+    name: Release build (FreeBSD x64, shared Qt 6.x)
     runs-on: macos-12
-    env:
-      HAS_QT: 1
     steps:
       - uses: actions/checkout@v3
       - name: Build on FreeBSD inside macOS VM
@@ -132,11 +109,18 @@ jobs:
         uses: vmactions/freebsd-vm@v0
         with:
           usesh: true
-          envs: "HAS_QT"
           prepare: |
-            pkg install -y bash zip cmake qt5-qmake qt5-buildtools qt5-core qt5-gui qt5-widgets
+            pkg install -y zip cmake qt6-base
           run: |
-            bash unixbuild.sh
+            mkdir dist
+            mkdir build
+            cd build
+            cmake ..
+            cmake --build . --config Release
+            UEFITOOL_VER=$(cat ../version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
+            zip -qryj ../dist/UEFIExtract_NE_${UEFITOOL_VER}_x64_freebsd.zip ./UEFIExtract/uefiextract
+            zip -qryj ../dist/UEFIFind_NE_${UEFITOOL_VER}_x64_freebsd.zip ./UEFIFind/uefifind
+            zip -qryj ../dist/UEFITool_NE_${UEFITOOL_VER}_x64_freebsd.zip ./UEFITool/uefitool
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -151,53 +135,8 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_windows_64:
-    name: Build on Windows 2022 (64-bit, static Qt 6.4.2)
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v3 
-      - name: Get Qt 6.4.2
-        uses: actions/checkout@v3
-        with:
-          repository: LongSoft/qt-6.4.2-static-x64-msvc2022
-          path: qt6
-          lfs: true
-      - name: Unpack Qt 6.4.2
-        shell: bash
-        working-directory: qt6
-        run: 7z x qt-6.4.2-static-x64-msvc2022.7z -o../..
-      - name: Create UEFITool win64 build directory
-        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool_win64
-      - name: Configure UEFITool win64
-        working-directory: ${{runner.workspace}}/build/UEFITool_win64
-        shell: cmd
-        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.4.2-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ..\..\UEFITool\UEFITool
-      - name: Build UEFITool win64
-        working-directory: ${{runner.workspace}}/build/UEFITool_win64
-        shell: bash
-        run: cmake --build . --config Release
-      - name: Archive UEFITool win64
-        working-directory: ${{runner.workspace}}/build/UEFITool_win64/Release
-        shell: bash
-        run: |
-          UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
-          7z a ../../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win64.zip UEFITool.exe   
-      - name: Upload to artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Windows 64-bit builds
-          path: dist/*.zip
-      - name: Upload to releases
-        if: github.event_name == 'release'
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: dist/*.zip
-          tag: ${{ github.ref }}
-          file_glob: true
-
-  build_windows_32:
-    name: Build on Windows 2019 (32-bit, static Qt 5.6.3)
+  build_release_windows_32:
+    name: Release build (Win32, static Qt 5.6.3)
     runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3 
@@ -278,8 +217,72 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
 
-  build_windows_mingw:
-    name: Build on Windows Latest with MinGW (Qt 6.4.2)
+  build_release_windows_64:
+    name: Release build (Win64, static Qt 6.4.2)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v3 
+      - name: Get Qt 6.4.2
+        uses: actions/checkout@v3
+        with:
+          repository: LongSoft/qt-6.4.2-static-x64-msvc2022
+          path: qt6
+          lfs: true
+      - name: Unpack Qt 6.4.2
+        shell: bash
+        working-directory: qt6
+        run: 7z x qt-6.4.2-static-x64-msvc2022.7z -o../..
+      - name: Create build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure everything
+        working-directory: ${{runner.workspace}}/build
+        shell: cmd
+        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.4.2-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ../UEFITool
+      - name: Build everything
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --config Release
+      - name: Create dist directory
+        run: cmake -E make_directory ${{runner.workspace}}/UEFITool/dist
+      - name: Archive everything
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: |
+          UEFITOOL_VER=$(cat ../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
+          7z a ../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_win64.zip ./UEFIExtract/Release/UEFIExtract.exe
+          7z a ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_win64.zip ./UEFIFind/Release/UEFIFind.exe
+          7z a ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win64.zip ./UEFITool/Release/UEFITool.exe
+      - name: Upload to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows 64-bit builds
+          path: dist/*.zip
+      - name: Upload to releases
+        if: github.event_name == 'release'
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: dist/*.zip
+          tag: ${{ github.ref }}
+          file_glob: true
+
+# Build Tests
+  build_test_linux_meson:
+    name: Meson build system test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get Deps
+        run: | 
+          sudo apt update
+          sudo apt-get install -qq cmake meson zlib1g-dev qtbase5-dev
+      - name: Configure build
+        run: mkdir build-meson && meson ./build-meson
+      - name: Build everything
+        run: ninja -C build-meson
+
+  build_test_windows_mingw:
+    name: MinGW compiler test
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -290,52 +293,53 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_mingw'
-      - name: Build everything using CMake and MinGW
+      - name: Build everything
         run: |
           cmake -G "MinGW Makefiles" -B build .
           cmake --build build -j
-
-  analyze_coverity:
+  
+# Static Analysis
+  build_analyze_linux_coverity:
     env:
       PROJECT_TYPE: TOOL
       JOB_TYPE: COVERITY
-      HAS_QT: 1
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: Coverity Static Analysis on Ubuntu Latest (Qt 6.4.2)
+    name: Coverity Static Analysis
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.4.2'
           host: 'linux'
           target: 'desktop'
-      - name: CI Bootstrap
-        run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
-      - uses: actions/checkout@v3
-      - run: ./unixbuild.sh --configure
+      - name: Create build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build
+      - name: Configure everything
+        working-directory: ${{runner.workspace}}/build
+        run: cmake ../UEFITool
       - name: Run Coverity
+        working-directory: ${{runner.workspace}}/build
         run: |
           src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/coverity/covstrap-linux.sh) && eval "$src" || exit 1
         env:
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
-          COVERITY_BUILD_COMMAND: ./unixbuild.sh --build
+          COVERITY_BUILD_COMMAND: cmake --build .
 
-  analyze_pvs_studio_and_codeql:
+  build_analyze_linux_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: PVS-Studio and CodeQL Static Analysis on Ubuntu Latest (Qt 6.4.2)
+    name: PVS-Studio and CodeQL Static Analysis
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.4.2'
           host: 'linux'
           target: 'desktop'
-      - name: Check out
-        uses: actions/checkout@v3
       - name: Install PVS-Studio
         run: |
           wget -q -O - https://files.pvs-studio.com/etc/pubkey.txt \
@@ -349,7 +353,7 @@ jobs:
         uses: github/codeql-action/init@v2
         with:
           languages: cpp
-      - name: Build everything using CMake
+      - name: Build everything
         run: |
           cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build .
           cmake --build build -j
@@ -367,24 +371,24 @@ jobs:
           sarif_file: pvs-report.sarif
           category: PVS-Studio
           
-  analyze_sonarcloud:
+  build_analyze_linux_sonarcloud:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: SonarCloud Static Analysis on Ubuntu Latest (Qt 6.4.2)
+    name: SonarCloud Static Analysis
     runs-on: ubuntu-latest
     env:
       SONAR_SCANNER_VERSION: 4.7.0.2747
       SONAR_SERVER_URL: "https://sonarcloud.io"
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.4.2'
           host: 'linux'
           target: 'desktop'
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:

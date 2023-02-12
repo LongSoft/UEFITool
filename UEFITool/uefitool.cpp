@@ -167,22 +167,21 @@ void UEFITool::init()
     ui->finderMessagesListWidget->installEventFilter(this);
     ui->builderMessagesListWidget->installEventFilter(this);
 
-    // Switch default window style to Fusion on Qt6 Windows builds
-    
+    // Detect UI dark mode
 #if QT_VERSION_MAJOR >= 6
-#if defined Q_OS_OSX
-    const QPalette palette = QApplication::palette();
-    const QColor& color = palette.color(QPalette::Active, QPalette::Base);
-    if (color.lightness() < 127) { // TreeView has dark background
-        model->setMarkingDarkMode(true);
-    }
-#elif defined Q_OS_WIN
+#if defined Q_OS_WIN
     QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
     if (settings.value("AppsUseLightTheme", 1).toInt() == 0) {
         model->setMarkingDarkMode(true);
         // TODO: remove this once default style gains dark theme support
         QApplication::setStyle(QStyleFactory::create("Fusion"));
         QApplication::setPalette(QApplication::style()->standardPalette());
+    }
+#else
+    const QPalette palette = QApplication::palette();
+    const QColor& color = palette.color(QPalette::Active, QPalette::Base);
+    if (color.lightness() < 127) { // TreeView has dark background
+        model->setMarkingDarkMode(true);
     }
 #endif
 #endif
