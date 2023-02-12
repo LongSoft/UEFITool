@@ -168,10 +168,14 @@ void UEFITool::init()
     ui->builderMessagesListWidget->installEventFilter(this);
 
     // Switch default window style to Fusion on Qt6 Windows builds
-    // TOOD: remove this one default style gains dark theme support
+    // TODO: remove this once default style gains dark theme support
 #if defined Q_OS_WIN and QT_VERSION_MAJOR >= 6
-    QApplication::setStyle(QStyleFactory::create("Fusion"));
-    QApplication::setPalette(QApplication::style()->standardPalette());
+    QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
+    if (settings.value("AppsUseLightTheme", 1).toInt() == 0) {
+        QApplication::setStyle(QStyleFactory::create("Fusion"));
+        QApplication::setPalette(QApplication::style()->standardPalette());
+        model->setMarkingDarkMode(true);
+    }
 #endif
 }
 
