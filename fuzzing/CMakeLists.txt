@@ -2,7 +2,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.1.0 FATAL_ERROR)
 
 PROJECT(ffsparser_fuzzer LANGUAGES C CXX)
 
-OPTION(USE_QT "Link against Qt" ON)
+OPTION(USE_QT "Link against Qt" OFF)
+OPTION(USE_AFL "Build in AFL-compatible mode" OFF)
 
 SET(CMAKE_CXX_STANDARD 11)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,6 +58,13 @@ SET(PROJECT_SOURCES
  ../common/zlib/zutil.c
 )
 
+IF(USE_AFL)
+  SET(PROJECT_SOURCES ${PROJECT_SOURCES} afl_driver.cpp)
+  MESSAGE("-- Building in AFL-compatible mode")
+ELSE()
+  MESSAGE("-- Building in libFuzzer mode")
+ENDIF()
+
 IF(NOT USE_QT)
   SET(PROJECT_SOURCES ${PROJECT_SOURCES}
     ../common/bstrlib/bstrlib.c
@@ -77,9 +85,14 @@ ADD_DEFINITIONS(
 
 ADD_EXECUTABLE(ffsparser_fuzzer ${PROJECT_SOURCES})
 
-TARGET_COMPILE_OPTIONS(ffsparser_fuzzer PRIVATE -O1 -fno-omit-frame-pointer -g -ggdb3 -fsanitize=fuzzer,address,undefined -fsanitize-address-use-after-scope -fno-sanitize-recover=undefined)
 
+IF(USE_AFL_DRIVER)
+TARGET_COMPILE_OPTIONS(ffsparser_fuzzer PRIVATE -O1 -fno-omit-frame-pointer -g -ggdb3 -fsanitize=fuzzer,address,undefined -fsanitize-address-use-after-scope -fno-sanitize-recover=undefined)
 TARGET_LINK_LIBRARIES(ffsparser_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+ELSE()
+TARGET_COMPILE_OPTIONS(ffsparser_fuzzer PRIVATE -O1 -fno-omit-frame-pointer -g -ggdb3 -fsanitize=address,undefined -fsanitize-coverage=trace-pc-guard -fsanitize-address-use-after-scope -fno-sanitize-recover=undefined)
+TARGET_LINK_LIBRARIES(ffsparser_fuzzer PRIVATE -fsanitize=address,undefined)
+ENDIF()
 
 IF(USE_QT)
   TARGET_LINK_LIBRARIES(ffsparser_fuzzer PRIVATE Qt6::Core)
