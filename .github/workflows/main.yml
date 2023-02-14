@@ -42,7 +42,8 @@ jobs:
           UEFITOOL_VER=$(cat ../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           zip -qryj ../UEFITool/dist/UEFIExtract_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFIExtract/UEFIExtract
           zip -qryj ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFIFind/UEFIFind
-          zip -qryj ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFITool/UEFITool.app
+          cd UEFITool
+          zip -qry ../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFITool.app
       - name: Upload to artifacts
         uses: actions/upload-artifact@v3
         with:
