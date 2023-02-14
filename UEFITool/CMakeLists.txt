@@ -8,25 +8,6 @@ SET(CMAKE_CXX_EXTENSIONS OFF)
 
 FIND_PACKAGE(Qt6 REQUIRED COMPONENTS Widgets)
 
-IF (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-# Enable sanitizers for debug builds done by Clang
-  IF(CMAKE_BUILD_TYPE MATCHES Debug)
-    MESSAGE("-- Clang sanitizers enabled")
-    ADD_COMPILE_OPTIONS(-fno-omit-frame-pointer)
-    ADD_LINK_OPTIONS(-fno-omit-frame-pointer)
-    ADD_COMPILE_OPTIONS(-fsanitize=undefined)
-    ADD_LINK_OPTIONS(-fsanitize=undefined)
-    ADD_COMPILE_OPTIONS(-fsanitize=integer)
-    ADD_LINK_OPTIONS(-fsanitize=integer)
-    ADD_COMPILE_OPTIONS(-fsanitize=nullability)
-    ADD_LINK_OPTIONS(-fsanitize=nullability)
-    ADD_COMPILE_OPTIONS(-fsanitize=implicit-conversion)
-    ADD_LINK_OPTIONS(-fsanitize=implicit-conversion)
-    ADD_COMPILE_OPTIONS(-fsanitize=array-bounds)
-    ADD_LINK_OPTIONS(-fsanitize=array-bounds)
-  ENDIF()
-ENDIF()
-
 SET(PROJECT_FORMS
  uefitool.ui
  searchdialog.ui
