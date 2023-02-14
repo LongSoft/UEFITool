@@ -185,20 +185,20 @@ jobs:
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           7z a ../../../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_win32.zip UEFIFind.exe
-      - name: Create UEFITool win32 build directory
-        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool_win32
-      - name: Configure UEFITool win32
+      - name: Create UEFITool build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build/UEFITool
+      - name: Configure UEFITool
         shell: bash
-        working-directory: ${{runner.workspace}}/build/UEFITool_win32
+        working-directory: ${{runner.workspace}}/build/UEFITool
         run: ../../qt-5.6.3-static-x86-msvc2017/bin/qmake.exe -tp vc ../../UEFITool/UEFITool/
-      - name: Build UEFITool win32
-        working-directory: ${{runner.workspace}}/build/UEFITool_win32
+      - name: Build UEFITool
+        working-directory: ${{runner.workspace}}/build/UEFITool
         shell: cmd
         run: |
             call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars32.bat"
             msbuild -t:Rebuild -p:PlatformToolset=v141_xp;Configuration=Release
-      - name: Archive UEFITool win32
-        working-directory: ${{runner.workspace}}/build/UEFITool_win32/release
+      - name: Archive UEFITool
+        working-directory: ${{runner.workspace}}/build/UEFITool/release
         shell: bash
         run: |
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
