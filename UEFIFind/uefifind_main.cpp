@@ -19,6 +19,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "../common/guiddatabase.h"
 #include "uefifind.h"
 
+void print_usage()
+{
+    std::cout << "UEFIFind " PROGRAM_VERSION << std::endl <<
+        "Usage: UEFIFind {-h | --help | -v | -version}" << std::endl <<
+        "       UEFIFind imagefile {header | body | all} {list | count} pattern" << std::endl <<
+        "       UEFIFind imagefile file patternsfile" << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     UEFIFind w;
@@ -26,7 +34,22 @@ int main(int argc, char *argv[])
 
     initGuidDatabase("guids.csv");
 
-    if (argc == 5) {
+    if (argc == 1) {
+        print_usage();
+        return U_SUCCESS;
+    }
+    else if (argc == 2) {
+        UString arg = argv[1];
+        if (arg == UString("-h") || arg == UString("--help")) {
+            print_usage();
+            return U_SUCCESS;
+        }
+        else if (arg == UString("-v") || arg == UString("--version")) {
+            std::cout << PROGRAM_VERSION << std::endl;
+            return U_SUCCESS;
+        }
+    }
+    else if (argc == 5) {
         UString inputArg = argv[1];
         UString modeArg = argv[2];
         UString subModeArg = argv[3];
@@ -165,10 +188,7 @@ int main(int argc, char *argv[])
 
         return U_SUCCESS;
     }
-    else {
-        std::cout << "UEFIFind " PROGRAM_VERSION << std::endl << std::endl <<
-            "Usage: UEFIFind imagefile {header | body | all} {list | count} pattern" << std::endl <<
-            "    or UEFIFind imagefile file patternsfile" << std::endl;
-        return U_INVALID_PARAMETER;
-    }
+
+    print_usage();
+    return U_INVALID_PARAMETER;
 }

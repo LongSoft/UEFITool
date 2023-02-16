@@ -30,11 +30,38 @@ enum ReadType {
     READ_SECTION
 };
 
+void print_usage()
+{
+    std::cout << "UEFIExtract " PROGRAM_VERSION << std::endl
+        << "Usage: UEFIExtract {-h | --help | -v | --version} - show help and/or version information." << std::endl
+        << "       UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
+        << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
+        << "       UEFIExtract imagefile unpack - generate report and dump all tree items in one dir." << std::endl
+        << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl
+        << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
+        << "       UEFIExtract imagefile GUID_1 ... [ -o FILE_1 ... ] [ -m MODE_1 ... ] [ -t TYPE_1 ... ] -" << std::endl
+        << "         Dump only FFS file(s) with specific GUID(s), without report." << std::endl
+        << "         Type is section type or FF to ignore. Mode is one of: all, body, header, info, file." << std::endl
+        << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise." << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     initGuidDatabase("guids.csv");
 
     if (argc > 1) {
+        if (argc == 2) {
+            UString arg = UString(argv[1]);
+            if (arg == UString("-h") || arg == UString("--help")) {
+                print_usage();
+                return U_SUCCESS;
+            }
+            else if (arg == UString("-v") || arg == UString("--version")) {
+                std::cout << PROGRAM_VERSION << std::endl;
+                return U_SUCCESS;
+            }
+        }
+
         // Check that input file exists
         USTATUS result;
         UByteArray buffer;
@@ -154,16 +181,8 @@ int main(int argc, char *argv[])
             return 0;
         }
     }
+
     // If parameters are different, show version and usage information
-    std::cout << "UEFIExtract " PROGRAM_VERSION << std::endl << std::endl
-        << "Usage: UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
-        << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
-        << "       UEFIExtract imagefile unpack - generate report and dump all tree items in one dir." << std::endl
-        << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl
-        << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
-        << "       UEFIExtract imagefile GUID_1 ... [ -o FILE_1 ... ] [ -m MODE_1 ... ] [ -t TYPE_1 ... ] -" << std::endl
-        << "         Dump only FFS file(s) with specific GUID(s), without report." << std::endl
-        << "         Type is section type or FF to ignore. Mode is one of: all, body, header, info, file." << std::endl
-        << "Return value is a bit mask where 0 at position N means that file with GUID_N was found and unpacked, 1 otherwise." << std::endl;
+    print_usage();
     return 1;
 }
