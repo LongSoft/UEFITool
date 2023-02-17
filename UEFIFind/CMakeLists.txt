@@ -17,8 +17,6 @@ SET(PROJECT_SOURCES
  ../common/nvramparser.cpp
  ../common/ffsparser.cpp
  ../common/fitparser.cpp
- ../common/ffsreport.cpp
- ../common/ffsutils.cpp
  ../common/peimage.cpp
  ../common/treeitem.cpp
  ../common/treemodel.cpp
@@ -58,8 +56,6 @@ SET(PROJECT_SOURCES
  ../common/zlib/uncompr.c
  ../common/zlib/zutil.c
 )
-
-ADD_DEFINITIONS(-DU_ENABLE_NVRAM_PARSING_SUPPORT -DU_ENABLE_FIT_PARSING_SUPPORT -DU_ENABLE_GUID_DATABASE_SUPPORT)
 
 ADD_EXECUTABLE(UEFIFind ${PROJECT_SOURCES})
 

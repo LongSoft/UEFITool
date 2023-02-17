@@ -52,7 +52,6 @@ SET(PROJECT_SOURCES
  ../common/ffsbuilder.cpp 
  ../common/ffsparser.cpp 
  ../common/ffsreport.cpp 
- ../common/ffsutils.cpp 
  ../common/treeitem.cpp 
  ../common/treemodel.cpp 
  ../common/LZMA/LzmaCompress.c 
