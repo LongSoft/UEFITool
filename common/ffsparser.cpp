@@ -110,18 +110,14 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
         return U_INVALID_PARAMETER;
     }
     
-    USTATUS result;
-    
     // Try parsing as UEFI Capsule
-    result = parseCapsule(buffer, 0, UModelIndex(), index);;
-    if (result != U_ITEM_NOT_FOUND) {
-        return result;
+    if (U_SUCCESS == parseCapsule(buffer, 0, UModelIndex(), index)) {
+        return U_SUCCESS;
     }
     
     // Try parsing as Intel image
-    result = parseIntelImage(buffer, 0, UModelIndex(), index);
-    if (result != U_ITEM_NOT_FOUND) {
-        return result;
+    if (U_SUCCESS == parseIntelImage(buffer, 0, UModelIndex(), index)) {
+        return U_SUCCESS;
     }
     
     // Parse as generic image
@@ -274,9 +270,8 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
         UModelIndex imageIndex;
         
         // Try parsing as Intel image
-        USTATUS result = parseIntelImage(image, capsuleHeaderSize, index, imageIndex);
-        if (result != U_ITEM_NOT_FOUND) {
-            return result;
+        if (U_SUCCESS == parseIntelImage(image, capsuleHeaderSize, index, imageIndex)) {
+            return U_SUCCESS;
         }
         
         // Parse as generic image
