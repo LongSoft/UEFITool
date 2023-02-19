@@ -33,6 +33,7 @@ SET(PROJECT_SOURCES
  ../common/ustring.cpp
  ../common/bstrlib/bstrlib.c
  ../common/bstrlib/bstrwrap.cpp
+ ../common/generated/ami_nvar.cpp
  ../common/generated/intel_acbp_v1.cpp
  ../common/generated/intel_acbp_v2.cpp
  ../common/generated/intel_keym_v1.cpp

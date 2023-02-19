@@ -146,6 +146,7 @@ void fixFileName(UString &name, bool replaceSpaces)
 // Returns text representation of error code
 UString errorCodeToUString(USTATUS errorCode)
 {
+    // TODO: improve
     switch (errorCode) {
         case U_SUCCESS:                         return UString("Success");
         case U_NOT_IMPLEMENTED:                 return UString("Not implemented");
@@ -165,7 +166,6 @@ UString errorCodeToUString(USTATUS errorCode)
         case U_VOLUMES_NOT_FOUND:               return UString("UEFI volumes not found");
         case U_INVALID_VOLUME:                  return UString("Invalid UEFI volume");
         case U_VOLUME_REVISION_NOT_SUPPORTED:   return UString("Volume revision not supported");
-            //case U_VOLUME_GROW_FAILED:              return UString("Volume grow failed");
         case U_UNKNOWN_FFS:                     return UString("Unknown file system");
         case U_INVALID_FILE:                    return UString("Invalid file");
         case U_INVALID_SECTION:                 return UString("Invalid section");
@@ -177,26 +177,19 @@ UString errorCodeToUString(USTATUS errorCode)
         case U_UNKNOWN_COMPRESSION_TYPE:        return UString("Unknown compression type");
         case U_UNKNOWN_EXTRACT_MODE:            return UString("Unknown extract mode");
         case U_UNKNOWN_REPLACE_MODE:            return UString("Unknown replace mode");
-            //case U_UNKNOWN_INSERT_MODE:             return UString("Unknown insert mode");
         case U_UNKNOWN_IMAGE_TYPE:              return UString("Unknown executable image type");
         case U_UNKNOWN_PE_OPTIONAL_HEADER_TYPE: return UString("Unknown PE optional header type");
         case U_UNKNOWN_RELOCATION_TYPE:         return UString("Unknown relocation type");
-            //case U_GENERIC_CALL_NOT_SUPPORTED:      return UString("Generic call not supported");
-            //case U_VOLUME_BASE_NOT_FOUND:           return UString("Volume base address not found");
-            //case U_PEI_CORE_ENTRY_POINT_NOT_FOUND:  return UString("PEI core entry point not found");
         case U_COMPLEX_BLOCK_MAP:               return UString("Block map structure too complex for correct analysis");
         case U_DIR_ALREADY_EXIST:               return UString("Directory already exists");
         case U_DIR_CREATE:                      return UString("Directory can't be created");
         case U_DIR_CHANGE:                      return UString("Change directory failed");
-            //case U_UNKNOWN_PATCH_TYPE:              return UString("Unknown patch type");
-            //case U_PATCH_OFFSET_OUT_OF_BOUNDS:      return UString("Patch offset out of bounds");
-            //case U_INVALID_SYMBOL:                  return UString("Invalid symbol");
-            //case U_NOTHING_TO_PATCH:                return UString("Nothing to patch");
         case U_DEPEX_PARSE_FAILED:              return UString("Dependency expression parsing failed");
         case U_TRUNCATED_IMAGE:                 return UString("Image is truncated");
         case U_INVALID_CAPSULE:                 return UString("Invalid capsule");
         case U_STORES_NOT_FOUND:                return UString("Stores not found");
         case U_INVALID_STORE_SIZE:              return UString("Invalid store size");
+        case U_INVALID_STORE:                   return UString("Invalid store");
         default:                                return usprintf("Unknown error %02lX", errorCode);
     }
 }

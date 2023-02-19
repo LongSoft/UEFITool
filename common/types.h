@@ -51,6 +51,7 @@ namespace Types {
         EvsaStore,
         FlashMapStore,
         CmdbStore,
+        NvarGuidStore,
         NvarEntry,
         VssEntry,
         FsysEntry,

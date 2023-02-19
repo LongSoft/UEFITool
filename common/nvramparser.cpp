@@ -12,358 +12,272 @@
  
  */
 
+#ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
 #include <map>
 
 #include "nvramparser.h"
 #include "parsingdata.h"
+#include "ustring.h"
 #include "utility.h"
 #include "nvram.h"
 #include "ffs.h"
 #include "intel_microcode.h"
 
-#ifdef U_ENABLE_NVRAM_PARSING_SUPPORT
+#include "umemstream.h"
+#include "kaitai/kaitaistream.h"
+#include "generated/ami_nvar.h"
+
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 {
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
-    
-    // Obtain required information from parent file
-    UINT8 emptyByte = 0xFF;
-    UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
-    if (parentFileIndex.isValid() && model->hasEmptyParsingData(parentFileIndex) == false) {
-        UByteArray data = model->parsingData(parentFileIndex);
-        const FILE_PARSING_DATA* pdata = (const FILE_PARSING_DATA*)data.constData();
-        emptyByte = readUnaligned(pdata).emptyByte;
-    }
-    
-    // Get local offset
-    UINT32 localOffset = (UINT32)model->header(index).size();
-    
-    // Get item data
-    const UByteArray data = model->body(index);
-    
-    // Parse all entries
-    UINT32 offset = 0;
-    UINT32 guidsInStore = 0;
-    while (1) {
-        bool msgUnknownExtDataFormat = false;
-        bool msgExtHeaderTooLong = false;
-        bool msgExtDataTooShort = false;
-        
-        bool isInvalid = false;
-        bool isInvalidLink = false;
-        bool hasExtendedHeader = false;
-        bool hasChecksum = false;
-        bool hasTimestamp = false;
-        bool hasHash = false;
-        bool hasGuidIndex = false;
-        
-        UINT32 guidIndex = 0;
-        UINT8  storedChecksum = 0;
-        UINT8  calculatedChecksum = 0;
-        UINT32 extendedHeaderSize = 0;
-        UINT8  extendedAttributes = 0;
-        UINT64 timestamp = 0;
-        UByteArray hash;
-        
-        UINT8 subtype = Subtypes::FullNvarEntry;
-        UString name;
-        UString guid;
-        UString text;
-        UByteArray header;
-        UByteArray body;
-        UByteArray tail;
-        
-        UINT32 guidAreaSize = guidsInStore * sizeof(EFI_GUID);
-        UINT32 unparsedSize = (UINT32)data.size() - offset - guidAreaSize;
-        
-        // Get entry header
-        const NVAR_ENTRY_HEADER* entryHeader = (const NVAR_ENTRY_HEADER*)(data.constData() + offset);
-        
-        // Check header size and signature
-        if (unparsedSize < sizeof(NVAR_ENTRY_HEADER) ||
-            entryHeader->Signature != NVRAM_NVAR_ENTRY_SIGNATURE ||
-            unparsedSize < entryHeader->Size) {
-            // Check if the data left is a free space or a padding
-            UByteArray padding = data.mid(offset, unparsedSize);
-            
-            // Get info
-            UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
-            
-            if ((UINT32)padding.count(emptyByte) == unparsedSize) { // Free space
+
+    UByteArray nvar = model->body(index);
+
+    // Nothing to parse in an empty store
+    if (nvar.isEmpty())
+        return U_SUCCESS;
+
+    try {
+        const UINT32 localOffset = (UINT32)model->header(index).size();
+        umemstream is(nvar.constData(), nvar.size());
+        kaitai::kstream ks(&is);
+        ami_nvar_t parsed(&ks);
+
+        UINT16 guidsInStore = 0;
+        UINT32 currentEntryIndex = 0;
+        for (const auto & entry : *parsed.entries()) {
+            UINT8 subtype = Subtypes::FullNvarEntry;
+            UString name;
+            UString text;
+            UString info;
+            UString guid;
+            UByteArray header;
+            UByteArray body;
+            UByteArray tail;
+
+            // This is a terminating entry, needs special processing
+            if (entry->_is_null_signature_rest()) {
+                UINT32 guidAreaSize = guidsInStore * sizeof(EFI_GUID);
+                UINT32 unparsedSize = (UINT32)nvar.size() - entry->offset() - guidAreaSize;
+
+                // Check if the data left is a free space or a padding
+                UByteArray padding = nvar.mid(entry->offset(), unparsedSize);
+
+                // Get info
+                UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
+
+                if ((UINT32)padding.count(0xFF) == unparsedSize) { // Free space
+                    // Add tree item
+                    model->addItem(localOffset + entry->offset(), Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+                }
+                else {
+                    // Nothing is parsed yet, but the file is not empty
+                    if (entry->offset() == 0) {
+                        msg(usprintf("%s: file can't be parsed as NVAR variable store", __FUNCTION__), index);
+                        return U_SUCCESS;
+                    }
+
+                    // Add tree item
+                    model->addItem(localOffset + entry->offset(), Types::Padding, getPaddingType(padding), UString("Padding"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+                }
+
+                // Add GUID store area
+                UByteArray guidArea = nvar.right(guidAreaSize);
+                // Get info
+                name = UString("GUID store");
+                info = usprintf("Full size: %Xh (%u)\nGUIDs in store: %u",
+                                (UINT32)guidArea.size(), (UINT32)guidArea.size(),
+                                guidsInStore);
                 // Add tree item
-                model->addItem(localOffset + offset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+                model->addItem((UINT32)(localOffset + entry->offset() + padding.size()), Types::NvarGuidStore, 0, name, UString(), info, UByteArray(), guidArea, UByteArray(), Fixed, index);
+
+                return U_SUCCESS;
             }
-            else {
-                // Nothing is parsed yet, but the file is not empty
-                if (!offset) {
-                    msg(usprintf("%s: file can't be parsed as NVAR variables store", __FUNCTION__), index);
-                    return U_SUCCESS;
-                }
-                
-                // Add tree item
-                model->addItem(localOffset + offset, Types::Padding, getPaddingType(padding), UString("Padding"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+
+            // This is a normal entry
+            const auto entry_body = entry->body();
+
+            // Set default next to predefined last value
+            NVAR_ENTRY_PARSING_DATA pdata = {};
+            pdata.emptyByte = 0xFF;
+            pdata.next = 0xFFFFFF;
+            pdata.isValid = TRUE;
+
+            // Check for invalid entry
+            if (!entry->attributes()->valid()) {
+                subtype = Subtypes::InvalidNvarEntry;
+                name = UString("Invalid");
+                pdata.isValid = FALSE;
+                goto processing_done;
             }
-            
-            // Add GUID store area
-            UByteArray guidArea = data.right(guidAreaSize);
-            // Get info
-            name = UString("GUID store");
-            info = usprintf("Full size: %Xh (%u)\nGUIDs in store: %u",
-                            (UINT32)guidArea.size(), (UINT32)guidArea.size(),
-                            guidsInStore);
-            // Add tree item
-            model->addItem((UINT32)(localOffset + offset + padding.size()), Types::Padding, getPaddingType(guidArea), name, UString(), info, UByteArray(), guidArea, UByteArray(), Fixed, index);
-            
-            return U_SUCCESS;
-        }
-        
-        // Contruct generic header and body
-        header = data.mid(offset, sizeof(NVAR_ENTRY_HEADER));
-        body = data.mid(offset + sizeof(NVAR_ENTRY_HEADER), entryHeader->Size - sizeof(NVAR_ENTRY_HEADER));
-        
-        UINT32 lastVariableFlag = emptyByte ? 0xFFFFFF : 0;
-        
-        // Set default next to predefined last value
-        NVAR_ENTRY_PARSING_DATA pdata = {};
-        pdata.emptyByte = emptyByte;
-        pdata.next = lastVariableFlag;
-        
-        // Entry is marked as invalid
-        if ((entryHeader->Attributes & NVRAM_NVAR_ENTRY_VALID) == 0) { // Valid attribute is not set
-            isInvalid = true;
-            // Do not parse further
-            goto parsing_done;
-        }
-        
-        // Add next node information to parsing data
-        if (entryHeader->Next != lastVariableFlag) {
-            subtype = Subtypes::LinkNvarEntry;
-            pdata.next = entryHeader->Next;
-        }
-        
-        // Entry with extended header
-        if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_EXT_HEADER) {
-            hasExtendedHeader = true;
-            msgUnknownExtDataFormat = true;
-            
-            extendedHeaderSize = readUnaligned((UINT16*)(body.constData() + body.size() - sizeof(UINT16)));
-            if (extendedHeaderSize > (UINT32)body.size()) {
-                msgExtHeaderTooLong = true;
-                isInvalid = true;
-                // Do not parse further
-                goto parsing_done;
+
+            // Check for link entry
+            if (entry->next() != 0xFFFFFF) {
+                subtype = Subtypes::LinkNvarEntry;
+                pdata.next = (UINT32)entry->next();
             }
-            
-            extendedAttributes = *(UINT8*)(body.constData() + body.size() - extendedHeaderSize);
-            
-            // Variable with checksum
-            if (extendedAttributes & NVRAM_NVAR_ENTRY_EXT_CHECKSUM) {
-                // Get stored checksum
-                storedChecksum = *(UINT8*)(body.constData() + body.size() - sizeof(UINT16) - sizeof(UINT8));
-                
-                // Recalculate checksum for the variable
-                calculatedChecksum = 0;
-                // Include entry data
-                UINT8* start = (UINT8*)(entryHeader + 1);
-                for (UINT8* p = start; p < start + entryHeader->Size - sizeof(NVAR_ENTRY_HEADER); p++) {
-                    calculatedChecksum += *p;
-                }
-                // Include entry size and flags
-                start = (UINT8*)&entryHeader->Size;
-                for (UINT8*p = start; p < start + sizeof(UINT16); p++) {
-                    calculatedChecksum += *p;
-                }
-                // Include entry attributes
-                calculatedChecksum += entryHeader->Attributes;
-                
-                hasChecksum = true;
-                msgUnknownExtDataFormat = false;
-            }
-            
-            tail = body.mid(body.size() - extendedHeaderSize);
-            body = body.left(body.size() - extendedHeaderSize);
-            
-            // Entry with authenticated write (for SecureBoot)
-            if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_AUTH_WRITE) {
-                if ((entryHeader->Attributes & NVRAM_NVAR_ENTRY_DATA_ONLY)) {// Data only auth. variables has no hash
-                    if ((UINT32)tail.size() < sizeof(UINT64)) {
-                        msgExtDataTooShort = true;
-                        isInvalid = true;
-                        // Do not parse further
-                        goto parsing_done;
-                    }
-                    
-                    timestamp = readUnaligned(tail.constData() + sizeof(UINT8));
-                    hasTimestamp = true;
-                    msgUnknownExtDataFormat = false;
-                }
-                else { // Full or link variable have hash
-                    if ((UINT32)tail.size() < sizeof(UINT64) + SHA256_HASH_SIZE) {
-                        msgExtDataTooShort = true;
-                        isInvalid = true;
-                        // Do not parse further
-                        goto parsing_done;
-                    }
-                    
-                    timestamp = readUnaligned((UINT64*)(tail.constData() + sizeof(UINT8)));
-                    hash = tail.mid(sizeof(UINT64) + sizeof(UINT8), SHA256_HASH_SIZE);
-                    hasTimestamp = true;
-                    hasHash = true;
-                    msgUnknownExtDataFormat = false;
-                }
-            }
-        }
-        
-        // Entry is data-only (nameless and GUIDless entry or link)
-        if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_DATA_ONLY) { // Data-only attribute is set
-            isInvalidLink = true;
-            UModelIndex nvarIndex;
-            // Search previously added entries for a link to this variable
-            // WARNING: O(n^2), may be very slow
-            for (int i = model->rowCount(index) - 1; i >= 0; i--) {
-                nvarIndex = index.model()->index(i, 0, index);
-                
-                if (model->hasEmptyParsingData(nvarIndex) == false) {
-                    UByteArray nvarData = model->parsingData(nvarIndex);
-                    const NVAR_ENTRY_PARSING_DATA nvarPdata = readUnaligned((const NVAR_ENTRY_PARSING_DATA*)nvarData.constData());
-                    if (nvarPdata.isValid && nvarPdata.next + model->offset(nvarIndex) - localOffset == offset) { // Previous link is present and valid
-                        isInvalidLink = false;
-                        break;
+
+            // Check for data-only entry (nameless and GUIDless entry or link)
+            if (entry->attributes()->data_only()) {
+                // Search backwards for a previous entry with a link to this variable
+                UModelIndex prevEntryIndex;
+                if (currentEntryIndex > 0) {
+                    for (UINT32 i = currentEntryIndex - 1; i > 0; i--) {
+                        const auto previousEntry = parsed.entries()->at(i);
+
+                        if (previousEntry == entry)
+                            break;
+
+                        if (previousEntry->next() + previousEntry->offset() == entry->offset()) { // Previous link is present and valid
+                            prevEntryIndex = index.model()->index(i, 0, index);
+                            // Make sure that we are linking to a valid entry
+                            NVAR_ENTRY_PARSING_DATA pd = readUnaligned((NVAR_ENTRY_PARSING_DATA*)model->parsingData(prevEntryIndex).constData());
+                            if (!pd.isValid) {
+                                prevEntryIndex = UModelIndex();
+                            }
+                            break;
+                        }
                     }
                 }
+                // Check if the link is valid
+                if (prevEntryIndex.isValid()) {
+                    // Use the name and text of the previous entry
+                    name = model->name(prevEntryIndex);
+                    text = model->text(prevEntryIndex);
+
+                    if (entry->next() == 0xFFFFFF)
+                        subtype = Subtypes::DataNvarEntry;
+                }
+                else {
+                    subtype = Subtypes::InvalidLinkNvarEntry;
+                    name = UString("InvalidLink");
+                    pdata.isValid = FALSE;
+                }
+                goto processing_done;
             }
-            // Check if the link is valid
-            if (!isInvalidLink) {
-                // Use the name and text of the previous link
-                name = model->name(nvarIndex);
-                text = model->text(nvarIndex);
-                
-                if (entryHeader->Next == lastVariableFlag)
-                    subtype = Subtypes::DataNvarEntry;
+
+            // Obtain text
+            if (!entry_body->_is_null_ascii_name()) {
+                text = entry_body->ascii_name().c_str();
             }
-            
-            // Do not parse further
-            goto parsing_done;
-        }
-        
-        // Get entry name
-        {
-            UINT32 nameOffset = (entryHeader->Attributes & NVRAM_NVAR_ENTRY_GUID) ? sizeof(EFI_GUID) : sizeof(UINT8); // GUID can be stored with the variable or in a separate store, so there will only be an index of it
-            CHAR8* namePtr = (CHAR8*)(entryHeader + 1) + nameOffset;
-            UINT32 nameSize = 0;
-            if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_ASCII_NAME) { // Name is stored as ASCII string of CHAR8s
-                text = UString(namePtr);
-                nameSize = (UINT32)(text.length() + 1);
+            else if (!entry_body->_is_null_ucs2_name()) {
+                UByteArray temp;
+                for (const auto & ch : *entry_body->ucs2_name()->ucs2_chars()) {
+                    temp += UByteArray((const char*)&ch, sizeof(ch));
+                }
+                text = uFromUcs2(temp.constData());
             }
-            else { // Name is stored as UCS2 string of CHAR16s
-                text = uFromUcs2(namePtr);
-                nameSize = (UINT32)((text.length() + 1) * 2);
+
+            // Obtain GUID
+            if (!entry_body->_is_null_guid()) { // GUID is stored in the entry itself
+                const EFI_GUID g = readUnaligned((EFI_GUID*)entry_body->guid().c_str());
+                name = guidToUString(g);
+                guid = guidToUString(g, false);
             }
-            
-            // Get entry GUID
-            if (entryHeader->Attributes & NVRAM_NVAR_ENTRY_GUID) { // GUID is strored in the variable itself
-                name = guidToUString(readUnaligned((EFI_GUID*)(entryHeader + 1)));
-                guid = guidToUString(readUnaligned((EFI_GUID*)(entryHeader + 1)), false);
-            }
-            // GUID is stored in GUID list at the end of the store
-            else {
-                guidIndex = *(UINT8*)(entryHeader + 1);
-                if (guidsInStore < guidIndex + 1)
-                    guidsInStore = guidIndex + 1;
-                
+            else { // GUID is stored in GUID store at the end of the NVAR store
+                // Grow the GUID store if needed
+                if (guidsInStore < entry_body->guid_index() + 1)
+                    guidsInStore = entry_body->guid_index() + 1;
+
                 // The list begins at the end of the store and goes backwards
-                const EFI_GUID* guidPtr = (const EFI_GUID*)(data.constData() + data.size()) - 1 - guidIndex;
-                name = guidToUString(readUnaligned(guidPtr));
-                guid = guidToUString(readUnaligned(guidPtr), false);
-                hasGuidIndex = true;
+                const EFI_GUID g = readUnaligned((EFI_GUID*)(nvar.constData() + nvar.size()) - (entry_body->guid_index() + 1));
+                name = guidToUString(g);
+                guid = guidToUString(g, false);
             }
-            
-            // Include name and GUID into the header and remove them from body
-            header = data.mid(offset, sizeof(NVAR_ENTRY_HEADER) + nameOffset + nameSize);
-            body = body.mid(nameOffset + nameSize);
+
+processing_done:
+            // This feels hacky, but I haven't found a way to ask Kaitai for raw bytes
+            header = nvar.mid(entry->offset(), sizeof(NVAR_ENTRY_HEADER) + entry_body->data_start_offset());
+            body = nvar.mid(entry->offset() + sizeof(NVAR_ENTRY_HEADER) + entry_body->data_start_offset(), entry_body->data_size());
+            tail = nvar.mid(entry->end_offset() - entry_body->extended_header_size(), entry_body->extended_header_size());
+
+            // Add GUID info for valid entries
+            if (!guid.isEmpty())
+                info += UString("Variable GUID: ") + guid + "\n";
+
+            // Add GUID index information
+            if (!entry_body->_is_null_guid_index())
+                info += usprintf("GUID index: %u\n", entry_body->guid_index());
+
+            // Add header, body and extended data info
+            info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)",
+                             entry->size(), entry->size(),
+                             (UINT32)header.size(), (UINT32)header.size(),
+                             (UINT32)body.size(), (UINT32)body.size(),
+                             (UINT32)tail.size(), (UINT32)tail.size());
+
+            // Add attributes info
+            const NVAR_ENTRY_HEADER entryHeader = readUnaligned((NVAR_ENTRY_HEADER*)header.constData());
+            info += usprintf("\nAttributes: %02Xh", entryHeader.Attributes);
+
+            // Translate attributes to text
+            if (entryHeader.Attributes != 0x00 && entryHeader.Attributes != 0xFF)
+                info += UString(" (") + nvarAttributesToUString(entryHeader.Attributes) + UString(")");
+
+            // Add next node info
+            if (entry->next() != 0xFFFFFF)
+                info += usprintf("\nNext node at offset: %Xh", localOffset + entry->offset() + (UINT32)entry->next());
+
+            // Add extended header info
+            if (entry_body->extended_header_size() > 0) {
+                info += usprintf("\nExtended header size: %Xh (%u)",
+                                 entry_body->extended_header_size(), entry_body->extended_header_size());
+
+                const UINT8 extendedAttributes = *tail.constData();
+                info += usprintf("\nExtended attributes: %02Xh (", extendedAttributes) + nvarExtendedAttributesToUString(extendedAttributes) + UString(")");
+
+                // Add checksum
+                if (!entry_body->_is_null_extended_header_checksum()) {
+                    UINT8 calculatedChecksum = 0;
+                    UByteArray wholeBody = body + tail;
+
+                    // Include entry body
+                    UINT8* start = (UINT8*)wholeBody.constData();
+                    for (UINT8* p = start; p < start + wholeBody.size(); p++) {
+                        calculatedChecksum += *p;
+                    }
+                    // Include entry size and flags
+                    start = (UINT8*)&entryHeader.Size;
+                    for (UINT8*p = start; p < start + sizeof(UINT16); p++) {
+                        calculatedChecksum += *p;
+                    }
+                    // Include entry attributes
+                    calculatedChecksum += entryHeader.Attributes;
+                    info += usprintf("\nChecksum: %02Xh, ", entry_body->extended_header_checksum())
+                     + (calculatedChecksum ? usprintf(", invalid, should be %02Xh", 0x100 - calculatedChecksum) : UString(", valid"));
+                }
+
+                // Add timestamp
+                if (!entry_body->_is_null_extended_header_timestamp())
+                    info += usprintf("\nTimestamp: %" PRIX64 "h", entry_body->extended_header_timestamp());
+
+                // Add hash
+                if (!entry_body->_is_null_extended_header_hash()) {
+                    UByteArray hash = UByteArray(entry_body->extended_header_hash().c_str(), entry_body->extended_header_hash().size());
+                    info += UString("\nHash: ") + UString(hash.toHex().constData());
+                }
+            }
+
+            // Add tree item
+            UModelIndex varIndex = model->addItem(localOffset + entry->offset(), Types::NvarEntry, subtype, name, text, info, header, body, tail, Fixed, index);
+            currentEntryIndex++;
+
+            // Set parsing data
+            model->setParsingData(varIndex, UByteArray((const char*)&pdata, sizeof(pdata)));
+
+            // Try parsing the entry data as NVAR storage if it begins with NVAR signature
+            if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
+                && body.size() >= 4 && readUnaligned((const UINT32*)body.constData()) == NVRAM_NVAR_ENTRY_SIGNATURE)
+                (void)parseNvarStore(varIndex);
         }
-    parsing_done:
-        UString info;
-        
-        // Rename invalid entries according to their types
-        pdata.isValid = TRUE;
-        if (isInvalid) {
-            name = UString("Invalid");
-            subtype = Subtypes::InvalidNvarEntry;
-            pdata.isValid = FALSE;
-        }
-        else if (isInvalidLink) {
-            name = UString("Invalid link");
-            subtype = Subtypes::InvalidLinkNvarEntry;
-            pdata.isValid = FALSE;
-        }
-        else // Add GUID info for valid entries
-            info += UString("Variable GUID: ") + guid + "\n";
-        
-        // Add GUID index information
-        if (hasGuidIndex)
-            info += usprintf("GUID index: %u\n", guidIndex);
-        
-        // Add header, body and extended data info
-        info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
-                         entryHeader->Size, entryHeader->Size,
-                         (UINT32)header.size(), (UINT32)header.size(),
-                         (UINT32)body.size(), (UINT32)body.size());
-        
-        // Add attributes info
-        info += usprintf("\nAttributes: %02Xh", entryHeader->Attributes);
-        // Translate attributes to text
-        if (entryHeader->Attributes && entryHeader->Attributes != 0xFF)
-            info += UString(" (") + nvarAttributesToUString(entryHeader->Attributes) + UString(")");
-        
-        // Add next node info
-        if (!isInvalid && entryHeader->Next != lastVariableFlag)
-            info += usprintf("\nNext node at offset: %Xh", localOffset + offset + entryHeader->Next);
-        
-        // Add extended header info
-        if (hasExtendedHeader) {
-            info += usprintf("\nExtended header size: %Xh (%u)\nExtended attributes: %Xh (",
-                             extendedHeaderSize, extendedHeaderSize,
-                             extendedAttributes) + nvarExtendedAttributesToUString(extendedAttributes) + UString(")");
-            
-            // Add checksum
-            if (hasChecksum)
-                info += usprintf("\nChecksum: %02Xh", storedChecksum) +
-                (calculatedChecksum ? usprintf(", invalid, should be %02Xh", 0x100 - calculatedChecksum) : UString(", valid"));
-            
-            // Add timestamp
-            if (hasTimestamp)
-                info += usprintf("\nTimestamp: %" PRIX64 "h", timestamp);
-            
-            // Add hash
-            if (hasHash)
-                info += UString("\nHash: ") + UString(hash.toHex().constData());
-        }
-        
-        // Add tree item
-        UModelIndex varIndex = model->addItem(localOffset + offset, Types::NvarEntry, subtype, name, text, info, header, body, tail, Fixed, index);
-        
-        // Set parsing data for created entry
-        model->setParsingData(varIndex, UByteArray((const char*)&pdata, sizeof(pdata)));
-        
-        // Show messages
-        if (msgUnknownExtDataFormat) msg(usprintf("%s: unknown extended data format", __FUNCTION__), varIndex);
-        if (msgExtHeaderTooLong)     msg(usprintf("%s: extended header size (%Xh) is greater than body size (%Xh)", __FUNCTION__,
-                                                  extendedHeaderSize, (UINT32)body.size()), varIndex);
-        if (msgExtDataTooShort)      msg(usprintf("%s: extended header size (%Xh) is too small for timestamp and hash", __FUNCTION__,
-                                                  (UINT32)tail.size()), varIndex);
-        
-        // Try parsing the entry data as NVAR storage if it begins with NVAR signature
-        if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
-            && body.size() >= 4 && readUnaligned((const UINT32*)body.constData()) == NVRAM_NVAR_ENTRY_SIGNATURE)
-            parseNvarStore(varIndex);
-        
-        // Move to next exntry
-        offset += entryHeader->Size;
     }
-    
+    catch (...) {
+        msg(usprintf("%s: unable to parse AMI NVAR storage", __FUNCTION__), index);
+        return U_INVALID_STORE;
+    }
+
     return U_SUCCESS;
 }
 

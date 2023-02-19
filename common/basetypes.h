@@ -18,6 +18,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <stdint.h>
 #include <stddef.h>
 
+// TODO: improve
 typedef size_t USTATUS;
 #define U_SUCCESS                         0
 #define U_INVALID_PARAMETER               1
@@ -76,6 +77,7 @@ typedef size_t USTATUS;
 #define U_PATCH_OFFSET_OUT_OF_BOUNDS      54
 #define U_INVALID_SYMBOL                  55
 #define U_ZLIB_DECOMPRESSION_FAILED       56
+#define U_INVALID_STORE                   57
 
 #define U_INVALID_MANIFEST                251
 #define U_UNKNOWN_MANIFEST_HEADER_VERSION 252

@@ -31,6 +31,7 @@ SET(PROJECT_SOURCES
  ../common/LZMA/SDK/C/LzmaDec.c
  ../common/Tiano/EfiTianoDecompress.c
  ../common/ustring.cpp
+ ../common/generated/ami_nvar.cpp
  ../common/generated/intel_acbp_v1.cpp
  ../common/generated/intel_acbp_v2.cpp
  ../common/generated/intel_keym_v1.cpp
@@ -86,7 +87,7 @@ ADD_DEFINITIONS(
 ADD_EXECUTABLE(ffsparser_fuzzer ${PROJECT_SOURCES})
 
 
-IF(USE_AFL_DRIVER)
+IF(NOT USE_AFL_DRIVER)
 TARGET_COMPILE_OPTIONS(ffsparser_fuzzer PRIVATE -O1 -fno-omit-frame-pointer -g -ggdb3 -fsanitize=fuzzer,address,undefined -fsanitize-address-use-after-scope -fno-sanitize-recover=undefined)
 TARGET_LINK_LIBRARIES(ffsparser_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
 ELSE()

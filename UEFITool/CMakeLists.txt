@@ -70,6 +70,7 @@ SET(PROJECT_SOURCES
  ../common/digest/sha256.c 
  ../common/digest/sha512.c 
  ../common/digest/sm3.c 
+ ../common/generated/ami_nvar.cpp
  ../common/generated/intel_acbp_v1.cpp 
  ../common/generated/intel_acbp_v2.cpp 
  ../common/generated/intel_keym_v1.cpp 

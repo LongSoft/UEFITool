@@ -243,6 +243,7 @@ void UEFITool::populateUi(const QModelIndex &current)
                                      || type == Types::EvsaStore
                                      || type == Types::FtwStore
                                      || type == Types::FlashMapStore
+                                     || type == Types::NvarGuidStore
                                      || type == Types::CmdbStore
                                      || type == Types::FptStore
                                      || type == Types::BpdtStore
@@ -407,9 +408,8 @@ void UEFITool::goToData()
         
         UByteArray rdata = model->parsingData(index);
         const NVAR_ENTRY_PARSING_DATA* pdata = (const NVAR_ENTRY_PARSING_DATA*)rdata.constData();
-        UINT32 lastVariableFlag = pdata->emptyByte ? 0xFFFFFF : 0;
         UINT32 offset = model->offset(index);
-        if (pdata->next == lastVariableFlag) {
+        if (pdata->next == 0xFFFFFF) {
             ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
             ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
         }
@@ -783,13 +783,7 @@ void UEFITool::showParserMessages()
     
     std::vector<std::pair<QString, QModelIndex> > messages = ffsParser->getMessages();
     
-#if QT_VERSION_MAJOR < 6
-    std::pair<QString, QModelIndex> msg;
-    foreach (msg, messages)
-#else
-    for (const auto &msg : messages)
-#endif
-    {
+    for (const auto &msg : messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
         ui->parserMessagesListWidget->addItem(item);
@@ -807,13 +801,7 @@ void UEFITool::showFinderMessages()
     
     std::vector<std::pair<QString, QModelIndex> > messages = ffsFinder->getMessages();
     
-#if QT_VERSION_MAJOR < 6
-    std::pair<QString, QModelIndex> msg;
-    foreach (msg, messages)
-#else
-    for (const auto &msg : messages)
-#endif
-    {
+    for (const auto &msg : messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));;
         ui->finderMessagesListWidget->addItem(item);
@@ -832,13 +820,7 @@ void UEFITool::showBuilderMessages()
     
     std::vector<std::pair<QString, QModelIndex> > messages = ffsBuilder->getMessages();
     
-#if QT_VERSION_MAJOR < 6
-    std::pair<QString, QModelIndex> msg;
-    foreach (msg, messages)
-#else
-    for (const auto &msg : messages)
-#endif
-    {
+    for (const auto &msg : messages) {
         QListWidgetItem* item = new QListWidgetItem(msg.first, NULL, 0);
         item->setData(Qt::UserRole, QByteArray((const char*)&msg.second, sizeof(msg.second)));
         ui->builderMessagesListWidget->addItem(item);
@@ -891,8 +873,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
     
-    switch (model->type(index))
-    {
+    switch (model->type(index)) {
         case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
         case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
         case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
@@ -907,6 +888,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         case Types::EvsaStore:
         case Types::FtwStore:
         case Types::FlashMapStore:
+        case Types::NvarGuidStore:
         case Types::CmdbStore:
         case Types::FptStore:
         case Types::CpdStore:

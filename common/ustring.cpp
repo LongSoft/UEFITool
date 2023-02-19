@@ -113,12 +113,10 @@ UString uFromUcs2(const char* str, size_t max_len)
     UString msg;
     const char *str8 = str;
     size_t rest = (max_len == 0) ? SIZE_MAX : max_len;
-    if (max_len == 0) {
-        while (str8[0] && rest) {
-            msg += str8[0];
-            str8 += 2;
-            rest--;
-        }
+    while (str8[0] && rest) {
+        msg += str8[0];
+        str8 += 2;
+        rest--;
     }
     return msg;
 }
