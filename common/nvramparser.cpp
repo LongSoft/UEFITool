@@ -130,7 +130,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                         if (previousEntry == entry)
                             break;
 
-                        if (previousEntry->next() + previousEntry->offset() == entry->offset()) { // Previous link is present and valid
+                        if ((UINT32)previousEntry->next() + (UINT32)previousEntry->offset() == (UINT32)entry->offset()) { // Previous link is present and valid
                             prevEntryIndex = index.model()->index(i, 0, index);
                             // Make sure that we are linking to a valid entry
                             NVAR_ENTRY_PARSING_DATA pd = readUnaligned((NVAR_ENTRY_PARSING_DATA*)model->parsingData(prevEntryIndex).constData());
