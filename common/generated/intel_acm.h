@@ -1,10 +1,10 @@
-#ifndef INTEL_ACM_H_
-#define INTEL_ACM_H_
+#pragma once
 
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 #include "../kaitai/kaitaistruct.h"
 #include <stdint.h>
+#include <memory>
 
 #if KAITAI_STRUCT_VERSION < 9000L
 #error "Incompatible Kaitai Struct C++/STL API: version 0.9 or later is required"
@@ -26,7 +26,7 @@ public:
         KNOWN_HEADER_VERSION_V3_0 = 196608
     };
 
-    intel_acm_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, intel_acm_t* p__root = 0);
+    intel_acm_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = nullptr, intel_acm_t* p__root = nullptr);
 
 private:
     void _read();
@@ -39,7 +39,7 @@ public:
 
     public:
 
-        header_t(kaitai::kstream* p__io, intel_acm_t* p__parent = 0, intel_acm_t* p__root = 0);
+        header_t(kaitai::kstream* p__io, intel_acm_t* p__parent = nullptr, intel_acm_t* p__root = nullptr);
 
     private:
         void _read();
@@ -144,16 +144,14 @@ public:
     };
 
 private:
-    header_t* m_header;
+    std::unique_ptr<header_t> m_header;
     std::string m_body;
     intel_acm_t* m__root;
     kaitai::kstruct* m__parent;
 
 public:
-    header_t* header() const { return m_header; }
+    header_t* header() const { return m_header.get(); }
     std::string body() const { return m_body; }
     intel_acm_t* _root() const { return m__root; }
     kaitai::kstruct* _parent() const { return m__parent; }
 };
-
-#endif  // INTEL_ACM_H_

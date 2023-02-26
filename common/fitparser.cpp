@@ -541,7 +541,7 @@ USTATUS FitParser::parseFitEntryBootGuardKeyManifest(const UByteArray & keyManif
         else {
             kmInfo += UString("KM Hashes:\n");
             for (UINT16 i = 0; i < parsed.num_km_hashes(); i++) {
-                intel_keym_v2_t::km_hash_t* current_km_hash = parsed.km_hashes()->at(i);
+                const auto & current_km_hash = parsed.km_hashes()->at(i);
                 
                 // Add KM hash
                 kmInfo += usprintf("UsageFlags: %016" PRIX64 "h, ", current_km_hash->usage_flags()) + hashTypeToUString(current_km_hash->hash_algorithm_id()) + ": ";
@@ -660,9 +660,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                    parsed.nem_data_size());
         
         bpInfo += UString("Boot Policy Elements:\n");
-        const std::vector<intel_acbp_v1_t::acbp_element_t*>* elements = parsed.elements();
-        for (intel_acbp_v1_t::acbp_element_t* element : *elements) {
-            const intel_acbp_v1_t::common_header_t* element_header = element->header();
+        for (const auto & element : *parsed.elements()) {
+            const auto & element_header = element->header();
             
             UINT64 structure_id = (UINT64) element_header->structure_id();
             const char* structure_id_bytes = (const char*)&structure_id;
@@ -742,7 +741,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     bpInfo += UString("IBB Segments:\n");
                     for (UINT8 i = 0; i < ibbs_body->num_ibb_segments(); i++) {
-                        const intel_acbp_v1_t::ibb_segment_t* current_segment = ibbs_body->ibb_segments()->at(i);
+                        const auto & current_segment = ibbs_body->ibb_segments()->at(i);
                         
                         bpInfo += usprintf("Flags: %04Xh, Address: %08Xh, Size: %08Xh\n",
                                            current_segment->flags(),
@@ -780,7 +779,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                     // v1 entries
                     if (pmda_body->_is_null_entries_v1() == false) {
                         for (UINT32 i = 0; i < pmda_body->num_entries(); i++) {
-                            const intel_acbp_v1_t::pmda_entry_v1_t* current_element = pmda_body->entries_v1()->at(i);
+                            const auto & current_element = pmda_body->entries_v1()->at(i);
                             
                             // Add element
                             bpInfo += usprintf("Address: %08Xh, Size: %08Xh\n",
@@ -809,7 +808,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                     // v2 entries
                     else if (pmda_body->_is_null_entries_v2() == false) {
                         for (UINT32 i = 0; i < pmda_body->num_entries(); i++) {
-                            const intel_acbp_v1_t::pmda_entry_v2_t* current_element = pmda_body->entries_v2()->at(i);
+                            const auto & current_element = pmda_body->entries_v2()->at(i);
                             
                             // Add element
                             bpInfo += usprintf("Address: %08Xh, Size: %08Xh\n",
@@ -930,8 +929,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                    parsed.nem_data_size());
         
         bpInfo += UString("Boot Policy Elements:\n");
-        const std::vector<intel_acbp_v2_t::acbp_element_t*>* elements = parsed.elements();
-        for (intel_acbp_v2_t::acbp_element_t* element : *elements) {
+        for (const auto & element : *parsed.elements()) {
             const intel_acbp_v2_t::header_t* element_header = element->header();
             
             UINT64 structure_id = element_header->structure_id();
@@ -1041,7 +1039,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     bpInfo += UString("IBB Hashes:\n");
                     for (UINT16 i = 0; i < ibbs_body->num_ibb_digests(); i++) {
-                        const intel_acbp_v2_t::hash_t* current_hash = ibbs_body->ibb_digests()->at(i);
+                        const auto & current_hash = ibbs_body->ibb_digests()->at(i);
                         bpInfo += hashTypeToUString(current_hash->hash_algorithm_id()) + ": ";
                         for (UINT16 j = 0; j < current_hash->len_hash(); j++) {
                             bpInfo += usprintf("%02X", (UINT8)current_hash->hash().data()[j]);
@@ -1058,7 +1056,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     bpInfo += UString("IBB Segments:\n");
                     for (UINT8 i = 0; i < ibbs_body->num_ibb_segments(); i++) {
-                        const intel_acbp_v2_t::ibb_segment_t* current_segment = ibbs_body->ibb_segments()->at(i);
+                        const auto & current_segment = ibbs_body->ibb_segments()->at(i);
                         
                         bpInfo += usprintf("Flags: %04Xh, Address: %08Xh, Size: %08Xh\n",
                                            current_segment->flags(),
@@ -1095,7 +1093,7 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     bpInfo += UString("PMDA Entries:\n");
                     for (UINT32 i = 0; i < pmda_body->num_entries(); i++) {
-                        const intel_acbp_v2_t::pmda_entry_v3_t* current_entry = pmda_body->entries()->at(i);
+                        const auto & current_entry = pmda_body->entries()->at(i);
                         
                         UINT64 entry_id = current_entry->entry_id();
                         const char* entry_id_bytes = (const char*)&entry_id;

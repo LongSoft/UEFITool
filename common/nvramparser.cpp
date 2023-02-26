@@ -125,7 +125,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 UModelIndex prevEntryIndex;
                 if (currentEntryIndex > 0) {
                     for (UINT32 i = currentEntryIndex - 1; i > 0; i--) {
-                        const auto previousEntry = parsed.entries()->at(i);
+                        const auto & previousEntry = parsed.entries()->at(i);
 
                         if (previousEntry == entry)
                             break;

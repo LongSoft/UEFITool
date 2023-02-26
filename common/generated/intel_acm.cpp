@@ -6,18 +6,12 @@
 intel_acm_t::intel_acm_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, intel_acm_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = this; (void)p__root;
-    m_header = 0;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    m_header = nullptr;
+    _read();
 }
 
 void intel_acm_t::_read() {
-    m_header = new header_t(m__io, this, m__root);
+    m_header = std::unique_ptr<header_t>(new header_t(m__io, this, m__root));
     m_body = m__io->read_bytes((4 * ((header()->module_size() - header()->header_size()) - header()->scratch_space_size())));
 }
 
@@ -26,21 +20,12 @@ intel_acm_t::~intel_acm_t() {
 }
 
 void intel_acm_t::_clean_up() {
-    if (m_header) {
-        delete m_header; m_header = 0;
-    }
 }
 
 intel_acm_t::header_t::header_t(kaitai::kstream* p__io, intel_acm_t* p__parent, intel_acm_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    _read();
 }
 
 void intel_acm_t::header_t::_read() {

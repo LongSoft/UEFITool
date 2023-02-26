@@ -20,7 +20,7 @@ fi
 
 # Generate
 echo "Attempting to to generate parsers from Kaitai KSY files on ${UPLATFORM}..."
-kaitai-struct-compiler --target cpp_stl --outdir common/generated common/ksy/* || exit 1
+kaitai-struct-compiler --target cpp_stl --cpp-standard 11 --outdir common/generated common/ksy/* || exit 1
 
 # Show generated files
 ${UFIND} common/generated ${UFINDOPT} \
@@ -46,5 +46,10 @@ ${UFIND} common/generated ${UFINDOPT} \
 ${UFIND} common/generated ${UFINDOPT} \
  -regex '.*\.(h)' \
  -exec sed -i ${USEDOPT} '/^    enum structure_ids_t {/s/{/: uint64_t {/g' {} + || exit 1
- 
+
+# Suppress type downcast warning in ami_nvar.cpp
+${UFIND} common/generated ${UFINDOPT} \
+ -name 'ami_nvar.cpp' \
+ -exec sed -i ${USEDOPT} 's/_offset = _io()->pos();/_offset = (int32_t)_io()->pos();/g' {} + || exit 1
+
 exit 0

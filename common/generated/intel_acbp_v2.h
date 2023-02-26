@@ -1,10 +1,10 @@
-#ifndef INTEL_ACBP_V2_H_
-#define INTEL_ACBP_V2_H_
+#pragma once
 
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 #include "../kaitai/kaitaistruct.h"
 #include <stdint.h>
+#include <memory>
 #include <vector>
 
 #if KAITAI_STRUCT_VERSION < 9000L
@@ -40,7 +40,7 @@ public:
         STRUCTURE_IDS_TXTS = 6872303178114948959LL
     };
 
-    intel_acbp_v2_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+    intel_acbp_v2_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
 private:
     void _read();
@@ -53,7 +53,7 @@ public:
 
     public:
 
-        acbp_element_t(kaitai::kstream* p__io, intel_acbp_v2_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        acbp_element_t(kaitai::kstream* p__io, intel_acbp_v2_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -63,15 +63,15 @@ public:
         ~acbp_element_t();
 
     private:
-        header_t* m_header;
-        ibbs_body_t* m_ibbs_body;
+        std::unique_ptr<header_t> m_header;
+        std::unique_ptr<ibbs_body_t> m_ibbs_body;
         bool n_ibbs_body;
 
     public:
         bool _is_null_ibbs_body() { ibbs_body(); return n_ibbs_body; };
 
     private:
-        pmda_body_t* m_pmda_body;
+        std::unique_ptr<pmda_body_t> m_pmda_body;
         bool n_pmda_body;
 
     public:
@@ -89,9 +89,9 @@ public:
         intel_acbp_v2_t* m__parent;
 
     public:
-        header_t* header() const { return m_header; }
-        ibbs_body_t* ibbs_body() const { return m_ibbs_body; }
-        pmda_body_t* pmda_body() const { return m_pmda_body; }
+        header_t* header() const { return m_header.get(); }
+        ibbs_body_t* ibbs_body() const { return m_ibbs_body.get(); }
+        pmda_body_t* pmda_body() const { return m_pmda_body.get(); }
         std::string generic_body() const { return m_generic_body; }
         intel_acbp_v2_t* _root() const { return m__root; }
         intel_acbp_v2_t* _parent() const { return m__parent; }
@@ -101,7 +101,7 @@ public:
 
     public:
 
-        key_signature_t(kaitai::kstream* p__io, intel_acbp_v2_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        key_signature_t(kaitai::kstream* p__io, intel_acbp_v2_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -113,18 +113,18 @@ public:
     private:
         uint8_t m_version;
         uint16_t m_key_id;
-        public_key_t* m_public_key;
+        std::unique_ptr<public_key_t> m_public_key;
         uint16_t m_sig_scheme;
-        signature_t* m_signature;
+        std::unique_ptr<signature_t> m_signature;
         intel_acbp_v2_t* m__root;
         intel_acbp_v2_t* m__parent;
 
     public:
         uint8_t version() const { return m_version; }
         uint16_t key_id() const { return m_key_id; }
-        public_key_t* public_key() const { return m_public_key; }
+        public_key_t* public_key() const { return m_public_key.get(); }
         uint16_t sig_scheme() const { return m_sig_scheme; }
-        signature_t* signature() const { return m_signature; }
+        signature_t* signature() const { return m_signature.get(); }
         intel_acbp_v2_t* _root() const { return m__root; }
         intel_acbp_v2_t* _parent() const { return m__parent; }
     };
@@ -133,7 +133,7 @@ public:
 
     public:
 
-        signature_t(kaitai::kstream* p__io, intel_acbp_v2_t::key_signature_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        signature_t(kaitai::kstream* p__io, intel_acbp_v2_t::key_signature_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -163,7 +163,7 @@ public:
 
     public:
 
-        ibb_segment_t(kaitai::kstream* p__io, intel_acbp_v2_t::ibbs_body_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        ibb_segment_t(kaitai::kstream* p__io, intel_acbp_v2_t::ibbs_body_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -193,7 +193,7 @@ public:
 
     public:
 
-        public_key_t(kaitai::kstream* p__io, intel_acbp_v2_t::key_signature_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        public_key_t(kaitai::kstream* p__io, intel_acbp_v2_t::key_signature_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -223,7 +223,7 @@ public:
 
     public:
 
-        hash_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        hash_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -251,7 +251,7 @@ public:
 
     public:
 
-        header_t(kaitai::kstream* p__io, intel_acbp_v2_t::acbp_element_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        header_t(kaitai::kstream* p__io, intel_acbp_v2_t::acbp_element_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -281,7 +281,7 @@ public:
 
     public:
 
-        pmda_entry_v3_t(kaitai::kstream* p__io, intel_acbp_v2_t::pmda_body_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        pmda_entry_v3_t(kaitai::kstream* p__io, intel_acbp_v2_t::pmda_body_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -296,7 +296,7 @@ public:
         uint32_t m_size;
         uint16_t m_total_entry_size;
         uint16_t m_version;
-        hash_t* m_hash;
+        std::unique_ptr<hash_t> m_hash;
         intel_acbp_v2_t* m__root;
         intel_acbp_v2_t::pmda_body_t* m__parent;
 
@@ -306,7 +306,7 @@ public:
         uint32_t size() const { return m_size; }
         uint16_t total_entry_size() const { return m_total_entry_size; }
         uint16_t version() const { return m_version; }
-        hash_t* hash() const { return m_hash; }
+        hash_t* hash() const { return m_hash.get(); }
         intel_acbp_v2_t* _root() const { return m__root; }
         intel_acbp_v2_t::pmda_body_t* _parent() const { return m__parent; }
     };
@@ -315,7 +315,7 @@ public:
 
     public:
 
-        ibbs_body_t(kaitai::kstream* p__io, intel_acbp_v2_t::acbp_element_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        ibbs_body_t(kaitai::kstream* p__io, intel_acbp_v2_t::acbp_element_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -336,15 +336,15 @@ public:
         uint32_t m_dma_protection_limit0;
         uint64_t m_dma_protection_base1;
         uint64_t m_dma_protection_limit1;
-        hash_t* m_post_ibb_digest;
+        std::unique_ptr<hash_t> m_post_ibb_digest;
         uint32_t m_ibb_entry_point;
         uint16_t m_ibb_digests_size;
         uint16_t m_num_ibb_digests;
-        std::vector<hash_t*>* m_ibb_digests;
-        hash_t* m_obb_digest;
-        std::vector<uint8_t>* m_reserved2;
+        std::unique_ptr<std::vector<std::unique_ptr<hash_t>>> m_ibb_digests;
+        std::unique_ptr<hash_t> m_obb_digest;
+        std::unique_ptr<std::vector<uint8_t>> m_reserved2;
         uint8_t m_num_ibb_segments;
-        std::vector<ibb_segment_t*>* m_ibb_segments;
+        std::unique_ptr<std::vector<std::unique_ptr<ibb_segment_t>>> m_ibb_segments;
         intel_acbp_v2_t* m__root;
         intel_acbp_v2_t::acbp_element_t* m__parent;
 
@@ -360,15 +360,15 @@ public:
         uint32_t dma_protection_limit0() const { return m_dma_protection_limit0; }
         uint64_t dma_protection_base1() const { return m_dma_protection_base1; }
         uint64_t dma_protection_limit1() const { return m_dma_protection_limit1; }
-        hash_t* post_ibb_digest() const { return m_post_ibb_digest; }
+        hash_t* post_ibb_digest() const { return m_post_ibb_digest.get(); }
         uint32_t ibb_entry_point() const { return m_ibb_entry_point; }
         uint16_t ibb_digests_size() const { return m_ibb_digests_size; }
         uint16_t num_ibb_digests() const { return m_num_ibb_digests; }
-        std::vector<hash_t*>* ibb_digests() const { return m_ibb_digests; }
-        hash_t* obb_digest() const { return m_obb_digest; }
-        std::vector<uint8_t>* reserved2() const { return m_reserved2; }
+        std::vector<std::unique_ptr<hash_t>>* ibb_digests() const { return m_ibb_digests.get(); }
+        hash_t* obb_digest() const { return m_obb_digest.get(); }
+        std::vector<uint8_t>* reserved2() const { return m_reserved2.get(); }
         uint8_t num_ibb_segments() const { return m_num_ibb_segments; }
-        std::vector<ibb_segment_t*>* ibb_segments() const { return m_ibb_segments; }
+        std::vector<std::unique_ptr<ibb_segment_t>>* ibb_segments() const { return m_ibb_segments.get(); }
         intel_acbp_v2_t* _root() const { return m__root; }
         intel_acbp_v2_t::acbp_element_t* _parent() const { return m__parent; }
     };
@@ -377,7 +377,7 @@ public:
 
     public:
 
-        pmda_body_t(kaitai::kstream* p__io, intel_acbp_v2_t::acbp_element_t* p__parent = 0, intel_acbp_v2_t* p__root = 0);
+        pmda_body_t(kaitai::kstream* p__io, intel_acbp_v2_t::acbp_element_t* p__parent = nullptr, intel_acbp_v2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -391,7 +391,7 @@ public:
         uint16_t m_total_size;
         uint32_t m_version;
         uint32_t m_num_entries;
-        std::vector<pmda_entry_v3_t*>* m_entries;
+        std::unique_ptr<std::vector<std::unique_ptr<pmda_entry_v3_t>>> m_entries;
         intel_acbp_v2_t* m__root;
         intel_acbp_v2_t::acbp_element_t* m__parent;
 
@@ -400,7 +400,7 @@ public:
         uint16_t total_size() const { return m_total_size; }
         uint32_t version() const { return m_version; }
         uint32_t num_entries() const { return m_num_entries; }
-        std::vector<pmda_entry_v3_t*>* entries() const { return m_entries; }
+        std::vector<std::unique_ptr<pmda_entry_v3_t>>* entries() const { return m_entries.get(); }
         intel_acbp_v2_t* _root() const { return m__root; }
         intel_acbp_v2_t::acbp_element_t* _parent() const { return m__parent; }
     };
@@ -416,8 +416,8 @@ private:
     uint8_t m_acm_svn;
     uint8_t m_reserved;
     uint16_t m_nem_data_size;
-    std::vector<acbp_element_t*>* m_elements;
-    key_signature_t* m_key_signature;
+    std::unique_ptr<std::vector<std::unique_ptr<acbp_element_t>>> m_elements;
+    std::unique_ptr<key_signature_t> m_key_signature;
     intel_acbp_v2_t* m__root;
     kaitai::kstruct* m__parent;
 
@@ -432,10 +432,8 @@ public:
     uint8_t acm_svn() const { return m_acm_svn; }
     uint8_t reserved() const { return m_reserved; }
     uint16_t nem_data_size() const { return m_nem_data_size; }
-    std::vector<acbp_element_t*>* elements() const { return m_elements; }
-    key_signature_t* key_signature() const { return m_key_signature; }
+    std::vector<std::unique_ptr<acbp_element_t>>* elements() const { return m_elements.get(); }
+    key_signature_t* key_signature() const { return m_key_signature.get(); }
     intel_acbp_v2_t* _root() const { return m__root; }
     kaitai::kstruct* _parent() const { return m__parent; }
 };
-
-#endif  // INTEL_ACBP_V2_H_
