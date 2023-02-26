@@ -133,7 +133,7 @@ USTATUS guidDatabaseExportToFile(const UString & outPath, GuidDatabase & db)
     if (!outputFile)
         return U_FILE_OPEN;
     for (GuidDatabase::iterator it = db.begin(); it != db.end(); it++) {
-        std::string guid(guidToUString (it->first, false).toLocal8Bit());
+        std::string guid(guidToUString((const char*)&it->first, false).toLocal8Bit());
         std::string name(it->second.toLocal8Bit());
         outputFile << guid << ',' << name << '\n';
     }

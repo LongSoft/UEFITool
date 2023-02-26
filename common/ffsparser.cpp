@@ -175,7 +175,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
         UByteArray header = capsule.left(capsuleHeaderSize);
         UByteArray body = capsule.mid(capsuleHeaderSize);
         UString name("UEFI capsule");
-        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid, false) +
+        UString info = UString("Capsule GUID: ") + guidToUString((const char*)&capsuleHeader->CapsuleGuid, false) +
         usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
                  (UINT32)capsule.size(), (UINT32)capsule.size(),
                  capsuleHeaderSize, capsuleHeaderSize,
@@ -207,7 +207,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
         UByteArray header = capsule.left(capsuleHeaderSize);
         UByteArray body = capsule.mid(capsuleHeaderSize);
         UString name("Toshiba capsule");
-        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleGuid, false) +
+        UString info = UString("Capsule GUID: ") + guidToUString((const char*)&capsuleHeader->CapsuleGuid, false) +
         usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
                  (UINT32)capsule.size(), (UINT32)capsule.size(),
                  capsuleHeaderSize, capsuleHeaderSize,
@@ -248,7 +248,7 @@ USTATUS FfsParser::parseCapsule(const UByteArray & capsule, const UINT32 localOf
         UByteArray header = capsule.left(capsuleHeaderSize);
         UByteArray body = capsule.mid(capsuleHeaderSize);
         UString name("AMI Aptio capsule");
-        UString info = UString("Capsule GUID: ") + guidToUString(capsuleHeader->CapsuleHeader.CapsuleGuid, false) +
+        UString info = UString("Capsule GUID: ") + guidToUString((const char*)&capsuleHeader->CapsuleHeader.CapsuleGuid, false) +
         usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nImage size: %Xh (%u)\nFlags: %08Xh",
                  (UINT32)capsule.size(), (UINT32)capsule.size(),
                  capsuleHeaderSize, capsuleHeaderSize,
@@ -1011,7 +1011,6 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     
     // Check that there is space for the volume header
     if ((UINT32)volume.size() < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
-        msg(usprintf("%s: input volume size %Xh (%u) is smaller than volume header size 40h (64)", __FUNCTION__, (UINT32)volume.size(), (UINT32)volume.size()));
         return U_INVALID_VOLUME;
     }
     
@@ -1020,13 +1019,11 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     
     // Check sanity of HeaderLength value
     if ((UINT32)ALIGN8(volumeHeader->HeaderLength) > (UINT32)volume.size()) {
-        msg(usprintf("%s: volume header overlaps the end of data", __FUNCTION__));
         return U_INVALID_VOLUME;
     }
     // Check sanity of ExtHeaderOffset value
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset
         && (UINT32)ALIGN8(volumeHeader->ExtHeaderOffset + sizeof(EFI_FIRMWARE_VOLUME_EXT_HEADER)) > (UINT32)volume.size()) {
-        msg(usprintf("%s: extended volume header overlaps the end of data", __FUNCTION__));
         return U_INVALID_VOLUME;
     }
     
@@ -1076,6 +1073,11 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         headerSize = EFI_APPLE_MICROCODE_VOLUME_HEADER_SIZE;
     }
     
+    // Check calculated size, must leave at least 1 byte for the body
+    if (headerSize >= (UINT32)volume.size()) {
+        return U_INVALID_VOLUME;
+    }
+
     // Check volume revision and alignment
     bool msgAlignmentBitsSet = false;
     bool msgUnaligned = false;
@@ -1111,8 +1113,8 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     // Check for AppleCRC32 and UsedSpace in ZeroVector
     bool hasAppleCrc32 = false;
     UINT32 volumeSize = (UINT32)volume.size();
-    UINT32 appleCrc32 = *(UINT32*)(volume.constData() + 8);
-    UINT32 usedSpace = *(UINT32*)(volume.constData() + 12);
+    UINT32 appleCrc32 = readUnaligned((UINT32*)(volume.constData() + 8));
+    UINT32 usedSpace = readUnaligned((UINT32*)(volume.constData() + 12));
     if (appleCrc32 != 0) {
         // Calculate CRC32 of the volume body
         UINT32 crc = (UINT32)crc32(0, (const UINT8*)(volume.constData() + volumeHeader->HeaderLength), volumeSize - volumeHeader->HeaderLength);
@@ -1132,18 +1134,18 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     // Get info
     UByteArray header = volume.left(headerSize);
     UByteArray body = volume.mid(headerSize);
-    UString name = guidToUString(volumeHeader->FileSystemGuid);
+    UString name = guidToUString((const char*)&volumeHeader->FileSystemGuid);
     UString info = usprintf("ZeroVector:\n%02X %02X %02X %02X %02X %02X %02X %02X\n"
                             "%02X %02X %02X %02X %02X %02X %02X %02X\nSignature: _FVH\nFileSystem GUID: ",
                             volumeHeader->ZeroVector[0], volumeHeader->ZeroVector[1], volumeHeader->ZeroVector[2], volumeHeader->ZeroVector[3],
                             volumeHeader->ZeroVector[4], volumeHeader->ZeroVector[5], volumeHeader->ZeroVector[6], volumeHeader->ZeroVector[7],
                             volumeHeader->ZeroVector[8], volumeHeader->ZeroVector[9], volumeHeader->ZeroVector[10], volumeHeader->ZeroVector[11],
                             volumeHeader->ZeroVector[12], volumeHeader->ZeroVector[13], volumeHeader->ZeroVector[14], volumeHeader->ZeroVector[15])
-    + guidToUString(volumeHeader->FileSystemGuid, false) \
+    + guidToUString((const char*)&volumeHeader->FileSystemGuid, false) \
     + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nRevision: %u\nAttributes: %08Xh\nErase polarity: %u\nChecksum: %04Xh",
                volumeSize, volumeSize,
-               headerSize, headerSize,
-               volumeSize - headerSize, volumeSize - headerSize,
+               (UINT32)header.size(), (UINT32)header.size(),
+               (UINT32)body.size(), (UINT32)body.size(),
                volumeHeader->Revision,
                volumeHeader->Attributes,
                (emptyByte ? 1 : 0),
@@ -1154,8 +1156,8 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         const EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (const EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
         info += usprintf("\nExtended header size: %Xh (%u)\nVolume GUID: ",
-                         extendedHeader->ExtHeaderSize, extendedHeader->ExtHeaderSize) + guidToUString(extendedHeader->FvName, false);
-        name = guidToUString(extendedHeader->FvName); // Replace FFS GUID with volume GUID
+                         extendedHeader->ExtHeaderSize, extendedHeader->ExtHeaderSize) + guidToUString((const char*)&extendedHeader->FvName, false);
+        name = guidToUString((const char*)&extendedHeader->FvName); // Replace FFS GUID with volume GUID
     }
     
     // Add text
@@ -1193,7 +1195,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     
     // Show messages
     if (isUnknown)
-        msg(usprintf("%s: unknown file system ", __FUNCTION__) + guidToUString(volumeHeader->FileSystemGuid), index);
+        msg(usprintf("%s: unknown file system ", __FUNCTION__) + guidToUString((const char*)&volumeHeader->FileSystemGuid), index);
     if (msgInvalidChecksum)
         msg(usprintf("%s: volume header checksum is invalid", __FUNCTION__), index);
     if (msgAlignmentBitsSet)
@@ -1272,6 +1274,9 @@ bool FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader)
 
 USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize)
 {
+    if (!index.isValid())
+        return U_INVALID_PARAMETER;
+
     UByteArray data = model->body(index);
     UINT32 dataSize = (UINT32)data.size();
     
@@ -1306,11 +1311,16 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             break;
         }
         else if (readUnaligned(currentPos) == EFI_FV_SIGNATURE) {
-            if (offset < EFI_FV_SIGNATURE_OFFSET)
+            if (restSize < sizeof(EFI_FIRMWARE_VOLUME_HEADER))
                 continue;
-            
-            const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET);
-            if (volumeHeader->FvLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY) || volumeHeader->FvLength >= 0xFFFFFFFFUL) {
+
+            if (offset < EFI_FV_SIGNATURE_OFFSET + sizeof(const EFI_FIRMWARE_VOLUME_HEADER))
+                continue;
+
+            UINT32 localOffset = offset - EFI_FV_SIGNATURE_OFFSET;
+            const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(data.constData() + localOffset);
+            if (volumeHeader->FvLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY)
+                || volumeHeader->FvLength >= 0xFFFFFFFFUL) {
                 continue;
             }
             if (volumeHeader->Revision != 1 && volumeHeader->Revision != 2) {
@@ -1318,15 +1328,18 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             }
             
             // Calculate alternative volume size using its BlockMap
+            if (localOffset < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY))
+                continue;
+
             nextItemAlternativeSize = 0;
-            const EFI_FV_BLOCK_MAP_ENTRY* entry = (const EFI_FV_BLOCK_MAP_ENTRY*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
+            const EFI_FV_BLOCK_MAP_ENTRY* entry = (const EFI_FV_BLOCK_MAP_ENTRY*)(data.constData() + localOffset + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
             while (entry->NumBlocks != 0 && entry->Length != 0) {
-                // Check if we are past the end of the volume
-                if ((const void*)entry >= data.constData() + data.size()) {
+                // Check if we are getting past the end of the volume
+                if ((const void*)entry >= data.constData() + dataSize) {
                     // This volume is broken, but we can't use continue here because we need to continue the outer loop
                     goto continue_searching;
                 }
-                
+
                 nextItemAlternativeSize += entry->NumBlocks * entry->Length;
                 entry += 1;
             }
@@ -1334,9 +1347,8 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             // All checks passed, volume found
             nextItemType = Types::Volume;
             nextItemSize = (UINT32)volumeHeader->FvLength;
-            nextItemOffset = offset - EFI_FV_SIGNATURE_OFFSET;
+            nextItemOffset = localOffset;
             break;
-continue_searching: {}
         }
         else if (readUnaligned(currentPos) == BPDT_GREEN_SIGNATURE
                  || readUnaligned(currentPos) == BPDT_YELLOW_SIGNATURE) {
@@ -1390,6 +1402,7 @@ continue_searching: {}
             nextItemOffset = offset;
             break;
         }
+continue_searching: {}
     }
     
     // No more stores found
@@ -1578,7 +1591,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             
             // Check GUIDs for being equal
             if (currentGuid == anotherGuid) {
-                msg(usprintf("%s: file with duplicate GUID ", __FUNCTION__) + guidToUString(readUnaligned((EFI_GUID*)(anotherGuid.data()))), another);
+                msg(usprintf("%s: file with duplicate GUID ", __FUNCTION__) + guidToUString(anotherGuid.constData()), another);
             }
         }
     }
@@ -1707,9 +1720,9 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     // Check for file tail presence
     UByteArray tail;
     bool msgInvalidTailValue = false;
-    if (volumeRevision == 1 && (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT)) {
+    if (volumeRevision == 1 && (fileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) && body.size() > sizeof(UINT16)) {
         //Check file tail;
-        UINT16 tailValue = *(UINT16*)body.right(sizeof(UINT16)).constData();
+        UINT16 tailValue = readUnaligned((UINT16*)body.right(sizeof(UINT16)).constData());
         if (fileHeader->IntegrityCheck.TailReference != (UINT16)~tailValue)
             msgInvalidTailValue = true;
         
@@ -1754,12 +1767,12 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     UString name;
     UString info;
     if (fileHeader->Type != EFI_FV_FILETYPE_PAD) {
-        name = guidToUString(fileHeader->Name);
+        name = guidToUString((const char*)&fileHeader->Name);
     } else {
         name = UString("Padding file");
     }
     
-    info = UString("File GUID: ") + guidToUString(fileHeader->Name, false) +
+    info = UString("File GUID: ") + guidToUString((const char*)&fileHeader->Name, false) +
     usprintf("\nType: %02Xh\nAttributes: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)\nState: %02Xh",
              fileHeader->Type,
              fileHeader->Attributes,
@@ -1822,7 +1835,7 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     if (msgInvalidDataChecksum)
         msg(usprintf("%s: invalid data checksum %02Xh, should be %02Xh", __FUNCTION__, fileHeader->IntegrityCheck.Checksum.File, calculatedData), index);
     if (msgInvalidTailValue)
-        msg(usprintf("%s: invalid tail value %04Xh", __FUNCTION__, *(const UINT16*)tail.constData()), index);
+        msg(usprintf("%s: invalid tail value %04Xh", __FUNCTION__, readUnaligned((UINT16*)tail.constData())), index);
     if (msgUnknownType)
         msg(usprintf("%s: unknown file type %02Xh", __FUNCTION__, fileHeader->Type), index);
     
@@ -2332,7 +2345,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         if ((UINT32)section.size() < headerSize + sizeof(UINT32))
             return U_INVALID_SECTION;
         
-        UINT32 crc = *(UINT32*)(section.constData() + headerSize);
+        UINT32 crc = readUnaligned((UINT32*)(section.constData() + headerSize));
         additionalInfo += UString("\nChecksum type: CRC32");
         // Calculate CRC32 of section data
         UINT32 calculated = (UINT32)crc32(0, (const UINT8*)section.constData() + dataOffset, (uInt)(section.size() - dataOffset));
@@ -2419,7 +2432,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
                 additionalInfo += UString("\nCertificate subtype: RSA2048/SHA256");
             }
             else {
-                additionalInfo += UString("\nCertificate subtype: unknown, GUID ") + guidToUString(winCertificateUefiGuid->CertType);
+                additionalInfo += UString("\nCertificate subtype: unknown, GUID ") + guidToUString((const char*)&winCertificateUefiGuid->CertType);
                 msgUnknownCertSubtype = true;
             }
         }
@@ -2438,8 +2451,8 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     UByteArray body = section.mid(dataOffset);
     
     // Get info
-    UString name = guidToUString(guid);
-    UString info = UString("Section GUID: ") + guidToUString(guid, false) +
+    UString name = guidToUString((const char*)&guid);
+    UString info = UString("Section GUID: ") + guidToUString((const char*)&guid, false) +
     usprintf("\nType: %02Xh\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nAttributes: %04Xh",
              sectionHeader->Type,
              (UINT32)section.size(), (UINT32)section.size(),
@@ -2534,7 +2547,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
                             (UINT32)section.size(), (UINT32)section.size(),
                             (UINT32)header.size(), (UINT32)header.size(),
                             (UINT32)body.size(), (UINT32)body.size())
-    + guidToUString(guid, false);
+    + guidToUString((const char*)&guid, false);
     
     // Add tree item
     if (insertIntoTree) {
@@ -2546,7 +2559,7 @@ USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, 
         model->setParsingData(index, UByteArray((const char*)&pdata, sizeof(pdata)));
         
         // Rename section
-        model->setName(index, guidToUString(guid));
+        model->setName(index, guidToUString((const char*)&guid));
     }
     
     return U_SUCCESS;
@@ -2956,7 +2969,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 return U_SUCCESS;
             }
             guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-            parsed += UString("\nBEFORE ") + guidToUString(readUnaligned(guid));
+            parsed += UString("\nBEFORE ") + guidToUString((const char*)guid);
             current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
             if (*current != EFI_DEP_END){
                 msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
@@ -2970,7 +2983,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                 return U_SUCCESS;
             }
             guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-            parsed += UString("\nAFTER ") + guidToUString(readUnaligned(guid));
+            parsed += UString("\nAFTER ") + guidToUString((const char*)guid);
             current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
             if (*current != EFI_DEP_END) {
                 msg(usprintf("%s: DEPEX section ends with non-END opcode", __FUNCTION__), index);
@@ -3011,7 +3024,7 @@ USTATUS FfsParser::parseDepexSectionBody(const UModelIndex & index)
                     return U_SUCCESS;
                 }
                 guid = (const EFI_GUID*)(current + EFI_DEP_OPCODE_SIZE);
-                parsed += UString("\nPUSH ") + guidToUString(readUnaligned(guid));
+                parsed += UString("\nPUSH ") + guidToUString((const char*)guid);
                 current += EFI_DEP_OPCODE_SIZE + sizeof(EFI_GUID);
                 break;
             case EFI_DEP_AND:
@@ -3084,7 +3097,7 @@ USTATUS FfsParser::parseAprioriRawSection(const UByteArray & body, UString & par
     if (count > 0) {
         for (UINT32 i = 0; i < count; i++) {
             const EFI_GUID* guid = (const EFI_GUID*)body.constData() + i;
-            parsed += "\n" + guidToUString(readUnaligned(guid));
+            parsed += "\n" + guidToUString((const char*)guid);
         }
     }
     
@@ -4209,6 +4222,7 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         }
     }
     
+make_partition_table_consistent:
     // Check for empty set of partitions
     if (partitions.empty()) {
         // Add a single padding partition in this case
@@ -4219,7 +4233,6 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         partitions.push_back(padding);
     }
     
-make_partition_table_consistent:
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
