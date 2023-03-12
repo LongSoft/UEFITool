@@ -178,10 +178,8 @@ UINT32 uint24ToUint32(const UINT8* ffsSize)
     + ((UINT32) ffsSize[2] << 16U);
 }
 
-UString guidToUString(const char* in, bool convertToString)
+UString guidToUString(const EFI_GUID & guid, bool convertToString)
 {
-    const EFI_GUID guid = readUnaligned((EFI_GUID*)in);
-
     if (convertToString) {
         UString readableName = guidDatabaseLookup(guid);
         if (!readableName.isEmpty())

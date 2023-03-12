@@ -27,8 +27,5 @@ extern "C" int LLVMFuzzerTestOneInput(const char *Data, long long Size) {
     // Parse the image
     (void)ffsParser->parse(UByteArray(Data, (uint32_t)Size));
 
-    delete ffsParser;
-    delete model;
-
     return 0;
 }

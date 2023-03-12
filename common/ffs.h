@@ -22,7 +22,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Make sure we use right packing rules
 #pragma pack(push,1)
 
-extern UString guidToUString(const char* in, bool convertToString = true);
+extern UString guidToUString(const EFI_GUID& guid, bool convertToString = true);
 extern bool ustringToGuid(const UString& str, EFI_GUID& guid);
 extern UString fileTypeToUString(const UINT8 type);
 extern UString sectionTypeToUString(const UINT8 type);

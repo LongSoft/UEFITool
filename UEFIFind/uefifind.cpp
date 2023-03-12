@@ -136,12 +136,12 @@ USTATUS UEFIFind::find(const UINT8 mode, const bool count, const UString & hexPa
         std::pair<UModelIndex, UModelIndex> indexes = *citer;
         if (!model->hasEmptyHeader(indexes.first))
             data = model->header(indexes.first).left(16);
-        result += guidToUString(data.constData());
+        result += guidToUString(readUnaligned((const EFI_GUID*)data.constData()));
 
         // Special case of freeform subtype GUID files
         if (indexes.second.isValid() && model->subtype(indexes.second) == EFI_SECTION_FREEFORM_SUBTYPE_GUID) {
             data = model->header(indexes.second);
-            result += UString(" ") + (guidToUString(data.constData() + sizeof(EFI_COMMON_SECTION_HEADER)));
+            result += UString(" ") + (guidToUString(readUnaligned((const EFI_GUID*)(data.constData() + sizeof(EFI_COMMON_SECTION_HEADER)))));
         }
         
         result += UString("\n");
