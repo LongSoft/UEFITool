@@ -4220,6 +4220,9 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
     }
     
 make_partition_table_consistent:
+    if (partitions.empty()) {
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
@@ -4521,6 +4524,9 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
     }
     
 make_partition_table_consistent:
+    if (partitions.empty()) {
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
