@@ -1160,6 +1160,9 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     
     // Extended header present
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
+        if (volume.size() < volumeHeader->ExtHeaderOffset + sizeof(EFI_FIRMWARE_VOLUME_EXT_HEADER)) {
+            return U_INVALID_VOLUME;
+        }
         const EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (const EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);
         info += usprintf("\nExtended header size: %Xh (%u)\nVolume GUID: ",
                          extendedHeader->ExtHeaderSize, extendedHeader->ExtHeaderSize) + guidToUString(extendedHeader->FvName, false);
