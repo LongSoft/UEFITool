@@ -223,7 +223,9 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     }
     
 make_partition_table_consistent:
-
+    if (partitions.empty()) {
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
@@ -384,6 +386,9 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
     }
     
 make_partition_table_consistent:
+    if (partitions.empty()) {
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
@@ -565,6 +570,9 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     }
     
 make_partition_table_consistent:
+    if (partitions.empty()) {
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
     // Sort partitions by offset
     std::sort(partitions.begin(), partitions.end());
     
