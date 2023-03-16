@@ -1281,7 +1281,7 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
     UINT32 offset = localOffset;
     for (; offset < dataSize - sizeof(UINT32); offset++) {
         const UINT32* currentPos = (const UINT32*)(data.constData() + offset);
-        const UINT32 restSize = dataSize - offset;
+        UINT32 restSize = dataSize - offset;
         if (readUnaligned(currentPos) == INTEL_MICROCODE_HEADER_VERSION_1) {// Intel microcode
             // Check data size
             if (restSize < sizeof(INTEL_MICROCODE_HEADER)) {
@@ -1308,8 +1308,13 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
         else if (readUnaligned(currentPos) == EFI_FV_SIGNATURE) {
             if (offset < EFI_FV_SIGNATURE_OFFSET)
                 continue;
-            
+
+            // Prevent OOB access
+            if (restSize + EFI_FV_SIGNATURE_OFFSET < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
+                continue;
+            }
             const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET);
+            restSize -= sizeof(EFI_FIRMWARE_VOLUME_HEADER);
             if (volumeHeader->FvLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER) + 2 * sizeof(EFI_FV_BLOCK_MAP_ENTRY) || volumeHeader->FvLength >= 0xFFFFFFFFUL) {
                 continue;
             }
@@ -1319,15 +1324,22 @@ USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 l
             
             // Calculate alternative volume size using its BlockMap
             nextItemAlternativeSize = 0;
+
+            // Prevent OOB access
+            if (restSize + EFI_FV_SIGNATURE_OFFSET < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
+                continue;
+            }
             const EFI_FV_BLOCK_MAP_ENTRY* entry = (const EFI_FV_BLOCK_MAP_ENTRY*)(data.constData() + offset - EFI_FV_SIGNATURE_OFFSET + sizeof(EFI_FIRMWARE_VOLUME_HEADER));
+            restSize -= sizeof(EFI_FV_BLOCK_MAP_ENTRY);
             while (entry->NumBlocks != 0 && entry->Length != 0) {
                 // Check if we are past the end of the volume
-                if ((const void*)entry >= data.constData() + data.size()) {
+                if (restSize + EFI_FV_SIGNATURE_OFFSET < sizeof(EFI_FV_BLOCK_MAP_ENTRY)) {
                     // This volume is broken, but we can't use continue here because we need to continue the outer loop
                     goto continue_searching;
                 }
                 
                 nextItemAlternativeSize += entry->NumBlocks * entry->Length;
+                restSize -= sizeof(EFI_FV_BLOCK_MAP_ENTRY);
                 entry += 1;
             }
             
