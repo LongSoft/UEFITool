@@ -1125,7 +1125,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     bool msgInvalidChecksum = false;
 
     if (volumeHeader->HeaderLength < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
-        msg(usprintf("%s: input volume header length %Xh (%u) is smaller than volume header size", __FUNCTION__, (UINT32)volumeHeader->HeaderLength, (UINT32)volumeHeader->HeaderLength));
+        msg(usprintf("%s: input volume header length %04Xh (%hu) is smaller than volume header size", __FUNCTION__, volumeHeader->HeaderLength, volumeHeader->HeaderLength));
         return U_INVALID_VOLUME;
     }
     UByteArray tempHeader((const char*)volumeHeader, volumeHeader->HeaderLength);
@@ -1159,6 +1159,12 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
     (msgInvalidChecksum ? usprintf(", invalid, should be %04Xh", calculated) : UString(", valid"));
     
     // Extended header present
+
+    // volumeHeader->ExtHeaderOffset should be aligned to 4 bytes
+    if (volumeHeader->ExtHeaderOffset % 4) {
+        msg(usprintf("%s: ExtHeaderOffset %04Xh (%hu) is not aligned by 4 bytes", __FUNCTION__, volumeHeader->ExtHeaderOffset, volumeHeader->ExtHeaderOffset));
+        return U_INVALID_VOLUME;
+    }
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
         if (volume.size() < volumeHeader->ExtHeaderOffset + sizeof(EFI_FIRMWARE_VOLUME_EXT_HEADER)) {
             return U_INVALID_VOLUME;
