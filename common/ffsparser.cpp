@@ -1135,6 +1135,9 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         msgInvalidChecksum = true;
     
     // Get info
+    if (headerSize >= volume.size()) {
+        return U_INVALID_VOLUME;
+    }
     UByteArray header = volume.left(headerSize);
     UByteArray body = volume.mid(headerSize);
     UString name = guidToUString(volumeHeader->FileSystemGuid);
