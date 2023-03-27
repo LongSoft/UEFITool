@@ -34,6 +34,7 @@ There are some other projects that use UEFITool's engine:
 ## Alternatives
 
 Right now there are some alternatives to UEFITool that you could find useful too:
+* **[FMMT](https://github.com/tianocore/edk2/tree/master/BaseTools/Source/Python/FMMT)** by TianoCore. Python-based open source toolset for modifying EDK2-based UEFI firmware images. Does not support any IBV customizations, but is _official_, and lives in EDK2 repository.
 * **[Fiano](https://github.com/linuxboot/fiano)** by Google and Facebook. Go-based cross-platform open source toolset for modifying UEFI firmware images.
 * **[PhoenixTool](https://forums.mydigitallife.net/threads/tool-to-insert-replace-slic-in-phoenix-insyde-dell-efi-bioses.13194)** by [AndyP](https://forums.mydigitallife.net/members/andyp.39295). Windows-only freeware GUI application written in C#. Used mostly for SLIC-related modifications, but it not limited to this task. Requires Microsoft .NET 3.5 to work properly. Supports unpacking firmware images from various vendor-specific formats like encrypted HP update files and Dell installers.
 * **[uefi-firmware-parser](https://github.com/theopolis/uefi-firmware-parser)** by [Teddy Reed](https://github.com/theopolis). Cross-platform open source console application written in Python. Very tinker-friendly due to use of Python. Can be used in scripts to automate firmware patching.
