@@ -85,67 +85,59 @@ USTATUS UEFIDumper::recursiveDump(const UModelIndex & index)
     if (!index.isValid())
         return U_INVALID_PARAMETER;
 
-    //UByteArray itemHeader = model.header(index);
-    //UByteArray fileHeader = model.header(model.findParentOfType(index, Types::File));
-
-    //if (guid.length() == 0 ||
-    //    (itemHeader.size() >= sizeof (EFI_GUID) && guidToUString(*(const EFI_GUID*)itemHeader.constData()) == guid) ||
-    //    (fileHeader.size() >= sizeof(EFI_GUID) && guidToUString(*(const EFI_GUID*)fileHeader.constData()) == guid)) {
-
-        // Construct file name
-        UString orgName = uniqueItemName(index);
-        UString name = orgName;
-        bool nameFound = false;
-        for (int i = 1; i < 1000; ++i) {
-            if (!isExistOnFs(name + UString("_info.txt"))) {
-                nameFound = true;
-                break;
-            }
-            name = orgName + UString("_") + usprintf("%03d", i);
+    // Construct file name
+    UString orgName = uniqueItemName(index);
+    UString name = orgName;
+    bool nameFound = false;
+    for (int i = 1; i < 1000; ++i) {
+        if (!isExistOnFs(name + UString("_info.txt"))) {
+            nameFound = true;
+            break;
         }
-
-        if (!nameFound) {
-            printf("Cannot find unique name for \"%s\".\n", (const char*)orgName.toLocal8Bit());
-            return U_INVALID_PARAMETER; //TODO: replace with proper errorCode
+        name = orgName + UString("_") + usprintf("%03d", i);
+    }
+    
+    if (!nameFound) {
+        printf("Cannot find unique name for \"%s\".\n", (const char*)orgName.toLocal8Bit());
+        return U_INVALID_PARAMETER; //TODO: replace with proper errorCode
+    }
+    
+    // Add header and body only for leaf sections
+    if (model.rowCount(index) == 0) {
+        // Header
+        UByteArray data = model.header(index);
+        if (!data.isEmpty()) {
+            std::ofstream file;
+            UString str = name + UString("_header.bin");
+            file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
+            file.write(data.constData(), data.size());
+            file.close();
         }
-
-        // Add header and body only for leaf sections
-        if (model.rowCount(index) == 0) {
-            // Header
-            UByteArray data = model.header(index);
-            if (!data.isEmpty()) {
-                std::ofstream file;
-                UString str = name + UString("_header.bin");
-                file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
-                file.write(data.constData(), data.size());
-                file.close();
-            }
-
-            // Body
-            data = model.body(index);
-            if (!data.isEmpty()) {
-                std::ofstream file;
-                UString str = name + UString("_body.bin");
-                file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
-                file.write(data.constData(), data.size());
-                file.close();
-            }
+        
+        // Body
+        data = model.body(index);
+        if (!data.isEmpty()) {
+            std::ofstream file;
+            UString str = name + UString("_body.bin");
+            file.open(str.toLocal8Bit(), std::ios::out | std::ios::binary);
+            file.write(data.constData(), data.size());
+            file.close();
         }
-        // Info
-        UString info = "Type: " + itemTypeToUString(model.type(index)) + "\n" +
-            "Subtype: " + itemSubtypeToUString(model.type(index), model.subtype(index)) + "\n";
-        if (model.text(index).length() > 0)
-            info += "Text: " + model.text(index) + "\n";
-        info += model.info(index) + "\n";
-
-        std::ofstream file;
-        UString str = name + UString("_info.txt");
-        file.open(str.toLocal8Bit(), std::ios::out);
-        file.write(info.toLocal8Bit(), info.length());
-        file.close();
-
-        dumped = true;
-    //}
+    }
+    // Info
+    UString info = "Type: " + itemTypeToUString(model.type(index)) + "\n" +
+    "Subtype: " + itemSubtypeToUString(model.type(index), model.subtype(index)) + "\n";
+    if (model.text(index).length() > 0)
+        info += "Text: " + model.text(index) + "\n";
+    info += model.info(index) + "\n";
+    
+    std::ofstream file;
+    UString str = name + UString("_info.txt");
+    file.open(str.toLocal8Bit(), std::ios::out);
+    file.write(info.toLocal8Bit(), info.length());
+    file.close();
+    
+    dumped = true;
     
     // Process child items
     USTATUS result;
