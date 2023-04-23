@@ -91,7 +91,7 @@ bool match(const QByteArray& data, const QString& pattern)
 
 namespace {
 
-unsigned int countBits(uint val)
+unsigned int countBits(quint64 val)
 {
     if(val <= std::numeric_limits<quint8>::max()) return QHexFindOptions::Int8;
     if(val <= std::numeric_limits<quint16>::max()) return QHexFindOptions::Int16;
@@ -257,7 +257,7 @@ QHexPosition offsetToPosition(const QHexOptions* options, qint64 offset) { retur
 
 QPair<qint64, qint64> find(const QHexView* hexview, QVariant value, qint64 startoffset, QHexFindMode mode, unsigned int options, QHexFindDirection fd)
 {
-    qint64 offset = -1, size = 0;
+    qint64 offset, size = 0;
     if(startoffset == -1) startoffset = static_cast<qint64>(hexview->offset());
 
     if(mode == QHexFindMode::Hex && QHEXVIEW_VARIANT_EQ(value, String))

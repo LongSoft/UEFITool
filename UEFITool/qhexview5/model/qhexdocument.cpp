@@ -50,13 +50,6 @@ void QHexDocument::setData(QHexBuffer* buffer)
 qint64 QHexDocument::length() const { return m_buffer ? m_buffer->length() : 0; }
 uchar QHexDocument::at(int offset) const { return m_buffer->at(offset); }
 
-QHexDocument* QHexDocument::fromFile(QString filename, QObject* parent)
-{
-    QFile f(filename);
-    f.open(QFile::ReadOnly);
-    return QHexDocument::fromMemory<QMemoryBuffer>(f.readAll(), parent);
-}
-
 void QHexDocument::undo() { m_undostack.undo(); Q_EMIT changed(); }
 void QHexDocument::redo() { m_undostack.redo(); Q_EMIT changed(); }
 void QHexDocument::insert(qint64 offset, uchar b) { this->insert(offset, QByteArray(1, b)); }
