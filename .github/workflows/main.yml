@@ -290,14 +290,14 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.4.2'
+          version: '6.5.0'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_mingw'
       - name: Build everything
         run: |
           cmake -G "MinGW Makefiles" -B build .
-          cmake --build build -j
+          cmake --build build --parallel
   
 # Static Analysis
   build_analyze_linux_coverity:
@@ -312,7 +312,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.4.2'
+          version: '6.5.0'
           host: 'linux'
           target: 'desktop'
       - name: Create build directory
@@ -327,7 +327,7 @@ jobs:
         env:
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
-          COVERITY_BUILD_COMMAND: cmake --build .
+          COVERITY_BUILD_COMMAND: cmake --build . --parallel
 
   build_analyze_linux_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
@@ -338,7 +338,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.4.2'
+          version: '6.5.0'
           host: 'linux'
           target: 'desktop'
       - name: Install PVS-Studio
@@ -357,7 +357,7 @@ jobs:
       - name: Build everything
         run: |
           cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build .
-          cmake --build build -j
+          cmake --build build --parallel
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v2
       - name: Perform PVS-Studio analysis
@@ -387,7 +387,7 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.4.2'
+          version: '6.5.0'
           host: 'linux'
           target: 'desktop'
       - name: Set up JDK 11
