@@ -64,4 +64,5 @@ void HexViewDialog::setItem(const UModelIndex & index, HexViewType type)
     dialogTitle += itemText.isEmpty() ? itemName : itemName + " | " + itemText;
     setWindowTitle(dialogTitle);
     hexView->setData(hexdata);
+    hexView->setFont(QApplication::font());
 }

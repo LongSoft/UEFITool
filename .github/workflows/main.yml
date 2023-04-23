@@ -28,7 +28,7 @@ jobs:
         run: cmake -E make_directory ${{runner.workspace}}/build
       - name: Configure everything
         working-directory: ${{runner.workspace}}/build
-        run: cmake -DCMAKE_PREFIX_PATH="/opt/qt-6.4.2-static-universal-macos12.3" -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" ../UEFITool
+        run: cmake -DCMAKE_PREFIX_PATH="/opt/qt-6.5.0-static-universal-macos" -DCMAKE_OSX_ARCHITECTURES="x86_64h;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET="11.0" ../UEFITool
       - name: Build everything
         working-directory: ${{runner.workspace}}/build
         shell: bash
