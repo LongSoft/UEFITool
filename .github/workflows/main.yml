@@ -306,7 +306,7 @@ jobs:
       JOB_TYPE: COVERITY
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
     name: Coverity Static Analysis
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest-16-cores
     steps:
       - uses: actions/checkout@v3
       - name: Install Qt
@@ -327,12 +327,12 @@ jobs:
         env:
           COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
           COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
-          COVERITY_BUILD_COMMAND: cmake --build . --parallel
+          COVERITY_BUILD_COMMAND: cmake --build .
 
   build_analyze_linux_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
     name: PVS-Studio and CodeQL Static Analysis
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest-16-cores
     steps:
       - uses: actions/checkout@v3
       - name: Install Qt
@@ -357,7 +357,7 @@ jobs:
       - name: Build everything
         run: |
           cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -B build .
-          cmake --build build --parallel
+          cmake --build build
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v2
       - name: Perform PVS-Studio analysis
@@ -413,7 +413,7 @@ jobs:
       - name: Run build-wrapper
         run: |
           cmake -B build .
-          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build -j
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
       - name: Run sonar-scanner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
