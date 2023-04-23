@@ -585,7 +585,7 @@ void UEFITool::about()
                        tr("<b>UEFITool %1.</b><br><br>"
                           "Copyright (c) 2013-2023, Nikolaj Schlej.<br><br>"
                           "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
-                          "GUI uses QHexEdit2 library made by <a href=https://github.com/Simsys>Simsys</a>.<br>"
+                          "GUI uses QHexView made by <a href=https://github.com/Dax89>Antonio Davide</a>.<br>"
                           "Qt-less engine uses Bstrlib made by <a href=https://github.com/websnarf>Paul Hsieh</a>.<br>"
                           "Engine uses Tiano compression code made by <a href=https://github.com/tianocore>TianoCore developers</a>.<br>"
                           "Engine uses LZMA compression code made by <a href=https://www.7-zip.org/sdk.html>Igor Pavlov</a>.<br>"

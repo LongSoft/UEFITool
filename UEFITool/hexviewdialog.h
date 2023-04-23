@@ -16,7 +16,7 @@
 
 #include <QDialog>
 #include "../common/treemodel.h"
-#include "qhexedit2/qhexedit.h"
+#include "qhexview5/qhexview.h"
 #include "ui_hexviewdialog.h"
 
 class HexViewDialog : public QDialog
@@ -38,7 +38,7 @@ public:
     void setFont(const QFont &font);
     
 private:
-    QHexEdit * hexView;
+    QHexView * hexView;
 };
 
 #endif // HEXVIEWDIALOG_H

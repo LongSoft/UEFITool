@@ -62,9 +62,20 @@ HEADERS += uefitool.h \
  ../common/zlib/zlib.h \
  ../common/zlib/crc32.h \
  ../version.h \
- qhexedit2/qhexedit.h \
- qhexedit2/chunks.h \
- qhexedit2/commands.h
+ qhexview5/model/buffer/qhexbuffer.h \
+ qhexview5/model/buffer/qdevicebuffer.h \
+ qhexview5/model/buffer/qmemorybuffer.h \
+ qhexview5/model/commands/hexcommand.h \
+ qhexview5/model/commands/insertcommand.h \
+ qhexview5/model/commands/removecommand.h \
+ qhexview5/model/commands/replacecommand.h \ 
+ qhexview5/model/qhexcursor.h \
+ qhexview5/model/qhexdelegate.h \
+ qhexview5/model/qhexdocument.h \
+ qhexview5/model/qhexmetadata.h \
+ qhexview5/model/qhexoptions.h \
+ qhexview5/model/qhexutils.h \
+ qhexview5/qhexview.h
 
 SOURCES += uefitool_main.cpp \
  uefitool.cpp \
@@ -127,9 +138,19 @@ SOURCES += uefitool_main.cpp \
  ../common/zlib/trees.c \
  ../common/zlib/uncompr.c \
  ../common/zlib/zutil.c \
- qhexedit2/qhexedit.cpp \
- qhexedit2/chunks.cpp \
- qhexedit2/commands.cpp
+ qhexview5/model/buffer/qhexbuffer.cpp \
+ qhexview5/model/buffer/qdevicebuffer.cpp \
+ qhexview5/model/buffer/qmemorybuffer.cpp \
+ qhexview5/model/commands/hexcommand.cpp \
+ qhexview5/model/commands/insertcommand.cpp \
+ qhexview5/model/commands/removecommand.cpp \
+ qhexview5/model/commands/replacecommand.cpp \
+ qhexview5/model/qhexcursor.cpp \
+ qhexview5/model/qhexdelegate.cpp \
+ qhexview5/model/qhexdocument.cpp \
+ qhexview5/model/qhexmetadata.cpp \
+ qhexview5/model/qhexutils.cpp \
+ qhexview5/qhexview.cpp 
 
 FORMS += uefitool.ui \
  searchdialog.ui \

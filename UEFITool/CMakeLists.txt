@@ -23,6 +23,7 @@ SET(PROJECT_HEADERS
  hexviewdialog.h
  gotobasedialog.h
  gotoaddressdialog.h
+ qhexview5/qhexview.h
 )
 
 SET(PROJECT_SOURCES 
@@ -35,63 +36,73 @@ SET(PROJECT_SOURCES
  hexlineedit.cpp
  ffsfinder.cpp
  hexspinbox.cpp
- qhexedit2/qhexedit.cpp
- qhexedit2/chunks.cpp
- qhexedit2/commands.cpp
- ../common/fitparser.cpp 
- ../common/guiddatabase.cpp 
- ../common/nvram.cpp 
- ../common/nvramparser.cpp 
- ../common/meparser.cpp 
- ../common/ffsops.cpp 
- ../common/types.cpp 
- ../common/descriptor.cpp 
- ../common/ffs.cpp 
- ../common/peimage.cpp 
- ../common/utility.cpp 
- ../common/ffsbuilder.cpp 
- ../common/ffsparser.cpp 
- ../common/ffsreport.cpp 
- ../common/treeitem.cpp 
- ../common/treemodel.cpp 
- ../common/LZMA/LzmaCompress.c 
- ../common/LZMA/LzmaDecompress.c 
- ../common/LZMA/SDK/C/CpuArch.c 
- ../common/LZMA/SDK/C/Bra.c 
- ../common/LZMA/SDK/C/Bra86.c 
- ../common/LZMA/SDK/C/LzFind.c 
- ../common/LZMA/SDK/C/LzmaDec.c 
- ../common/LZMA/SDK/C/LzmaEnc.c 
- ../common/Tiano/EfiTianoDecompress.c 
- ../common/Tiano/EfiTianoCompress.c 
- ../common/Tiano/EfiTianoCompressLegacy.c 
- ../common/ustring.cpp 
- ../common/digest/sha1.c 
- ../common/digest/sha256.c 
- ../common/digest/sha512.c 
- ../common/digest/sm3.c 
+ qhexview5/model/buffer/qhexbuffer.cpp
+ qhexview5/model/buffer/qdevicebuffer.cpp
+ qhexview5/model/buffer/qmemorybuffer.cpp
+ qhexview5/model/commands/hexcommand.cpp
+ qhexview5/model/commands/insertcommand.cpp
+ qhexview5/model/commands/removecommand.cpp
+ qhexview5/model/commands/replacecommand.cpp
+ qhexview5/model/qhexcursor.cpp
+ qhexview5/model/qhexdelegate.cpp
+ qhexview5/model/qhexdocument.cpp
+ qhexview5/model/qhexmetadata.cpp
+ qhexview5/model/qhexutils.cpp
+ qhexview5/qhexview.cpp
+ ../common/fitparser.cpp
+ ../common/guiddatabase.cpp
+ ../common/nvram.cpp
+ ../common/nvramparser.cpp
+ ../common/meparser.cpp
+ ../common/ffsops.cpp
+ ../common/types.cpp
+ ../common/descriptor.cpp
+ ../common/ffs.cpp
+ ../common/peimage.cpp
+ ../common/utility.cpp
+ ../common/ffsbuilder.cpp
+ ../common/ffsparser.cpp
+ ../common/ffsreport.cpp
+ ../common/treeitem.cpp
+ ../common/treemodel.cpp
+ ../common/LZMA/LzmaCompress.c
+ ../common/LZMA/LzmaDecompress.c
+ ../common/LZMA/SDK/C/CpuArch.c
+ ../common/LZMA/SDK/C/Bra.c
+ ../common/LZMA/SDK/C/Bra86.c
+ ../common/LZMA/SDK/C/LzFind.c
+ ../common/LZMA/SDK/C/LzmaDec.c
+ ../common/LZMA/SDK/C/LzmaEnc.c
+ ../common/Tiano/EfiTianoDecompress.c
+ ../common/Tiano/EfiTianoCompress.c
+ ../common/Tiano/EfiTianoCompressLegacy.c
+ ../common/ustring.cpp
+ ../common/digest/sha1.c
+ ../common/digest/sha256.c
+ ../common/digest/sha512.c
+ ../common/digest/sm3.c
  ../common/generated/ami_nvar.cpp
- ../common/generated/intel_acbp_v1.cpp 
- ../common/generated/intel_acbp_v2.cpp 
- ../common/generated/intel_keym_v1.cpp 
- ../common/generated/intel_keym_v2.cpp 
- ../common/generated/intel_acm.cpp 
- ../common/kaitai/kaitaistream.cpp 
- ../common/zlib/adler32.c 
- ../common/zlib/compress.c 
- ../common/zlib/crc32.c 
- ../common/zlib/deflate.c 
- ../common/zlib/gzclose.c 
- ../common/zlib/gzlib.c 
- ../common/zlib/gzread.c 
- ../common/zlib/gzwrite.c 
- ../common/zlib/inflate.c 
- ../common/zlib/infback.c 
- ../common/zlib/inftrees.c 
- ../common/zlib/inffast.c 
- ../common/zlib/trees.c 
- ../common/zlib/uncompr.c 
- ../common/zlib/zutil.c 
+ ../common/generated/intel_acbp_v1.cpp
+ ../common/generated/intel_acbp_v2.cpp
+ ../common/generated/intel_keym_v1.cpp
+ ../common/generated/intel_keym_v2.cpp
+ ../common/generated/intel_acm.cpp
+ ../common/kaitai/kaitaistream.cpp
+ ../common/zlib/adler32.c
+ ../common/zlib/compress.c
+ ../common/zlib/crc32.c
+ ../common/zlib/deflate.c
+ ../common/zlib/gzclose.c
+ ../common/zlib/gzlib.c
+ ../common/zlib/gzread.c
+ ../common/zlib/gzwrite.c
+ ../common/zlib/inflate.c
+ ../common/zlib/infback.c
+ ../common/zlib/inftrees.c
+ ../common/zlib/inffast.c
+ ../common/zlib/trees.c
+ ../common/zlib/uncompr.c
+ ../common/zlib/zutil.c
 )
 
 QT_ADD_RESOURCES(PROJECT_SOURCES 
