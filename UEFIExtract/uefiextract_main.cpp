@@ -36,9 +36,10 @@ void print_usage()
         << "Usage: UEFIExtract {-h | --help | -v | --version} - show help and/or version information." << std::endl
         << "       UEFIExtract imagefile        - generate report and dump only leaf tree items into .dump folder." << std::endl
         << "       UEFIExtract imagefile all    - generate report and dump all tree items." << std::endl
-        << "       UEFIExtract imagefile unpack - generate report and dump all tree items in one dir." << std::endl
+        << "       UEFIExtract imagefile unpack - generate report and dump all tree items into a single folder." << std::endl
         << "       UEFIExtract imagefile dump   - only generate dump, no report needed." << std::endl
         << "       UEFIExtract imagefile report - only generate report, no dump needed." << std::endl
+        << "       UEFIExtract imagefile guids  - generate a CSV file with named GUIDs present in the image." << std::endl
         << "       UEFIExtract imagefile GUID_1 ... [ -o FILE_1 ... ] [ -m MODE_1 ... ] [ -t TYPE_1 ... ] -" << std::endl
         << "         Dump only FFS file(s) with specific GUID(s), without report." << std::endl
         << "         Type is section type or FF to ignore. Mode is one of: all, body, header, info, file." << std::endl
@@ -92,6 +93,13 @@ int main(int argc, char *argv[])
         // Dump only leaf elements, no report
         if (argc == 3 && !std::strcmp(argv[2], "dump")) {
             return (ffsDumper.dump(model.index(0, 0), path + UString(".dump")) != U_SUCCESS);
+        }
+        // Dump named GUIDs found in the image
+        else if (argc == 3 && !std::strcmp(argv[2], "guids")) {
+            GuidDatabase db = guidDatabaseFromTreeRecursive(&model, model.index(0, 0));
+            if (!db.empty()) {
+                return guidDatabaseExportToFile(path + UString(".guids.csv"), db);
+            }
         }
         else if (argc > 3 ||
             (argc == 3 && std::strcmp(argv[2], "all") != 0 && std::strcmp(argv[2], "report") != 0)) { // Dump specific files, without report
