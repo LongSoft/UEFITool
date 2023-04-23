@@ -219,26 +219,26 @@ jobs:
           file_glob: true
 
   build_release_windows_64:
-    name: Release build (Win64, static Qt 6.4.2)
+    name: Release build (Win64, static Qt 6.5.0)
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v3 
-      - name: Get Qt 6.4.2
+      - name: Get Qt 6.5.0
         uses: actions/checkout@v3
         with:
-          repository: LongSoft/qt-6.4.2-static-x64-msvc2022
+          repository: LongSoft/qt-6-static-x64-msvc2022
           path: qt6
           lfs: true
-      - name: Unpack Qt 6.4.2
+      - name: Unpack Qt 6.5.0
         shell: bash
         working-directory: qt6
-        run: 7z x qt-6.4.2-static-x64-msvc2022.7z -o../..
+        run: 7z x qt-6.5.0-static-x64-msvc2022.7z -o../..
       - name: Create build directory
         run: cmake -E make_directory ${{runner.workspace}}/build
       - name: Configure everything
         working-directory: ${{runner.workspace}}/build
         shell: cmd
-        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.4.2-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ../UEFITool
+        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.5.0-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ../UEFITool
       - name: Build everything
         working-directory: ${{runner.workspace}}/build
         shell: bash
