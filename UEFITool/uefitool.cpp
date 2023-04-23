@@ -15,6 +15,10 @@
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
+#if QT_VERSION_MAJOR >= 6
+#include <QStyleHints>
+#endif
+
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
@@ -167,13 +171,13 @@ void UEFITool::init()
     ui->finderMessagesListWidget->installEventFilter(this);
     ui->builderMessagesListWidget->installEventFilter(this);
 
-    // Detect UI dark mode
+    // Detect and set UI light or dark mode
 #if QT_VERSION_MAJOR >= 6
+#if QT_VERSION_MINOR < 5
 #if defined Q_OS_WIN
     QSettings settings("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", QSettings::NativeFormat);
     if (settings.value("AppsUseLightTheme", 1).toInt() == 0) {
         model->setMarkingDarkMode(true);
-        // TODO: remove this once default style gains dark theme support
         QApplication::setStyle(QStyleFactory::create("Fusion"));
         QApplication::setPalette(QApplication::style()->standardPalette());
     }
@@ -183,9 +187,29 @@ void UEFITool::init()
     if (color.lightness() < 127) { // TreeView has dark background
         model->setMarkingDarkMode(true);
     }
+#endif // defined Q_OS_WIN
+#else // QT_VERSION_MINOR >= 5
+    // Qt 6.5.0 added proper support for dark UI mode, including detection and notification on mode change
+    // It also supposed to work in all OSes, but still requires changing the default style on Windows from Vista to Fusion
+    auto styleHints = QGuiApplication::styleHints();
+    model->setMarkingDarkMode(styleHints->colorScheme() == Qt::ColorScheme::Dark);
+    connect(styleHints, SIGNAL(colorSchemeChanged(Qt::ColorScheme)), this, SLOT(updateUiForNewColorScheme(Qt::ColorScheme)));
+
+#if defined Q_OS_WIN
+    QApplication::setStyle(QStyleFactory::create("Fusion"));
+    QApplication::setPalette(QApplication::style()->standardPalette());
 #endif
-#endif
+#endif // QT_VERSION_MINOR
+#endif // QT_VERSION_MAJOR
 }
+
+#if QT_VERSION_MAJOR >= 6 && QT_VERSION_MINOR >= 5
+void UEFITool::updateUiForNewColorScheme(Qt::ColorScheme scheme)
+{
+    model->setMarkingDarkMode(scheme == Qt::ColorScheme::Dark);
+    QApplication::setPalette(QApplication::style()->standardPalette());
+}
+#endif
 
 void UEFITool::populateUi(const QItemSelection &selected)
 {

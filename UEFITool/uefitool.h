@@ -127,6 +127,10 @@ private slots:
 
     void currentTabChanged(int index);
 
+#if QT_VERSION_MAJOR >= 6 && QT_VERSION_MINOR >= 5
+    void updateUiForNewColorScheme(Qt::ColorScheme scheme);
+#endif
+
 private:
     Ui::UEFITool* ui;
     TreeModel* model;
