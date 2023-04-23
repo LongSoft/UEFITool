@@ -483,10 +483,10 @@ void QHexView::drawSeparators(QPainter* p) const
         QLineF l1(this->hexColumnX(), 0, this->hexColumnX(), this->height());
         QLineF l2(this->asciiColumnX(), 0, this->asciiColumnX(), this->height());
 
-        if(!m_hexdelegate || (m_hexdelegate && !m_hexdelegate->paintSeparator(p, l1, this)))
+        if(!m_hexdelegate || !m_hexdelegate->paintSeparator(p, l1, this))
             p->drawLine(l1);
 
-        if(!m_hexdelegate || (m_hexdelegate && !m_hexdelegate->paintSeparator(p, l2, this)))
+        if(!m_hexdelegate || !m_hexdelegate->paintSeparator(p, l2, this))
             p->drawLine(l2);
     }
 
