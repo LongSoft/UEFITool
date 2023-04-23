@@ -10,20 +10,20 @@ on:
 jobs:
 # Release builds
   build_release_macos:
-    name: Release build (macOS universal, static Qt 6.4.2)
+    name: Release build (macOS universal, static Qt 6.5.0)
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
       - name: Get Qt
         uses: actions/checkout@v3
         with:
-          repository: LongSoft/qt-6.4.2-static-universal-macos12.3
+          repository: LongSoft/qt-6-static-universal-macos
           path: qt
           lfs: true
       - name: Unpack Qt
         shell: bash
         working-directory: qt
-        run: sudo unzip -q qt-6.4.2-static-universal-macos12.3.zip -d/opt
+        run: sudo 7z x qt-6.5.0-static-universal-macos.7z -o/opt
       - name: Create build directory
         run: cmake -E make_directory ${{runner.workspace}}/build
       - name: Configure everything
@@ -59,7 +59,7 @@ jobs:
           file_glob: true
 
   build_release_linux:
-    name: Release build (Linux x64, shared Qt 6.x)
+    name: Release build (Linux x64, shared Qt 6)
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -101,7 +101,7 @@ jobs:
           file_glob: true
 
   build_release_freebsd:
-    name: Release build (FreeBSD x64, shared Qt 6.x)
+    name: Release build (FreeBSD x64, shared Qt 6)
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
@@ -269,7 +269,7 @@ jobs:
 
 # Build Tests
   build_test_linux_meson:
-    name: Meson build system test
+    name: Meson build system test (shared Qt 5)
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -283,7 +283,7 @@ jobs:
         run: ninja -C build-meson
 
   build_test_windows_mingw:
-    name: MinGW compiler test
+    name: MinGW compiler test (shared Qt 6.5.0)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -305,7 +305,7 @@ jobs:
       PROJECT_TYPE: TOOL
       JOB_TYPE: COVERITY
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: Coverity Static Analysis
+    name: Coverity Static Analysis (shared Qt 6.5.0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -331,7 +331,7 @@ jobs:
 
   build_analyze_linux_pvs_studio_and_codeql:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: PVS-Studio and CodeQL Static Analysis
+    name: PVS-Studio and CodeQL Static Analysis (shared Qt 6.5.0)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -374,7 +374,7 @@ jobs:
           
   build_analyze_linux_sonarcloud:
     if: github.repository_owner == 'LongSoft' && github.event_name != 'pull_request'
-    name: SonarCloud Static Analysis
+    name: SonarCloud Static Analysis (shared Qt 6.5.0)
     runs-on: ubuntu-latest
     env:
       SONAR_SCANNER_VERSION: 4.7.0.2747
