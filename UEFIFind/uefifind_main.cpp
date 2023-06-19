@@ -32,8 +32,6 @@ int main(int argc, char *argv[])
     UEFIFind w;
     USTATUS result;
 
-    initGuidDatabase("guids.csv");
-
     if (argc == 1) {
         print_usage();
         return U_SUCCESS;

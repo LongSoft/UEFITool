@@ -11,6 +11,7 @@ SET(PROJECT_SOURCES
  uefifind.cpp
  ../common/guiddatabase.cpp
  ../common/types.cpp
+ ../common/filesystem.cpp
  ../common/descriptor.cpp
  ../common/ffs.cpp
  ../common/nvram.cpp
