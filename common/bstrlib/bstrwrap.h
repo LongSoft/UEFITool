@@ -52,7 +52,6 @@
 #include <stdlib.h>
 #include "bstrlib.h"
 #include "../ubytearray.h"
-#include "../basetypes.h"
 
 #ifdef __cplusplus
 

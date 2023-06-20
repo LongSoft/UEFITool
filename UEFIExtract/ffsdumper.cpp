@@ -33,8 +33,9 @@ USTATUS FfsDumper::dump(const UModelIndex & root, const UString & path, const Du
         printf("Error %zu returned from recursiveDump (directory \"%s\").\n", result, (const char*)path.toLocal8Bit());
         return result;
     } else if (!dumped) {
-        removeDirectory(path);
-        printf("Removed directory \"%s\" since nothing was dumped.\n", (const char*)path.toLocal8Bit());
+        if (removeDirectory(path)) {
+            printf("Removed directory \"%s\" since nothing was dumped.\n", (const char*)path.toLocal8Bit());
+        }
         return U_ITEM_NOT_FOUND;
     }
 

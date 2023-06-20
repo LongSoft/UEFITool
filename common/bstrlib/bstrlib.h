@@ -22,12 +22,17 @@ extern "C" {
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
-#include "../basetypes.h"
 
 #if !defined (BSTRLIB_VSNP_OK) && !defined (BSTRLIB_NOVSNP)
 # if defined (__TURBOC__) && !defined (__BORLANDC__)
 #  define BSTRLIB_NOVSNP
 # endif
+#endif
+
+#if defined(__clang__) || defined(__GNUC__)
+#define ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
+#else
+#define ATTRIBUTE_FORMAT_(t,f,a)
 #endif
 
 #define BSTR_ERR (-1)

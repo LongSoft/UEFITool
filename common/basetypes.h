@@ -226,10 +226,4 @@ typedef struct EFI_TIME_ {
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
-#if defined(__clang__) || defined(__GNUC__)
-#define ATTRIBUTE_FORMAT_(t,f,a) __attribute__((format(t, f, a)))
-#else
-#define ATTRIBUTE_FORMAT_(t,f,a)
-#endif
-
 #endif // BASETYPES_H

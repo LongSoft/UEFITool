@@ -159,7 +159,7 @@ jobs:
       - name: Configure UEFIExtract
         shell: bash
         working-directory: ${{runner.workspace}}/build/UEFIExtract
-        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIExtract/
+        run: cmake -G "Visual Studio 16 2019" -A Win32 -T "v141_xp" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ../../UEFITool/UEFIExtract/
       - name: Build UEFIExtract
         working-directory: ${{runner.workspace}}/build/UEFIExtract
         shell: bash
@@ -175,7 +175,7 @@ jobs:
       - name: Configure UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
         shell: bash
-        run: cmake -G "Visual Studio 16 2019" -T "v141_xp" ../../UEFITool/UEFIFind/
+        run: cmake -G "Visual Studio 16 2019" -A Win32 -T "v141_xp" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ../../UEFITool/UEFIFind/
       - name: Build UEFIFind
         working-directory: ${{runner.workspace}}/build/UEFIFind
         shell: bash
@@ -238,7 +238,7 @@ jobs:
       - name: Configure everything
         working-directory: ${{runner.workspace}}/build
         shell: cmd
-        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.5.0-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" ../UEFITool
+        run: cmake -DCMAKE_PREFIX_PATH="D:\a\UEFITool\qt-6.5.0-static-x64-msvc2022" -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" -A x64 ../UEFITool
       - name: Build everything
         working-directory: ${{runner.workspace}}/build
         shell: bash

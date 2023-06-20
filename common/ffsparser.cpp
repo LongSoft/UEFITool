@@ -1135,7 +1135,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         msgInvalidChecksum = true;
     
     // Get info
-    if (headerSize >= volume.size()) {
+    if (headerSize >= (UINT32)volume.size()) {
         return U_INVALID_VOLUME;
     }
     UByteArray header = volume.left(headerSize);
@@ -1166,7 +1166,7 @@ USTATUS FfsParser::parseVolumeHeader(const UByteArray & volume, const UINT32 loc
         return U_INVALID_VOLUME;
     }
     if (volumeHeader->Revision > 1 && volumeHeader->ExtHeaderOffset) {
-        if (volume.size() < volumeHeader->ExtHeaderOffset + sizeof(EFI_FIRMWARE_VOLUME_EXT_HEADER)) {
+        if ((UINT32)volume.size() < volumeHeader->ExtHeaderOffset + sizeof(EFI_FIRMWARE_VOLUME_EXT_HEADER)) {
             return U_INVALID_VOLUME;
         }
         const EFI_FIRMWARE_VOLUME_EXT_HEADER* extendedHeader = (const EFI_FIRMWARE_VOLUME_EXT_HEADER*)(volume.constData() + volumeHeader->ExtHeaderOffset);

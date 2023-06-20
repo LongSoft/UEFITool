@@ -32,13 +32,11 @@ UEFIFind::~UEFIFind()
 
 USTATUS UEFIFind::init(const UString & path)
 {
-    USTATUS result;
     UByteArray buffer;
-    result = readFileIntoBuffer(path, buffer);
-    if (result)
-        return result;
+    if (false == readFileIntoBuffer(path, buffer))
+        return U_FILE_OPEN;
 
-    result = ffsParser->parse(buffer);
+    USTATUS result = ffsParser->parse(buffer);
     if (result)
         return result;
 

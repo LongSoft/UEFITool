@@ -14,15 +14,14 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
 
-#include "basetypes.h"
 #include "ustring.h"
 #include "ubytearray.h"
 
 bool isExistOnFs(const UString& path);
 bool makeDirectory(const UString& dir);
 bool changeDirectory(const UString& dir);
-void removeDirectory(const UString& dir);
+bool removeDirectory(const UString& dir);
+bool readFileIntoBuffer(const UString& inPath, UByteArray& buf);
 UString getAbsPath(const UString& path);
-USTATUS readFileIntoBuffer(const UString& inPath, UByteArray& buf);
 
 #endif

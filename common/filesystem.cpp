@@ -15,76 +15,90 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <sys/stat.h>
 #include <fstream>
 
-USTATUS readFileIntoBuffer(const UString& inPath, UByteArray& buf) {
+bool readFileIntoBuffer(const UString& inPath, UByteArray& buf) 
+{
     if (!isExistOnFs(inPath))
-        return U_FILE_OPEN;
+        return false;
 
     std::ifstream inputFile(inPath.toLocal8Bit(), std::ios::in | std::ios::binary);
     if (!inputFile)
-        return U_FILE_OPEN;
+        return false;
     std::vector<char> buffer(std::istreambuf_iterator<char>(inputFile),
         (std::istreambuf_iterator<char>()));
     inputFile.close();
 
     buf = buffer;
 
-    return U_SUCCESS;
+    return true;
 }
-
 
 #if defined(_WIN32) || defined(__MINGW32__)
 #include <direct.h>
 #include <stdlib.h>
-bool isExistOnFs(const UString & path) {
+bool isExistOnFs(const UString & path) 
+{
     struct _stat buf;
     return (_stat(path.toLocal8Bit(), &buf) == 0);
 }
 
-bool makeDirectory(const UString & dir) {
+bool makeDirectory(const UString & dir) 
+{
     return (_mkdir(dir.toLocal8Bit()) == 0);
 }
 
-bool changeDirectory(const UString & dir) {
+bool changeDirectory(const UString & dir) 
+{
     return (_chdir(dir.toLocal8Bit()) == 0);
 }
 
-void removeDirectory(const UString & dir) {
+bool removeDirectory(const UString & dir) 
+{
     int r = _rmdir(dir.toLocal8Bit());
-    // Hack: unlike *nix, Windows does not permit deleting current directories.
+    // Hack: unlike *nix, Windows does not permit deleting current directories
     if (r < 0 && errno == EACCES && changeDirectory(dir + UString("/../"))) {
-        (void)_rmdir(dir.toLocal8Bit());
+        return (_rmdir(dir.toLocal8Bit()) == 0);
     }
+    return (r == 0);
 }
 
-UString getAbsPath(const UString & path) {
-    char abs[_MAX_PATH] = {};
-    if (_fullpath(abs, path.toLocal8Bit(), sizeof(abs)))
-        return UString(abs);
-    return path;
+UString getAbsPath(const UString & path) 
+{
+    char * abs = (char*)calloc(0x8000, 1);
+    UString new_path;
+    if (_fullpath(abs, path.toLocal8Bit(), 0x8000))
+        new_path = UString(abs);
+    else
+        new_path = path;
+    free(abs);
+    return new_path;
 }
 #else
 #include <unistd.h>
 #include <stdlib.h>
-bool isExistOnFs(const UString & path) {
+bool isExistOnFs(const UString & path) 
+{
     struct stat buf;
     return (stat(path.toLocal8Bit(), &buf) == 0);
 }
 
-bool makeDirectory(const UString & dir) {
+bool makeDirectory(const UString & dir) 
+{
     return (mkdir(dir.toLocal8Bit(), ACCESSPERMS) == 0);
 }
 
-void removeDirectory(const UString & dir) {
-    rmdir(dir.toLocal8Bit());
+bool removeDirectory(const UString & dir) 
+{
+    return (rmdir(dir.toLocal8Bit()) == 0);
 }
 
-bool changeDirectory(const UString & dir) {
+bool changeDirectory(const UString & dir) 
+{
     return (chdir(dir.toLocal8Bit()) == 0);
 }
 
 UString getAbsPath(const UString & path) {
     char abs[PATH_MAX] = {};
-    // Last is a non-standard extension for non-existent files.
+    // Last is a non-standard extension for non-existent files
     if (realpath(path.toLocal8Bit(), abs) || abs[0] != '\0')
         return UString(abs);
     return path;

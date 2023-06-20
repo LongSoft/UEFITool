@@ -72,9 +72,8 @@ int main(int argc, char *argv[])
     USTATUS result;
     UByteArray buffer;
     UString path = getAbsPath(argv[1]);
-    result = readFileIntoBuffer(path, buffer);
-    if (result)
-        return result;
+    if (false == readFileIntoBuffer(path, buffer))
+        return U_FILE_OPEN;
     
     // Hack to support legacy UEFIDump mode
     if (argc == 3 && !std::strcmp(argv[2], "unpack")) {
