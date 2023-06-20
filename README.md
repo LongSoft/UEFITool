@@ -29,7 +29,7 @@ The missing parts are in development and the version with a new engine will be m
 
 There are some other projects that use UEFITool's engine:
 * UEFIExtract, which uses ffsParser to parse supplied firmware image into a tree structure and dumps the parsed structure recursively on the FS. Jethro Beekman's [tree](https://github.com/jethrogb/uefireverse) utility can be used to work with the extracted tree.
-* UEFIFind, which uses ffsParser to find image elements containing a specified pattern. It was developed for [UBU](http://www.win-raid.com/t154f16-Tool-Guide-News-quot-UEFI-BIOS-Updater-quot-UBU.html) project.
+* UEFIFind, which uses ffsParser to find image elements containing a specified pattern. It was developed for [UBU](https://winraid.level1techs.com/t/tool-guide-news-uefi-bios-updater-ubu/30357) project.
 
 ## Alternatives
 
