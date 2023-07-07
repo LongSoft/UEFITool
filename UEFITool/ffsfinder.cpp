@@ -19,6 +19,14 @@
 #include <QRegExp>
 #endif
 
+USTATUS FfsFinder::findHexPattern(const UByteArray & hexPattern, const UINT8 mode) {
+    const UModelIndex rootIndex = model->index(0, 0);
+    USTATUS ret = findHexPattern(rootIndex, hexPattern, mode);
+    if (ret != U_SUCCESS)
+        msg(UString("Hex pattern \"") + UString(hexPattern) + UString("\" could not be found"), rootIndex);
+    return ret;
+}
+
 USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & hexPattern, const UINT8 mode)
 {
     if (!index.isValid())
@@ -31,9 +39,11 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
     if (hexPattern.count('.') == hexPattern.length())
         return U_SUCCESS;
     
+    USTATUS ret = U_ITEM_NOT_FOUND;
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findHexPattern(index.model()->index(i, index.column(), index), hexPattern, mode);
+        if (U_SUCCESS == findHexPattern(index.model()->index(i, index.column(), index), hexPattern, mode))
+            ret = U_SUCCESS;
     }
     
     UByteArray data;
@@ -83,6 +93,7 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
                     + UString("\" in ") + name
                     + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                     index);
+                ret = U_SUCCESS;
             }
         }
 
@@ -93,7 +104,15 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
 #endif
     }
 
-    return U_SUCCESS;
+    return ret;
+}
+
+USTATUS FfsFinder::findGuidPattern(const UByteArray & guidPattern, const UINT8 mode) {
+    const UModelIndex rootIndex = model->index(0, 0);
+    USTATUS ret = findGuidPattern(rootIndex, guidPattern, mode);
+    if (ret != U_SUCCESS)
+        msg(UString("GUID pattern \"") + UString(guidPattern) + UString("\" could not be found"), rootIndex);
+    return ret;
 }
 
 USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray & guidPattern, const UINT8 mode)
@@ -104,9 +123,11 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
     if (!index.isValid())
         return U_SUCCESS;
 
+    USTATUS ret = U_ITEM_NOT_FOUND;
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findGuidPattern(index.model()->index(i, index.column(), index), guidPattern, mode);
+        if (U_SUCCESS == findGuidPattern(index.model()->index(i, index.column(), index), guidPattern, mode))
+            ret = U_SUCCESS;
     }
 
     UByteArray data;
@@ -174,6 +195,7 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
                 + UString("\" in ") + name
                 + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset / 2),
                 index);
+            ret = U_SUCCESS;
         }
 
 #if QT_VERSION_MAJOR >= 6
@@ -183,7 +205,16 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
 #endif
     }
 
-    return U_SUCCESS;
+    return ret;
+}
+
+USTATUS FfsFinder::findTextPattern(const UString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive) {
+    const UModelIndex rootIndex = model->index(0, 0);
+    USTATUS ret = findTextPattern(rootIndex, pattern, mode, unicode, caseSensitive);
+    if (ret != U_SUCCESS)
+        msg((unicode ? UString("Unicode") : UString("ASCII")) + UString(" text \"")
+            + UString(pattern) + UString("\" could not be found"), rootIndex);
+    return ret;
 }
 
 USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pattern, const UINT8 mode, const bool unicode, const Qt::CaseSensitivity caseSensitive)
@@ -194,9 +225,11 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
     if (!index.isValid())
         return U_SUCCESS;
 
+    USTATUS ret = U_ITEM_NOT_FOUND;
     bool hasChildren = (model->rowCount(index) > 0);
     for (int i = 0; i < model->rowCount(index); i++) {
-        findTextPattern(index.model()->index(i, index.column(), index), pattern, mode, unicode, caseSensitive);
+        if (U_SUCCESS == findTextPattern(index.model()->index(i, index.column(), index), pattern, mode, unicode, caseSensitive))
+            ret = U_SUCCESS;
     }
 
     UByteArray body;
@@ -236,7 +269,8 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
             + UString("\" found in ") + name
             + usprintf(" at %s-offset %02Xh", mode == SEARCH_MODE_BODY ? "body" : "header", offset),
             index);
+        ret = U_SUCCESS;
     }
 
-    return U_SUCCESS;
+    return ret;
 }

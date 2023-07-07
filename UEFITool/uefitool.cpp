@@ -305,8 +305,6 @@ void UEFITool::search()
     if (searchDialog->exec() != QDialog::Accepted)
         return;
     
-    QModelIndex rootIndex = model->index(0, 0);
-    
     int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
         searchDialog->ui->hexEdit->setFocus();
@@ -320,7 +318,7 @@ void UEFITool::search()
             mode = SEARCH_MODE_BODY;
         else
             mode = SEARCH_MODE_ALL;
-        ffsFinder->findHexPattern(rootIndex, pattern, mode);
+        ffsFinder->findHexPattern(pattern, mode);
         showFinderMessages();
     }
     else if (index == 1) { // GUID
@@ -336,7 +334,7 @@ void UEFITool::search()
             mode = SEARCH_MODE_BODY;
         else
             mode = SEARCH_MODE_ALL;
-        ffsFinder->findGuidPattern(rootIndex, pattern, mode);
+        ffsFinder->findGuidPattern(pattern, mode);
         showFinderMessages();
     }
     else if (index == 2) { // Text string
@@ -351,7 +349,7 @@ void UEFITool::search()
             mode = SEARCH_MODE_BODY;
         else
             mode = SEARCH_MODE_ALL;
-        ffsFinder->findTextPattern(rootIndex, pattern, mode, searchDialog->ui->textUnicodeCheckBox->isChecked(),
+        ffsFinder->findTextPattern(pattern, mode, searchDialog->ui->textUnicodeCheckBox->isChecked(),
                                    (Qt::CaseSensitivity) searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
         showFinderMessages();
     }
