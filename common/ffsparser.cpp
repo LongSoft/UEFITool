@@ -1403,8 +1403,10 @@ continue_searching: {}
             }
             
             // Check size candidate
-            if (sizeCandidate == 0)
+            if (sizeCandidate == 0 || sizeCandidate > restSize) {
+                msg(usprintf("%s: invalid BpdtStore size (sizeCandidate = 0x%x, restSize = 0x%x)", __FUNCTION__, sizeCandidate, restSize), index);
                 continue;
+            }
             
             // All checks passed, BPDT found
             nextItemType = Types::BpdtStore;
