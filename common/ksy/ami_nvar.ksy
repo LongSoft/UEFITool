@@ -125,7 +125,7 @@ types:
       and _parent.attributes.extended_header
       and _parent.size > sizeof<u4> + sizeof<u2> + sizeof<u4> + sizeof<u2>
     extended_header_size:
-     value: '_parent.attributes.extended_header ? (extended_header_size_field >= sizeof<nvar_extended_attributes> + sizeof<u2> ? extended_header_size_field : 0) : 0'
+     value: '(_parent.attributes.extended_header and _parent.attributes.valid and (_parent.size > sizeof<u4> + sizeof<u2> + sizeof<u4> + sizeof<u2>)) ? (extended_header_size_field >= sizeof<nvar_extended_attributes> + sizeof<u2> ? extended_header_size_field : 0) : 0'
     extended_header_attributes:
      pos: _io.pos - extended_header_size
      type: nvar_extended_attributes

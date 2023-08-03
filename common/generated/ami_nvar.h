@@ -1,10 +1,10 @@
-#pragma once
+#ifndef AMI_NVAR_H_
+#define AMI_NVAR_H_
 
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 #include "../kaitai/kaitaistruct.h"
 #include <stdint.h>
-#include <memory>
 #include <vector>
 
 #if KAITAI_STRUCT_VERSION < 9000L
@@ -20,7 +20,7 @@ public:
     class nvar_entry_t;
     class nvar_entry_body_t;
 
-    ami_nvar_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = nullptr, ami_nvar_t* p__root = nullptr);
+    ami_nvar_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = 0, ami_nvar_t* p__root = 0);
 
 private:
     void _read();
@@ -33,7 +33,7 @@ public:
 
     public:
 
-        nvar_attributes_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_t* p__parent = nullptr, ami_nvar_t* p__root = nullptr);
+        nvar_attributes_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_t* p__parent = 0, ami_nvar_t* p__root = 0);
 
     private:
         void _read();
@@ -71,7 +71,7 @@ public:
 
     public:
 
-        ucs2_string_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_body_t* p__parent = nullptr, ami_nvar_t* p__root = nullptr);
+        ucs2_string_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_body_t* p__parent = 0, ami_nvar_t* p__root = 0);
 
     private:
         void _read();
@@ -81,12 +81,12 @@ public:
         ~ucs2_string_t();
 
     private:
-        std::unique_ptr<std::vector<uint16_t>> m_ucs2_chars;
+        std::vector<uint16_t>* m_ucs2_chars;
         ami_nvar_t* m__root;
         ami_nvar_t::nvar_entry_body_t* m__parent;
 
     public:
-        std::vector<uint16_t>* ucs2_chars() const { return m_ucs2_chars.get(); }
+        std::vector<uint16_t>* ucs2_chars() const { return m_ucs2_chars; }
         ami_nvar_t* _root() const { return m__root; }
         ami_nvar_t::nvar_entry_body_t* _parent() const { return m__parent; }
     };
@@ -95,7 +95,7 @@ public:
 
     public:
 
-        nvar_extended_attributes_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_body_t* p__parent = nullptr, ami_nvar_t* p__root = nullptr);
+        nvar_extended_attributes_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_body_t* p__parent = 0, ami_nvar_t* p__root = 0);
 
     private:
         void _read();
@@ -127,7 +127,7 @@ public:
 
     public:
 
-        nvar_entry_t(kaitai::kstream* p__io, ami_nvar_t* p__parent = nullptr, ami_nvar_t* p__root = nullptr);
+        nvar_entry_t(kaitai::kstream* p__io, ami_nvar_t* p__parent = 0, ami_nvar_t* p__root = 0);
 
     private:
         void _read();
@@ -180,14 +180,14 @@ public:
         bool _is_null_next() { next(); return n_next; };
 
     private:
-        std::unique_ptr<nvar_attributes_t> m_attributes;
+        nvar_attributes_t* m_attributes;
         bool n_attributes;
 
     public:
         bool _is_null_attributes() { attributes(); return n_attributes; };
 
     private:
-        std::unique_ptr<nvar_entry_body_t> m_body;
+        nvar_entry_body_t* m_body;
         bool n_body;
 
     public:
@@ -210,7 +210,7 @@ public:
         bool _is_null__raw_body() { _raw_body(); return n__raw_body; };
 
     private:
-        std::unique_ptr<kaitai::kstream> m__io__raw_body;
+        kaitai::kstream* m__io__raw_body;
 
     public:
         std::string invoke_offset() const { return m_invoke_offset; }
@@ -218,20 +218,20 @@ public:
         std::string signature_rest() const { return m_signature_rest; }
         uint16_t size() const { return m_size; }
         uint64_t next() const { return m_next; }
-        nvar_attributes_t* attributes() const { return m_attributes.get(); }
-        nvar_entry_body_t* body() const { return m_body.get(); }
+        nvar_attributes_t* attributes() const { return m_attributes; }
+        nvar_entry_body_t* body() const { return m_body; }
         std::string invoke_end_offset() const { return m_invoke_end_offset; }
         ami_nvar_t* _root() const { return m__root; }
         ami_nvar_t* _parent() const { return m__parent; }
         std::string _raw_body() const { return m__raw_body; }
-        kaitai::kstream* _io__raw_body() const { return m__io__raw_body.get(); }
+        kaitai::kstream* _io__raw_body() const { return m__io__raw_body; }
     };
 
     class nvar_entry_body_t : public kaitai::kstruct {
 
     public:
 
-        nvar_entry_body_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_t* p__parent = nullptr, ami_nvar_t* p__root = nullptr);
+        nvar_entry_body_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_t* p__parent = 0, ami_nvar_t* p__root = 0);
 
     private:
         void _read();
@@ -242,7 +242,7 @@ public:
 
     private:
         bool f_extended_header_attributes;
-        std::unique_ptr<nvar_extended_attributes_t> m_extended_header_attributes;
+        nvar_extended_attributes_t* m_extended_header_attributes;
         bool n_extended_header_attributes;
 
     public:
@@ -355,7 +355,7 @@ public:
         bool _is_null_ascii_name() { ascii_name(); return n_ascii_name; };
 
     private:
-        std::unique_ptr<ucs2_string_t> m_ucs2_name;
+        ucs2_string_t* m_ucs2_name;
         bool n_ucs2_name;
 
     public:
@@ -377,7 +377,7 @@ public:
         uint8_t guid_index() const { return m_guid_index; }
         std::string guid() const { return m_guid; }
         std::string ascii_name() const { return m_ascii_name; }
-        ucs2_string_t* ucs2_name() const { return m_ucs2_name.get(); }
+        ucs2_string_t* ucs2_name() const { return m_ucs2_name; }
         std::string invoke_data_start() const { return m_invoke_data_start; }
         std::string data() const { return m_data; }
         ami_nvar_t* _root() const { return m__root; }
@@ -385,12 +385,14 @@ public:
     };
 
 private:
-    std::unique_ptr<std::vector<std::unique_ptr<nvar_entry_t>>> m_entries;
+    std::vector<nvar_entry_t*>* m_entries;
     ami_nvar_t* m__root;
     kaitai::kstruct* m__parent;
 
 public:
-    std::vector<std::unique_ptr<nvar_entry_t>>* entries() const { return m_entries.get(); }
+    std::vector<nvar_entry_t*>* entries() const { return m_entries; }
     ami_nvar_t* _root() const { return m__root; }
     kaitai::kstruct* _parent() const { return m__parent; }
 };
+
+#endif  // AMI_NVAR_H_
