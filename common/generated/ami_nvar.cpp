@@ -6,24 +6,18 @@
 ami_nvar_t::ami_nvar_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, ami_nvar_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = this;
-    m_entries = 0;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    m_entries = nullptr;
+    _read();
 }
 
 void ami_nvar_t::_read() {
-    m_entries = new std::vector<nvar_entry_t*>();
+    m_entries = std::unique_ptr<std::vector<std::unique_ptr<nvar_entry_t>>>(new std::vector<std::unique_ptr<nvar_entry_t>>());
     {
         int i = 0;
         nvar_entry_t* _;
         do {
             _ = new nvar_entry_t(m__io, this, m__root);
-            m_entries->push_back(_);
+            m_entries->push_back(std::move(std::unique_ptr<nvar_entry_t>(_)));
             i++;
         } while (!( ((_->signature_first() != 78) || (_io()->is_eof())) ));
     }
@@ -34,24 +28,12 @@ ami_nvar_t::~ami_nvar_t() {
 }
 
 void ami_nvar_t::_clean_up() {
-    if (m_entries) {
-        for (std::vector<nvar_entry_t*>::iterator it = m_entries->begin(); it != m_entries->end(); ++it) {
-            delete *it;
-        }
-        delete m_entries; m_entries = 0;
-    }
 }
 
 ami_nvar_t::nvar_attributes_t::nvar_attributes_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_t* p__parent, ami_nvar_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    _read();
 }
 
 void ami_nvar_t::nvar_attributes_t::_read() {
@@ -75,18 +57,12 @@ void ami_nvar_t::nvar_attributes_t::_clean_up() {
 ami_nvar_t::ucs2_string_t::ucs2_string_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_body_t* p__parent, ami_nvar_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
-    m_ucs2_chars = 0;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    m_ucs2_chars = nullptr;
+    _read();
 }
 
 void ami_nvar_t::ucs2_string_t::_read() {
-    m_ucs2_chars = new std::vector<uint16_t>();
+    m_ucs2_chars = std::unique_ptr<std::vector<uint16_t>>(new std::vector<uint16_t>());
     {
         int i = 0;
         uint16_t _;
@@ -103,21 +79,12 @@ ami_nvar_t::ucs2_string_t::~ucs2_string_t() {
 }
 
 void ami_nvar_t::ucs2_string_t::_clean_up() {
-    if (m_ucs2_chars) {
-        delete m_ucs2_chars; m_ucs2_chars = 0;
-    }
 }
 
 ami_nvar_t::nvar_extended_attributes_t::nvar_extended_attributes_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_body_t* p__parent, ami_nvar_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    _read();
 }
 
 void ami_nvar_t::nvar_extended_attributes_t::_read() {
@@ -138,18 +105,12 @@ void ami_nvar_t::nvar_extended_attributes_t::_clean_up() {
 ami_nvar_t::nvar_entry_t::nvar_entry_t(kaitai::kstream* p__io, ami_nvar_t* p__parent, ami_nvar_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
-    m_attributes = 0;
-    m_body = 0;
-    m__io__raw_body = 0;
+    m_attributes = nullptr;
+    m_body = nullptr;
+    m__io__raw_body = nullptr;
     f_offset = false;
     f_end_offset = false;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    _read();
 }
 
 void ami_nvar_t::nvar_entry_t::_read() {
@@ -187,14 +148,14 @@ void ami_nvar_t::nvar_entry_t::_read() {
     n_attributes = true;
     if (signature_first() == 78) {
         n_attributes = false;
-        m_attributes = new nvar_attributes_t(m__io, this, m__root);
+        m_attributes = std::unique_ptr<nvar_attributes_t>(new nvar_attributes_t(m__io, this, m__root));
     }
     n_body = true;
     if (signature_first() == 78) {
         n_body = false;
         m__raw_body = m__io->read_bytes((size() - ((4 + 2) + 4)));
-        m__io__raw_body = new kaitai::kstream(m__raw_body);
-        m_body = new nvar_entry_body_t(m__io__raw_body, this, m__root);
+        m__io__raw_body = std::unique_ptr<kaitai::kstream>(new kaitai::kstream(m__raw_body));
+        m_body = std::unique_ptr<nvar_entry_body_t>(new nvar_entry_body_t(m__io__raw_body.get(), this, m__root));
     }
     n_invoke_end_offset = true;
     if ( ((signature_first() == 78) && (end_offset() >= 0)) ) {
@@ -217,17 +178,8 @@ void ami_nvar_t::nvar_entry_t::_clean_up() {
     if (!n_next) {
     }
     if (!n_attributes) {
-        if (m_attributes) {
-            delete m_attributes; m_attributes = 0;
-        }
     }
     if (!n_body) {
-        if (m__io__raw_body) {
-            delete m__io__raw_body; m__io__raw_body = 0;
-        }
-        if (m_body) {
-            delete m_body; m_body = 0;
-        }
     }
     if (!n_invoke_end_offset) {
     }
@@ -252,8 +204,8 @@ int32_t ami_nvar_t::nvar_entry_t::end_offset() {
 ami_nvar_t::nvar_entry_body_t::nvar_entry_body_t(kaitai::kstream* p__io, ami_nvar_t::nvar_entry_t* p__parent, ami_nvar_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
     m__root = p__root;
-    m_ucs2_name = 0;
-    m_extended_header_attributes = 0;
+    m_ucs2_name = nullptr;
+    m_extended_header_attributes = nullptr;
     f_extended_header_attributes = false;
     f_data_start_offset = false;
     f_extended_header_size_field = false;
@@ -263,13 +215,7 @@ ami_nvar_t::nvar_entry_body_t::nvar_entry_body_t(kaitai::kstream* p__io, ami_nva
     f_data_end_offset = false;
     f_extended_header_size = false;
     f_extended_header_hash = false;
-
-    try {
-        _read();
-    } catch(...) {
-        _clean_up();
-        throw;
-    }
+    _read();
 }
 
 void ami_nvar_t::nvar_entry_body_t::_read() {
@@ -291,7 +237,7 @@ void ami_nvar_t::nvar_entry_body_t::_read() {
     n_ucs2_name = true;
     if ( ((!(_parent()->attributes()->ascii_name())) && (!(_parent()->attributes()->data_only())) && (_parent()->attributes()->valid())) ) {
         n_ucs2_name = false;
-        m_ucs2_name = new ucs2_string_t(m__io, this, m__root);
+        m_ucs2_name = std::unique_ptr<ucs2_string_t>(new ucs2_string_t(m__io, this, m__root));
     }
     n_invoke_data_start = true;
     if (data_start_offset() >= 0) {
@@ -313,16 +259,10 @@ void ami_nvar_t::nvar_entry_body_t::_clean_up() {
     if (!n_ascii_name) {
     }
     if (!n_ucs2_name) {
-        if (m_ucs2_name) {
-            delete m_ucs2_name; m_ucs2_name = 0;
-        }
     }
     if (!n_invoke_data_start) {
     }
     if (f_extended_header_attributes && !n_extended_header_attributes) {
-        if (m_extended_header_attributes) {
-            delete m_extended_header_attributes; m_extended_header_attributes = 0;
-        }
     }
     if (f_extended_header_size_field && !n_extended_header_size_field) {
     }
@@ -336,17 +276,17 @@ void ami_nvar_t::nvar_entry_body_t::_clean_up() {
 
 ami_nvar_t::nvar_extended_attributes_t* ami_nvar_t::nvar_entry_body_t::extended_header_attributes() {
     if (f_extended_header_attributes)
-        return m_extended_header_attributes;
+        return m_extended_header_attributes.get();
     n_extended_header_attributes = true;
     if ( ((_parent()->attributes()->valid()) && (_parent()->attributes()->extended_header()) && (extended_header_size() >= (1 + 2))) ) {
         n_extended_header_attributes = false;
         std::streampos _pos = m__io->pos();
         m__io->seek((_io()->pos() - extended_header_size()));
-        m_extended_header_attributes = new nvar_extended_attributes_t(m__io, this, m__root);
+        m_extended_header_attributes = std::unique_ptr<nvar_extended_attributes_t>(new nvar_extended_attributes_t(m__io, this, m__root));
         m__io->seek(_pos);
         f_extended_header_attributes = true;
     }
-    return m_extended_header_attributes;
+    return m_extended_header_attributes.get();
 }
 
 int32_t ami_nvar_t::nvar_entry_body_t::data_start_offset() {
