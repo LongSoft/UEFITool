@@ -4673,7 +4673,7 @@ make_partition_table_consistent:
                                         manifestHeader->ExponentSize * (UINT32)sizeof(UINT32), manifestHeader->ExponentSize * (UINT32)sizeof(UINT32));
                         
                         // Add tree item
-                        UModelIndex partitionIndex = model->addItem(localOffset + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::ManifestCpdPartition, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+                        UModelIndex partitionIndex = model->addItem(localOffset + header.size() + partitions[i].ptEntry.Offset.Offset, Types::CpdPartition, Subtypes::ManifestCpdPartition, name, UString(), info, header, body, UByteArray(), Fixed, parent);
                         
                         // Parse data as extensions area
                         parseCpdExtensionsArea(partitionIndex);
