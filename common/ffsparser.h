@@ -130,7 +130,7 @@ private:
 
     USTATUS parseBpdtRegion(const UByteArray & region, const UINT32 localOffset, const UINT32 sbpdtOffsetFixup, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseCpdRegion(const UByteArray & region, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseCpdExtensionsArea(const UModelIndex & index);
+    USTATUS parseCpdExtensionsArea(const UModelIndex & index, const UINT32 localOffset);
     USTATUS parseSignedPackageInfoData(const UModelIndex & index);
     
     USTATUS parseRawArea(const UModelIndex & index);
