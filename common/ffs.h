@@ -584,7 +584,7 @@ typedef struct BPDT_ENTRY_ {
     UINT32 SplitSubPartitionFirstPart : 1;
     UINT32 SplitSubPartitionSecondPart : 1;
     UINT32 CodeSubPartition : 1;
-    UINT32 UmaCachable : 1;
+    UINT32 UmaCacheable : 1;
     UINT32 Reserved: 12;
     UINT32 Offset;
     UINT32 Size;
