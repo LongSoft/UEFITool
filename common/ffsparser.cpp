@@ -4215,7 +4215,7 @@ USTATUS FfsParser::parseBpdtRegion(const UByteArray & region, const UINT32 local
         UString("\nSplit sub-partition first part: ") + (ptEntry->SplitSubPartitionFirstPart ? "Yes" : "No") +
         UString("\nSplit sub-partition second part: ") + (ptEntry->SplitSubPartitionSecondPart ? "Yes" : "No") +
         UString("\nCode sub-partition: ") + (ptEntry->CodeSubPartition ? "Yes" : "No") +
-        UString("\nUMA cachable: ") + (ptEntry->UmaCachable ? "Yes" : "No");
+        UString("\nUMA cacheable: ") + (ptEntry->UmaCacheable ? "Yes" : "No");
         
         // Add tree item
         UModelIndex entryIndex = model->addItem(localOffset + offset, Types::BpdtEntry, 0, name, UString(), info, UByteArray(), UByteArray((const char*)ptEntry, sizeof(BPDT_ENTRY)), UByteArray(), Fixed, index);
@@ -4295,7 +4295,7 @@ make_partition_table_consistent:
                 goto make_partition_table_consistent;
             }
             else {
-                msg(usprintf("%s: BPDT partition intersects with prevous one, skipped", __FUNCTION__),
+                msg(usprintf("%s: BPDT partition intersects with previous one, skipped", __FUNCTION__),
                     partitions[i].index);
                 partitions.erase(partitions.begin() + i);
                 goto make_partition_table_consistent;
@@ -4327,7 +4327,7 @@ make_partition_table_consistent:
             UString("\nSplit sub-partition first part: ") + (partitions[i].ptEntry.SplitSubPartitionFirstPart ? "Yes" : "No") +
             UString("\nSplit sub-partition second part: ") + (partitions[i].ptEntry.SplitSubPartitionSecondPart ? "Yes" : "No") +
             UString("\nCode sub-partition: ") + (partitions[i].ptEntry.CodeSubPartition ? "Yes" : "No") +
-            UString("\nUMA cachable: ") + (partitions[i].ptEntry.UmaCachable ? "Yes" : "No");
+            UString("\nUMA cacheable: ") + (partitions[i].ptEntry.UmaCacheable ? "Yes" : "No");
             
             UString text = bpdtEntryTypeToUString(partitions[i].ptEntry.Type);
             
@@ -4858,7 +4858,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index, const UINT3
                 && extHeader->Type != CPD_EXT_TYPE_KEY_MANIFEST_EXT
                 && extHeader->Type != CPD_EXT_TYPE_SIGNED_PACKAGE_INFO_EXT
                 && extHeader->Type != CPD_EXT_TYPE_SPS_PLATFORM_ID) {
-                msg(usprintf("%s: CPD extention of unknown type found", __FUNCTION__), extIndex);
+                msg(usprintf("%s: CPD extension of unknown type found", __FUNCTION__), extIndex);
             }
             
             offset += extHeader->Length;
