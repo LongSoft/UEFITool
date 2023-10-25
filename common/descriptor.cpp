@@ -1,11 +1,11 @@
 /* descriptor.cpp
- 
+
  Copyright (c) 2015, Nikolaj Schlej. All rights reserved.
  This program and the accompanying materials
  are licensed and made available under the terms and conditions of the BSD License
  which accompanies this distribution.  The full text of the license may be found at
  http://opensource.org/licenses/bsd-license.php
- 
+
  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
  WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
  */
@@ -72,7 +72,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0xEF6019: return UString("Winbond W25Q256");
         case 0xEF7118: return UString("Winbond W25M256");
         case 0xEF7119: return UString("Winbond W25M512");
-            
+
         // Macronix
         case 0xC22013: return UString("Macronix MX25L40");
         case 0xC22014: return UString("Macronix MX25L80");
@@ -95,7 +95,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0xC22618: return UString("Macronix MX25L128");
         case 0xC25E16: return UString("Macronix MX25L32");
         case 0xC29517: return UString("Macronix MX25L64");
-            
+
         // Micron
         case 0x202014: return UString("Micron M25P80");
         case 0x202015: return UString("Micron M25P16");
@@ -110,6 +110,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x204017: return UString("Micron XM25QH64C");
         case 0x204018: return UString("Micron XM25QH128C");
         case 0x204019: return UString("Micron XM25QH256C");
+        case 0x204318: return UString("Micron XM25RH128C");
         case 0x207114: return UString("Micron M25PX80");
         case 0x207115: return UString("Micron M25PX16");
         case 0x207116: return UString("Micron M25PX32");
@@ -132,7 +133,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x20BB18: return UString("Micron MT25Q128");
         case 0x20BB19: return UString("Micron MT25Q256");
         case 0x20BB20: return UString("Micron MT25Q512");
-            
+
         // Intel
         case 0x898911: return UString("Intel 25F160S33B8");
         case 0x898912: return UString("Intel 25F320S33B8");
@@ -140,7 +141,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x898915: return UString("Intel 25F160S33T8");
         case 0x898916: return UString("Intel 25F320S33T8");
         case 0x898917: return UString("Intel 25F640S33T8");
-            
+
         // Atmel / Adesto
         case 0x1F3217: return UString("Atmel AT25SF641");
         case 0x1F4216: return UString("Atmel AT25SL321");
@@ -158,14 +159,14 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x1F7018: return UString("Atmel AT25QF128");
         case 0x1F8600: return UString("Atmel AT25DQ161");
         case 0x1F8800: return UString("Atmel AT25DQ641");
-            
+
         // Microchip
         case 0xBF2541: return UString("Microchip SST25VF016B");
         case 0xBF254A: return UString("Microchip SST25VF032B");
         case 0xBF258D: return UString("Microchip SST25VF040B");
         case 0xBF258E: return UString("Microchip SST25VF080B");
         case 0xBF254B: return UString("Microchip SST25VF064C");
-            
+
         // EON / ESMT
         case 0x1C3013: return UString("EON EN25Q40");
         case 0x1C3014: return UString("EON EN25Q80");
@@ -190,7 +191,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x1C7017: return UString("EON EN25QH64");
         case 0x1C7018: return UString("EON EN25QH128");
         case 0x1C7019: return UString("EON EN25QH256");
-            
+
         // GigaDevice
         case 0xC84014: return UString("GigaDevice GD25x80");
         case 0xC84015: return UString("GigaDevice GD25x16");
@@ -202,24 +203,24 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0xC86017: return UString("GigaDevice GD25Lx64");
         case 0xC86018: return UString("GigaDevice GD25Lx128");
         case 0xC86019: return UString("GigaDevice GD25LQ256C");
-            
+
         // Fidelix
         case 0xF83215: return UString("Fidelix FM25Q16");
         case 0xF83216: return UString("Fidelix FM25Q32");
         case 0xF83217: return UString("Fidelix FM25Q64");
         case 0xF83218: return UString("Fidelix FM25Q128");
-            
+
         // Spansion
         case 0x014015: return UString("Spansion S25FL116K");
         case 0x014016: return UString("Spansion S25FL132K");
         case 0x014017: return UString("Spansion S25FL164K");
-            
+
         // AMIC Technology
         case 0x373015: return UString("AMIC A25L016");
         case 0x373016: return UString("AMIC A25L032");
         case 0x374015: return UString("AMIC A25LQ16");
         case 0x374016: return UString("AMIC A25LQ32A");
-            
+
         // PMC
         case 0x9DF713: return UString("PMC Pm25LV080B");
         case 0x9DF714: return UString("PMC Pm25LV016B");
@@ -230,7 +231,7 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x9DF77C: return UString("PMC Pm25LV010A");
         case 0x9DF77D: return UString("PMC Pm25LV020");
         case 0x9DF77E: return UString("PMC Pm25LV040");
-            
+
         // ISSI
         case 0x9D6014: return UString("ISSI Ix25LP080");
         case 0x9D6015: return UString("ISSI Ix25LP016");
@@ -245,6 +246,6 @@ UString jedecIdToUString(UINT8 vendorId, UINT8 deviceId0, UINT8 deviceId1)
         case 0x9D7018: return UString("ISSI Ix25WP128");
         case 0x9D7019: return UString("ISSI Ix25WP256");
     }
-    
+
     return usprintf("Unknown %08Xh", jedecId);
 }
