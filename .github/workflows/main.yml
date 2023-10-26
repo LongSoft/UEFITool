@@ -394,7 +394,7 @@ jobs:
           distribution: 'zulu'
           java-version: 17
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v1
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
       - name: Run build-wrapper
         run: |
           cmake -B build .
