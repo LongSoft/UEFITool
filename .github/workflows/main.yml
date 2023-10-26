@@ -388,6 +388,11 @@ jobs:
           version: '6.5.0'
           host: 'linux'
           target: 'desktop'
+      - name: Install JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: 17
       - name: Install sonar-scanner and build-wrapper
         uses: SonarSource/sonarcloud-github-c-cpp@v1
       - name: Run build-wrapper
