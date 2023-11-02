@@ -375,7 +375,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
         partitions.push_back(partition);
     }
     // Add boot partitions
-    for (UINT8 i = 0 ; i < 4; i++) {
+    for (UINT8 i = 0 ; i < 5; i++) {
         if (ifwiHeader->BootPartition[i].Offset != 0 && ifwiHeader->BootPartition[i].Offset != 0xFFFFFFFF) {
             IFWI_PARTITION_INFO partition = {};
             partition.type = Types::IfwiPartition;
@@ -551,7 +551,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
         partitions.push_back(partition);
     }
     // Add boot partitions
-    for (UINT8 i = 0 ; i < 4; i++) {
+    for (UINT8 i = 0 ; i < 5; i++) {
         if (ifwiHeader->BootPartition[i].Offset != 0 && ifwiHeader->BootPartition[i].Offset != 0xFFFFFFFF) {
             IFWI_PARTITION_INFO partition = {};
             partition.type = Types::IfwiPartition;
@@ -671,8 +671,15 @@ make_partition_table_consistent:
             }
             else if (partitions[i].subtype == Subtypes::BootIfwiPartition) {
                 // Parse code partition contents
-                UModelIndex bootPartitionBpdtRegionIndex;
-                ffsParser->parseBpdtRegion(partition, 0, 0, partitionIndex, bootPartitionBpdtRegionIndex);
+                UModelIndex bootPartitionRegionIndex;
+                if (*(UINT32*)partition.constData() == FPT_HEADER_SIGNATURE) {
+                    // Parse as FptRegion
+                    parseFptRegion(partition, partitionIndex, bootPartitionRegionIndex);
+                }
+                else {
+                    // Parse as BpdtRegion
+                    ffsParser->parseBpdtRegion(partition, 0, 0, partitionIndex, bootPartitionRegionIndex);
+                }
             }
         }
         else if (partitions[i].type == Types::Padding) {
