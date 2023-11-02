@@ -107,12 +107,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build on FreeBSD inside macOS VM
         id: test
-        uses: vmactions/freebsd-vm@v0
+        uses: cross-platform-actions/action@v0.21.0
         with:
-          usesh: true
-          prepare: |
-            pkg install -y zip cmake qt6-base
+          operating_system: freebsd
+          version: '13.1'
+          shell: sh
           run: |
+            sudo pkg install -y zip cmake qt6-base
             mkdir dist
             mkdir build
             cd build
