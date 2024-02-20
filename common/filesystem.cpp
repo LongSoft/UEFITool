@@ -75,6 +75,9 @@ UString getAbsPath(const UString & path)
 #else
 #include <unistd.h>
 #include <stdlib.h>
+#if !defined(ACCESSPERMS)
+#define ACCESSPERMS (S_IRWXU|S_IRWXG|S_IRWXO)
+#endif
 bool isExistOnFs(const UString & path) 
 {
     struct stat buf;
