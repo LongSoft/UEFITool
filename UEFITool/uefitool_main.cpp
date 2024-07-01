@@ -26,7 +26,7 @@ public:
         setOrganizationName("CodeRush");
         setOrganizationDomain("coderush.me");
         setApplicationName("UEFITool");
-        
+        setDesktopFileName("uefitool");
         tool = new UEFITool();
     }
     
