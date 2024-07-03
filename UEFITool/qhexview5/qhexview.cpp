@@ -264,7 +264,7 @@ void QHexView::copyAs(CopyMode mode) const
             for(char b : bytes) 
                 hexchar += "\\x" + QString::number(static_cast<uint>(b), 16).toUpper();
 
-            c->setText(QString("\"%1\"").arg(hexchar));
+            c->setText(QLatin1String("\"%1\"").arg(hexchar));
             break;
         }
 
@@ -281,7 +281,7 @@ void QHexView::copyAs(CopyMode mode) const
                     hexchar += "0x";
                 }
 
-                hexchar += QString("%1").arg(static_cast<uint>(bytes[i]), 2, 16, QLatin1Char('0')).toUpper();
+                hexchar += QStringLiteral("%1").arg(static_cast<uint>(bytes[i]), 2, 16, QLatin1Char('0')).toUpper();
             }
 
             c->setText(hexchar);

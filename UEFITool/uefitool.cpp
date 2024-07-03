@@ -944,13 +944,13 @@ void UEFITool::readSettings()
     QString fontName;
     int fontSize;
 #if defined Q_OS_OSX
-    fontName = settings.value("mainWindow/fontName", QString("Menlo")).toString();
+    fontName = settings.value("mainWindow/fontName", QLatin1String("Menlo")).toString();
     fontSize = settings.value("mainWindow/fontSize", 10).toInt();
 #elif defined Q_OS_WIN
-    fontName = settings.value("mainWindow/fontName", QString("Consolas")).toString();
+    fontName = settings.value("mainWindow/fontName", QLatin1String("Consolas")).toString();
     fontSize = settings.value("mainWindow/fontSize", 9).toInt();
 #else
-    fontName = settings.value("mainWindow/fontName", QString("Courier New")).toString();
+    fontName = settings.value("mainWindow/fontName", QLatin1String("Courier New")).toString();
     fontSize = settings.value("mainWindow/fontSize", 10).toInt();
 #endif
     currentFont = QFont(fontName, fontSize);

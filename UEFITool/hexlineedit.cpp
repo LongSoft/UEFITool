@@ -72,7 +72,7 @@ void HexLineEdit::keyPressEvent(QKeyEvent * event)
     {
         clipboard = QApplication::clipboard();
         originalText = clipboard->text();
-        QString cleanedHex = QString(originalText).replace(QString("0x"), QString(""), Qt::CaseInsensitive);
+        QString cleanedHex = QString(originalText).replace(QLatin1String("0x"), QString(), Qt::CaseInsensitive);
 #if QT_VERSION_MAJOR >= 6
         cleanedHex.remove(QRegularExpression("[^a-fA-F\\d]+"));
 #else
