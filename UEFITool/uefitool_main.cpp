@@ -26,7 +26,9 @@ public:
         setOrganizationName("CodeRush");
         setOrganizationDomain("coderush.me");
         setApplicationName("UEFITool");
+#if QT_VERSION >= QT_VERSION_CHECK(5, 7, 0)
         setDesktopFileName("uefitool");
+#endif
         tool = new UEFITool();
     }
     
