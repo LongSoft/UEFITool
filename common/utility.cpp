@@ -461,7 +461,7 @@ INTN findPattern(const UINT8 *pattern, const UINT8 *patternMask, UINTN patternSi
     if (patternSize == 0 || dataSize == 0 || dataOff >= dataSize || dataSize - dataOff < patternSize)
         return -1;
     
-    while (dataOff + patternSize < dataSize) {
+    while (dataOff + patternSize <= dataSize) {
         bool matches = true;
         for (UINTN i = 0; i < patternSize; i++) {
             if ((data[dataOff + i] & patternMask[i]) != pattern[i]) {
