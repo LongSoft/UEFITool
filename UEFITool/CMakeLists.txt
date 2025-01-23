@@ -16,7 +16,7 @@ SET(PROJECT_FORMS
  gotoaddressdialog.ui
  )
 
-SET(PROJECT_HEADERS 
+SET(PROJECT_HEADERS
  uefitool.h
  hexspinbox.h
  searchdialog.h
@@ -25,7 +25,7 @@ SET(PROJECT_HEADERS
  gotoaddressdialog.h
 )
 
-SET(PROJECT_SOURCES 
+SET(PROJECT_SOURCES
  icons/uefitool.icns
  uefitool.rc
  uefitool_main.cpp
@@ -48,6 +48,7 @@ SET(PROJECT_SOURCES
  ../common/utility.cpp
  ../common/ffsbuilder.cpp
  ../common/ffsparser.cpp
+ ../common/ffsparser_intel.cpp
  ../common/ffsreport.cpp
  ../common/treeitem.cpp
  ../common/treemodel.cpp
@@ -101,7 +102,7 @@ SET(PROJECT_SOURCES
  ../common/zlib/zutil.c
 )
 
-QT_ADD_RESOURCES(PROJECT_SOURCES 
+QT_ADD_RESOURCES(PROJECT_SOURCES
  uefitool.qrc
 )
 

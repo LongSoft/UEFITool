@@ -25,6 +25,7 @@ HEADERS += uefitool.h \
  ../common/meparser.h \
  ../common/ffsops.h \
  ../common/basetypes.h \
+ ../common/intel_descriptor.h \
  ../common/descriptor.h \
  ../common/gbe.h \
  ../common/me.h \
@@ -108,6 +109,7 @@ SOURCES += uefitool_main.cpp \
  ../common/utility.cpp \
  ../common/ffsbuilder.cpp \
  ../common/ffsparser.cpp \
+ ../common/ffsparser_intel.cpp \
  ../common/ffsreport.cpp \
  ../common/treeitem.cpp \
  ../common/treemodel.cpp \
