@@ -19,6 +19,7 @@ SET(PROJECT_SOURCES
  ../common/nvramparser.cpp
  ../common/meparser.cpp
  ../common/ffsparser.cpp
+ ../common/ffsparser_amd.cpp
  ../common/ffsparser_intel.cpp
  ../common/fitparser.cpp
  ../common/ffsreport.cpp

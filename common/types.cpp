@@ -1,11 +1,11 @@
 /* types.cpp
- 
+
  Copyright (c) 2016, Nikolaj Schlej. All rights reserved.
  This program and the accompanying materials
  are licensed and made available under the terms and conditions of the BSD License
  which accompanies this distribution.  The full text of the license may be found at
  http://opensource.org/licenses/bsd-license.php
- 
+
  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
  WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
  */
@@ -18,6 +18,7 @@
 UString regionTypeToUString(const UINT8 type)
 {
     switch (type) {
+        // Intel specific
         case Subtypes::DescriptorRegion:  return UString("Descriptor");
         case Subtypes::BiosRegion:        return UString("BIOS");
         case Subtypes::MeRegion:          return UString("ME");
@@ -34,8 +35,12 @@ UString regionTypeToUString(const UINT8 type)
         case Subtypes::Reserved1Region:   return UString("Reserved1");
         case Subtypes::Reserved2Region:   return UString("Reserved2");
         case Subtypes::PttRegion:         return UString("PTT");
+        // AMD specific
+        case Subtypes::PspL1DirectoryRegion:return UString("PSP L1 Directory");
+        case Subtypes::PspL2DirectoryRegion:return UString("PSP L2 Directory");
+        case Subtypes::PspDirectoryFile:    return UString("PSP Directory File");
     };
-    
+
     return  usprintf("Unknown %02Xh", type);
 }
 
@@ -83,8 +88,10 @@ UString itemTypeToUString(const UINT8 type)
         case Types::CpdExtension:               return UString("CPD extension");
         case Types::CpdSpiEntry:                return UString("CPD SPI entry");
         case Types::StartupApDataEntry:         return UString("Startup AP data");
+        case Types::DirectoryTable:             return UString("AMD Directory Table");
+        case Types::DirectoryTableEntry:        return UString("AMD Directory Entry");
     }
-    
+
     return usprintf("Unknown %02Xh", type);
 }
 
@@ -94,6 +101,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         case Types::Image:
             if      (subtype == Subtypes::IntelImage)                   return UString("Intel");
             else if (subtype == Subtypes::UefiImage)                    return UString("UEFI");
+            else if (subtype == Subtypes::AmdImage)                     return UString("AMD");
             break;
         case Types::Padding:
             if      (subtype == Subtypes::ZeroPadding)                  return UString("Empty (0x00)");
@@ -172,8 +180,20 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         case Types::StartupApDataEntry:
             if      (subtype == Subtypes::x86128kStartupApDataEntry)    return UString("X86 128K");
             break;
+        case Types::DirectoryTable:
+            if      (subtype == Subtypes::PSPDirectory)                 return UString("PSP Directory Table");
+            if      (subtype == Subtypes::ComboDirectory)               return UString("Combo Directory Table");
+            if      (subtype == Subtypes::BiosDirectory)                return UString("BIOS Directory Table");
+            if      (subtype == Subtypes::ISHDirectory)                 return UString("ISH Directory Table");
+
+            break;
+        case Types::DirectoryTableEntry:
+            if      (subtype == Subtypes::PSPDirectory)                 return UString("PSP Directory");
+            if      (subtype == Subtypes::ComboDirectory)               return UString("Combo Directory");
+            if      (subtype == Subtypes::BiosDirectory)                return UString("BIOS Directory");
+            break;
     }
-    
+
     return UString();
 }
 
@@ -190,7 +210,7 @@ UString compressionTypeToUString(const UINT8 algorithm)
         case COMPRESSION_ALGORITHM_GZIP:                    return UString("GZip");
         case COMPRESSION_ALGORITHM_ZLIB:                    return UString("Zlib");
     }
-    
+
     return usprintf("Unknown %02Xh", algorithm);
 }
 
@@ -205,7 +225,7 @@ UString actionTypeToUString(const UINT8 action)
         case Actions::Rebuild:       return UString("Rebuild");
         case Actions::Rebase:        return UString("Rebase");
     }
-    
+
     return usprintf("Unknown %02Xh", action);
 }
 
@@ -235,7 +255,7 @@ UString fitEntryTypeToUString(const UINT8 type)
         case INTEL_FIT_TYPE_JMP_DEBUG_POLICY:           return UString("JMP Debug Policy");
         case INTEL_FIT_TYPE_EMPTY:                      return UString("Empty");
     }
-    
+
     return usprintf("Unknown %02Xh", (type & 0x7F));
 }
 
@@ -249,7 +269,7 @@ UString hashTypeToUString(const UINT16 algorithm_id)
         case TCG_HASH_ALGORITHM_ID_NULL:   return UString("NULL");
         case TCG_HASH_ALGORITHM_ID_SM3:    return UString("SM3");
     }
-    
+
     return usprintf("Unknown %04Xh", algorithm_id);
 }
 

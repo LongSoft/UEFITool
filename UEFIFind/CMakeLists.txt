@@ -17,6 +17,7 @@ SET(PROJECT_SOURCES
  ../common/nvram.cpp
  ../common/nvramparser.cpp
  ../common/ffsparser.cpp
+ ../common/ffsparser_amd.cpp
  ../common/ffsparser_intel.cpp
  ../common/fitparser.cpp
  ../common/peimage.cpp

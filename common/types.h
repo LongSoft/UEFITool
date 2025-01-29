@@ -75,6 +75,8 @@ namespace Types {
         CpdExtension,
         CpdSpiEntry,
         StartupApDataEntry,
+        DirectoryTable,
+        DirectoryTableEntry,
     };
 }
 
@@ -82,6 +84,7 @@ namespace Subtypes {
     enum ImageSubtypes{
         IntelImage = 90,
         UefiImage,
+        AmdImage,
     };
 
     enum CapsuleSubtypes {
@@ -116,6 +119,9 @@ namespace Subtypes {
         Reserved1Region,
         Reserved2Region,
         PttRegion,
+        PspL1DirectoryRegion,
+        PspL2DirectoryRegion,
+        PspDirectoryFile,
     };
 
     enum PaddingSubtypes {
@@ -144,7 +150,14 @@ namespace Subtypes {
         InvalidSysFEntry = 150,
         NormalSysFEntry,
     };
-    
+
+    enum DirectorySubtypes {
+        PSPDirectory = 150,
+        ComboDirectory,
+        BiosDirectory,
+        ISHDirectory,
+    };
+
     enum EvsaEntrySubtypes {
         InvalidEvsaEntry = 160,
         UnknownEvsaEntry,

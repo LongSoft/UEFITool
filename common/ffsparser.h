@@ -128,6 +128,29 @@ private:
     USTATUS parseCapsule(const UByteArray & capsule, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
+    // AMD specific
+    USTATUS parseAMDImage(const UByteArray & amdImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseEFTable(const UByteArray & amdImage, const UINT32 efOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS extractTable(const UByteArray & amdImage, const UINT32 offset, UByteArray & table);
+    USTATUS decodePSPTableAny(const UByteArray & amdImage, const UINT32 offset, const UModelIndex & parent, UModelIndex & index);
+
+    USTATUS isValidTable(const UByteArray & amdImage, const UINT32 offset);
+    USTATUS isSupportedCookie(const UByteArray & amdImage, const UINT32 offset);
+    USTATUS parsePSPDir(const UINT32 offset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseComboDir(const UINT32 pspOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseBiosDir(const UINT32 imageOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS insertRegion(UINT32 imageOffset, const UINT32 size, const UString name, UINT8 type, UINT8 subType, const UModelIndex & parent, UModelIndex & index);
+    USTATUS findByRange(const UINT32 offset, const UINT32 size, const UModelIndex & index, UModelIndex & found);
+
+
+    USTATUS parseISH(const UByteArray & fileImage, const UModelIndex & parent, UModelIndex & index);
+
+    USTATUS amdRelativeOffset(const UModelIndex& pspRegionIndex, const UINT64 addr, const UINT64 mode, UINT64 & outaddr);
+    UString pspFileName(const UINT8 type, const UINT8 subtype);
+    UINT32 fletcher32(const UByteArray &Image);
+    USTATUS decompressBios(UModelIndex& parent);
+    USTATUS insertDirectoryFile(const UINT32 imageOffset, const UINT32 size, const UString name, const UModelIndex & parent, UModelIndex & index);
+
     // Intel specific
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseBpdtRegion(const UByteArray & region, const UINT32 localOffset, const UINT32 sbpdtOffsetFixup, const UModelIndex & parent, UModelIndex & index);

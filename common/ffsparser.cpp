@@ -114,7 +114,12 @@ USTATUS FfsParser::performFirstPass(const UByteArray & buffer, UModelIndex & ind
     if (buffer.isEmpty()) {
         return U_INVALID_PARAMETER;
     }
-    
+
+    // Try parsing as AMD image
+    if (U_SUCCESS == parseAMDImage(buffer, 0, UModelIndex(), index)) {
+        return U_SUCCESS;
+    }
+
     // Try parsing as UEFI Capsule
     if (U_SUCCESS == parseCapsule(buffer, 0, UModelIndex(), index)) {
         return U_SUCCESS;

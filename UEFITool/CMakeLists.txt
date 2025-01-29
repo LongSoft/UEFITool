@@ -48,6 +48,7 @@ SET(PROJECT_SOURCES
  ../common/utility.cpp
  ../common/ffsbuilder.cpp
  ../common/ffsparser.cpp
+ ../common/ffsparser_amd.cpp
  ../common/ffsparser_intel.cpp
  ../common/ffsreport.cpp
  ../common/treeitem.cpp
