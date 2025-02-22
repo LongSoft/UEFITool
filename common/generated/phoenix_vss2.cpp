@@ -8,7 +8,7 @@ phoenix_vss2_t::phoenix_vss2_t(kaitai::kstream* p__io, kaitai::kstruct* p__paren
     m__root = this; (void)p__root;
     m_body = nullptr;
     m__io__raw_body = nullptr;
-    f_header_size = false;
+    f_len_vss2_store_header = false;
     _read();
 }
 
@@ -39,7 +39,7 @@ void phoenix_vss2_t::_read() {
     m_vss2_size = m__io->read_u4le();
     {
         uint32_t _ = vss2_size();
-        if (!( ((_ > header_size()) && (_ < 4294967295UL)) )) {
+        if (!( ((_ > len_vss2_store_header()) && (_ < 4294967295UL)) )) {
             throw kaitai::validation_expr_error<uint32_t>(vss2_size(), _io(), std::string("/seq/3"));
         }
     }
@@ -53,7 +53,7 @@ void phoenix_vss2_t::_read() {
     m_state = m__io->read_u1();
     m_reserved = m__io->read_u2le();
     m_reserved1 = m__io->read_u4le();
-    m__raw_body = m__io->read_bytes((vss2_size() - header_size()));
+    m__raw_body = m__io->read_bytes((vss2_size() - len_vss2_store_header()));
     m__io__raw_body = std::unique_ptr<kaitai::kstream>(new kaitai::kstream(m__raw_body));
     m_body = std::unique_ptr<vss2_store_body_t>(new vss2_store_body_t(m__io__raw_body.get(), this, m__root));
 }
@@ -125,10 +125,13 @@ phoenix_vss2_t::vss2_variable_t::vss2_variable_t(kaitai::kstream* p__io, phoenix
     m__root = p__root;
     m_attributes = nullptr;
     f_is_auth = false;
+    f_len_standard_header = false;
     f_end_offset_auth = false;
     f_len_alignment_padding = false;
+    f_len_auth_header = false;
     f_end_offset = false;
     f_len_alignment_padding_auth = false;
+    f_is_valid = false;
     f_offset = false;
     _read();
 }
@@ -298,10 +301,18 @@ bool phoenix_vss2_t::vss2_variable_t::is_auth() {
     return m_is_auth;
 }
 
+int8_t phoenix_vss2_t::vss2_variable_t::len_standard_header() {
+    if (f_len_standard_header)
+        return m_len_standard_header;
+    m_len_standard_header = 32;
+    f_len_standard_header = true;
+    return m_len_standard_header;
+}
+
 int32_t phoenix_vss2_t::vss2_variable_t::end_offset_auth() {
     if (f_end_offset_auth)
         return m_end_offset_auth;
-    m_end_offset_auth = _io()->pos();
+    m_end_offset_auth = (int32_t)_io()->pos();
     f_end_offset_auth = true;
     return m_end_offset_auth;
 }
@@ -314,10 +325,18 @@ int32_t phoenix_vss2_t::vss2_variable_t::len_alignment_padding() {
     return m_len_alignment_padding;
 }
 
+int8_t phoenix_vss2_t::vss2_variable_t::len_auth_header() {
+    if (f_len_auth_header)
+        return m_len_auth_header;
+    m_len_auth_header = 60;
+    f_len_auth_header = true;
+    return m_len_auth_header;
+}
+
 int32_t phoenix_vss2_t::vss2_variable_t::end_offset() {
     if (f_end_offset)
         return m_end_offset;
-    m_end_offset = _io()->pos();
+    m_end_offset = (int32_t)_io()->pos();
     f_end_offset = true;
     return m_end_offset;
 }
@@ -330,18 +349,26 @@ int32_t phoenix_vss2_t::vss2_variable_t::len_alignment_padding_auth() {
     return m_len_alignment_padding_auth;
 }
 
+bool phoenix_vss2_t::vss2_variable_t::is_valid() {
+    if (f_is_valid)
+        return m_is_valid;
+    m_is_valid =  ((state() == 127) || (state() == 63)) ;
+    f_is_valid = true;
+    return m_is_valid;
+}
+
 int32_t phoenix_vss2_t::vss2_variable_t::offset() {
     if (f_offset)
         return m_offset;
-    m_offset = _io()->pos();
+    m_offset = (int32_t)_io()->pos();
     f_offset = true;
     return m_offset;
 }
 
-int32_t phoenix_vss2_t::header_size() {
-    if (f_header_size)
-        return m_header_size;
-    m_header_size = (7 * 4);
-    f_header_size = true;
-    return m_header_size;
+int32_t phoenix_vss2_t::len_vss2_store_header() {
+    if (f_len_vss2_store_header)
+        return m_len_vss2_store_header;
+    m_len_vss2_store_header = (7 * 4);
+    f_len_vss2_store_header = true;
+    return m_len_vss2_store_header;
 }

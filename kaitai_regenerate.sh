@@ -50,6 +50,14 @@ ${UFIND} common/generated ${UFINDOPT} \
  -name 'ami_nvar.cpp' \
  -exec sed -i.bak 's/_offset = _io()->pos();/_offset = (int32_t)_io()->pos();/g' {} + || exit 1
 
+# Suppress type downcast warning in phoenix_vss2.cpp
+${UFIND} common/generated ${UFINDOPT} \
+ -name 'phoenix_vss2.cpp' \
+ -exec sed -i.bak 's/_offset = _io()->pos();/_offset = (int32_t)_io()->pos();/g' {} + || exit 1
+${UFIND} common/generated ${UFINDOPT} \
+ -name 'phoenix_vss2.cpp' \
+ -exec sed -i.bak 's/_offset_auth = _io()->pos();/_offset_auth = (int32_t)_io()->pos();/g' {} + || exit 1
+
 # Remove backup files
 ${UFIND} common/generated ${UFINDOPT} \
  -regex '.*\.(bak)' \

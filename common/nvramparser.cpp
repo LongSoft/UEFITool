@@ -361,7 +361,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                 UString text;
                 info.clear();
                 name.clear();
-
+                
                 // This is thew terminating entry, needs special processing
                 if (variable->_is_null_signature_last()) {
                     // Add free space or padding after all variables, if needed
@@ -385,7 +385,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                 
                 // This is a normal entry
                 UINT32 variableSize;
-                if (variable->is_intel_legacy()) {
+                if (variable->is_intel_legacy()) { // Intel legacy
                     subtype = Subtypes::IntelVssEntry;
                     // Needs some additional parsing of variable->intel_legacy_data to separate the name from the value
                     text = uFromUcs2(variable->intel_legacy_data().c_str());
@@ -397,7 +397,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                     name = guidToUString(variableGuid);
                     info += UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
                 }
-                else if (variable->is_auth()) {
+                else if (variable->is_auth()) { // Authenticated
                     subtype = Subtypes::AuthVssEntry;
                     header = vss.mid(vssVariableOffset, variable->len_auth_header() + variable->len_name_auth());
                     body = vss.mid(vssVariableOffset + header.size(), variable->len_data_auth());
@@ -407,7 +407,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                     text = uFromUcs2(variable->name_auth().c_str());
                     info += UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
                 }
-                else if (!variable->_is_null_apple_data_crc32()) {
+                else if (!variable->_is_null_apple_data_crc32()) { // Apple CRC32
                     subtype = Subtypes::AppleVssEntry;
                     header = vss.mid(vssVariableOffset, variable->len_apple_header() + variable->len_name());
                     body = vss.mid(vssVariableOffset + header.size(), variable->len_data());
@@ -417,7 +417,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                     text = uFromUcs2(variable->name().c_str());
                     info += UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
                 }
-                else {
+                else { // Standard
                     subtype = Subtypes::StandardVssEntry;
                     header = vss.mid(vssVariableOffset, variable->len_standard_header() + variable->len_name());
                     body = vss.mid(vssVariableOffset + header.size(), variable->len_data());
@@ -445,7 +445,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                 + (variable->attributes()->apple_data_checksum() << 31);
                 
                 // Add generic info
-                info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02X\nAttributes: %08Xh (",
+                info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
                                  variableSize, variableSize,
                                  (UINT32)header.size(), (UINT32)header.size(),
                                  (UINT32)body.size(), (UINT32)body.size(),
@@ -481,7 +481,141 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         }
 
         // VSS2
+        try {
+            UByteArray vss2 = volumeBody.mid(storeOffset);
+            umemstream is(vss2.constData(), vss2.size());
+            kaitai::kstream ks(&is);
+            phoenix_vss2_t parsed(&ks);
 
+            // VSS2 store at current offset parsed correctly
+            // Check if we need to add a padding before it
+            if (!outerPadding.isEmpty()) {
+                UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
+                model->addItem(previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                outerPadding.clear();
+            }
+
+            // Construct header and body
+            UByteArray header = vss2.left(parsed.len_vss2_store_header());
+            UByteArray body = vss2.mid(header.size(), parsed.vss2_size() - header.size());
+            
+            // Add info
+            UString name = UString("VSS2 store");
+            UString info;
+            if (parsed.signature() == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1) {
+                info = UString("Signature: AAF32C78-947B-439A-A180-2E144EC37792\n");
+            }
+            else {
+                info = UString("Signature: DDCF3617-3275-4164-98B6-FE85707FFE7D\n");
+            }
+            
+            info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nReserved: %02Xh\nReserved1: %04Xh",
+                            parsed.vss2_size() , parsed.vss2_size(),
+                            (UINT32)header.size(), (UINT32)header.size(),
+                            (UINT32)body.size(), (UINT32)body.size(),
+                            parsed.format(),
+                            parsed.state(),
+                            parsed.reserved(),
+                            parsed.reserved1());
+            
+            // Add header tree item
+            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::VssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
+            
+            UINT32 vss2VariableOffset = storeOffset + parsed.len_vss2_store_header();
+            for (const auto & variable : *parsed.body()->variables()) {
+                UINT8 subtype;
+                UString text;
+                info.clear();
+                name.clear();
+                
+                // This is thew terminating entry, needs special processing
+                if (variable->_is_null_signature_last()) {
+                    // Add free space or padding after all variables, if needed
+                    if (vss2VariableOffset < parsed.vss2_size()) {
+                        UByteArray freeSpace = vss2.mid(vss2VariableOffset, parsed.vss2_size() - vss2VariableOffset);
+                        // Add info
+                        info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
+                        
+                        // Check that remaining unparsed bytes are actually empty
+                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                            // Add tree item
+                            model->addItem(vss2VariableOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                        }
+                        else {
+                            // Add tree item
+                            model->addItem(vss2VariableOffset, Types::Padding, getPaddingType(freeSpace), UString("Padding"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                        }
+                    }
+                    break;
+                }
+                
+                // This is a normal entry
+                UINT32 variableSize;
+                if (variable->is_auth()) { // Authenticated
+                    subtype = Subtypes::AuthVssEntry;
+                    header = vss2.mid(vss2VariableOffset, variable->len_auth_header() + variable->len_name_auth());
+                    body = vss2.mid(vss2VariableOffset + header.size(), variable->len_data_auth());
+                    variableSize = (UINT32)(header.size() + body.size());
+                    const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
+                    name = guidToUString(variableGuid);
+                    text = uFromUcs2(variable->name_auth().c_str());
+                    info += UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
+                }
+                else { // Standard
+                    subtype = Subtypes::StandardVssEntry;
+                    header = vss2.mid(vss2VariableOffset, variable->len_standard_header() + variable->len_name());
+                    body = vss2.mid(vss2VariableOffset + header.size(), variable->len_data());
+                    variableSize = (UINT32)(header.size() + body.size());
+                    const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
+                    name = guidToUString(variableGuid);
+                    text = uFromUcs2(variable->name().c_str());
+                    info += UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
+                }
+                
+                // Override variable type to Invalid if needed
+                if (!variable->is_valid()) {
+                    subtype = Subtypes::InvalidVssEntry;
+                    name = UString("Invalid");
+                    text.clear();
+                }
+                
+                const UINT32 variableAttributes = variable->attributes()->non_volatile()
+                + (variable->attributes()->boot_service() << 1)
+                + (variable->attributes()->runtime() << 2)
+                + (variable->attributes()->hw_error_record() << 3)
+                + (variable->attributes()->auth_write() << 4)
+                + (variable->attributes()->time_based_auth() << 5)
+                + (variable->attributes()->append_write() << 6);
+                
+                // Add generic info
+                info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
+                                 variableSize, variableSize,
+                                 (UINT32)header.size(), (UINT32)header.size(),
+                                 (UINT32)body.size(), (UINT32)body.size(),
+                                 variable->state(),
+                                 variable->reserved(),
+                                 variableAttributes) + vssAttributesToUString(variableAttributes) + UString(")");
+                
+                // Add specific info
+                if (variable->is_auth()) {
+                    UINT64 monotonicCounter = (UINT64)variable->len_name() + ((UINT64)variable->len_data() << 32);
+                    info += usprintf("\nMonotonic counter: %" PRIX64 "h\nTimestamp: ", monotonicCounter) + efiTimeToUString(*(const EFI_TIME*)variable->timestamp().c_str())
+                    + usprintf("\nPubKey index: %u", variable->pubkey_index());
+                }
+                
+                // Add tree item
+                model->addItem(vss2VariableOffset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Fixed, headerIndex);
+                
+                vss2VariableOffset += variableSize;
+            }
+            
+            storeFound = true;
+            storeOffset += parsed.vss2_size();
+            previousStoreEndOffset = storeOffset;
+        } catch (...) {
+           // Parsing failed, try something else
+        }
+        
         // FDC
         
         // EVSA
@@ -496,7 +630,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
         // Intel uCode
         
         // Padding
-        outerPadding += volumeBody.at(storeOffset);
+        outerPadding.append(volumeBody.at(storeOffset));
     }
     
     // Add padding at the very end

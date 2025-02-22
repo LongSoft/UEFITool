@@ -23,7 +23,7 @@ seq:
 - id: vss2_size
   type: u4
   valid:
-   expr: _ > header_size and _ < 0xFFFFFFFF
+   expr: _ > len_vss2_store_header and _ < 0xFFFFFFFF
 - id: format
   type: u1
   valid:
@@ -36,9 +36,9 @@ seq:
   type: u4
 - id: body
   type: vss2_store_body
-  size: vss2_size - header_size
+  size: vss2_size - len_vss2_store_header
 instances:
-  header_size:
+  len_vss2_store_header:
     value: 7 * sizeof<u4>
 
 types:
@@ -150,5 +150,11 @@ types:
      value: (((end_offset - offset)+3) & ~3) - (end_offset - offset)
     len_alignment_padding_auth:
      value: (((end_offset_auth - offset)+3) & ~3) - (end_offset - offset)
+    is_valid:
+      value: state == 0x7F or state == 0x3F
     is_auth:
      value: (attributes.auth_write or attributes.time_based_auth or attributes.append_write) or (len_name == 0 or len_data == 0)
+    len_auth_header:
+      value: 60
+    len_standard_header:
+      value: 32

@@ -110,6 +110,13 @@ public:
         bool is_auth();
 
     private:
+        bool f_len_standard_header;
+        int8_t m_len_standard_header;
+
+    public:
+        int8_t len_standard_header();
+
+    private:
         bool f_end_offset_auth;
         int32_t m_end_offset_auth;
 
@@ -124,6 +131,13 @@ public:
         int32_t len_alignment_padding();
 
     private:
+        bool f_len_auth_header;
+        int8_t m_len_auth_header;
+
+    public:
+        int8_t len_auth_header();
+
+    private:
         bool f_end_offset;
         int32_t m_end_offset;
 
@@ -136,6 +150,13 @@ public:
 
     public:
         int32_t len_alignment_padding_auth();
+
+    private:
+        bool f_is_valid;
+        bool m_is_valid;
+
+    public:
+        bool is_valid();
 
     private:
         bool f_offset;
@@ -316,11 +337,11 @@ public:
     };
 
 private:
-    bool f_header_size;
-    int32_t m_header_size;
+    bool f_len_vss2_store_header;
+    int32_t m_len_vss2_store_header;
 
 public:
-    int32_t header_size();
+    int32_t len_vss2_store_header();
 
 private:
     uint32_t m_signature;
