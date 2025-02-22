@@ -1453,7 +1453,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
     UByteArray volumeBody = model->body(index);
     UINT32 volumeHeaderSize = (UINT32)model->header(index).size();
     
-    // Parse VSS NVRAM volumes with a dedicated function
+    // Parse NVRAM volume with a dedicated function
     if (model->subtype(index) == Subtypes::NvramVolume) {
         return nvramParser->parseNvramVolumeBody(index);
     }

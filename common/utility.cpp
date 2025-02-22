@@ -369,8 +369,6 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
     }
 }
 
-
-
 // 8bit sum calculation routine
 UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize)
 {
@@ -572,4 +570,13 @@ USTATUS zlibDecompress(const UByteArray& input, UByteArray& output)
 
     inflateEnd(&stream);
     return ret == Z_STREAM_END ? U_SUCCESS : U_ZLIB_DECOMPRESSION_FAILED;
+}
+
+UString fourCC(const UINT32 value)
+{
+    const UINT8 byte0 = (const UINT8)(value & 0xFF);
+    const UINT8 byte1 = (const UINT8)((value & 0xFF00) >> 8);
+    const UINT8 byte2 = (const UINT8)((value & 0xFF0000) >> 16);
+    const UINT8 byte3 = (const UINT8)((value & 0xFF000000) >> 24);
+    return usprintf("%c%c%c%c", byte0, byte1, byte2, byte3);
 }
