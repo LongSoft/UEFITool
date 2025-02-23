@@ -27,7 +27,8 @@
 #include "kaitai/kaitaistream.h"
 #include "generated/ami_nvar.h"
 #include "generated/edk2_vss.h"
-#include "generated/phoenix_vss2.h"
+#include "generated/edk2_vss2.h"
+#include "generated/insyde_fdc.h"
 
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 {
@@ -283,7 +284,7 @@ processing_done:
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
+USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32 fdcStoreSizeOverride)
 {
     // Sanity check
     if (!index.isValid())
@@ -311,12 +312,30 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
          storeOffset < volumeBodySize;
          storeOffset++) {
         bool storeFound = false;
-        // Try parsing as VSS store
+        // VSS
         try {
+            if (volumeBodySize - storeOffset < sizeof(VSS_VARIABLE_STORE_HEADER)) {
+                // No need to parse further, the rest of the volume is too small
+                throw 0;
+            }
+            
             UByteArray vss = volumeBody.mid(storeOffset);
+            // Check if we are here to parse a special case of FDC store with size override
+            UINT32 originalStoreSize = 0;
+            VSS_VARIABLE_STORE_HEADER* vssHeader = (VSS_VARIABLE_STORE_HEADER*)vss.data();
+            bool fdcHeaderSizeOverrideRequired = (fdcStoreSizeOverride > 0 && vssHeader->Signature == NVRAM_VSS_STORE_SIGNATURE && vssHeader->Size == 0xFFFFFFFF);
+            if (fdcHeaderSizeOverrideRequired) {
+                originalStoreSize = vssHeader->Size;
+                vssHeader->Size = fdcStoreSizeOverride;
+            }
             umemstream is(vss.constData(), vss.size());
             kaitai::kstream ks(&is);
             edk2_vss_t parsed(&ks);
+            UINT32 storeSize = parsed.vss_size();
+            // Restore original store size, if needed
+            if (fdcHeaderSizeOverrideRequired) {
+                vssHeader->Size = originalStoreSize;
+            }
 
             // VSS store at current offset parsed correctly
             // Check if we need to add a padding before it
@@ -328,7 +347,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
             // Construct header and body
             UByteArray header = vss.left(parsed.len_vss_store_header());
-            UByteArray body = vss.mid(header.size(), parsed.vss_size() - header.size());
+            UByteArray body = vss.mid(header.size(), storeSize - header.size());
             
             // Add info
             UString name;
@@ -344,7 +363,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
             UString info = usprintf("Signature: %Xh (", parsed.signature()) + fourCC(parsed.signature()) + UString(")\n");
             
             info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nReserved: %02Xh\nReserved1: %04Xh",
-                            parsed.vss_size() , parsed.vss_size(),
+                            storeSize , storeSize,
                             (UINT32)header.size(), (UINT32)header.size(),
                             (UINT32)body.size(), (UINT32)body.size(),
                             parsed.format(),
@@ -365,8 +384,8 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                 // This is thew terminating entry, needs special processing
                 if (variable->_is_null_signature_last()) {
                     // Add free space or padding after all variables, if needed
-                    if (vssVariableOffset < parsed.vss_size()) {
-                        UByteArray freeSpace = vss.mid(vssVariableOffset, parsed.vss_size() - vssVariableOffset);
+                    if (vssVariableOffset < storeSize) {
+                        UByteArray freeSpace = vss.mid(vssVariableOffset, storeSize - vssVariableOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
@@ -474,7 +493,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
             }
             
             storeFound = true;
-            storeOffset += parsed.vss_size();
+            storeOffset += storeSize;
             previousStoreEndOffset = storeOffset;
         } catch (...) {
            // Parsing failed, try something else
@@ -482,11 +501,30 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
         // VSS2
         try {
+            if (volumeBodySize - storeOffset < sizeof(VSS2_VARIABLE_STORE_HEADER)) {
+                // No need to parse further, the rest of the volume is too small
+                throw 0;
+            }
+            
             UByteArray vss2 = volumeBody.mid(storeOffset);
+            // Check if we are here to parse a special case of FDC store with size override
+            UINT32 originalStoreSize = 0;
+            VSS2_VARIABLE_STORE_HEADER* vss2Header = (VSS2_VARIABLE_STORE_HEADER*)vss2.data();
+            UByteArray guid = UByteArray((const char*)&vss2Header->Signature, sizeof(EFI_GUID));
+            bool fdcHeaderSizeOverrideRequired = (fdcStoreSizeOverride > 0 && guid == NVRAM_FDC_STORE_GUID && vss2Header->Size == 0xFFFFFFFF);
+            if (fdcStoreSizeOverride) {
+                originalStoreSize = vss2Header->Size;
+                vss2Header->Size = fdcStoreSizeOverride;
+            }
             umemstream is(vss2.constData(), vss2.size());
             kaitai::kstream ks(&is);
-            phoenix_vss2_t parsed(&ks);
-
+            edk2_vss2_t parsed(&ks);
+            UINT32 storeSize = parsed.vss2_size();
+            // Restore original store size, if needed
+            if (fdcStoreSizeOverride) {
+                vss2Header->Size = originalStoreSize;
+            }
+            
             // VSS2 store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
@@ -497,7 +535,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
 
             // Construct header and body
             UByteArray header = vss2.left(parsed.len_vss2_store_header());
-            UByteArray body = vss2.mid(header.size(), parsed.vss2_size() - header.size());
+            UByteArray body = vss2.mid(header.size(), storeSize - header.size());
             
             // Add info
             UString name = UString("VSS2 store");
@@ -505,12 +543,15 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
             if (parsed.signature() == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1) {
                 info = UString("Signature: AAF32C78-947B-439A-A180-2E144EC37792\n");
             }
+            else if (parsed.signature() == NVRAM_FDC_STORE_GUID_PART1) {
+                info = UString("Signature: DDCF3616-3275-4164-98B6-FE85707FFE7D\n");
+            }
             else {
                 info = UString("Signature: DDCF3617-3275-4164-98B6-FE85707FFE7D\n");
             }
             
             info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nReserved: %02Xh\nReserved1: %04Xh",
-                            parsed.vss2_size() , parsed.vss2_size(),
+                            storeSize, storeSize,
                             (UINT32)header.size(), (UINT32)header.size(),
                             (UINT32)body.size(), (UINT32)body.size(),
                             parsed.format(),
@@ -519,7 +560,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                             parsed.reserved1());
             
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::VssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
+            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::Vss2Store, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
             
             UINT32 vss2VariableOffset = storeOffset + parsed.len_vss2_store_header();
             for (const auto & variable : *parsed.body()->variables()) {
@@ -531,8 +572,8 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
                 // This is thew terminating entry, needs special processing
                 if (variable->_is_null_signature_last()) {
                     // Add free space or padding after all variables, if needed
-                    if (vss2VariableOffset < parsed.vss2_size()) {
-                        UByteArray freeSpace = vss2.mid(vss2VariableOffset, parsed.vss2_size() - vss2VariableOffset);
+                    if (vss2VariableOffset < storeSize) {
+                        UByteArray freeSpace = vss2.mid(vss2VariableOffset, storeSize - vss2VariableOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
@@ -610,27 +651,75 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index)
             }
             
             storeFound = true;
-            storeOffset += parsed.vss2_size();
+            storeOffset += storeSize;
             previousStoreEndOffset = storeOffset;
         } catch (...) {
            // Parsing failed, try something else
         }
         
-        // FDC
-        
-        // EVSA
-        
-        // FTW
-        
-        // Apple Fsys/Gaid
-        
-        // Phoenix FlashMap
-        // Phoenix CMDB
-        // Phoenix SLIC Pubkey/Marker
-        // Intel uCode
-        
+        // Do not try any other parsers if we are here for FDC store parsing
+        if (fdcStoreSizeOverride == 0) {
+            // FTW
+            
+            // Insyde FDC
+            try {
+                if (volumeBodySize - storeOffset < sizeof(FDC_VOLUME_HEADER)) {
+                    // No need to parse further, the rest of the volume is too small
+                    throw 0;
+                }
+                
+                UByteArray fdc = volumeBody.mid(storeOffset);
+                umemstream is(fdc.constData(), fdc.size());
+                kaitai::kstream ks(&is);
+                insyde_fdc_t parsed(&ks);
+                UINT32 storeSize = parsed.fdc_size();
+                
+                // FDC store at current offset parsed correctly
+                // Check if we need to add a padding before it
+                if (!outerPadding.isEmpty()) {
+                    UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
+                    model->addItem(previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                    outerPadding.clear();
+                }
+                
+                // Construct header and body
+                UByteArray header = fdc.left(parsed.len_fdc_store_header());
+                UByteArray body = fdc.mid(header.size(),storeSize - header.size());
+                
+                // Add info
+                UString name = UString("FDC store");
+                UString info = usprintf("Signature: _FDC\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
+                                        storeSize, storeSize,
+                                        (UINT32)header.size(), (UINT32)header.size(),
+                                        (UINT32)body.size(), (UINT32)body.size());
+
+                // Add header tree item with modified body
+                UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::FdcStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
+                
+                // Parse modified FDC body as normal VSS/VSS2 storage
+                parseNvramVolumeBody(headerIndex, (UINT32)body.size());
+                
+                storeFound = true;
+                storeOffset += storeSize;
+                previousStoreEndOffset = storeOffset;
+            } catch (...) {
+                // Parsing failed, try something else
+            }
+            
+            
+            // Apple Fsys/Gaid
+            
+            // Phoenix EVSA
+            // Phoenix FlashMap
+            // Phoenix CMDB
+            // Phoenix SLIC Pubkey/Marker
+            // Intel uCode
+        }
+
         // Padding
-        outerPadding.append(volumeBody.at(storeOffset));
+        if (storeOffset < volumeBodySize) {
+            outerPadding += volumeBody[storeOffset];
+        }
     }
     
     // Add padding at the very end

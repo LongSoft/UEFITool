@@ -37,7 +37,7 @@ public:
     void clearMessages() { messagesVector.clear(); }
 
     // NVRAM parsing
-    USTATUS parseNvramVolumeBody(const UModelIndex & index);
+    USTATUS parseNvramVolumeBody(const UModelIndex & index, const UINT32 fdcStoreSizeOverride = 0);
     USTATUS parseNvarStore(const UModelIndex & index);
     
 private:

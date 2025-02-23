@@ -1,7 +1,7 @@
 meta:
-  id: phoenix_vss2
-  title: Phoenix VSS2 NVRAM variable storage
-  application: Phoenix SCT-based UEFI firmware
+  id: edk2_vss2
+  title: EDK2 VSS2 NVRAM variable storage
+  application: EDK2-based UEFI firmware
   file-extension: vss2
   tags:
     - firmware
@@ -13,13 +13,16 @@ seq:
 - id: signature
   type: u4
   valid:
-   expr: _ == 0xDDCF3617 or _ == 0xAAF32C78 # Beginning of known store GUIDs for VSS2
+   expr: _ == 0xDDCF3616 or _ == 0xDDCF3617 or _ == 0xAAF32C78 # Beginning of known store GUIDs for VSS2
 - id: signature_auth_var_key_db
   contents: [0x7B, 0x94, 0x9A, 0x43, 0xA1, 0x80, 0x2E, 0x14, 0x4E, 0xC3, 0x77, 0x92] # AAF32C78-947B-439A-A180-2E144EC37792
   if: signature == 0xAAF32C78
 - id: signature_vss2_store
   contents: [0x75, 0x32, 0x64, 0x41, 0x98, 0xB6, 0xFE, 0x85, 0x70, 0x7F, 0xFE, 0x7D] # DDCF3617-3275-4164-98B6-FE85707FFE7D
   if: signature == 0xDDCF3617
+- id: signature_fdc_store
+  contents: [0x75, 0x32, 0x64, 0x41, 0x98, 0xB6, 0xFE, 0x85, 0x70, 0x7F, 0xFE, 0x7D] # DDCF3616-3275-4164-98B6-FE85707FFE7D
+  if: signature == 0xDDCF3616
 - id: vss2_size
   type: u4
   valid:

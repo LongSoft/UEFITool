@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define NVRAM_H
 
 #include "basetypes.h"
+#include "ffs.h"
 #include "ubytearray.h"
 #include "ustring.h"
 
@@ -170,6 +171,7 @@ extern const UByteArray NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID; // AAF32C78-947B-
 #define NVRAM_VSS2_STORE_GUID_PART1 0xddcf3617
 extern const UByteArray NVRAM_VSS2_STORE_GUID; // DDCF3617-3275-4164-98B6-FE85707FFE7D
 
+#define NVRAM_FDC_STORE_GUID_PART1 0xddcf3616
 extern const UByteArray NVRAM_FDC_STORE_GUID; // DDCF3616-3275-4164-98B6-FE85707FFE7D
 
 // Variable store header
@@ -193,9 +195,8 @@ typedef struct VSS2_VARIABLE_STORE_HEADER_ {
 typedef struct FDC_VOLUME_HEADER_ {
     UINT32 Signature; //_FDC signature
     UINT32 Size;      // Size of the whole region
-    //EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
-    //EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
-    //VSS_VARIABLE_STORE_HEADER VssHeader;
+    EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
+    EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
 } FDC_VOLUME_HEADER;
 
 //

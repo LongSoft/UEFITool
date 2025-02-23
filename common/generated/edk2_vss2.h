@@ -11,27 +11,27 @@
 #error "Incompatible Kaitai Struct C++/STL API: version 0.9 or later is required"
 #endif
 
-class phoenix_vss2_t : public kaitai::kstruct {
+class edk2_vss2_t : public kaitai::kstruct {
 
 public:
     class vss2_store_body_t;
     class vss2_variable_attributes_t;
     class vss2_variable_t;
 
-    phoenix_vss2_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = nullptr, phoenix_vss2_t* p__root = nullptr);
+    edk2_vss2_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent = nullptr, edk2_vss2_t* p__root = nullptr);
 
 private:
     void _read();
     void _clean_up();
 
 public:
-    ~phoenix_vss2_t();
+    ~edk2_vss2_t();
 
     class vss2_store_body_t : public kaitai::kstruct {
 
     public:
 
-        vss2_store_body_t(kaitai::kstream* p__io, phoenix_vss2_t* p__parent = nullptr, phoenix_vss2_t* p__root = nullptr);
+        vss2_store_body_t(kaitai::kstream* p__io, edk2_vss2_t* p__parent = nullptr, edk2_vss2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -42,20 +42,20 @@ public:
 
     private:
         std::unique_ptr<std::vector<std::unique_ptr<vss2_variable_t>>> m_variables;
-        phoenix_vss2_t* m__root;
-        phoenix_vss2_t* m__parent;
+        edk2_vss2_t* m__root;
+        edk2_vss2_t* m__parent;
 
     public:
         std::vector<std::unique_ptr<vss2_variable_t>>* variables() const { return m_variables.get(); }
-        phoenix_vss2_t* _root() const { return m__root; }
-        phoenix_vss2_t* _parent() const { return m__parent; }
+        edk2_vss2_t* _root() const { return m__root; }
+        edk2_vss2_t* _parent() const { return m__parent; }
     };
 
     class vss2_variable_attributes_t : public kaitai::kstruct {
 
     public:
 
-        vss2_variable_attributes_t(kaitai::kstream* p__io, phoenix_vss2_t::vss2_variable_t* p__parent = nullptr, phoenix_vss2_t* p__root = nullptr);
+        vss2_variable_attributes_t(kaitai::kstream* p__io, edk2_vss2_t::vss2_variable_t* p__parent = nullptr, edk2_vss2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -73,8 +73,8 @@ public:
         bool m_time_based_auth;
         bool m_append_write;
         uint64_t m_reserved;
-        phoenix_vss2_t* m__root;
-        phoenix_vss2_t::vss2_variable_t* m__parent;
+        edk2_vss2_t* m__root;
+        edk2_vss2_t::vss2_variable_t* m__parent;
 
     public:
         bool non_volatile() const { return m_non_volatile; }
@@ -85,15 +85,15 @@ public:
         bool time_based_auth() const { return m_time_based_auth; }
         bool append_write() const { return m_append_write; }
         uint64_t reserved() const { return m_reserved; }
-        phoenix_vss2_t* _root() const { return m__root; }
-        phoenix_vss2_t::vss2_variable_t* _parent() const { return m__parent; }
+        edk2_vss2_t* _root() const { return m__root; }
+        edk2_vss2_t::vss2_variable_t* _parent() const { return m__parent; }
     };
 
     class vss2_variable_t : public kaitai::kstruct {
 
     public:
 
-        vss2_variable_t(kaitai::kstream* p__io, phoenix_vss2_t::vss2_store_body_t* p__parent = nullptr, phoenix_vss2_t* p__root = nullptr);
+        vss2_variable_t(kaitai::kstream* p__io, edk2_vss2_t::vss2_store_body_t* p__parent = nullptr, edk2_vss2_t* p__root = nullptr);
 
     private:
         void _read();
@@ -307,8 +307,8 @@ public:
         bool _is_null_alignment_padding() { alignment_padding(); return n_alignment_padding; };
 
     private:
-        phoenix_vss2_t* m__root;
-        phoenix_vss2_t::vss2_store_body_t* m__parent;
+        edk2_vss2_t* m__root;
+        edk2_vss2_t::vss2_store_body_t* m__parent;
 
     public:
         std::string invoke_offset() const { return m_invoke_offset; }
@@ -332,8 +332,8 @@ public:
         std::string data() const { return m_data; }
         std::string invoke_end_offset() const { return m_invoke_end_offset; }
         std::string alignment_padding() const { return m_alignment_padding; }
-        phoenix_vss2_t* _root() const { return m__root; }
-        phoenix_vss2_t::vss2_store_body_t* _parent() const { return m__parent; }
+        edk2_vss2_t* _root() const { return m__root; }
+        edk2_vss2_t::vss2_store_body_t* _parent() const { return m__parent; }
     };
 
 private:
@@ -359,13 +359,20 @@ public:
     bool _is_null_signature_vss2_store() { signature_vss2_store(); return n_signature_vss2_store; };
 
 private:
+    std::string m_signature_fdc_store;
+    bool n_signature_fdc_store;
+
+public:
+    bool _is_null_signature_fdc_store() { signature_fdc_store(); return n_signature_fdc_store; };
+
+private:
     uint32_t m_vss2_size;
     uint8_t m_format;
     uint8_t m_state;
     uint16_t m_reserved;
     uint32_t m_reserved1;
     std::unique_ptr<vss2_store_body_t> m_body;
-    phoenix_vss2_t* m__root;
+    edk2_vss2_t* m__root;
     kaitai::kstruct* m__parent;
     std::string m__raw_body;
     std::unique_ptr<kaitai::kstream> m__io__raw_body;
@@ -374,13 +381,14 @@ public:
     uint32_t signature() const { return m_signature; }
     std::string signature_auth_var_key_db() const { return m_signature_auth_var_key_db; }
     std::string signature_vss2_store() const { return m_signature_vss2_store; }
+    std::string signature_fdc_store() const { return m_signature_fdc_store; }
     uint32_t vss2_size() const { return m_vss2_size; }
     uint8_t format() const { return m_format; }
     uint8_t state() const { return m_state; }
     uint16_t reserved() const { return m_reserved; }
     uint32_t reserved1() const { return m_reserved1; }
     vss2_store_body_t* body() const { return m_body.get(); }
-    phoenix_vss2_t* _root() const { return m__root; }
+    edk2_vss2_t* _root() const { return m__root; }
     kaitai::kstruct* _parent() const { return m__parent; }
     std::string _raw_body() const { return m__raw_body; }
     kaitai::kstream* _io__raw_body() const { return m__io__raw_body.get(); }
