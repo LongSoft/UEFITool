@@ -37,6 +37,7 @@ SET(PROJECT_SOURCES
  ../common/generated/ami_nvar.cpp
  ../common/generated/edk2_vss.cpp
  ../common/generated/edk2_vss2.cpp
+ ../common/generated/edk2_ftw.cpp
  ../common/generated/insyde_fdc.cpp
  ../common/generated/intel_acbp_v1.cpp
  ../common/generated/intel_acbp_v2.cpp

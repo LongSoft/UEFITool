@@ -28,6 +28,7 @@
 #include "generated/ami_nvar.h"
 #include "generated/edk2_vss.h"
 #include "generated/edk2_vss2.h"
+#include "generated/edk2_ftw.h"
 #include "generated/insyde_fdc.h"
 
 USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
@@ -660,7 +661,76 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
         // Do not try any other parsers if we are here for FDC store parsing
         if (fdcStoreSizeOverride == 0) {
             // FTW
-            
+            try {
+                if (volumeBodySize - storeOffset < sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32)) {
+                    // No need to parse further, the rest of the volume is too small
+                    throw 0;
+                }
+                
+                UByteArray ftw = volumeBody.mid(storeOffset);
+                umemstream is(ftw.constData(), ftw.size());
+                kaitai::kstream ks(&is);
+                edk2_ftw_t parsed(&ks);
+                UINT64 storeSize;
+                UINT64 headerSize;
+                UINT32 calculatedCrc;
+                UByteArray header;
+                if (parsed._is_null_len_write_queue_64()) {
+                    headerSize = parsed.len_ftw_store_header_32();
+                    storeSize = headerSize + parsed.len_write_queue_32();
+                    header = ftw.left(headerSize);
+                    
+                    // Check block header checksum
+                    UByteArray crcHeader = header;
+                    EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* crcFtwBlockHeader = (EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)crcHeader.data();
+                    crcFtwBlockHeader->Crc = emptyByte ? 0xFFFFFFFF : 0;
+                    crcFtwBlockHeader->State = emptyByte ? 0xFF : 0;
+                    calculatedCrc = (UINT32)crc32(0, (const UINT8*)crcFtwBlockHeader, (UINT32)headerSize);
+                }
+                else {
+                    headerSize = parsed.len_ftw_store_header_64();
+                    storeSize = headerSize + parsed.len_write_queue_32() + (((UINT64)parsed.len_write_queue_64()) << 32);
+                    header = ftw.left(headerSize);
+                    
+                    // Check block header checksum
+                    UByteArray crcHeader = header;
+                    EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* crcFtwBlockHeader = (EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)crcHeader.data();
+                    crcFtwBlockHeader->Crc = emptyByte ? 0xFFFFFFFF : 0;
+                    crcFtwBlockHeader->State = emptyByte ? 0xFF : 0;
+                    calculatedCrc = (UINT32)crc32(0, (const UINT8*)crcFtwBlockHeader, (UINT32)headerSize);
+                }
+                
+                // FTW store at current offset parsed correctly
+                // Check if we need to add a padding before it
+                if (!outerPadding.isEmpty()) {
+                    UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
+                    model->addItem(previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                    outerPadding.clear();
+                }
+                
+                // Construct header and body
+                UByteArray body = ftw.mid(header.size(), storeSize - header.size());
+                
+                // Add info
+                const EFI_GUID* guid = (const EFI_GUID*)header.constData();
+                UString name = UString("FTW store");
+                UString info = UString("Signature: ") + guidToUString(*guid, false);
+                info += usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nHeader CRC32: %08Xh",
+                                 (UINT32)storeSize, (UINT32)storeSize,
+                                 (UINT32)header.size(), (UINT32)header.size(),
+                                 (UINT32)body.size(), (UINT32)body.size(),
+                                 parsed.state(),
+                                 parsed.crc()) + (parsed.crc() != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
+                
+                // Add header tree item
+                UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::FtwStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
+                
+                storeFound = true;
+                storeOffset += storeSize;
+                previousStoreEndOffset = storeOffset;
+            } catch (...) {
+                // Parsing failed, try something else
+            }
             // Insyde FDC
             try {
                 if (volumeBodySize - storeOffset < sizeof(FDC_VOLUME_HEADER)) {
@@ -693,10 +763,10 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                                         (UINT32)header.size(), (UINT32)header.size(),
                                         (UINT32)body.size(), (UINT32)body.size());
 
-                // Add header tree item with modified body
+                // Add header tree item
                 UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::FdcStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
                 
-                // Parse modified FDC body as normal VSS/VSS2 storage
+                // Parse FDC body as normal VSS/VSS2 storage with size override
                 parseNvramVolumeBody(headerIndex, (UINT32)body.size());
                 
                 storeFound = true;
@@ -705,7 +775,6 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
             } catch (...) {
                 // Parsing failed, try something else
             }
-            
             
             // Apple Fsys/Gaid
             
