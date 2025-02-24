@@ -81,7 +81,7 @@ UString uniqueItemName(const UModelIndex & index)
     switch (model->type(index)) {
         case Types::NvarEntry:
         case Types::VssEntry:
-        case Types::FsysEntry:
+        case Types::SysFEntry:
         case Types::EvsaEntry:
         case Types::FlashMapEntry:
         case Types::File:

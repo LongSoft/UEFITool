@@ -70,8 +70,8 @@ extern const UByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID; // 00504624-8A59-4EE
 #define NVRAM_VSS_STORE_SIGNATURE            0x53535624 // $VSS
 #define NVRAM_APPLE_SVS_STORE_SIGNATURE      0x53565324 // $SVS
 #define NVRAM_APPLE_NSS_STORE_SIGNATURE      0x53534E24 // $NSS
-#define NVRAM_APPLE_FSYS_STORE_SIGNATURE     0x73797346 // Fsys
-#define NVRAM_APPLE_GAID_STORE_SIGNATURE     0x64696147 // Gaid
+#define NVRAM_APPLE_SYSF_STORE_SIGNATURE     0x73797346 // Fsys
+#define NVRAM_APPLE_DIAG_STORE_SIGNATURE     0x64696147 // Gaid
 #define NVRAM_VSS_VARIABLE_START_ID          0x55AA
 
 // Variable store header flags
@@ -229,15 +229,15 @@ typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
 } EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64;
 
 //
-// Apple Fsys store
+// Apple System Flags store
 //
 
-typedef struct APPLE_FSYS_STORE_HEADER_ {
+typedef struct APPLE_SYSF_STORE_HEADER_ {
     UINT32  Signature;  // Fsys or Gaid signature
     UINT8   Unknown0;   // Still unknown
     UINT32  Unknown1;   // Still unknown
     UINT16  Size;       // Size of variable store
-} APPLE_FSYS_STORE_HEADER;
+} APPLE_SYSF_STORE_HEADER;
 
 // Apple Fsys entry format
 // UINT8 NameLength;

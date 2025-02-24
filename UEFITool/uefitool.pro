@@ -51,6 +51,11 @@ HEADERS += uefitool.h \
  ../common/digest/sha2.h \
  ../common/digest/sm3.h \
  ../common/generated/ami_nvar.h \
+ ../common/generated/apple_sysf.h \
+ ../common/generated/edk2_vss.h \
+ ../common/generated/edk2_vss2.h \
+ ../common/generated/edk2_ftw.h \
+ ../common/generated/insyde_fdc.h \
  ../common/generated/intel_acbp_v1.h \
  ../common/generated/intel_acbp_v2.h \
  ../common/generated/intel_keym_v1.h \
@@ -118,6 +123,11 @@ SOURCES += uefitool_main.cpp \
  ../common/digest/sha512.c \
  ../common/digest/sm3.c \
  ../common/generated/ami_nvar.cpp \
+ ../common/generated/apple_sysf.cpp \
+ ../common/generated/edk2_vss.cpp \
+ ../common/generated/edk2_vss2.cpp \
+ ../common/generated/edk2_ftw.cpp \
+ ../common/generated/insyde_fdc.cpp \
  ../common/generated/intel_acbp_v1.cpp \
  ../common/generated/intel_acbp_v2.cpp \
  ../common/generated/intel_keym_v1.cpp \

@@ -245,7 +245,7 @@ void UEFITool::populateUi(const QModelIndex &current)
                                      || type == Types::SlicData
                                      || type == Types::NvarEntry
                                      || type == Types::VssEntry
-                                     || type == Types::FsysEntry
+                                     || type == Types::SysFEntry
                                      || type == Types::EvsaEntry
                                      || type == Types::FlashMapEntry
                                      || type == Types::IfwiHeader
@@ -263,7 +263,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->menuStoreActions->setEnabled(type == Types::VssStore
                                      || type == Types::Vss2Store
                                      || type == Types::FdcStore
-                                     || type == Types::FsysStore
+                                     || type == Types::SysFStore
                                      || type == Types::EvsaStore
                                      || type == Types::FtwStore
                                      || type == Types::FlashMapStore
@@ -907,7 +907,7 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         case Types::VssStore:
         case Types::Vss2Store:
         case Types::FdcStore:
-        case Types::FsysStore:
+        case Types::SysFStore:
         case Types::EvsaStore:
         case Types::FtwStore:
         case Types::FlashMapStore:

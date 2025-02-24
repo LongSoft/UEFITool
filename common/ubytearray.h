@@ -69,6 +69,7 @@ public:
 
     UByteArray & operator=(const UByteArray & ba) { d = ba.d; return *this; }
     UByteArray & operator+=(const UByteArray & ba) { d += ba.d; return *this; }
+    UByteArray & operator+=(const char c) { d += c; return *this; }
     bool operator== (const UByteArray & ba) const { return d == ba.d; }
     bool operator!= (const UByteArray & ba) const { return d != ba.d; }
     inline void swap(UByteArray &other) { std::swap(d, other.d); }

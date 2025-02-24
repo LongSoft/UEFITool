@@ -32,6 +32,7 @@ SET(PROJECT_SOURCES
  ../common/bstrlib/bstrlib.c
  ../common/bstrlib/bstrwrap.cpp
  ../common/generated/ami_nvar.cpp
+ ../common/generated/apple_sysf.cpp
  ../common/generated/edk2_vss.cpp
  ../common/generated/edk2_vss2.cpp
  ../common/generated/edk2_ftw.cpp

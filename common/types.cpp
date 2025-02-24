@@ -55,14 +55,14 @@ UString itemTypeToUString(const UINT8 type)
         case Types::Vss2Store:             return UString("VSS2 store");
         case Types::FtwStore:              return UString("FTW store");
         case Types::FdcStore:              return UString("FDC store");
-        case Types::FsysStore:             return UString("Fsys store");
+        case Types::SysFStore:             return UString("SysF store");
         case Types::EvsaStore:             return UString("EVSA store");
         case Types::CmdbStore:             return UString("CMDB store");
         case Types::FlashMapStore:         return UString("FlashMap store");
         case Types::NvarGuidStore:         return UString("NVAR GUID store");
         case Types::NvarEntry:             return UString("NVAR entry");
         case Types::VssEntry:              return UString("VSS entry");
-        case Types::FsysEntry:             return UString("Fsys entry");
+        case Types::SysFEntry:             return UString("SysF entry");
         case Types::EvsaEntry:             return UString("EVSA entry");
         case Types::FlashMapEntry:         return UString("FlashMap entry");
         case Types::Microcode:             return UString("Microcode");
@@ -128,9 +128,9 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
             else if (subtype == Subtypes::AuthVssEntry)                 return UString("Auth");
             else if (subtype == Subtypes::IntelVssEntry)                return UString("Intel");
             break;
-        case Types::FsysEntry:
-            if      (subtype == Subtypes::InvalidFsysEntry)             return UString("Invalid");
-            else if (subtype == Subtypes::NormalFsysEntry)              return UString("Normal");
+        case Types::SysFEntry:
+            if      (subtype == Subtypes::InvalidSysFEntry)             return UString("Invalid");
+            else if (subtype == Subtypes::NormalSysFEntry)              return UString("Normal");
             break;
         case Types::EvsaEntry:
             if      (subtype == Subtypes::InvalidEvsaEntry)             return UString("Invalid");

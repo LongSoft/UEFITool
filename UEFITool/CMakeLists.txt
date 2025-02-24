@@ -68,6 +68,7 @@ SET(PROJECT_SOURCES
  ../common/digest/sha512.c
  ../common/digest/sm3.c
  ../common/generated/ami_nvar.cpp
+ ../common/generated/apple_sysf.cpp
  ../common/generated/edk2_vss.cpp
  ../common/generated/edk2_vss2.cpp
  ../common/generated/edk2_ftw.cpp

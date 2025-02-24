@@ -47,14 +47,14 @@ namespace Types {
         Vss2Store,
         FtwStore,
         FdcStore,
-        FsysStore,
+        SysFStore,
         EvsaStore,
         FlashMapStore,
         CmdbStore,
         NvarGuidStore,
         NvarEntry,
         VssEntry,
-        FsysEntry,
+        SysFEntry,
         EvsaEntry,
         FlashMapEntry,
         Microcode,
@@ -138,9 +138,9 @@ namespace Subtypes {
         IntelVssEntry,
     };
 
-    enum FsysEntrySubtypes {
-        InvalidFsysEntry = 150,
-        NormalFsysEntry,
+    enum SysFEntrySubtypes {
+        InvalidSysFEntry = 150,
+        NormalSysFEntry,
     };
     
     enum EvsaEntrySubtypes {
