@@ -21,7 +21,7 @@ void insyde_fdc_t::_read() {
     m_fdc_size = m__io->read_u4le();
     {
         uint32_t _ = fdc_size();
-        if (!( ((_ > len_fdc_store_header()) && (_ < 4294967295UL)) )) {
+        if (!( ((_ > static_cast<uint32_t>(len_fdc_store_header())) && (_ < 4294967295UL)) )) {
             throw kaitai::validation_expr_error<uint32_t>(fdc_size(), _io(), std::string("/seq/1"));
         }
     }

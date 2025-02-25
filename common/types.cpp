@@ -142,6 +142,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         case Types::FlashMapEntry:
             if      (subtype == Subtypes::VolumeFlashMapEntry)          return UString("Volume");
             else if (subtype == Subtypes::DataFlashMapEntry)            return UString("Data");
+            else if (subtype == Subtypes::UnknownFlashMapEntry)         return UString("Unknown");
             break;
         case Types::Microcode:
             if      (subtype == Subtypes::IntelMicrocode)               return UString("Intel");

@@ -26,7 +26,7 @@ seq:
 - id: vss2_size
   type: u4
   valid:
-   expr: _ > len_vss2_store_header and _ < 0xFFFFFFFF
+   expr: _ > len_vss2_store_header.as<u4> and _ < 0xFFFFFFFF
 - id: format
   type: u1
   valid:

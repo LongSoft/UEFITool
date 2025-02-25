@@ -17,7 +17,7 @@ seq:
 - id: fdc_size
   type: u4
   valid:
-   expr: _ > len_fdc_store_header and _ < 0xFFFFFFFF
+   expr: _ > len_fdc_store_header.as<u4> and _ < 0xFFFFFFFF
 - id: body
   size: fdc_size - len_fdc_store_header
 instances:

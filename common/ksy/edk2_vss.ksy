@@ -17,7 +17,7 @@ seq:
 - id: vss_size
   type: u4
   valid:
-   expr: _ > len_vss_store_header and _ < 0xFFFFFFFF
+   expr: _ > len_vss_store_header.as<u4> and _ < 0xFFFFFFFF
 - id: format
   type: u1
   valid:
@@ -87,7 +87,7 @@ types:
     type: u4
     if: signature_first == 0xAA and is_intel_legacy
     valid:
-     expr: _ >= len_intel_legacy_header + 4 + 1 # Header size + at least one UCS2 character for the name + UCS2 null terminator + at least one byte of data
+     expr: _ >= len_intel_legacy_header.as<u4> + 4 + 1 # Header size + at least one UCS2 character for the name + UCS2 null terminator + at least one byte of data
 # ^^^ Intel legacy
 # Next 2 fields can be of any value for an authenticated variable due to them being a combined value of MonothonicCounter
   - id: len_name

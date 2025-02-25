@@ -332,7 +332,7 @@ extern const UByteArray NVRAM_PHOENIX_FLASH_MAP_SIGNATURE;
 typedef struct PHOENIX_FLASH_MAP_HEADER_ {
     UINT8  Signature[10]; // _FLASH_MAP signature
     UINT16 NumEntries;    // Number of entries in the map
-    UINT32 : 32;          // Reserved field
+    UINT32 Reserved;      // Reserved field
 } PHOENIX_FLASH_MAP_HEADER;
 
 typedef struct PHOENIX_FLASH_MAP_ENTRY_ {
@@ -343,9 +343,9 @@ typedef struct PHOENIX_FLASH_MAP_ENTRY_ {
     UINT32 Size;
     UINT32 Offset;
 } PHOENIX_FLASH_MAP_ENTRY;
-
-#define NVRAM_PHOENIX_FLASH_MAP_ENTRY_TYPE_VOLUME     0x0000
-#define NVRAM_PHOENIX_FLASH_MAP_ENTRY_TYPE_DATA_BLOCK 0x0001
+#define NVRAM_PHOENIX_FLASH_MAP_TOTAL_SIZE 0x1000
+#define NVRAM_PHOENIX_FLASH_MAP_ENTRY_DATA_TYPE_VOLUME     0x0000
+#define NVRAM_PHOENIX_FLASH_MAP_ENTRY_DATA_TYPE_DATA_BLOCK 0x0001
 
 extern UString flashMapGuidToUString(const EFI_GUID & guid);
 
@@ -415,6 +415,9 @@ typedef struct PHOENIX_CMDB_HEADER_ {
 
 #define NVRAM_PHOENIX_CMDB_HEADER_SIGNATURE 0x42444D43
 #define NVRAM_PHOENIX_CMDB_SIZE 0x100;
+
+// Zero GUID
+extern const UByteArray ZERO_GUID;
 
 // Restore previous packing rules
 #pragma pack(pop)

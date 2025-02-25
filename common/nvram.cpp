@@ -17,6 +17,8 @@
 //
 // GUIDs mentioned in by nvram.h
 //
+extern const UByteArray ZERO_GUID // 00000000-0000-0000-0000-000000000000
+("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 16);
 extern const UByteArray NVRAM_NVAR_STORE_FILE_GUID // CEF5B9A3-476D-497F-9FDC-E98143E0422C
 ("\xA3\xB9\xF5\xCE\x6D\x47\x7F\x49\x9F\xDC\xE9\x81\x43\xE0\x42\x2C", 16);
 extern const UByteArray NVRAM_NVAR_EXTERNAL_DEFAULTS_FILE_GUID // 9221315B-30BB-46B5-813E-1B1BF4712BD3
@@ -168,6 +170,7 @@ UString flashMapGuidToUString(const EFI_GUID & guid)
         || baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA6_GUID
         || baGuid == NVRAM_PHOENIX_FLASH_MAP_EVSA7_GUID)        return UString("EVSA store");
     if (baGuid == NVRAM_PHOENIX_FLASH_MAP_SELF_GUID)            return UString("Flash map");
+    if (baGuid == ZERO_GUID)                                    return UString();
     return UString("Unknown");
 }
 

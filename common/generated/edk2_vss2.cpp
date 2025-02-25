@@ -47,7 +47,7 @@ void edk2_vss2_t::_read() {
     m_vss2_size = m__io->read_u4le();
     {
         uint32_t _ = vss2_size();
-        if (!( ((_ > len_vss2_store_header()) && (_ < 4294967295UL)) )) {
+        if (!( ((_ > static_cast<uint32_t>(len_vss2_store_header())) && (_ < 4294967295UL)) )) {
             throw kaitai::validation_expr_error<uint32_t>(vss2_size(), _io(), std::string("/seq/4"));
         }
     }

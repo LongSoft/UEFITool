@@ -154,6 +154,7 @@ namespace Subtypes {
     enum FlashMapEntrySubtypes {
         VolumeFlashMapEntry = 170,
         DataFlashMapEntry,
+        UnknownFlashMapEntry,
     };
 
     enum MicrocodeSubtypes {

@@ -23,7 +23,7 @@ void edk2_vss_t::_read() {
     m_vss_size = m__io->read_u4le();
     {
         uint32_t _ = vss_size();
-        if (!( ((_ > len_vss_store_header()) && (_ < 4294967295UL)) )) {
+        if (!( ((_ > static_cast<uint32_t>(len_vss_store_header())) && (_ < 4294967295UL)) )) {
             throw kaitai::validation_expr_error<uint32_t>(vss_size(), _io(), std::string("/seq/1"));
         }
     }
@@ -149,7 +149,7 @@ void edk2_vss_t::vss_variable_t::_read() {
         m_len_total = m__io->read_u4le();
         {
             uint32_t _ = len_total();
-            if (!(_ >= ((len_intel_legacy_header() + 4) + 1))) {
+            if (!(_ >= ((static_cast<uint32_t>(len_intel_legacy_header()) + 4) + 1))) {
                 throw kaitai::validation_expr_error<uint32_t>(len_total(), _io(), std::string("/types/vss_variable/seq/5"));
             }
         }
