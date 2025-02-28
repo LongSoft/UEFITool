@@ -396,7 +396,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                     // Add free space or padding after all variables, if needed
                     UINT32 freeSpaceOffset = vssVariableOffset - storeOffset;
                     if (freeSpaceOffset < storeSize) {
-                        UByteArray freeSpace = vss.mid(freeSpaceOffset, storeSize - freeSpaceOffset);
+                        UByteArray freeSpace = volumeBody.mid(freeSpaceOffset, storeSize - freeSpaceOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
@@ -582,7 +582,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                     // Add free space or padding after all variables, if needed
                     UINT32 freeSpaceOffset = vss2VariableOffset - storeOffset;
                     if (freeSpaceOffset < storeSize) {
-                        UByteArray freeSpace = vss2.mid(freeSpaceOffset, storeSize - freeSpaceOffset);
+                        UByteArray freeSpace = volumeBody.mid(freeSpaceOffset, storeSize - freeSpaceOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
@@ -872,7 +872,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
             // Add free space or padding after all variables, if needed
             UINT32 freeSpaceOffset = sysfVariableOffset - storeOffset;
             if (freeSpaceOffset < storeSize) {
-                UByteArray freeSpace = sysf.mid(freeSpaceOffset, storeSize - freeSpaceOffset);
+                UByteArray freeSpace = volumeBody.mid(freeSpaceOffset, storeSize - freeSpaceOffset);
                 // Add info
                 info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                 
