@@ -42,45 +42,47 @@ UString regionTypeToUString(const UINT8 type)
 UString itemTypeToUString(const UINT8 type)
 {
     switch (type) {
-        case Types::Root:                  return UString("Root");
-        case Types::Image:                 return UString("Image");
-        case Types::Capsule:               return UString("Capsule");
-        case Types::Region:                return UString("Region");
-        case Types::Volume:                return UString("Volume");
-        case Types::Padding:               return UString("Padding");
-        case Types::File:                  return UString("File");
-        case Types::Section:               return UString("Section");
-        case Types::FreeSpace:             return UString("Free space");
-        case Types::VssStore:              return UString("VSS store");
-        case Types::Vss2Store:             return UString("VSS2 store");
-        case Types::FtwStore:              return UString("FTW store");
-        case Types::FdcStore:              return UString("FDC store");
-        case Types::SysFStore:             return UString("SysF store");
-        case Types::EvsaStore:             return UString("EVSA store");
-        case Types::CmdbStore:             return UString("CMDB store");
-        case Types::FlashMapStore:         return UString("FlashMap store");
-        case Types::NvarGuidStore:         return UString("NVAR GUID store");
-        case Types::NvarEntry:             return UString("NVAR entry");
-        case Types::VssEntry:              return UString("VSS entry");
-        case Types::SysFEntry:             return UString("SysF entry");
-        case Types::EvsaEntry:             return UString("EVSA entry");
-        case Types::FlashMapEntry:         return UString("FlashMap entry");
-        case Types::Microcode:             return UString("Microcode");
-        case Types::SlicData:              return UString("SLIC data");
-        case Types::FptStore:              return UString("FPT store");
-        case Types::FptEntry:              return UString("FPT entry");
-        case Types::IfwiHeader:            return UString("IFWI header");
-        case Types::IfwiPartition:         return UString("IFWI partition");
-        case Types::FptPartition:          return UString("FPT partition");
-        case Types::BpdtStore:             return UString("BPDT store");
-        case Types::BpdtEntry:             return UString("BPDT entry");
-        case Types::BpdtPartition:         return UString("BPDT partition");
-        case Types::CpdStore:              return UString("CPD store");
-        case Types::CpdEntry:              return UString("CPD entry");
-        case Types::CpdPartition:          return UString("CPD partition");
-        case Types::CpdExtension:          return UString("CPD extension");
-        case Types::CpdSpiEntry:           return UString("CPD SPI entry");
-        case Types::StartupApDataEntry:    return UString("Startup AP data");
+        case Types::Root:                       return UString("Root");
+        case Types::Image:                      return UString("Image");
+        case Types::Capsule:                    return UString("Capsule");
+        case Types::Region:                     return UString("Region");
+        case Types::Volume:                     return UString("Volume");
+        case Types::Padding:                    return UString("Padding");
+        case Types::File:                       return UString("File");
+        case Types::Section:                    return UString("Section");
+        case Types::FreeSpace:                  return UString("Free space");
+        case Types::VssStore:                   return UString("VSS store");
+        case Types::Vss2Store:                  return UString("VSS2 store");
+        case Types::FtwStore:                   return UString("FTW store");
+        case Types::FdcStore:                   return UString("FDC store");
+        case Types::SysFStore:                  return UString("SysF store");
+        case Types::EvsaStore:                  return UString("EVSA store");
+        case Types::CmdbStore:                  return UString("CMDB store");
+        case Types::PhoenixFlashMapStore:       return UString("FlashMap store");
+        case Types::InsydeFlashDeviceMapStore:  return UString("FlashDeviceMap store");
+        case Types::NvarGuidStore:              return UString("NVAR GUID store");
+        case Types::NvarEntry:                  return UString("NVAR entry");
+        case Types::VssEntry:                   return UString("VSS entry");
+        case Types::SysFEntry:                  return UString("SysF entry");
+        case Types::EvsaEntry:                  return UString("EVSA entry");
+        case Types::PhoenixFlashMapEntry:       return UString("FlashMap entry");
+        case Types::InsydeFlashDeviceMapEntry:  return UString("FlashDeviceMap entry");
+        case Types::Microcode:                  return UString("Microcode");
+        case Types::SlicData:                   return UString("SLIC data");
+        case Types::FptStore:                   return UString("FPT store");
+        case Types::FptEntry:                   return UString("FPT entry");
+        case Types::IfwiHeader:                 return UString("IFWI header");
+        case Types::IfwiPartition:              return UString("IFWI partition");
+        case Types::FptPartition:               return UString("FPT partition");
+        case Types::BpdtStore:                  return UString("BPDT store");
+        case Types::BpdtEntry:                  return UString("BPDT entry");
+        case Types::BpdtPartition:              return UString("BPDT partition");
+        case Types::CpdStore:                   return UString("CPD store");
+        case Types::CpdEntry:                   return UString("CPD entry");
+        case Types::CpdPartition:               return UString("CPD partition");
+        case Types::CpdExtension:               return UString("CPD extension");
+        case Types::CpdSpiEntry:                return UString("CPD SPI entry");
+        case Types::StartupApDataEntry:         return UString("Startup AP data");
     }
     
     return usprintf("Unknown %02Xh", type);
@@ -139,7 +141,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
             else if (subtype == Subtypes::NameEvsaEntry)                return UString("Name");
             else if (subtype == Subtypes::DataEvsaEntry)                return UString("Data");
             break;
-        case Types::FlashMapEntry:
+        case Types::PhoenixFlashMapEntry:
             if      (subtype == Subtypes::VolumeFlashMapEntry)          return UString("Volume");
             else if (subtype == Subtypes::DataFlashMapEntry)            return UString("Data");
             else if (subtype == Subtypes::UnknownFlashMapEntry)         return UString("Unknown");
@@ -249,4 +251,30 @@ UString hashTypeToUString(const UINT16 algorithm_id)
     }
     
     return usprintf("Unknown %04Xh", algorithm_id);
+}
+
+UString insydeFlashDeviceMapEntryTypeGuidToUString(const EFI_GUID & guid)
+{
+    const UByteArray baGuid((const char*)&guid, sizeof(EFI_GUID));
+    if (baGuid == INSYDE_FLASH_MAP_REGION_BOOT_FV_GUID)          return UString("Boot Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_BVDT_GUID)             return UString("BIOS Version Data Table");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_EC_GUID)               return UString("EC Firmware");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_FTW_BACKUP_GUID)       return UString("FTW Backup");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_FTW_STATE_GUID)        return UString("FTW State");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_FV_GUID)               return UString("Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_FLASH_DEVICE_MAP_GUID) return UString("Flash Device Map");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_LOGO_GUID)             return UString("Logo");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_MICROCODE_GUID)        return UString("Microcode");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_MSDM_TABLE_GUID)       return UString("MSDM Table");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_MULTI_CONFIG_GUID)     return UString("MultiConfig");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_VAR_DEFAULT_GUID)      return UString("Variable Defaults");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_SMBIOS_UPDATE_GUID)    return UString("SMBIOS Update");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_VAR_GUID)              return UString("Variables");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_UNKNOWN_GUID)          return UString("Unknown");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_UNUSED_GUID)           return UString("Unused");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_USB_OPTION_ROM_GUID)   return UString("USB Option ROM");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_DXE_FV_GUID)           return UString("DXE Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_PEI_FV_GUID)           return UString("PEI Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_UNSIGNED_FV_GUID)      return UString("Unsigned Firmare Volume");
+    return guidToUString(guid);
 }

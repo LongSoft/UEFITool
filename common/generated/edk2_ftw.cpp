@@ -12,35 +12,11 @@ edk2_ftw_t::edk2_ftw_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, edk2_
 }
 
 void edk2_ftw_t::_read() {
-    m_signature = m__io->read_u4le();
+    m_signature = m__io->read_bytes(16);
     {
-        uint32_t _ = signature();
-        if (!( ((_ == 4293995405UL) || (_ == 2656577835UL)) )) {
-            throw kaitai::validation_expr_error<uint32_t>(signature(), _io(), std::string("/seq/0"));
-        }
-    }
-    n_signature_main = true;
-    if (signature() == 4293995405UL) {
-        n_signature_main = false;
-        m_signature_main = m__io->read_bytes(12);
-        if (!(signature_main() == std::string("\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 12))) {
-            throw kaitai::validation_not_equal_error<std::string>(std::string("\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 12), signature_main(), _io(), std::string("/seq/1"));
-        }
-    }
-    n_signature_edk2_working_block = true;
-    if (signature() == 2656577835UL) {
-        n_signature_edk2_working_block = false;
-        m_signature_edk2_working_block = m__io->read_bytes(12);
-        if (!(signature_edk2_working_block() == std::string("\x68\x7C\x7D\x49\x0A\xCE\x65\x00\xFD\x9F\x1B\x95", 12))) {
-            throw kaitai::validation_not_equal_error<std::string>(std::string("\x68\x7C\x7D\x49\x0A\xCE\x65\x00\xFD\x9F\x1B\x95", 12), signature_edk2_working_block(), _io(), std::string("/seq/2"));
-        }
-    }
-    n_signature_vss2_working_block = true;
-    if (signature() == 2656577835UL) {
-        n_signature_vss2_working_block = false;
-        m_signature_vss2_working_block = m__io->read_bytes(12);
-        if (!(signature_vss2_working_block() == std::string("\x68\x7C\x7D\x49\xA0\xCE\x65\x00\xFD\x9F\x1B\x95", 12))) {
-            throw kaitai::validation_not_equal_error<std::string>(std::string("\x68\x7C\x7D\x49\xA0\xCE\x65\x00\xFD\x9F\x1B\x95", 12), signature_vss2_working_block(), _io(), std::string("/seq/3"));
+        std::string _ = signature();
+        if (!( ((_ == std::string("\x8D\x2B\xF1\xFF\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 16)) || (_ == std::string("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\x0A\xCE\x65\x00\xFD\x9F\x1B\x95", 16)) || (_ == std::string("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\xA0\xCE\x65\x00\xFD\x9F\x1B\x95", 16))) )) {
+            throw kaitai::validation_expr_error<std::string>(signature(), _io(), std::string("/seq/0"));
         }
     }
     m_crc = m__io->read_u4le();
@@ -69,12 +45,6 @@ edk2_ftw_t::~edk2_ftw_t() {
 }
 
 void edk2_ftw_t::_clean_up() {
-    if (!n_signature_main) {
-    }
-    if (!n_signature_edk2_working_block) {
-    }
-    if (!n_signature_vss2_working_block) {
-    }
     if (!n_len_write_queue_64) {
     }
     if (!n_write_queue_32) {

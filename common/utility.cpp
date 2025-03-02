@@ -83,7 +83,8 @@ UString uniqueItemName(const UModelIndex & index)
         case Types::VssEntry:
         case Types::SysFEntry:
         case Types::EvsaEntry:
-        case Types::FlashMapEntry:
+        case Types::PhoenixFlashMapEntry:
+        case Types::InsydeFlashDeviceMapEntry:
         case Types::File:
             name = itemText.isEmpty() ? itemName : itemName + '_' + itemText;
             break;

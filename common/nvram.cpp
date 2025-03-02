@@ -152,7 +152,7 @@ UString efiTimeToUString(const EFI_TIME & time)
                     time.Nanosecond);
 }
 
-UString flashMapGuidToUString(const EFI_GUID & guid)
+UString phoenixFlashMapGuidToUString(const EFI_GUID & guid)
 {
     const UByteArray baGuid((const char*)&guid, sizeof(EFI_GUID));
     if (baGuid == NVRAM_PHOENIX_FLASH_MAP_VOLUME_HEADER)        return UString("Volume header");

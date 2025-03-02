@@ -274,7 +274,7 @@ typedef struct EVSA_STORE_ENTRY_ {
     UINT32 Signature; // EVSA signature
     UINT32 Attributes;
     UINT32 StoreSize;
-    UINT32 : 32;
+    UINT32 Reserved;
 } EVSA_STORE_ENTRY;
 
 typedef struct EVSA_GUID_ENTRY_ {
@@ -347,7 +347,7 @@ typedef struct PHOENIX_FLASH_MAP_ENTRY_ {
 #define NVRAM_PHOENIX_FLASH_MAP_ENTRY_DATA_TYPE_VOLUME     0x0000
 #define NVRAM_PHOENIX_FLASH_MAP_ENTRY_DATA_TYPE_DATA_BLOCK 0x0001
 
-extern UString flashMapGuidToUString(const EFI_GUID & guid);
+extern UString phoenixFlashMapGuidToUString(const EFI_GUID & guid);
 
 extern const UByteArray NVRAM_PHOENIX_FLASH_MAP_VOLUME_HEADER; // B091E7D2-05A0-4198-94F0-74B7B8C55459
 extern const UByteArray NVRAM_PHOENIX_FLASH_MAP_MICROCODES_GUID; // FD3F690E-B4B0-4D68-89DB-19A1A3318F90

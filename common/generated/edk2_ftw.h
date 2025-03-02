@@ -38,28 +38,7 @@ public:
     int8_t len_ftw_store_header_64();
 
 private:
-    uint32_t m_signature;
-    std::string m_signature_main;
-    bool n_signature_main;
-
-public:
-    bool _is_null_signature_main() { signature_main(); return n_signature_main; };
-
-private:
-    std::string m_signature_edk2_working_block;
-    bool n_signature_edk2_working_block;
-
-public:
-    bool _is_null_signature_edk2_working_block() { signature_edk2_working_block(); return n_signature_edk2_working_block; };
-
-private:
-    std::string m_signature_vss2_working_block;
-    bool n_signature_vss2_working_block;
-
-public:
-    bool _is_null_signature_vss2_working_block() { signature_vss2_working_block(); return n_signature_vss2_working_block; };
-
-private:
+    std::string m_signature;
     uint32_t m_crc;
     uint8_t m_state;
     std::string m_reserved;
@@ -89,10 +68,7 @@ private:
     kaitai::kstruct* m__parent;
 
 public:
-    uint32_t signature() const { return m_signature; }
-    std::string signature_main() const { return m_signature_main; }
-    std::string signature_edk2_working_block() const { return m_signature_edk2_working_block; }
-    std::string signature_vss2_working_block() const { return m_signature_vss2_working_block; }
+    std::string signature() const { return m_signature; }
     uint32_t crc() const { return m_crc; }
     uint8_t state() const { return m_state; }
     std::string reserved() const { return m_reserved; }

@@ -354,7 +354,7 @@ int32_t edk2_vss2_t::vss2_variable_t::end_offset() {
 int32_t edk2_vss2_t::vss2_variable_t::len_alignment_padding_auth() {
     if (f_len_alignment_padding_auth)
         return m_len_alignment_padding_auth;
-    m_len_alignment_padding_auth = ((((end_offset_auth() - offset()) + 3) & ~3) - (end_offset() - offset()));
+    m_len_alignment_padding_auth = ((((end_offset_auth() - offset()) + 3) & ~3) - (end_offset_auth() - offset()));
     f_len_alignment_padding_auth = true;
     return m_len_alignment_padding_auth;
 }

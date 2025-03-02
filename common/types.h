@@ -49,14 +49,16 @@ namespace Types {
         FdcStore,
         SysFStore,
         EvsaStore,
-        FlashMapStore,
+        PhoenixFlashMapStore,
+        InsydeFlashDeviceMapStore,
         CmdbStore,
         NvarGuidStore,
         NvarEntry,
         VssEntry,
         SysFEntry,
         EvsaEntry,
-        FlashMapEntry,
+        PhoenixFlashMapEntry,
+        InsydeFlashDeviceMapEntry,
         Microcode,
         SlicData,
         IfwiHeader,
@@ -204,5 +206,6 @@ extern UString compressionTypeToUString(const UINT8 algorithm);
 extern UString regionTypeToUString(const UINT8 type);
 extern UString fitEntryTypeToUString(const UINT8 type);
 extern UString hashTypeToUString(const UINT16 digest_agorithm_id);
+extern UString insydeFlashDeviceMapEntryTypeGuidToUString(const EFI_GUID & guid);
 
 #endif // TYPES_H

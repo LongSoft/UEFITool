@@ -13,7 +13,7 @@ seq:
 - id: signature
   type: u4
   valid:
-   expr: _ == 0xDDCF3616 or _ == 0xDDCF3617 or _ == 0xAAF32C78 # Beginning of known store GUIDs for VSS2
+    expr: _ == 0xDDCF3616 or _ == 0xDDCF3617 or _ == 0xAAF32C78 # Beginning of known store GUIDs for VSS2
 - id: signature_auth_var_key_db
   contents: [0x7B, 0x94, 0x9A, 0x43, 0xA1, 0x80, 0x2E, 0x14, 0x4E, 0xC3, 0x77, 0x92] # AAF32C78-947B-439A-A180-2E144EC37792
   if: signature == 0xAAF32C78
@@ -26,7 +26,7 @@ seq:
 - id: vss2_size
   type: u4
   valid:
-   expr: _ > len_vss2_store_header.as<u4> and _ < 0xFFFFFFFF
+    expr: _ > len_vss2_store_header.as<u4> and _ < 0xFFFFFFFF
 - id: format
   type: u1
   valid:
@@ -40,6 +40,7 @@ seq:
 - id: body
   type: vss2_store_body
   size: vss2_size - len_vss2_store_header
+  
 instances:
   len_vss2_store_header:
     value: 7 * sizeof<u4>
@@ -71,7 +72,6 @@ types:
   - id: reserved
     type: b25le
 
-# TODO: check if VSS2 stores can have standard VSS variables
  vss2_variable:
   seq:
   - id: invoke_offset
@@ -82,7 +82,7 @@ types:
   - id: signature_last
     type: u1
     valid:
-     expr: _ == 0x55
+      expr: _ == 0x55
     if: signature_first == 0xAA
   - id: state
     type: u1
@@ -152,7 +152,7 @@ types:
     len_alignment_padding:
      value: (((end_offset - offset)+3) & ~3) - (end_offset - offset)
     len_alignment_padding_auth:
-     value: (((end_offset_auth - offset)+3) & ~3) - (end_offset - offset)
+     value: (((end_offset_auth - offset)+3) & ~3) - (end_offset_auth - offset)
     is_valid:
       value: state == 0x7F or state == 0x3F
     is_auth:
