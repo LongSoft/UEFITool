@@ -1221,6 +1221,42 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
         // Phoenix SLIC Pubkey/Marker
         
         // Intel uCode
+        try {
+            // Check data size
+            if (volumeBodySize - storeOffset < sizeof(INTEL_MICROCODE_HEADER)) {
+                throw 0;
+            }
+            
+            const UINT32 currentUint32 = readUnaligned((const UINT32*)(volumeBody.constData() + storeOffset));
+            
+            if (currentUint32 != INTEL_MICROCODE_HEADER_VERSION_1) {
+                throw 0;
+            }
+            
+            // Check microcode header candidate
+            const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)(volumeBody.constData() + storeOffset);
+            if (FALSE == ffsParser->microcodeHeaderValid(ucodeHeader)) {
+                throw 0;
+            }
+            
+            // Check size candidate
+            if (ucodeHeader->TotalSize == 0) {
+                throw 0;
+            }
+            
+            // All checks passed, microcode found
+            UByteArray ucode = volumeBody.mid(storeOffset);
+            UModelIndex ucodeIndex;
+            if (U_SUCCESS != ffsParser->parseIntelMicrocodeHeader(ucode, storeOffset, index, ucodeIndex)) {
+                throw 0;
+            }
+            
+            storeOffset += ucodeHeader->TotalSize - 1;
+            previousStoreEndOffset = storeOffset + 1;
+            continue;
+        } catch (...) {
+            // Parsing failed, try something else
+        }
         
         // Padding
         if (storeOffset < volumeBodySize) {
