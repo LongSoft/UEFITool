@@ -1250,8 +1250,40 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
             if (U_SUCCESS != ffsParser->parseIntelMicrocodeHeader(ucode, storeOffset, index, ucodeIndex)) {
                 throw 0;
             }
+             
+            UINT32 storeSize = ucodeHeader->TotalSize;
             
-            storeOffset += ucodeHeader->TotalSize - 1;
+            storeOffset += storeSize - 1;
+            previousStoreEndOffset = storeOffset + 1;
+            continue;
+        } catch (...) {
+            // Parsing failed, try something else
+        }
+        
+        // FFS volume
+        try {
+            // Check data size
+            if (volumeBodySize - storeOffset < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
+                throw 0;
+            }
+            
+            // Check volume header candidate
+            const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(volumeBody.constData() + storeOffset);
+            if (volumeHeader->Signature != EFI_FV_SIGNATURE) {
+                throw 0;
+            }
+            
+            // All checks passed, volume found
+            UByteArray volume = volumeBody.mid(storeOffset);
+            UModelIndex volumeIndex;
+            if (U_SUCCESS != ffsParser->parseVolumeHeader(volume, storeOffset, index, volumeIndex)) {
+                throw 0;
+            }
+            
+            (VOID)ffsParser->parseVolumeBody(volumeIndex);
+            UINT32 storeSize = (UINT32)(model->header(volumeIndex).size() + model->body(volumeIndex).size());
+            
+            storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
