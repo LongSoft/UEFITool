@@ -1216,9 +1216,48 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
         } catch (...) {
             // Parsing failed, try something else
         }
-        // Phoenix CMDB
         
-        // Phoenix SLIC Pubkey/Marker
+        // Phoenix CMDB
+        try {
+            if (volumeBodySize - storeOffset < NVRAM_PHOENIX_CMDB_SIZE) {
+                // No need to parse further, the rest of the volume is too small
+                throw 0;
+            }
+            
+            UINT32 storeSize = NVRAM_PHOENIX_CMDB_SIZE;
+            UByteArray cmdb = volumeBody.mid(storeOffset, storeSize);
+            
+            // Get store header
+            const PHOENIX_CMDB_HEADER* cmdbHeader = (const PHOENIX_CMDB_HEADER*)cmdb.constData();
+            
+            if (cmdbHeader->Signature != NVRAM_PHOENIX_CMDB_HEADER_SIGNATURE) {
+                throw 0;
+            }
+            
+            // Construct header and body
+            header = cmdb.left(cmdbHeader->TotalSize);
+            body = cmdb.mid(cmdbHeader->TotalSize, storeSize - cmdbHeader->TotalSize);
+            
+            // Add info
+            name = UString("CMDB store");
+            info = usprintf("Signature: CMDB\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
+                            storeSize, storeSize,
+                            (UINT32)header.size(), (UINT32)header.size(),
+                            (UINT32)body.size(), (UINT32)body.size());
+            
+            // Add tree item
+            model->addItem(storeOffset, Types::CmdbStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
+            
+            storeOffset += storeSize - 1;
+            previousStoreEndOffset = storeOffset + 1;
+            continue;
+        } catch (...) {
+            // Parsing failed, try something else
+        }
+        
+        // Phoenix SLIC Pubkey
+        
+        // Phoenix SLIC Marker
         
         // Intel uCode
         try {
