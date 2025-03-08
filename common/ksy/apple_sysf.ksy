@@ -1,6 +1,6 @@
 meta:
   id: apple_sysf
-  title: Apple system variable store
+  title: Apple System Flags store
   application: Apple MacEFI-based UEFI firmware
   file-extension: sysf
   tags:
@@ -12,8 +12,6 @@ meta:
 seq:
 - id: signature
   type: u4
-  valid:
-   expr: _ == 0x73797346 or _ == 0x64696147 # Fsys/Gaid
 - id: unknown
   type: u1
 - id: unknown1

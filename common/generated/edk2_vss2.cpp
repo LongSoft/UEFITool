@@ -13,51 +13,15 @@ edk2_vss2_t::edk2_vss2_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, edk
 }
 
 void edk2_vss2_t::_read() {
-    m_signature = m__io->read_u4le();
-    {
-        uint32_t _ = signature();
-        if (!( ((_ == 3721344534UL) || (_ == 3721344535UL) || (_ == 2868063352UL)) )) {
-            throw kaitai::validation_expr_error<uint32_t>(signature(), _io(), std::string("/seq/0"));
-        }
-    }
-    n_signature_auth_var_key_db = true;
-    if (signature() == 2868063352UL) {
-        n_signature_auth_var_key_db = false;
-        m_signature_auth_var_key_db = m__io->read_bytes(12);
-        if (!(signature_auth_var_key_db() == std::string("\x7B\x94\x9A\x43\xA1\x80\x2E\x14\x4E\xC3\x77\x92", 12))) {
-            throw kaitai::validation_not_equal_error<std::string>(std::string("\x7B\x94\x9A\x43\xA1\x80\x2E\x14\x4E\xC3\x77\x92", 12), signature_auth_var_key_db(), _io(), std::string("/seq/1"));
-        }
-    }
-    n_signature_vss2_store = true;
-    if (signature() == 3721344535UL) {
-        n_signature_vss2_store = false;
-        m_signature_vss2_store = m__io->read_bytes(12);
-        if (!(signature_vss2_store() == std::string("\x75\x32\x64\x41\x98\xB6\xFE\x85\x70\x7F\xFE\x7D", 12))) {
-            throw kaitai::validation_not_equal_error<std::string>(std::string("\x75\x32\x64\x41\x98\xB6\xFE\x85\x70\x7F\xFE\x7D", 12), signature_vss2_store(), _io(), std::string("/seq/2"));
-        }
-    }
-    n_signature_fdc_store = true;
-    if (signature() == 3721344534UL) {
-        n_signature_fdc_store = false;
-        m_signature_fdc_store = m__io->read_bytes(12);
-        if (!(signature_fdc_store() == std::string("\x75\x32\x64\x41\x98\xB6\xFE\x85\x70\x7F\xFE\x7D", 12))) {
-            throw kaitai::validation_not_equal_error<std::string>(std::string("\x75\x32\x64\x41\x98\xB6\xFE\x85\x70\x7F\xFE\x7D", 12), signature_fdc_store(), _io(), std::string("/seq/3"));
-        }
-    }
+    m_signature = m__io->read_bytes(16);
     m_vss2_size = m__io->read_u4le();
     {
         uint32_t _ = vss2_size();
         if (!( ((_ > static_cast<uint32_t>(len_vss2_store_header())) && (_ < 4294967295UL)) )) {
-            throw kaitai::validation_expr_error<uint32_t>(vss2_size(), _io(), std::string("/seq/4"));
+            throw kaitai::validation_expr_error<uint32_t>(vss2_size(), _io(), std::string("/seq/1"));
         }
     }
     m_format = m__io->read_u1();
-    {
-        uint8_t _ = format();
-        if (!(_ == 90)) {
-            throw kaitai::validation_expr_error<uint8_t>(format(), _io(), std::string("/seq/5"));
-        }
-    }
     m_state = m__io->read_u1();
     m_reserved = m__io->read_u2le();
     m_reserved1 = m__io->read_u4le();
@@ -71,12 +35,6 @@ edk2_vss2_t::~edk2_vss2_t() {
 }
 
 void edk2_vss2_t::_clean_up() {
-    if (!n_signature_auth_var_key_db) {
-    }
-    if (!n_signature_vss2_store) {
-    }
-    if (!n_signature_fdc_store) {
-    }
 }
 
 edk2_vss2_t::vss2_store_body_t::vss2_store_body_t(kaitai::kstream* p__io, edk2_vss2_t* p__parent, edk2_vss2_t* p__root) : kaitai::kstruct(p__io) {

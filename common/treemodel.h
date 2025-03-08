@@ -194,7 +194,6 @@ public:
 
     UByteArray body(const UModelIndex &index) const;
     bool hasEmptyBody(const UModelIndex &index) const;
-    void setBody(const UModelIndex &index, const UByteArray &body);
 
     UByteArray tail(const UModelIndex &index) const;
     bool hasEmptyTail(const UModelIndex &index) const;

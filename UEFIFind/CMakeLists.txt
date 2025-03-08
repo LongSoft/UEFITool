@@ -38,6 +38,8 @@ SET(PROJECT_SOURCES
  ../common/generated/edk2_ftw.cpp
  ../common/generated/insyde_fdc.cpp
  ../common/generated/insyde_fdm.cpp
+ ../common/generated/ms_slic_marker.cpp
+ ../common/generated/ms_slic_pubkey.cpp
  ../common/generated/phoenix_flm.cpp
  ../common/generated/phoenix_evsa.cpp
  ../common/generated/intel_acbp_v1.cpp

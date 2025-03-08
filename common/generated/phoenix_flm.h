@@ -60,13 +60,6 @@ public:
     };
 
 private:
-    bool f_len_flm_store;
-    int32_t m_len_flm_store;
-
-public:
-    int32_t len_flm_store();
-
-private:
     bool f_len_flm_store_header;
     int8_t m_len_flm_store_header;
 
@@ -85,7 +78,6 @@ private:
     uint16_t m_num_entries;
     uint32_t m_reserved;
     std::unique_ptr<std::vector<std::unique_ptr<flm_entry_t>>> m_entries;
-    std::unique_ptr<std::vector<uint8_t>> m_free_space;
     phoenix_flm_t* m__root;
     kaitai::kstruct* m__parent;
 
@@ -94,7 +86,6 @@ public:
     uint16_t num_entries() const { return m_num_entries; }
     uint32_t reserved() const { return m_reserved; }
     std::vector<std::unique_ptr<flm_entry_t>>* entries() const { return m_entries.get(); }
-    std::vector<uint8_t>* free_space() const { return m_free_space.get(); }
     phoenix_flm_t* _root() const { return m__root; }
     kaitai::kstruct* _parent() const { return m__parent; }
 };

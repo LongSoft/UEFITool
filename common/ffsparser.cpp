@@ -992,7 +992,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             }
            
             // Add board IDs
-            if (parsed.revision() == 3) {
+            if (!parsed._is_null_board_ids()) {
                 info += usprintf("\nRegion index: %Xh\nBoardId Count: %u",
                                  parsed.board_ids()->region_index(),
                                  parsed.board_ids()->num_board_ids());

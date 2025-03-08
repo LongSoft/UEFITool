@@ -344,28 +344,7 @@ public:
     int32_t len_vss2_store_header();
 
 private:
-    uint32_t m_signature;
-    std::string m_signature_auth_var_key_db;
-    bool n_signature_auth_var_key_db;
-
-public:
-    bool _is_null_signature_auth_var_key_db() { signature_auth_var_key_db(); return n_signature_auth_var_key_db; };
-
-private:
-    std::string m_signature_vss2_store;
-    bool n_signature_vss2_store;
-
-public:
-    bool _is_null_signature_vss2_store() { signature_vss2_store(); return n_signature_vss2_store; };
-
-private:
-    std::string m_signature_fdc_store;
-    bool n_signature_fdc_store;
-
-public:
-    bool _is_null_signature_fdc_store() { signature_fdc_store(); return n_signature_fdc_store; };
-
-private:
+    std::string m_signature;
     uint32_t m_vss2_size;
     uint8_t m_format;
     uint8_t m_state;
@@ -378,10 +357,7 @@ private:
     std::unique_ptr<kaitai::kstream> m__io__raw_body;
 
 public:
-    uint32_t signature() const { return m_signature; }
-    std::string signature_auth_var_key_db() const { return m_signature_auth_var_key_db; }
-    std::string signature_vss2_store() const { return m_signature_vss2_store; }
-    std::string signature_fdc_store() const { return m_signature_fdc_store; }
+    std::string signature() const { return m_signature; }
     uint32_t vss2_size() const { return m_vss2_size; }
     uint8_t format() const { return m_format; }
     uint8_t state() const { return m_state; }

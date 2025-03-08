@@ -14,12 +14,6 @@ edk2_vss_t::edk2_vss_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, edk2_
 
 void edk2_vss_t::_read() {
     m_signature = m__io->read_u4le();
-    {
-        uint32_t _ = signature();
-        if (!( ((_ == 1397970468) || (_ == 1398166308) || (_ == 1397968420)) )) {
-            throw kaitai::validation_expr_error<uint32_t>(signature(), _io(), std::string("/seq/0"));
-        }
-    }
     m_vss_size = m__io->read_u4le();
     {
         uint32_t _ = vss_size();
@@ -28,12 +22,6 @@ void edk2_vss_t::_read() {
         }
     }
     m_format = m__io->read_u1();
-    {
-        uint8_t _ = format();
-        if (!(_ == 90)) {
-            throw kaitai::validation_expr_error<uint8_t>(format(), _io(), std::string("/seq/2"));
-        }
-    }
     m_state = m__io->read_u1();
     m_reserved = m__io->read_u2le();
     m_reserved1 = m__io->read_u4le();

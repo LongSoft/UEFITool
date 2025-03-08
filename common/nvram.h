@@ -70,8 +70,6 @@ extern const UByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID; // 00504624-8A59-4EE
 #define NVRAM_VSS_STORE_SIGNATURE            0x53535624 // $VSS
 #define NVRAM_APPLE_SVS_STORE_SIGNATURE      0x53565324 // $SVS
 #define NVRAM_APPLE_NSS_STORE_SIGNATURE      0x53534E24 // $NSS
-#define NVRAM_APPLE_SYSF_STORE_SIGNATURE     0x73797346 // Fsys
-#define NVRAM_APPLE_DIAG_STORE_SIGNATURE     0x64696147 // Gaid
 #define NVRAM_VSS_VARIABLE_START_ID          0x55AA
 
 // Variable store header flags
@@ -86,12 +84,12 @@ extern const UByteArray NVRAM_ADDITIONAL_STORE_VOLUME_GUID; // 00504624-8A59-4EE
 
 // Variable store header
 typedef struct VSS_VARIABLE_STORE_HEADER_ {
-    UINT32  Signature; // $VSS signature
-    UINT32  Size;      // Size of variable store, including store header
-    UINT8   Format;    // Store format state
-    UINT8   State;     // Store health state
-    UINT16  Unknown;   // Used in Apple $SVS varstores
-    UINT32  : 32;
+    UINT32  Signature;  // Signature
+    UINT32  Size;       // Size of variable store, including store header
+    UINT8   Format;     // Store format state
+    UINT8   State;      // Store health state
+    UINT16  Reserved;   // Used in Apple $SVS varstores
+    UINT32  Reserved1;  // Reserved
 } VSS_VARIABLE_STORE_HEADER;
 
 // Normal variable header
@@ -142,12 +140,12 @@ typedef struct VSS_AUTH_VARIABLE_HEADER_ {
 } VSS_AUTH_VARIABLE_HEADER;
 
 // VSS variable states
-#define NVRAM_VSS_VARIABLE_IN_DELETED_TRANSITION     0xfe  // Variable is in obsolete transistion
-#define NVRAM_VSS_VARIABLE_DELETED                   0xfd  // Variable is obsolete
-#define NVRAM_VSS_VARIABLE_HEADER_VALID              0x7f  // Variable has valid header
-#define NVRAM_VSS_VARIABLE_ADDED                     0x3f  // Variable has been completely added
-#define NVRAM_VSS_INTEL_VARIABLE_VALID               0xfc  // Intel special variable valid
-#define NVRAM_VSS_INTEL_VARIABLE_INVALID             0xf8  // Intel special variable invalid
+#define NVRAM_VSS_VARIABLE_IN_DELETED_TRANSITION 0xfe  // Variable is in obsolete transistion
+#define NVRAM_VSS_VARIABLE_DELETED               0xfd  // Variable is obsolete
+#define NVRAM_VSS_VARIABLE_HEADER_VALID          0x7f  // Variable has valid header
+#define NVRAM_VSS_VARIABLE_ADDED                 0x3f  // Variable has been completely added
+#define NVRAM_VSS_INTEL_VARIABLE_VALID           0xfc  // Intel special variable valid
+#define NVRAM_VSS_INTEL_VARIABLE_INVALID         0xf8  // Intel special variable invalid
 
 // VSS variable attributes
 #define NVRAM_VSS_VARIABLE_NON_VOLATILE                          0x00000001
@@ -165,13 +163,8 @@ extern UString vssAttributesToUString(const UINT32 attributes);
 //
 // VSS2 variables
 //
-#define NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID_PART1 0xaaf32c78
 extern const UByteArray NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID; // AAF32C78-947B-439A-A180-2E144EC37792
-
-#define NVRAM_VSS2_STORE_GUID_PART1 0xddcf3617
 extern const UByteArray NVRAM_VSS2_STORE_GUID; // DDCF3617-3275-4164-98B6-FE85707FFE7D
-
-#define NVRAM_FDC_STORE_GUID_PART1 0xddcf3616
 extern const UByteArray NVRAM_FDC_STORE_GUID; // DDCF3616-3275-4164-98B6-FE85707FFE7D
 
 // Variable store header
@@ -180,24 +173,23 @@ typedef struct VSS2_VARIABLE_STORE_HEADER_ {
     UINT32   Size;      // Size of variable store, including store header
     UINT8    Format;    // Store format state
     UINT8    State;     // Store health state
-    UINT16   Unknown;
-    UINT32   : 32;
+    UINT16   Reserved;
+    UINT32   Reserved1;
 } VSS2_VARIABLE_STORE_HEADER;
 
 // VSS2 entries are 4-bytes aligned in VSS2 stores
 
 //
-// _FDC region
+// Insyde Factory Data Copy store
 //
+#define INSYDE_FDC_STORE_SIGNATURE 0x4344465F
 
-#define NVRAM_FDC_VOLUME_SIGNATURE 0x4344465F
-
-typedef struct FDC_VOLUME_HEADER_ {
+typedef struct INSYDE_FDC_STORE_HEADER_ {
     UINT32 Signature; //_FDC signature
     UINT32 Size;      // Size of the whole region
     EFI_FIRMWARE_VOLUME_HEADER VolumeHeader;
     EFI_FV_BLOCK_MAP_ENTRY FvBlockMap[2];
-} FDC_VOLUME_HEADER;
+} INSYDE_FDC_STORE_HEADER;
 
 //
 // FTW block
@@ -207,11 +199,8 @@ typedef struct FDC_VOLUME_HEADER_ {
 extern const UByteArray EDKII_WORKING_BLOCK_SIGNATURE_GUID; // 9E58292B-7C68-497D-0ACE-6500FD9F1B95
 extern const UByteArray VSS2_WORKING_BLOCK_SIGNATURE_GUID; // 9E58292B-7C68-497D-A0CE-6500FD9F1B95
 
-#define NVRAM_MAIN_STORE_VOLUME_GUID_DATA1       0xFFF12B8D
-#define EDKII_WORKING_BLOCK_SIGNATURE_GUID_DATA1 0x9E58292B
-
 typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32_ {
-    EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID
+    EFI_GUID  Signature;
     UINT32    Crc; // Crc32 of the header with empty Crc and State fields
     UINT8     State;
     UINT8     Reserved[3];
@@ -220,7 +209,7 @@ typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32_ {
 } EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32;
 
 typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
-    EFI_GUID  Signature; // NVRAM_MAIN_STORE_VOLUME_GUID or EDKII_WORKING_BLOCK_SIGNATURE_GUID
+    EFI_GUID  Signature;
     UINT32    Crc; // Crc32 of the header with empty Crc and State fields
     UINT8     State;
     UINT8     Reserved[3];
@@ -231,15 +220,16 @@ typedef struct EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64_ {
 //
 // Apple System Flags store
 //
-
+#define NVRAM_APPLE_SYSF_STORE_SIGNATURE 0x73797346 // Fsys
+#define NVRAM_APPLE_DIAG_STORE_SIGNATURE 0x64696147 // Gaid
 typedef struct APPLE_SYSF_STORE_HEADER_ {
     UINT32  Signature;  // Fsys or Gaid signature
-    UINT8   Unknown0;   // Still unknown
+    UINT8   Unknown;    // Still unknown
     UINT32  Unknown1;   // Still unknown
     UINT16  Size;       // Size of variable store
 } APPLE_SYSF_STORE_HEADER;
 
-// Apple Fsys entry format
+// Apple SysF entry format
 // UINT8 NameLength;
 // CHAR8 Name[];
 // UINT16 DataLength;
@@ -322,12 +312,8 @@ extern UString evsaAttributesToUString(const UINT32 attributes);
 //
 // Phoenix SCT Flash Map
 //
-
-#define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_PART1  0x414C465F
 #define NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_LENGTH 10
-
-// _FLASH_MAP
-extern const UByteArray NVRAM_PHOENIX_FLASH_MAP_SIGNATURE;
+extern const UByteArray NVRAM_PHOENIX_FLASH_MAP_SIGNATURE; // _FLASH_MAP
 
 typedef struct PHOENIX_FLASH_MAP_HEADER_ {
     UINT8  Signature[10]; // _FLASH_MAP signature
@@ -396,10 +382,9 @@ typedef struct OEM_ACTIVATION_MARKER_ {
     UINT8  Signature[128];
 } OEM_ACTIVATION_MARKER;
 
-#define OEM_ACTIVATION_MARKER_TYPE               0x00000001
-#define OEM_ACTIVATION_MARKER_WINDOWS_FLAG_PART1 0x444E4957
-#define OEM_ACTIVATION_MARKER_WINDOWS_FLAG       0x2053574F444E4957UL
-#define OEM_ACTIVATION_MARKER_RESERVED_BYTE      0x00
+#define OEM_ACTIVATION_MARKER_TYPE          0x00000001
+#define OEM_ACTIVATION_MARKER_WINDOWS_FLAG  0x2053574F444E4957UL // WINDOWS
+#define OEM_ACTIVATION_MARKER_RESERVED_BYTE 0x00
 
 //
 // Phoenix CMDB, no londer used, requires no parsing

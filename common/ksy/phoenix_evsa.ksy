@@ -12,15 +12,12 @@ meta:
 seq:
 - id: type
   type: u1
-  valid: 0xEC
 - id: checksum
   type: u1
 - id: len_evsa_store_header
   type: u2
-  valid: 20
 - id: signature
   type: u4
-  valid: 0x41535645 #EVSA
 - id: attributes
   type: u4
 - id: len_evsa_store

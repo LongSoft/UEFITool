@@ -13,18 +13,9 @@ phoenix_evsa_t::phoenix_evsa_t(kaitai::kstream* p__io, kaitai::kstruct* p__paren
 
 void phoenix_evsa_t::_read() {
     m_type = m__io->read_u1();
-    if (!(type() == 236)) {
-        throw kaitai::validation_not_equal_error<uint8_t>(236, type(), _io(), std::string("/seq/0"));
-    }
     m_checksum = m__io->read_u1();
     m_len_evsa_store_header = m__io->read_u2le();
-    if (!(len_evsa_store_header() == 20)) {
-        throw kaitai::validation_not_equal_error<uint16_t>(20, len_evsa_store_header(), _io(), std::string("/seq/2"));
-    }
     m_signature = m__io->read_u4le();
-    if (!(signature() == 1095980613)) {
-        throw kaitai::validation_not_equal_error<uint32_t>(1095980613, signature(), _io(), std::string("/seq/3"));
-    }
     m_attributes = m__io->read_u4le();
     m_len_evsa_store = m__io->read_u4le();
     m_reserved = m__io->read_u4le();

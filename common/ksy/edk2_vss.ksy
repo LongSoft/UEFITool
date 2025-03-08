@@ -12,16 +12,12 @@ meta:
 seq:
 - id: signature
   type: u4
-  valid:
-   expr: _ == 0x53535624 or _ == 0x53565324 or _ == 0x53534E24 # $VSS/$SVS/$NSS
 - id: vss_size
   type: u4
   valid:
    expr: _ > len_vss_store_header.as<u4> and _ < 0xFFFFFFFF
 - id: format
   type: u1
-  valid:
-    expr: _ == 0x5a # Formatted
 - id: state
   type: u1
 - id: reserved

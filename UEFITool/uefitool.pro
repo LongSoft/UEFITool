@@ -57,6 +57,8 @@ HEADERS += uefitool.h \
  ../common/generated/edk2_ftw.h \
  ../common/generated/insyde_fdc.h \
  ../common/generated/insyde_fdm.h \
+ ../common/generated/ms_slic_marker.h \
+ ../common/generated/ms_slic_pubkey.h \
  ../common/generated/phoenix_flm.h \
  ../common/generated/phoenix_evsa.h \
  ../common/generated/intel_acbp_v1.h \
@@ -132,6 +134,8 @@ SOURCES += uefitool_main.cpp \
  ../common/generated/edk2_ftw.cpp \
  ../common/generated/insyde_fdc.cpp \
  ../common/generated/insyde_fdm.cpp \
+ ../common/generated/ms_slic_marker.cpp \
+ ../common/generated/ms_slic_pubkey.cpp \
  ../common/generated/phoenix_flm.cpp \
  ../common/generated/phoenix_evsa.cpp \
  ../common/generated/intel_acbp_v1.cpp \

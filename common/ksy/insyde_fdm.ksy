@@ -1,6 +1,6 @@
 meta:
   id: insyde_fdm
-  title: Insyde Flash Device
+  title: Insyde Flash Device Map
   application: Insyde-based UEFI firmware
   file-extension: fdm
   tags:
@@ -23,6 +23,8 @@ seq:
   type: u1
 - id: revision
   type: u1
+  valid:
+    any-of: [1, 2, 3]
 - id: num_extensions
   type: u1
 - id: checksum
@@ -35,7 +37,7 @@ seq:
   if: revision == 3
 - id: board_ids
   type: fdm_board_ids
-  if: revision == 3
+  if: revision == 3 and extensions.extensions[1].count > 0
 - id: entries
   type: fdm_entries
   size: store_size - data_offset

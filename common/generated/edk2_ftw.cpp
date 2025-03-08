@@ -1,7 +1,6 @@
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 #include "edk2_ftw.h"
-#include "../kaitai/exceptions.h"
 
 edk2_ftw_t::edk2_ftw_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, edk2_ftw_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
@@ -13,12 +12,6 @@ edk2_ftw_t::edk2_ftw_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, edk2_
 
 void edk2_ftw_t::_read() {
     m_signature = m__io->read_bytes(16);
-    {
-        std::string _ = signature();
-        if (!( ((_ == std::string("\x8D\x2B\xF1\xFF\x96\x76\x8B\x4C\xA9\x85\x27\x47\x07\x5B\x4F\x50", 16)) || (_ == std::string("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\x0A\xCE\x65\x00\xFD\x9F\x1B\x95", 16)) || (_ == std::string("\x2B\x29\x58\x9E\x68\x7C\x7D\x49\xA0\xCE\x65\x00\xFD\x9F\x1B\x95", 16))) )) {
-            throw kaitai::validation_expr_error<std::string>(signature(), _io(), std::string("/seq/0"));
-        }
-    }
     m_crc = m__io->read_u4le();
     m_state = m__io->read_u1();
     m_reserved = m__io->read_bytes(3);

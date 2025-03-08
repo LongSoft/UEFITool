@@ -12,8 +12,6 @@ meta:
 seq:
 - id: signature
   type: u4
-  valid:
-   expr: _ == 0x4344465F # _FDC
 - id: fdc_size
   type: u4
   valid:

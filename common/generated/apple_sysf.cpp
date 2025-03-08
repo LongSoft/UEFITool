@@ -1,7 +1,6 @@
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
 #include "apple_sysf.h"
-#include "../kaitai/exceptions.h"
 
 apple_sysf_t::apple_sysf_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, apple_sysf_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;
@@ -14,12 +13,6 @@ apple_sysf_t::apple_sysf_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, a
 
 void apple_sysf_t::_read() {
     m_signature = m__io->read_u4le();
-    {
-        uint32_t _ = signature();
-        if (!( ((_ == 1937339206) || (_ == 1684627783)) )) {
-            throw kaitai::validation_expr_error<uint32_t>(signature(), _io(), std::string("/seq/0"));
-        }
-    }
     m_unknown = m__io->read_u1();
     m_unknown1 = m__io->read_u4le();
     m_sysf_size = m__io->read_u2le();

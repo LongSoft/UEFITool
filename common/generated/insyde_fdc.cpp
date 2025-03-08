@@ -12,12 +12,6 @@ insyde_fdc_t::insyde_fdc_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, i
 
 void insyde_fdc_t::_read() {
     m_signature = m__io->read_u4le();
-    {
-        uint32_t _ = signature();
-        if (!(_ == 1128547935)) {
-            throw kaitai::validation_expr_error<uint32_t>(signature(), _io(), std::string("/seq/0"));
-        }
-    }
     m_fdc_size = m__io->read_u4le();
     {
         uint32_t _ = fdc_size();

@@ -11,26 +11,13 @@ meta:
 
 seq:
 - id: signature
-  type: u4
-  valid:
-    expr: _ == 0xDDCF3616 or _ == 0xDDCF3617 or _ == 0xAAF32C78 # Beginning of known store GUIDs for VSS2
-- id: signature_auth_var_key_db
-  contents: [0x7B, 0x94, 0x9A, 0x43, 0xA1, 0x80, 0x2E, 0x14, 0x4E, 0xC3, 0x77, 0x92] # AAF32C78-947B-439A-A180-2E144EC37792
-  if: signature == 0xAAF32C78
-- id: signature_vss2_store
-  contents: [0x75, 0x32, 0x64, 0x41, 0x98, 0xB6, 0xFE, 0x85, 0x70, 0x7F, 0xFE, 0x7D] # DDCF3617-3275-4164-98B6-FE85707FFE7D
-  if: signature == 0xDDCF3617
-- id: signature_fdc_store
-  contents: [0x75, 0x32, 0x64, 0x41, 0x98, 0xB6, 0xFE, 0x85, 0x70, 0x7F, 0xFE, 0x7D] # DDCF3616-3275-4164-98B6-FE85707FFE7D
-  if: signature == 0xDDCF3616
+  size: 16
 - id: vss2_size
   type: u4
   valid:
     expr: _ > len_vss2_store_header.as<u4> and _ < 0xFFFFFFFF
 - id: format
   type: u1
-  valid:
-    expr: _ == 0x5a # Formatted
 - id: state
   type: u1
 - id: reserved
