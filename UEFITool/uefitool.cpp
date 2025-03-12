@@ -583,7 +583,7 @@ void UEFITool::about()
     QMessageBox::about(this,
                        tr("About UEFITool"),
                        tr("<b>UEFITool %1.</b><br><br>"
-                          "Copyright (c) 2013-2023, Nikolaj Schlej.<br><br>"
+                          "Copyright (c) 2013-2025, Nikolaj (<b>CodeRush</b>) Schlej, Vitaly (<b>vit9696</b>) Cheptsov, <a href=https://github.com/LongSoft/UEFITool/graphs/contributors>et al</a>.<br><br>"
                           "Program icon made by <a href=https://www.behance.net/alzhidkov>Alexander Zhidkov</a>.<br><br>"
                           "GUI uses QHexView made by <a href=https://github.com/Dax89>Antonio Davide</a>.<br>"
                           "Qt-less engine uses Bstrlib made by <a href=https://github.com/websnarf>Paul Hsieh</a>.<br>"
