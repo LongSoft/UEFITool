@@ -494,7 +494,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                 + (variable->attributes()->time_based_auth() << 5)
                 + (variable->attributes()->append_write() << 6)
                 + (UINT32)(variable->attributes()->reserved() << 7)
-                + (variable->attributes()->apple_data_checksum() << 31);
+                + (UINT32)(variable->attributes()->apple_data_checksum() << 31);
                 
                 // Add generic info
                 info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
@@ -976,7 +976,7 @@ not_sysf:
             // Perform initial sanity check
             const PHOENIX_FLASH_MAP_HEADER* storeHeader = (const PHOENIX_FLASH_MAP_HEADER*)(volumeBody.constData() + storeOffset);
             if (UByteArray((const char*)storeHeader->Signature, NVRAM_PHOENIX_FLASH_MAP_SIGNATURE_LENGTH) != NVRAM_PHOENIX_FLASH_MAP_SIGNATURE
-                || storeHeader->NumEntries > 113) {
+                || storeHeader->NumEntries > NVRAM_PHOENIX_FLASH_MAP_MAX_ENTRIES) {
                 // No need to parse further, not a Phoenix Flash Map
                 goto not_flm;
             }
