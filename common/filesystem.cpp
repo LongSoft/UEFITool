@@ -100,10 +100,14 @@ bool changeDirectory(const UString & dir)
 }
 
 UString getAbsPath(const UString & path) {
-    char abs[PATH_MAX] = {};
+    char * abs = realpath(path.toLocal8Bit(), nullptr);
     // Last is a non-standard extension for non-existent files
-    if (realpath(path.toLocal8Bit(), abs) || abs[0] != '\0')
-        return UString(abs);
-    return path;
+    UString new_path;
+    if (abs)
+        new_path = UString(abs);
+    else
+        new_path = path;
+    free(abs);
+    return new_path;
 }
 #endif
