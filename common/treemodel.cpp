@@ -11,6 +11,12 @@
  
  */
 
+#if defined (QT_GUI_LIB)
+#include <QtWidgets/QApplication>
+#include <QIcon>
+#include <QtWidgets/QStyle>
+#endif
+
 #include "treemodel.h"
 
 #include "stack"
@@ -35,6 +41,16 @@ QVariant TreeModel::data(const UModelIndex &index, int role) const
             case BootGuardMarking::PartiallyInRange:      return QBrush((Qt::GlobalColor)(markingDarkModeFlag ? Qt::darkYellow : Qt::yellow)); break;
             }
         }
+    }
+    else if (role == Qt::DecorationRole) {
+        if ((item->hasContent() || (item->parent()->hasContent() && item->parent()->type() == Types::Root)) && index.column() == 0) {
+            if (item->compressed())
+                return QApplication::style()->standardIcon(QStyle::SP_MessageBoxWarning);
+            else
+                return QApplication::style()->standardIcon(QStyle::SP_FileDialogContentsView);
+        }
+        else if (item->compressed() && index.column() == 0)
+            return QApplication::style()->standardIcon(QStyle::SP_FileDialogStart);
     }
 #endif
     else if (role == Qt::UserRole) {
@@ -214,6 +230,14 @@ UByteArray TreeModel::header(const UModelIndex &index) const
     return item->header();
 }
 
+UINT32 TreeModel::headerSize(const UModelIndex& index) const
+{
+    if (!index.isValid())
+        return 0;
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+    return item->headerSize();
+}
+
 bool TreeModel::hasEmptyHeader(const UModelIndex &index) const
 {
     if (!index.isValid())
@@ -230,6 +254,14 @@ UByteArray TreeModel::body(const UModelIndex &index) const
     return item->body();
 }
 
+UINT32 TreeModel::bodySize(const UModelIndex& index) const
+{
+    if (!index.isValid())
+        return 0;
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+    return item->bodySize();
+}
+
 bool TreeModel::hasEmptyBody(const UModelIndex &index) const
 {
     if (!index.isValid())
@@ -244,6 +276,14 @@ UByteArray TreeModel::tail(const UModelIndex &index) const
         return UByteArray();
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     return item->tail();
+}
+
+UINT32 TreeModel::tailSize(const UModelIndex& index) const
+{
+    if (!index.isValid())
+        return 0;
+    TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
+    return item->tailSize();
 }
 
 bool TreeModel::hasEmptyTail(const UModelIndex &index) const
@@ -299,7 +339,7 @@ bool TreeModel::compressed(const UModelIndex &index) const
     if (!index.isValid())
         return false;
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-    return item->compressed();
+    return item->compressedInherited();
 }
 
 void TreeModel::setFixed(const UModelIndex &index, const bool fixed)
@@ -315,7 +355,7 @@ void TreeModel::setFixed(const UModelIndex &index, const bool fixed)
     
     if (fixed) {
         // Special handling for uncompressed to compressed boundary
-        if (item->compressed() && item->parent()->compressed() == FALSE) {
+        if (item->compressedInherited() && item->parent()->compressedInherited() == FALSE) {
             item->setFixed(item->parent()->fixed());
             return;
         }
@@ -349,6 +389,14 @@ void TreeModel::TreeModel::setMarkingDarkMode(const bool enabled)
 {
     markingDarkModeFlag = enabled;
 
+    emit dataChanged(UModelIndex(), UModelIndex());
+}
+
+void TreeModel::TreeModel::setCStyleHexEnabled(const bool enabled)
+{
+    cStyleHexEnabledFlag = enabled;
+    setCStyleHexView(enabled);
+    
     emit dataChanged(UModelIndex(), UModelIndex());
 }
 
@@ -501,7 +549,7 @@ void TreeModel::setUncompressedData(const UModelIndex &index, const UByteArray &
 
 UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
                                const UString & name, const UString & text, const UString & info,
-                               const UByteArray & header, const UByteArray & body, const UByteArray & tail,
+                               const UINT32 headerSize, const UINT32 bodySize, const UINT32 tailSize,
                                const ItemFixedState fixed,
                                const UModelIndex & parent, const UINT8 mode)
 {
@@ -524,8 +572,8 @@ UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT
         }
     }
     
-    TreeItem *newItem = new TreeItem(offset, type, subtype, name, text, info, header, body, tail, Movable, this->compressed(parent), parentItem);
-    
+    TreeItem* newItem = new TreeItem(offset, type, subtype, name, text, info, headerSize, bodySize, tailSize, Movable, false, parentItem);
+
     if (mode == CREATE_MODE_APPEND) {
         emit layoutAboutToBeChanged();
         parentItem->appendChild(newItem);
@@ -551,6 +599,7 @@ UModelIndex TreeModel::addItem(const UINT32 offset, const UINT8 type, const UINT
     
     UModelIndex created = createIndex(newItem->row(), parentColumn, newItem);
     setFixed(created, (bool)fixed); // Non-trivial logic requires additional call
+
     return created;
 }
 
@@ -601,7 +650,7 @@ goDeeper:
         UModelIndex currentIndex = parentIndex.model()->index(i, 0, parentIndex);
         
         UINT32 currentBase = this->base(currentIndex);
-        UINT32 fullSize = (UINT32)(header(currentIndex).size() + body(currentIndex).size() + tail(currentIndex).size());
+        UINT32 fullSize = (UINT32)(headerSize(currentIndex) + bodySize(currentIndex) + tailSize(currentIndex));
         if ((compressed(currentIndex) == false || (compressed(currentIndex) == true && compressed(currentIndex.parent()) == false)) // Base is meaningful only for true uncompressed items
             && currentBase <= base && base < currentBase + fullSize) { // Base must be in range [currentBase, currentBase + fullSize)
             // Found a better candidate

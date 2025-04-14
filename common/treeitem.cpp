@@ -16,7 +16,7 @@
 
 TreeItem::TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
                    const UString & name, const UString & text, const UString & info,
-                   const UByteArray & header, const UByteArray & body, const UByteArray & tail,
+                   const UINT32 headerSize, const UINT32 bodySize, const UINT32 tailSize,
                    const bool fixed, const bool compressed,
                    TreeItem *parent) :
 itemOffset(offset),
@@ -27,9 +27,9 @@ itemMarking(0),
 itemName(name),
 itemText(text),
 itemInfo(info),
-itemHeader(header),
-itemBody(body),
-itemTail(tail),
+itemHeaderSize(headerSize),
+itemBodySize(bodySize),
+itemTailSize(tailSize),
 itemFixed(fixed),
 itemCompressed(compressed),
 parentItem(parent)
@@ -37,16 +37,39 @@ parentItem(parent)
 }
 
 TreeItem::~TreeItem() {
-    std::list<TreeItem*>::iterator begin = childItems.begin();
+    auto begin = childItems.begin();
     while (begin != childItems.end()) {
         delete *begin;
         ++begin;
     }
 }
 
+const char * TreeItem::content(UINT32 dataOffset) const
+{
+    if (!itemContent.isEmpty()) {
+        return itemContent.constData() + dataOffset;
+    }
+    auto o = itemOffset;
+    auto p = parentItem;
+    while (p && ((!p->itemCompressed && p->itemContent.isEmpty()) || (p->itemCompressed && p->itemUncompressedData.isEmpty()))) {
+        o += p->itemOffset;
+        p = p->parentItem;
+    }
+    if (!p)
+        return nullptr;
+    return !p->itemCompressed ? p->content(o + dataOffset) : p->itemUncompressedData.constData() + o + dataOffset - p->itemHeaderSize;
+}
+
+bool TreeItem::compressedInherited() const {
+    auto p = this;
+    while (p && p->itemType != Types::Root && !p->itemCompressed)
+        p = p->parentItem;
+    return p ? p->itemCompressed : false;
+}
+
 UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 {
-    std::list<TreeItem*>::iterator found = std::find(childItems.begin(), childItems.end(), item);
+    auto found = std::find(childItems.begin(), childItems.end(), item);
     if (found == childItems.end())
         return U_ITEM_NOT_FOUND;
     childItems.insert(found, newItem);
@@ -55,7 +78,7 @@ UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 
 UINT8 TreeItem::insertChildAfter(TreeItem *item, TreeItem *newItem)
 {
-    std::list<TreeItem*>::iterator found = std::find(childItems.begin(), childItems.end(), item);
+    auto found = std::find(childItems.begin(), childItems.end(), item);
     if (found == childItems.end())
         return U_ITEM_NOT_FOUND;
     childItems.insert(++found, newItem);
@@ -84,7 +107,7 @@ UString TreeItem::data(int column) const
 int TreeItem::row() const
 {
     if (parentItem) {
-        std::list<TreeItem*>::const_iterator iter = parentItem->childItems.begin();
+        auto iter = parentItem->childItems.begin();
         for (int i = 0; i < (int)parentItem->childItems.size(); ++i, ++iter) {
             if (const_cast<TreeItem*>(this) == *iter)
                 return i;
@@ -95,7 +118,7 @@ int TreeItem::row() const
 
 TreeItem* TreeItem::child(int row)
 {
-    std::list<TreeItem*>::iterator child = childItems.begin();
+    auto child = childItems.begin();
     std::advance(child, row);
     return *child;
 }

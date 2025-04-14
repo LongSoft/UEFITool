@@ -126,8 +126,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     }
     
     // Get info
-    UByteArray header = region.left(romBypassVectorSize + sizeof(FPT_HEADER));
-    UByteArray body = region.mid(header.size(), ptBodySize);
+    UINT32 headerSize = romBypassVectorSize + sizeof(FPT_HEADER);
     
     UString name = UString("FPT partition table");
     UString info;
@@ -139,7 +138,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
                         "Header length: %02Xh\nFlags: %Xh\nTicks to add: %04Xh\nTokens to add: %04Xh\nSPS Flags: %Xh\nFITC version: %u.%u.%u.%u\nCRC32 Checksum: %08Xh",
                         ptSize, ptSize,
-                        (UINT32)header.size(), (UINT32)header.size(),
+                        headerSize, headerSize,
                         ptBodySize, ptBodySize,
                         (romBypassVectorSize ? "present" : "absent"),
                         ptHeader21->NumEntries,
@@ -159,7 +158,7 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nROM bypass vector: %s\nNumber of entries: %u\nHeader version: %02Xh\nEntry version: %02Xh\n"
                         "Header length: %02Xh\nFlash cycle life: %04Xh\nFlash cycle limit: %04Xh\nUMA size: %Xh\nFlags: %Xh\nFITC version: %u.%u.%u.%u\nChecksum: %02Xh",
                         ptSize, ptSize,
-                        (UINT32)header.size(), (UINT32)header.size(),
+                        headerSize, headerSize,
                         ptBodySize, ptBodySize,
                         (romBypassVectorSize ? "present" : "absent"),
                         ptHeader->NumEntries,
@@ -176,11 +175,15 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     }
     
     // Add tree item
-    index = model->addItem(0, Types::FptStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, parent);
+    index = model->addItem(
+        0, Types::FptStore, 0,
+        name, UString(), info,
+        headerSize, ptBodySize, 0,
+        Fixed, parent);
     
     // Add partition table entries
     std::vector<FPT_PARTITION_INFO> partitions;
-    UINT32 offset = (UINT32)header.size();
+    UINT32 offset = headerSize;
     UINT32 numEntries = ptHeader->NumEntries;
     const FPT_HEADER_ENTRY* firstPtEntry = (const FPT_HEADER_ENTRY*)(region.constData() + offset);
     for (UINT32 i = 0; i < numEntries; i++) {
@@ -197,7 +200,11 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
         
         // Add tree item
         const UINT8 type = (ptEntry->Offset != 0 && ptEntry->Offset != 0xFFFFFFFF && ptEntry->Size != 0 && ptEntry->EntryValid != 0xFF) ? Subtypes::ValidFptEntry : Subtypes::InvalidFptEntry;
-        UModelIndex entryIndex = model->addItem(offset, Types::FptEntry, type, name, UString(), info, UByteArray(), UByteArray((const char*)ptEntry, sizeof(FPT_HEADER_ENTRY)), UByteArray(), Fixed, index);
+        UModelIndex entryIndex = model->addItem(
+            offset, Types::FptEntry, type,
+            name, UString(), info,
+            0, sizeof(FPT_HEADER_ENTRY), 0,
+            Fixed, index);
         
         // Adjust offset
         offset += sizeof(FPT_HEADER_ENTRY);
@@ -311,7 +318,11 @@ make_partition_table_consistent:
             
             // Add tree item
             UINT8 type = Subtypes::CodeFptPartition + partitions[i].ptEntry.Type;
-            partitionIndex = model->addItem(partitions[i].ptEntry.Offset, Types::FptPartition, type, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            partitionIndex = model->addItem(
+                partitions[i].ptEntry.Offset, Types::FptPartition, type,
+                name, UString(), info,
+                0, partition.size(), 0,
+                Fixed, parent);
             if (type == Subtypes::CodeFptPartition && partition.size() >= (int) sizeof(UINT32) && readUnaligned((const UINT32*)partition.constData()) == CPD_SIGNATURE) {
                 // Parse code partition contents
                 UModelIndex cpdIndex;
@@ -324,7 +335,11 @@ make_partition_table_consistent:
             info = usprintf("Full size: %Xh (%u)", (UINT32)partition.size(), (UINT32)partition.size());
             
             // Add tree item
-            model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            model->addItem(
+                partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition),
+                name, UString(), info,
+                0, partition.size(), 0,
+                Fixed, parent);
         }
     }
     
@@ -343,7 +358,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
     
     // Add header
     UINT32 ptSize = sizeof(IFWI_16_LAYOUT_HEADER);
-    UByteArray header = region.left(ptSize);
+    UINT32 headerSize = ptSize > region.size() ? region.size() : ptSize;
     
     UString name = UString("IFWI 1.6 header");
     UString info = usprintf("Full size: %Xh (%u)\n"
@@ -354,7 +369,7 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             "Boot4 partition offset: %Xh\nBoot4 partition size:   %Xh\n"
                             "Boot5 partition offset: %Xh\nBoot5 partition size:   %Xh\n"
                             "Checksum: %" PRIX64 "h",
-                            (UINT32)header.size(), (UINT32)header.size(),
+                            headerSize, headerSize,
                             ifwiHeader->DataPartition.Offset, ifwiHeader->DataPartition.Size,
                             ifwiHeader->BootPartition[0].Offset, ifwiHeader->BootPartition[0].Size,
                             ifwiHeader->BootPartition[1].Offset, ifwiHeader->BootPartition[1].Size,
@@ -363,7 +378,11 @@ USTATUS MeParser::parseIfwi16Region(const UByteArray & region, const UModelIndex
                             ifwiHeader->BootPartition[4].Offset, ifwiHeader->BootPartition[4].Size,
                             ifwiHeader->Checksum);
     // Add tree item
-    index = model->addItem(0, Types::IfwiHeader, 0, name, UString(), info, UByteArray(), header, UByteArray(), Fixed, parent);
+    index = model->addItem(
+        0, Types::IfwiHeader, 0,
+        name, UString(), info,
+        0, headerSize, 0,
+        Fixed, parent);
     
     std::vector<IFWI_PARTITION_INFO> partitions;
     // Add data partition
@@ -474,7 +493,11 @@ make_partition_table_consistent:
             info = usprintf("Full size: %Xh (%u)\n", (UINT32)partition.size(), (UINT32)partition.size());
             
             // Add tree item
-            partitionIndex = model->addItem(partitions[i].ptEntry.Offset, partitions[i].type, partitions[i].subtype, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            partitionIndex = model->addItem(
+                partitions[i].ptEntry.Offset, partitions[i].type, partitions[i].subtype,
+                name, UString(), info,
+                0, partition.size(), 0,
+                Fixed, parent);
             
             // Parse partition further
             if (partitions[i].subtype == Subtypes::DataIfwiPartition) {
@@ -493,7 +516,11 @@ make_partition_table_consistent:
             info = usprintf("Full size: %Xh (%u)", (UINT32)partition.size(), (UINT32)partition.size());
             
             // Add tree item
-            model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            model->addItem(
+                partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition),
+                name, UString(), info,
+                0, partition.size(), 0,
+                Fixed, parent);
         }
     }
     
@@ -513,7 +540,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
     
     // Add header
     UINT32 ptSize = sizeof(IFWI_17_LAYOUT_HEADER);
-    UByteArray header = region.left(ptSize);
+    UINT32 headerSize = ptSize > region.size() ? region.size() : ptSize;
     
     UString name = UString("IFWI 1.7 header");
     UString info = usprintf("Full size: %Xh (%u)\n"
@@ -527,7 +554,7 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
                             "Boot4 partition offset: %Xh\nBoot4 partition size:   %Xh\n"
                             "Boot5 partition offset: %Xh\nBoot5 partition size:   %Xh\n"
                             "Temp page offset:       %Xh\nTemp page size:         %Xh\n",
-                            (UINT32)header.size(), (UINT32)header.size(),
+                            headerSize, headerSize,
                             ifwiHeader->Flags,
                             ifwiHeader->Reserved,
                             ifwiHeader->Checksum,
@@ -539,7 +566,11 @@ USTATUS MeParser::parseIfwi17Region(const UByteArray & region, const UModelIndex
                             ifwiHeader->BootPartition[4].Offset, ifwiHeader->BootPartition[4].Size,
                             ifwiHeader->TempPage.Offset, ifwiHeader->TempPage.Size);
     // Add tree item
-    index = model->addItem(0, Types::IfwiHeader, 0, name, UString(), info, UByteArray(), header, UByteArray(), Fixed, parent);
+    index = model->addItem(
+        0, Types::IfwiHeader, 0,
+        name, UString(), info,
+        0, headerSize, 0,
+        Fixed, parent);
     
     std::vector<IFWI_PARTITION_INFO> partitions;
     // Add data partition
@@ -662,7 +693,11 @@ make_partition_table_consistent:
             info = usprintf("Full size: %Xh (%u)\n", (UINT32)partition.size(), (UINT32)partition.size());
             
             // Add tree item
-            partitionIndex = model->addItem(partitions[i].ptEntry.Offset, partitions[i].type, partitions[i].subtype, name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            partitionIndex = model->addItem(
+                partitions[i].ptEntry.Offset, partitions[i].type, partitions[i].subtype,
+                name, UString(), info,
+                0, partition.size(), 0,
+                Fixed, parent);
             
             // Parse partition further
             if (partitions[i].subtype == Subtypes::DataIfwiPartition) {
@@ -688,7 +723,11 @@ make_partition_table_consistent:
             info = usprintf("Full size: %Xh (%u)", (UINT32)partition.size(), (UINT32)partition.size());
             
             // Add tree item
-            model->addItem(partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition), name, UString(), info, UByteArray(), partition, UByteArray(), Fixed, parent);
+            model->addItem(
+                partitions[i].ptEntry.Offset, Types::Padding, getPaddingType(partition),
+                name, UString(), info,
+                0, partition.size(), 0,
+                Fixed, parent);
         }
     }
     

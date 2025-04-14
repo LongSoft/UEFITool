@@ -46,7 +46,6 @@ public:
     uint32_t toUInt(bool* ok = NULL, const uint8_t base = 10) { return (uint32_t)strtoul(d.c_str(), NULL, base); }
 
     int32_t size() const { return (int32_t)d.size();  }
-    int32_t count(char ch) const { return (int32_t)std::count(d.begin(), d.end(), ch); }
     char at(uint32_t i) const { return d.at(i); }
     char operator[](uint32_t i) const { return d[i]; }
     char& operator[](uint32_t i) { return d[i]; }

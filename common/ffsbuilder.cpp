@@ -39,7 +39,7 @@ USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
         }
     }
     
-    erased = UByteArray(model->header(index).size() + model->body(index).size() + model->tail(index).size(), emptyByte);
+    erased = UByteArray(model->headerSize(index) + model->bodySize(index) + model->tailSize(index), emptyByte);
     
     return U_SUCCESS;
 }
@@ -124,7 +124,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
             
             // Check size of reconstructed capsule body, it must remain the same
             UINT32 newSize = (UINT32)capsule.size();
-            UINT32 oldSize = (UINT32)model->body(index).size();
+            UINT32 oldSize = (UINT32)model->bodySize(index);
             if (newSize > oldSize) {
                 msg(usprintf("buildCapsule: new capsule size %Xh (%u) is bigger than the original %Xh (%u)", newSize, newSize, oldSize, oldSize), index);
                 return U_INVALID_CAPSULE;
@@ -223,7 +223,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
         
         // Check size of new image, it must be same as old one
         UINT32 newSize = (UINT32)intelImage.size();
-        UINT32 oldSize = (UINT32)model->body(index).size();
+        UINT32 oldSize = (UINT32)model->bodySize(index);
         if (newSize > oldSize) {
             msg(usprintf("buildIntelImage: new image size %Xh (%u) is bigger than the original %Xh (%u)", newSize, newSize, oldSize, oldSize), index);
             return U_INVALID_IMAGE;
@@ -294,7 +294,7 @@ USTATUS FfsBuilder::buildRawArea(const UModelIndex & index, UByteArray & rawArea
             
             // Check size of new raw area, it must be same as original one
             UINT32 newSize = (UINT32)rawArea.size();
-            UINT32 oldSize = (UINT32)model->body(index).size();
+            UINT32 oldSize = (UINT32)model->bodySize(index);
             if (newSize > oldSize) {
                 msg(usprintf("buildRawArea: new area size %Xh (%u) is bigger than the original %Xh (%u)", newSize, newSize, oldSize, oldSize), index);
                 return U_INVALID_RAW_AREA;

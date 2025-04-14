@@ -429,16 +429,6 @@ UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize)
     return (UINT32)(0x100000000ULL - counter);
 }
 
-// Get padding type for a given padding
-UINT8 getPaddingType(const UByteArray & padding)
-{
-    if (padding.count('\x00') == padding.size())
-        return Subtypes::ZeroPadding;
-    if (padding.count('\xFF') == padding.size())
-        return Subtypes::OnePadding;
-    return Subtypes::DataPadding;
-}
-
 static inline int char2hex(char c)
 {
     if (c >= '0' && c <= '9')

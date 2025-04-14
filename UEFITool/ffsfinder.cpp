@@ -12,6 +12,7 @@
  */
 
 #include "ffsfinder.h"
+#include "../common/utility.h"
 
 #if QT_VERSION_MAJOR >= 6
 #include <QRegularExpression>
@@ -36,7 +37,8 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
         return U_INVALID_PARAMETER;
     
     // Check for "all substrings" pattern
-    if (hexPattern.count('.') == hexPattern.length())
+    auto c = checkSingle(hexPattern);
+    if (c == '.')
         return U_SUCCESS;
     
     USTATUS ret = U_ITEM_NOT_FOUND;
@@ -78,7 +80,7 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
         if (offset % 2 == 0) {
             // For patterns that cross header|body boundary, skip patterns entirely located in body, since
             // children search above has already found them.
-            if (!(hasChildren && mode == SEARCH_MODE_ALL && offset/2 >= model->header(index).size())) {
+            if (!(hasChildren && mode == SEARCH_MODE_ALL && offset/2 >= model->headerSize(index))) {
                 UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
                 UString name = model->name(index);
                 if (model->parent(index) == parentFileIndex) {
@@ -165,7 +167,8 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
     hexPattern.append(list.at(3)).append(list.at(4));
 
     // Check for "all substrings" pattern
-    if (hexPattern.count('.') == hexPattern.length())
+    auto c = checkSingle(hexPattern);
+    if (c == '.')
         return U_SUCCESS;
 
 #if QT_VERSION_MAJOR >= 6
