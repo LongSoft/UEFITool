@@ -43,15 +43,42 @@ Right now there are some alternatives to UEFITool that you could find useful too
 ## Installation
 
 You can either use [pre-built binaries](https://github.com/LongSoft/UEFITool/releases) or build a binary yourself.  
-* To build a binary that uses Qt library (UEFITool) you need a C++ compiler and an instance of [Qt5 or Qt6](https://www.qt.io) library. Install both of them, get the sources, generate makefiles using qmake (`qmake ./UEFITool/uefitool.pro`) and use your system's make command on that generated files (i.e. `nmake release`, `make release` and so on). Qt6-based builds can also use CMAKE as an altearnative build system.
-* To build a binary that doesn't use Qt (UEFIExtract, UEFIFind), you need a C++ compiler and [CMAKE](https://cmake.org) utility to generate a makefile for your OS and build environment. Install both of them, get the sources, generate makefiles using cmake (`cmake UEFIExtract`) and use your system's make command on that generated files (i.e. `nmake release`, `make release` and so on). Non-Qt builds can also use Meson as an alternative build system.
+* To build a binary that uses Qt library (UEFITool) you need a C++ compiler and an instance of [Qt5 or Qt6](https://www.qt.io) library. Install both of them, get the sources, generate makefiles using qmake
+```Bash
+qmake ./UEFITool/uefitool.pro
+```
+and use your system's make command on that generated files i.e.
+```Bash
+nmake release
+```
+or
+```Bash
+make release
+```
+Qt6-based builds can also use CMAKE as an altearnative build system.
+* To build a binary that doesn't use Qt (UEFIExtract, UEFIFind), you need a C++ compiler and [CMAKE](https://cmake.org) utility to generate a makefile for your OS and build environment. Install both of them, get the sources, generate makefiles using cmake
+```Bash
+cmake UEFIExtract
+```
+
+*  and use your system's make command on that generated files i.e.
+
+```Bash
+nmake release
+```
+or
+
+```Bash
+make release
+```
+Non-Qt builds can also use Meson as an alternative build system.
 
 ## Known issues
 
 * Image editing is currently only possible using an outdated and unsupported UEFITool 0.28 (`old_engine` branch) and the tools based on it (`UEFIReplace`, `UEFIPatch`). This is the top priority [issue #67](https://github.com/LongSoft/UEFITool/issues/67), which is being worked on, albeit slowly (due to the amount of coding and testing required to implement it correctly). 
 * Some vendor-specific firmware update files can be opened incorrectly or can't be opened at all. This includes encrypted HP update files, Dell HDR and EXE files, some InsydeFlash FD files and so on. Enabling support for such files will require massive amount of reverse-engineering which is almost pointless because the updated image can be obtained from BIOS chip where it's already decrypted and unpacked.
 * Intel Firmware Interface Table (FIT) editing is not supported right now. FIT contains pointers to various image components that must be loaded before executing the first CPU instruction from the BIOS chip. Those components include CPU microcode updates, binaries and settings used by BIOS Guard and Boot Guard technologies and some other stuff. More information on FIT can be obtained [here](https://edc.intel.com/content/www/us/en/design/products-and-solutions/software-and-services/firmware-and-bios/firmware-interface-table/firmware-interface-table/).
-* Windows builds of `UEFIExtract` and `UEFIFind` might encouter an issue with folder paths being longer than 260 bytes (`MAX_PATH`) on some input files (see [issue #363](https://github.com/LongSoft/UEFITool/issues/363)). This is a [known Windows limitation](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry), that can be fixed by enabling long paths support via Windows Registry and adding a manifest to the executable file that requires such support. `UEFIExtract` has the required manifest additions since version `A67`, and the required registry file is provided by Microsoft on the page linked above, but this workaround is only awailable starting with Windows 10 build 1067.   
+* Windows builds of ``UEFIExtract`` and ``UEFIFind`` might encouter an issue with folder paths being longer than 260 bytes (``MAX_PATH``) on some input files (see [issue #363](https://github.com/LongSoft/UEFITool/issues/363)). This is a [known Windows limitation](https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry), that can be fixed by enabling long paths support via Windows Registry and adding a manifest to the executable file that requires such support. ``UEFIExtract`` has the required manifest additions since version ``A67``, and the required registry file is provided by Microsoft on the page linked above, but this workaround is only awailable starting with Windows 10 build 1067.   
 
 ## Bug repellents
 
