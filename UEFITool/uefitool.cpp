@@ -15,6 +15,8 @@
 #include "uefitool.h"
 #include "ui_uefitool.h"
 
+#include <QElapsedTimer>
+#include <QStack>
 #if QT_VERSION_MAJOR >= 6
 #include <QStyleHints>
 #endif
@@ -23,12 +25,22 @@ UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::UEFITool),
 version(tr(PROGRAM_VERSION)),
-markingEnabled(true)
+changedFileFlag(false),
+markingEnabled(true),
+cStyleHexEnabled(true)
 {
     clipboard = QApplication::clipboard();
     
     // Create UI
     ui->setupUi(this);
+    openedFileLabel.setToolButtonStyle(Qt::ToolButtonTextOnly);
+    openedFileLabel.setStyleSheet("QToolButton { border: none; background-color: transparent; }");
+    openedFileLabel.setFocusPolicy(Qt::NoFocus);
+    ui->statusBar->addPermanentWidget(&openedFileLabel);
+    QFont font = ui->statusBar->font();
+    font.setBold(true);
+    openedFileLabel.setFont(font);
+    connect(&openedFileLabel, SIGNAL(clicked()), this, SLOT(fileChangedResume()));
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
     goToAddressDialog = new GoToAddressDialog(this);
@@ -73,7 +85,10 @@ markingEnabled(true)
     connect(ui->actionExportDiscoveredGuids, SIGNAL(triggered()), this, SLOT(exportDiscoveredGuids()));
     connect(ui->actionGenerateReport, SIGNAL(triggered()), this, SLOT(generateReport()));
     connect(ui->actionToggleBootGuardMarking, SIGNAL(toggled(bool)), this, SLOT(toggleBootGuardMarking(bool)));
+    connect(ui->actionToggleCStyleHexValues, SIGNAL(toggled(bool)), this, SLOT(toggleCStyleHexValues(bool)));
+    connect(ui->actionExpandAll, SIGNAL(triggered()), this, SLOT(expandTree()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
+    connect(&watcher, SIGNAL(fileChanged(QString)), this, SLOT(fileChanged(QString)));
     
     // Enable Drag-and-Drop actions
     setAcceptDrops(true);
@@ -92,6 +107,24 @@ markingEnabled(true)
     
     // Read stored settings
     readSettings();
+
+    // Update recent files list in menu
+    updateRecentFilesMenu();
+
+    // Create a QActionGroup
+    QActionGroup* actionGroup = new QActionGroup(this);
+    actionGroup->setExclusive(true); // Ensure only one action is checked at a time
+    // Add actions from the menu to the QActionGroup
+    ui->actionTrackAndIgnore->setData(TRACK_IGNORE);
+    ui->actionTrackAndIgnore->setChecked(ui->actionTrackAndIgnore->data() == fileTrackingState);
+    actionGroup->addAction(ui->actionTrackAndIgnore);
+    ui->actionTrackAndAsk->setData(TRACK_ASK);
+    ui->actionTrackAndAsk->setChecked(ui->actionTrackAndAsk->data() == fileTrackingState);
+    actionGroup->addAction(ui->actionTrackAndAsk);
+    ui->actionTrackAndReopen->setData(TRACK_REOPEN);
+    ui->actionTrackAndReopen->setChecked(ui->actionTrackAndReopen->data() == fileTrackingState);
+    actionGroup->addAction(ui->actionTrackAndReopen);
+    connect(actionGroup, SIGNAL(triggered(QAction*)), this, SLOT(onTrackingAction(QAction*)));
 }
 
 UEFITool::~UEFITool()
@@ -125,6 +158,9 @@ void UEFITool::init()
     // Set window title
     setWindowTitle(tr("UEFITool %1").arg(version));
     
+    // Some font hint
+    setFont(ui->infoEdit->font());
+
     // Disable menus
     ui->actionSearch->setEnabled(false);
     ui->actionGoToBase->setEnabled(false);
@@ -139,6 +175,7 @@ void UEFITool::init()
     ui->menuStoreActions->setEnabled(false);
     ui->menuEntryActions->setEnabled(false);
     ui->menuMessageActions->setEnabled(false);
+    ui->actionExpandAll->setEnabled(false);
     
     // Create new model ...
     delete model;
@@ -152,11 +189,17 @@ void UEFITool::init()
     model->setMarkingEnabled(markingEnabled);
     ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
     
+    // Set proper C-Style hex values view state
+    model->setCStyleHexEnabled(cStyleHexEnabled);
+    ui->actionToggleCStyleHexValues->setChecked(cStyleHexEnabled);
+    
     // Connect signals to slots
     connect(ui->structureTreeView->selectionModel(), SIGNAL(currentChanged(const QModelIndex &, const QModelIndex &)),
             this, SLOT(populateUi(const QModelIndex &)));
     connect(ui->structureTreeView->selectionModel(), SIGNAL(selectionChanged(const QItemSelection &, const QItemSelection &)),
             this, SLOT(populateUi(const QItemSelection &)));
+    connect(ui->structureTreeView,         SIGNAL(expanded(const QModelIndex &)),       this, SLOT(setExpandAll()));
+    connect(ui->structureTreeView,         SIGNAL(collapsed(const QModelIndex&)),       this, SLOT(setExpandAll()));
     connect(ui->parserMessagesListWidget,  SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->parserMessagesListWidget,  SIGNAL(itemEntered(QListWidgetItem*)),       this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->finderMessagesListWidget,  SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
@@ -211,6 +254,38 @@ void UEFITool::updateUiForNewColorScheme(Qt::ColorScheme scheme)
 }
 #endif
 
+void UEFITool::updateRecentFilesMenu(const QString& fileName)
+{
+    // Update list
+    if (!fileName.isEmpty()) {
+        recentFiles.removeAll(fileName);
+        recentFiles.prepend(fileName);
+        while (recentFiles.size() > 21) {
+            recentFiles.removeLast();
+        }
+    }
+
+    // Delete old actions
+    for (QAction* action : recentFileActions) {
+        ui->menuFile->removeAction(action);
+        delete action;
+    }
+    recentFileActions.clear();
+
+    if (!recentFiles.isEmpty()) {
+        // Insert new actions before "Quit"
+        for (const QString& path : recentFiles) {
+            QAction* action = new QAction(QDir::toNativeSeparators(path), this);
+            connect(action, SIGNAL(triggered()), this, SLOT(openRecentImageFile()));
+            action->setData(path);
+            ui->menuFile->insertAction(ui->actionQuit, action);
+            recentFileActions.append(action);
+        }
+        // Finally, insert a separator after the list and before "Quit"
+        recentFileActions.append(ui->menuFile->insertSeparator(ui->actionQuit));
+    }
+}
+
 void UEFITool::populateUi(const QItemSelection &selected)
 {
     if (selected.isEmpty()) {
@@ -235,7 +310,10 @@ void UEFITool::populateUi(const QModelIndex &current)
     
     // Enable menus
     ui->menuCapsuleActions->setEnabled(type == Types::Capsule);
-    ui->menuImageActions->setEnabled(type == Types::Image);
+    ui->menuImageActions->setEnabled(type == Types::Image
+                                     || (type == Types::Volume && model->hasEmptyHeader(current))
+                                     || type == Types::FreeSpace
+                                     );
     ui->menuRegionActions->setEnabled(type == Types::Region);
     ui->menuPaddingActions->setEnabled(type == Types::Padding);
     ui->menuVolumeActions->setEnabled(type == Types::Volume);
@@ -302,6 +380,8 @@ void UEFITool::populateUi(const QModelIndex &current)
     //ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     
     ui->menuMessageActions->setEnabled(false);
+
+    setExpandAll();
 }
 
 void UEFITool::search()
@@ -312,7 +392,7 @@ void UEFITool::search()
     int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
         searchDialog->ui->hexEdit->setFocus();
-        QByteArray pattern = searchDialog->ui->hexEdit->text().toLatin1().replace(" ", "");
+        UByteArray pattern = searchDialog->ui->hexEdit->text().toLatin1().replace(" ", "");
         if (pattern.isEmpty())
             return;
         UINT8 mode;
@@ -328,7 +408,7 @@ void UEFITool::search()
     else if (index == 1) { // GUID
         searchDialog->ui->guidEdit->setFocus();
         searchDialog->ui->guidEdit->setCursorPosition(0);
-        QByteArray pattern = searchDialog->ui->guidEdit->text().toLatin1();
+        UByteArray pattern = searchDialog->ui->guidEdit->text().toLatin1();
         if (pattern.isEmpty())
             return;
         UINT8 mode;
@@ -510,7 +590,7 @@ void UEFITool::extract(const UINT8 mode)
     if (!index.isValid())
         return;
     
-    QByteArray extracted;
+    UByteArray extracted;
     QString name;
     USTATUS result = ffsOps->extract(index, name, extracted, mode);
     if (result) {
@@ -518,7 +598,7 @@ void UEFITool::extract(const UINT8 mode)
         return;
     }
     
-    name = QDir::toNativeSeparators(currentDir + QDir::separator() + name);
+    name = QDir::toNativeSeparators(extractDir + QDir::separator() + name);
     
     //ui->statusBar->showMessage(name);
     
@@ -568,6 +648,8 @@ void UEFITool::extract(const UINT8 mode)
     outputFile.resize(0);
     outputFile.write(extracted);
     outputFile.close();
+
+    extractDir = QFileInfo(path).absolutePath();
 }
 
 void UEFITool::rebuild()
@@ -619,18 +701,183 @@ void UEFITool::saveImageFile()
     
 }
 
+void UEFITool::askReopenImageFile()
+{
+    QMessageBox msgBox(QMessageBox::Question, tr("Confirmation"),
+        tr("Image file was changed by external program, do you want to reopen it?"),
+        QMessageBox::Yes | QMessageBox::No);
+    QCheckBox checkBox(tr("Do not ask again"));
+    checkBox.setChecked(TRACK_IGNORE == fileTrackingState);
+    msgBox.setDefaultButton(QMessageBox::Yes);
+    msgBox.setCheckBox(&checkBox);
+
+    int ret = msgBox.exec();
+
+    if (checkBox.isChecked()) {
+        if (ret == QMessageBox::Yes) {
+            ui->actionTrackAndReopen->setChecked(true);
+            fileTrackingState = TRACK_REOPEN;
+        }
+        else if (ret == QMessageBox::No) {
+            ui->actionTrackAndIgnore->setChecked(true);
+            fileTrackingState = TRACK_IGNORE;
+        }
+    }
+    if (ret == QMessageBox::Yes)
+        reopenImageFile();
+}
+
+void UEFITool::onTrackingAction(QAction* action)
+{
+    if (action) {
+        int newTrackingState = action->data().toInt();
+        if (newTrackingState != fileTrackingState) {
+            fileTrackingState = newTrackingState;
+        }
+    }
+}
+
+void UEFITool::saveTreeState(const QModelIndex& index, QHash<QString, bool>& states)
+{
+    if (!index.isValid())
+        return;
+
+    // Save the expanded state using the item's data as the key
+    QString key = model->data(index, Qt::DisplayRole).toString();
+    states[key] = ui->structureTreeView->isExpanded(index);
+
+    // Recursively save child states
+    for (int row = 0; row < model->rowCount(index); row++) {
+        saveTreeState(model->index(row, 0, index), states);
+    }
+}
+
+void UEFITool::restoreTreeState(const QModelIndex& index, const QHash<QString, bool>& states)
+{
+    if (!index.isValid())
+        return;
+
+    // Restore the expanded state using the item's data as the key
+    QString key = model->data(index, Qt::DisplayRole).toString();
+    if (states.contains(key)) {
+        ui->structureTreeView->setExpanded(index, states[key]);
+    }
+
+    // Recursively restore child states
+    for (int row = 0; row < model->rowCount(index); row++) {
+        restoreTreeState(model->index(row, 0, index), states);
+    }
+}
+
+bool UEFITool::isAllExpanded()
+{
+    QAbstractItemModel* model = ui->structureTreeView->model();
+    if (!model)
+        return false;
+
+    QStack<QModelIndex> stack;
+    stack.push(QModelIndex());
+
+    while (!stack.isEmpty()) {
+        QModelIndex current = stack.pop();
+
+        if (current.isValid() && ui->structureTreeView->isExpanded(current) == false) {
+            return false;
+        }
+
+        int rowCount = model->rowCount(current);
+        for (int i = 0; i < rowCount; ++i) {
+            QModelIndex child = model->index(i, 0, current);
+            if (child.isValid()) {
+                stack.push(child);
+            }
+        }
+    }
+
+    return true;
+}
+
+void UEFITool::setExpandAll()
+{
+    ui->actionExpandAll->setEnabled(!isAllExpanded());
+}
+
+void UEFITool::expandTree()
+{
+    ui->structureTreeView->expandAll();
+}
+
+void UEFITool::fileChangedResume()
+{
+    if (changedFileFlag) {
+        askReopenImageFile();
+    }
+}
+
+void UEFITool::fileChanged(const QString& path)
+{
+    setChangedFileFlag(true);
+
+    switch (fileTrackingState) {
+        case TRACK_REOPEN :
+            reopenImageFile();
+        case TRACK_IGNORE :
+            return;
+    }
+
+    askReopenImageFile();
+}
+
+void UEFITool::setChangedFileFlag(const bool flag)
+{
+    QFont font(openedFileLabel.font());
+    font.setItalic(flag);
+    openedFileLabel.setFont(font);
+    changedFileFlag = flag;
+}
+
 void UEFITool::openImageFile()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), currentDir, tr("BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)"));
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), openImageDir, tr("BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)"));
     openImageFile(path);
 }
 
 void UEFITool::openImageFileInNewWindow()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), currentDir, tr("BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)"));
+    QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file in new window"), openImageDir, tr("BIOS image files (*.rom *.bin *.cap *scap *.bio *.fd *.wph *.dec);;All files (*)"));
     if (path.trimmed().isEmpty())
         return;
     QProcess::startDetached(currentProgramPath, QStringList(path));
+}
+
+void UEFITool::openRecentImageFile()
+{
+    QAction* action = qobject_cast<QAction*>(sender());
+    if (action) {
+        QString fileName = action->data().toString();
+        if (!fileName.isEmpty()) {
+            openImageFile(fileName);
+        }
+    }
+}
+
+void UEFITool::reopenImageFile()
+{
+    if (!currentPath.isEmpty() && ui->structureTreeView->model()->hasChildren(UModelIndex())) {
+        QHash<QString, bool> states;
+        saveTreeState(model->index(0, 0), states);
+        QList <UModelIndex> selected = ui->structureTreeView->selectionModel()->selectedIndexes();
+        UINT64 base = selected.isEmpty() ? UEFI_UPPER_INVALID_ADDRESS : model->base(selected.first());
+
+        openImageFile(currentPath);
+
+        restoreTreeState(model->index(0, 0), states);
+        if (base < UEFI_UPPER_INVALID_ADDRESS) {
+            UModelIndex index = model->findByBase(base);
+            ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::SelectCurrent | QItemSelectionModel::Rows);
+            ui->structureTreeView->scrollTo(index);
+        }
+    }
 }
 
 void UEFITool::openImageFile(QString path)
@@ -647,18 +894,23 @@ void UEFITool::openImageFile(QString path)
     
     QFile inputFile;
     inputFile.setFileName(path);
-    
+    QElapsedTimer timer;
+    timer.start();
     if (!inputFile.open(QFile::ReadOnly)) {
         QMessageBox::critical(this, tr("Image parsing failed"), tr("Can't open input file for reading"), QMessageBox::Ok);
         return;
     }
-    
+
+    watcher.removePaths(watcher.files());
+    setChangedFileFlag(false);
+    watcher.addPath(path);
+
     QByteArray buffer = inputFile.readAll();
     inputFile.close();
-    
+
     init();
     setWindowTitle(tr("UEFITool %1 - %2").arg(version).arg(fileInfo.fileName()));
-    
+
     // Parse the image
     USTATUS result = ffsParser->parse(buffer);
     showParserMessages();
@@ -667,7 +919,10 @@ void UEFITool::openImageFile(QString path)
         return;
     }
     else {
-        ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
+        ui->statusBar->showMessage(QString("Image file %1 ").arg(fileInfo.fileName())
+            + (path == currentPath ? tr("reopened") : tr("opened"))
+            + QString(" in %1 sec").arg(timer.elapsed() / 1000.0));
+        openedFileLabel.setText(QDir::toNativeSeparators(fileInfo.absoluteFilePath()));
     }
     ffsParser->outputInfo();
     
@@ -690,7 +945,7 @@ void UEFITool::openImageFile(QString path)
     
     // Enable goToBase and goToAddress
     ui->actionGoToBase->setEnabled(true);
-    if (ffsParser->getAddressDiff() <= 0xFFFFFFFFUL)
+    if (ffsParser->getAddressDiff() < UEFI_UPPER_INVALID_ADDRESS)
         ui->actionGoToAddress->setEnabled(true);
     
     // Enable generateReport
@@ -701,9 +956,15 @@ void UEFITool::openImageFile(QString path)
     
     // Set current directory
     currentDir = fileInfo.absolutePath();
-    
+    openImageDir = currentDir;
+
     // Set current path
     currentPath = path;
+
+    // Update menu
+    updateRecentFilesMenu(currentPath);
+
+    ui->structureTreeView->expandToDepth(1);
 }
 
 void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
@@ -771,6 +1032,12 @@ void UEFITool::toggleBootGuardMarking(bool enabled)
 {
     model->setMarkingEnabled(enabled);
     markingEnabled = enabled;
+}
+
+void UEFITool::toggleCStyleHexValues(bool enabled)
+{
+    model->setCStyleHexEnabled(enabled);
+    cStyleHexEnabled = enabled;
 }
 
 // Emit double click signal of QListWidget on enter/return key pressed
@@ -900,14 +1167,21 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
     
+    QMenu* menu = nullptr;
+
     switch (model->type(index)) {
-        case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
-        case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
-        case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
-        case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());      break;
-        case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());       break;
-        case Types::File:           ui->menuFileActions->exec(event->globalPos());         break;
-        case Types::Section:        ui->menuSectionActions->exec(event->globalPos());      break;
+        case Types::Capsule:        menu = ui->menuCapsuleActions;      break;
+        case Types::Image:          menu = ui->menuImageActions;        break;
+        case Types::Region:         menu = ui->menuRegionActions;       break;
+        case Types::Padding:        menu = ui->menuPaddingActions;      break;
+        case Types::Volume:
+            if (model->hasEmptyHeader(index))
+                menu = ui->menuImageActions;
+            else
+                menu = ui->menuVolumeActions;
+            break;
+        case Types::File:           menu = ui->menuFileActions;         break;
+        case Types::Section:        menu = ui->menuSectionActions;      break;
         case Types::VssStore:
         case Types::Vss2Store:
         case Types::FdcStore:
@@ -921,9 +1195,16 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         case Types::CmdbStore:
         case Types::FptStore:
         case Types::CpdStore:
-        case Types::BpdtStore:      ui->menuStoreActions->exec(event->globalPos());        break;
-        case Types::FreeSpace:      break; // No menu needed for FreeSpace item
-        default:                    ui->menuEntryActions->exec(event->globalPos());        break;
+        case Types::BpdtStore:      menu = ui->menuStoreActions;        break;
+        case Types::FreeSpace:      menu = ui->menuImageActions;        break;
+        default:                    menu = ui->menuEntryActions;        break;
+    }
+
+    if (menu != nullptr) {
+        QList<QAction*> actions = menu->actions();
+        QAction s = QAction(nullptr);
+        s.setSeparator(true);
+        QMenu::exec(actions << &s << ui->actionExpandAll, event->globalPos());
     }
 }
 
@@ -945,7 +1226,16 @@ void UEFITool::readSettings()
     ui->structureTreeView->setColumnWidth(3, settings.value("tree/columnWidth3", ui->structureTreeView->columnWidth(3)).toInt());
     markingEnabled = settings.value("tree/markingEnabled", true).toBool();
     ui->actionToggleBootGuardMarking->setChecked(markingEnabled);
-    
+    cStyleHexEnabled = settings.value("tree/cStyleHexEnabled", true).toBool();
+    ui->actionToggleCStyleHexValues->setChecked(cStyleHexEnabled);
+    openImageDir = settings.value("paths/openImageDir", ".").toString();
+    openGuidDatabaseDir = settings.value("paths/openGuidDatabaseDir", ".").toString();
+    extractDir = settings.value("paths/extractDir", ".").toString();
+    recentFiles = settings.value("paths/recentFiles").toStringList();
+    fileTrackingState = settings.value("options/fileTracking", TRACK_IGNORE).toInt();
+    if (fileTrackingState < TRACK_MIN || fileTrackingState > TRACK_MAX)
+        fileTrackingState = TRACK_IGNORE;
+
     // Set monospace font
     QString fontName;
     int fontSize;
@@ -978,8 +1268,14 @@ void UEFITool::writeSettings()
     settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
     settings.setValue("tree/columnWidth3", ui->structureTreeView->columnWidth(3));
     settings.setValue("tree/markingEnabled", markingEnabled);
+    settings.setValue("tree/cStyleHexEnabled", cStyleHexEnabled);
     settings.setValue("mainWindow/fontName", currentFont.family());
     settings.setValue("mainWindow/fontSize", currentFont.pointSize());
+    settings.setValue("paths/openImageDir", openImageDir);
+    settings.setValue("paths/openGuidDatabaseDir", openGuidDatabaseDir);
+    settings.setValue("paths/extractDir", extractDir);
+    settings.setValue("paths/recentFiles", recentFiles);
+    settings.setValue("options/fileTracking", fileTrackingState);
 }
 
 void UEFITool::showFitTable()
@@ -1044,11 +1340,12 @@ void UEFITool::currentTabChanged(int index)
 
 void UEFITool::loadGuidDatabase()
 {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), currentDir, tr("Comma-separated values files (*.csv);;All files (*)"));
+    QString path = QFileDialog::getOpenFileName(this, tr("Select GUID database file to load"), openGuidDatabaseDir, tr("Comma-separated values files (*.csv);;All files (*)"));
     if (!path.isEmpty()) {
         initGuidDatabase(path);
         if (!currentPath.isEmpty() && QMessageBox::Yes == QMessageBox::information(this, tr("New GUID database loaded"), tr("Apply new GUID database on the opened file?\nUnsaved changes and tree position will be lost."), QMessageBox::Yes, QMessageBox::No))
             openImageFile(currentPath);
+        openGuidDatabaseDir = QFileInfo(path).absolutePath();
     }
 }
 

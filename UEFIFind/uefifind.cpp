@@ -92,7 +92,7 @@ USTATUS UEFIFind::findFileRecursive(const UModelIndex index, const UString & hex
 
     // For patterns that cross header|body boundary, skip patterns entirely located in body, since
     // children search above has already found them.
-    if (hasChildren && mode == SEARCH_MODE_ALL && offset >= model->header(index).size()) {
+    if (hasChildren && mode == SEARCH_MODE_ALL && offset >= model->headerSize(index)) {
         offset = -1;
     }
 

@@ -200,7 +200,7 @@ USTATUS FitParser::parseFit(const UModelIndex & index)
     return U_SUCCESS;
 }
 
-void FitParser::findFitRecursive(const UModelIndex & index, UModelIndex & found, UINT32 & fitOffset)
+void FitParser::findFitRecursive(const UModelIndex& index, UModelIndex & found, UINT32 & fitOffset)
 {
     // Sanity check
     if (!index.isValid()) {
@@ -217,28 +217,30 @@ void FitParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
         }
     }
     
-    // Check for all FIT signatures in item body
-    UByteArray lastVtfBody = model->body(ffsParser->lastVtf);
+    // Check for all FIT signatures in item body - we want to log 'em all
+    UByteArray lastVtfBody = model->header(ffsParser->lastVtf) + model->body(ffsParser->lastVtf) + model->tail(ffsParser->lastVtf);
     UINT64 fitSignatureValue = INTEL_FIT_SIGNATURE;
     UByteArray fitSignature((const char*)&fitSignatureValue, sizeof(fitSignatureValue));
-    UINT32 storedFitAddress = *(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - INTEL_FIT_POINTER_OFFSET);
+    UINT32 storedFitAddress = *(const UINT32*)(lastVtfBody.constData() + UEFI_UPPER_INVALID_ADDRESS - INTEL_FIT_POINTER_OFFSET
+        - model->base(ffsParser->lastVtf) - ffsParser->addressDiff);
     for (INT32 offset = (INT32)model->body(index).indexOf(fitSignature);
          offset >= 0;
          offset = (INT32)model->body(index).indexOf(fitSignature, offset + 1)) {
         // FIT candidate found, calculate its physical address
-        UINT32 fitAddress = (UINT32)(model->base(index) + (UINT32)ffsParser->addressDiff + model->header(index).size() + (UINT32)offset);
+        UINT32 fitAddress = (UINT32)(model->base(index) + (UINT32)ffsParser->addressDiff + model->headerSize(index) + (UINT32)offset);
         
         // Check FIT address to be stored in the last VTF
         if (fitAddress == storedFitAddress) {
             // Valid FIT table must have at least two entries
-            if ((UINT32)model->body(index).size() < offset + 2*sizeof(INTEL_FIT_ENTRY)) {
+            if ((UINT32)model->bodySize(index) < offset + 2*sizeof(INTEL_FIT_ENTRY)) {
                 msg(usprintf("%s: FIT table candidate found, too small to contain real FIT", __FUNCTION__), index);
             }
             else {
                 // Real FIT found
                 found = index;
                 fitOffset = offset;
-                msg(usprintf("%s: real FIT table found at physical address %08Xh", __FUNCTION__, fitAddress), found);
+                msg(usprintf("%s: real FIT table found at physical address %08Xh (offset %Xh)", __FUNCTION__,
+                    fitAddress, fitOffset), found);
                 break;
             }
         }
@@ -709,8 +711,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     // Add postIbbHash protected range
                     UByteArray postIbbHash(ibbs_body->post_ibb_hash()->hash().data(), ibbs_body->post_ibb_hash()->len_hash());
-                    if (postIbbHash.count('\x00') != postIbbHash.size()
-                        && postIbbHash.count('\xFF') != postIbbHash.size()) {
+                    auto c = checkSingle(postIbbHash);
+                    if (c != 0 && c != 0xFF) {
                         PROTECTED_RANGE range = {};
                         range.Type = PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
                         range.AlgorithmId = ibbs_body->post_ibb_hash()->hash_algorithm_id();
@@ -990,8 +992,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     // Add postIbbHash protected range
                     UByteArray postIbbHash(ibbs_body->post_ibb_digest()->hash().data(), ibbs_body->post_ibb_digest()->len_hash());
-                    if (postIbbHash.count('\x00') != postIbbHash.size()
-                        && postIbbHash.count('\xFF') != postIbbHash.size()) {
+                    auto c = checkSingle(postIbbHash);
+                    if (c != 0 && c != 0xFF) {
                         PROTECTED_RANGE range = {};
                         range.Type = PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
                         range.AlgorithmId = ibbs_body->post_ibb_digest()->hash_algorithm_id();
@@ -1021,8 +1023,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                     
                     // Add ObbHash protected range
                     UByteArray obbHash(ibbs_body->obb_digest()->hash().data(), ibbs_body->obb_digest()->len_hash());
-                    if (obbHash.count('\x00') != obbHash.size()
-                        && obbHash.count('\xFF') != obbHash.size()) {
+                    auto c = checkSingle(obbHash);
+                    if (c != 0 && c != 0xFF) {
                         PROTECTED_RANGE range = {};
                         range.Type = PROTECTED_RANGE_INTEL_BOOT_GUARD_OBB;
                         range.AlgorithmId = ibbs_body->obb_digest()->hash_algorithm_id();

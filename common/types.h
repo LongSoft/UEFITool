@@ -118,6 +118,7 @@ namespace Subtypes {
         Reserved1Region,
         Reserved2Region,
         PttRegion,
+        InvalidRegion,
     };
 
     enum PaddingSubtypes {

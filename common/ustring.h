@@ -31,6 +31,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define ATTRIBUTE_FORMAT_(t,f,a)
 #endif
 
+void setCStyleHexView(const bool enable);
 UString usprintf(const char* fmt, ...) ATTRIBUTE_FORMAT_(printf, 1, 2);
 UString urepeated(char c, int len);
 UString uFromUcs2(const char* str, size_t max_len = 0);

@@ -40,7 +40,7 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
+USTATUS NvramParser::parseNvarStore(const UModelIndex & index, const bool probe)
 {
     // Sanity check
     if (!index.isValid())
@@ -50,7 +50,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
     // Nothing to parse in an empty store
     if (nvar.isEmpty())
-        return U_SUCCESS;
+        return probe ? U_STORES_NOT_FOUND : U_SUCCESS;
 
     // Obtain required fields from parsing data
     UINT8 emptyByte = 0xFF;
@@ -59,9 +59,9 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
         emptyByte = pdata->emptyByte;
     }
-    
+
     try {
-        const UINT32 localOffset = (UINT32)model->header(index).size();
+        const UINT32 localOffset = (UINT32)model->headerSize(index);
         umemstream is(nvar.constData(), nvar.size());
         kaitai::kstream ks(&is);
         ami_nvar_t parsed(&ks);
@@ -74,9 +74,6 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
             UString text;
             UString info;
             UString guid;
-            UByteArray header;
-            UByteArray body;
-            UByteArray tail;
 
             // This is a terminating entry, needs special processing
             if (entry->_is_null_signature_rest()) {
@@ -89,30 +86,47 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 // Get info
                 UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
 
-                if ((UINT32)padding.count(emptyByte) == unparsedSize) { // Free space
+                auto c = checkSingle(padding, (unsigned char)emptyByte);
+                if (c == emptyByte && padding.size() == unparsedSize) { // Free space
+                    if (probe && nvar.size() == unparsedSize)
+                        return U_STORES_NOT_FOUND;
                     // Add tree item
-                    model->addItem(localOffset + entry->offset(), Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+                    model->addItem(
+                        localOffset + entry->offset(), Types::FreeSpace, 0,
+                        UString("Free space"), UString(), info,
+                        0, padding.size(), 0,
+                        Fixed, index);
                 }
                 else {
                     // Nothing is parsed yet, but the file is not empty
                     if (entry->offset() == 0) {
-                        msg(usprintf("%s: file can't be parsed as NVAR variable store", __FUNCTION__), index);
-                        return U_SUCCESS;
+                        if (!probe)
+                            msg(usprintf("%s: file can't be parsed as NVAR variable store", __FUNCTION__), index);
+                        return U_INVALID_FILE;
                     }
 
                     // Add tree item
-                    model->addItem(localOffset + entry->offset(), Types::Padding, getPaddingType(padding), UString("Padding"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
+                    model->addItem(
+                        localOffset + entry->offset(), Types::Padding, getPaddingType(padding),
+                        UString("Padding"), UString(), info,
+                        0, padding.size(), 0,
+                        Fixed, index);
                 }
 
                 // Add GUID store area
-                UByteArray guidArea = nvar.right(guidAreaSize);
+                if (guidAreaSize > nvar.size())
+                    guidAreaSize = nvar.size();
                 // Get info
                 name = UString("GUID store");
                 info = usprintf("Full size: %Xh (%u)\nGUIDs in store: %u",
-                                (UINT32)guidArea.size(), (UINT32)guidArea.size(),
+                                guidAreaSize, guidAreaSize,
                                 guidsInStore);
                 // Add tree item
-                model->addItem((UINT32)(localOffset + entry->offset() + padding.size()), Types::NvarGuidStore, 0, name, UString(), info, UByteArray(), guidArea, UByteArray(), Fixed, index);
+                model->addItem(
+                    (UINT32)(localOffset + entry->offset() + padding.size()), Types::NvarGuidStore, 0,
+                    name, UString(), info,
+                    0, guidAreaSize, 0,
+                    Fixed, index);
 
                 return U_SUCCESS;
             }
@@ -210,9 +224,9 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
 processing_done:
             // This feels hacky, but I haven't found a way to ask Kaitai for raw bytes
-            header = nvar.mid(entry->offset(), sizeof(NVAR_ENTRY_HEADER) + entry_body->data_start_offset());
-            body = nvar.mid(entry->offset() + sizeof(NVAR_ENTRY_HEADER) + entry_body->data_start_offset(), entry_body->data_size());
-            tail = nvar.mid(entry->end_offset() - entry_body->extended_header_size(), entry_body->extended_header_size());
+            UINT32 headerSize = sizeof(NVAR_ENTRY_HEADER) + entry_body->data_start_offset();
+            UByteArray nvarData = nvar.mid(entry->offset(), headerSize + entry_body->data_size())
+                + nvar.mid(entry->end_offset() - entry_body->extended_header_size(), entry_body->extended_header_size());
 
             // Add GUID info for valid entries
             if (!guid.isEmpty())
@@ -225,12 +239,12 @@ processing_done:
             // Add header, body and extended data info
             info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nTail size: %Xh (%u)",
                              entry->size(), entry->size(),
-                             (UINT32)header.size(), (UINT32)header.size(),
-                             (UINT32)body.size(), (UINT32)body.size(),
-                             (UINT32)tail.size(), (UINT32)tail.size());
+                             headerSize, headerSize,
+                             entry_body->data_size(), entry_body->data_size(),
+                             entry_body->extended_header_size(), entry_body->extended_header_size());
 
             // Add attributes info
-            const NVAR_ENTRY_HEADER entryHeader = readUnaligned((NVAR_ENTRY_HEADER*)header.constData());
+            const NVAR_ENTRY_HEADER entryHeader = readUnaligned((NVAR_ENTRY_HEADER*)nvarData.constData());
             info += usprintf("\nAttributes: %02Xh", entryHeader.Attributes);
 
             // Translate attributes to text
@@ -246,17 +260,16 @@ processing_done:
                 info += usprintf("\nExtended header size: %Xh (%u)",
                                  entry_body->extended_header_size(), entry_body->extended_header_size());
 
-                const UINT8 extendedAttributes = *tail.constData();
+                const UINT8 extendedAttributes = *(nvar.constData() + entry->end_offset() - entry_body->extended_header_size());//tail.constData();
                 info += usprintf("\nExtended attributes: %02Xh (", extendedAttributes) + nvarExtendedAttributesToUString(extendedAttributes) + UString(")");
 
                 // Add checksum
                 if (!entry_body->_is_null_extended_header_checksum()) {
                     UINT8 calculatedChecksum = 0;
-                    UByteArray wholeBody = body + tail;
 
                     // Include entry body
-                    UINT8* start = (UINT8*)wholeBody.constData();
-                    for (UINT8* p = start; p < start + wholeBody.size(); p++) {
+                    UINT8* start = (UINT8*)nvarData.constData();
+                    for (UINT8* p = start; p < start + headerSize + entry_body->data_size(); p++) {
                         calculatedChecksum += *p;
                     }
                     // Include entry size and flags
@@ -282,7 +295,11 @@ processing_done:
             }
 
             // Add tree item
-            UModelIndex varIndex = model->addItem(localOffset + entry->offset(), Types::NvarEntry, subtype, name, text, info, header, body, tail, Fixed, index);
+            UModelIndex varIndex = model->addItem(
+                localOffset + entry->offset(), Types::NvarEntry, subtype,
+                name, text, info,
+                headerSize, entry_body->data_size(), entry_body->extended_header_size(),
+                Fixed, index);
             currentEntryIndex++;
 
             // Set parsing data
@@ -290,23 +307,25 @@ processing_done:
 
             // Try parsing the entry data as NVAR storage if it begins with NVAR signature
             if ((subtype == Subtypes::DataNvarEntry || subtype == Subtypes::FullNvarEntry)
-                && body.size() >= 4 && readUnaligned((const UINT32*)body.constData()) == NVRAM_NVAR_ENTRY_SIGNATURE)
+                && entry_body->data_size() >= 4 && readUnaligned((const UINT32*)(nvarData.constData() + headerSize)) == NVRAM_NVAR_ENTRY_SIGNATURE)
                 (void)parseNvarStore(varIndex);
         }
     }
     catch (...) {
+        if (!probe)
+            msg(usprintf("%s: unable to parse AMI NVAR storage", __FUNCTION__), index);
         return U_INVALID_STORE;
     }
 
     return U_SUCCESS;
 }
 
-USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32 fdcStoreSizeOverride)
+USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex& index, const UINT32 fdcStoreSizeOverride)
 {
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
-    
+
     // Obtain required fields from parsing data
     UINT8 emptyByte = 0xFF;
     if (model->hasEmptyParsingData(index) == false) {
@@ -314,10 +333,10 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
         const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
         emptyByte = pdata->emptyByte;
     }
-    
+
     // Get local offset
-    const UINT32 localOffset = (UINT32)model->header(index).size();
-    
+    const UINT32 localOffset = (UINT32)model->headerSize(index);
+
     // Get item data
     UByteArray volumeBody = model->body(index);
     const UINT32 volumeBodySize = (UINT32)volumeBody.size();
@@ -326,18 +345,18 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
     UByteArray outerPadding;
     UINT32 previousStoreEndOffset = 0;
     for (UINT32 storeOffset = 0;
-         storeOffset < volumeBodySize;
-         storeOffset++) {
+        storeOffset < volumeBodySize;
+        storeOffset++) {
         UString name, text, info;
-        UByteArray header, body;
-        
+        UINT32 headerSize, bodySize;
+
         // VSS
         try {
             if (volumeBodySize - storeOffset < sizeof(VSS_VARIABLE_STORE_HEADER)) {
                 // No need to parse further, the rest of the volume is too small
                 goto not_vss;
             }
-            
+
             // Perform initial sanity check
             const VSS_VARIABLE_STORE_HEADER* storeHeader = (const VSS_VARIABLE_STORE_HEADER*)(volumeBody.constData() + storeOffset);
             if ((storeHeader->Signature != NVRAM_VSS_STORE_SIGNATURE
@@ -348,10 +367,10 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                 goto not_vss;
             }
             UINT32 storeSize = MIN(volumeBodySize - storeOffset, storeHeader->Size); //TODO: consider this check to become hard bail as it was before
-            
+
             // This copy is required for possible FDC workaround
             UByteArray vss = volumeBody.mid(storeOffset, storeSize);
-            
+
             // Check if we are here to parse a special case of FDC store with size override
             UINT32 originalStoreSize = 0;
             bool fdcHeaderSizeOverrideRequired = (fdcStoreSizeOverride > 0 && storeHeader->Signature == NVRAM_VSS_STORE_SIGNATURE && storeHeader->Size == 0xFFFFFFFF);
@@ -360,12 +379,12 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                 originalStoreSize = vssHeader->Size;
                 vssHeader->Size = fdcStoreSizeOverride;
             }
-            
+
             // Try parsing VSS store candidate
             umemstream is(vss.constData(), vss.size());
             kaitai::kstream ks(&is);
             edk2_vss_t parsed(&ks);
-            
+
             // Restore original store size, if needed
             if (fdcHeaderSizeOverrideRequired) {
                 VSS_VARIABLE_STORE_HEADER* vssHeader = (VSS_VARIABLE_STORE_HEADER*)vss.data();
@@ -376,14 +395,18 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
 
-            // Construct header and body
-            header = vss.left(parsed.len_vss_store_header());
-            body = vss.mid(header.size(), storeSize - header.size());
-            
+            // Obtain header and body size
+            headerSize = parsed.len_vss_store_header();
+            bodySize = storeSize - headerSize;
+
             // Add info
             if (parsed.signature() == NVRAM_APPLE_SVS_STORE_SIGNATURE) {
                 name = UString("Apple SVS store");
@@ -394,25 +417,29 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
             else {
                 name = UString("VSS store");
             }
-            
+
             info = usprintf("Signature: %Xh (", parsed.signature()) + fourCC(parsed.signature()) + UString(")\n");
             info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nReserved: %02Xh\nReserved1: %04Xh",
-                            storeSize , storeSize,
-                            (UINT32)header.size(), (UINT32)header.size(),
-                            (UINT32)body.size(), (UINT32)body.size(),
-                            parsed.format(),
-                            parsed.state(),
-                            parsed.reserved(),
-                            parsed.reserved1());
-            
+                             storeSize, storeSize,
+                             headerSize, headerSize,
+                             bodySize, bodySize,
+                             parsed.format(),
+                             parsed.state(),
+                             parsed.reserved(),
+                             parsed.reserved1());
+
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::VssStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            UModelIndex headerIndex = model->addItem(
+                localOffset + storeOffset, Types::VssStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             // Add variables
             UINT32 entryOffset = parsed.len_vss_store_header();
-            for (const auto & variable : *parsed.body()->variables()) {
+            for (const auto& variable : *parsed.body()->variables()) {
                 UINT8 subtype;
-                
+
                 // This is the terminating entry, needs special processing
                 if (variable->_is_null_signature_last()) {
                     // Add free space or padding after all variables, if needed
@@ -420,39 +447,48 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                         UByteArray freeSpace = vss.mid(entryOffset, storeSize - entryOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
-                        
+
                         // Check that remaining unparsed bytes are actually empty
-                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                        auto c = checkSingle(freeSpace, (unsigned char)emptyByte);
+                        if (c == emptyByte) { // Free space
                             // Add tree item
-                            model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                            model->addItem(
+                                entryOffset, Types::FreeSpace, 0,
+                                UString("Free space"), UString(), info,
+                                0, freeSpace.size(), 0,
+                                Fixed, headerIndex);
                         }
                         else {
                             // Add tree item
-                            model->addItem(entryOffset, Types::Padding, getPaddingType(freeSpace), UString("Padding"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                            model->addItem(
+                                entryOffset, Types::Padding, getPaddingType(freeSpace),
+                                UString("Padding"), UString(), info,
+                                0, freeSpace.size(), 0,
+                                Fixed, headerIndex);
                         }
                     }
                     break;
                 }
-                
+
                 // This is a normal entry
                 UINT32 variableSize;
                 if (variable->is_intel_legacy()) { // Intel legacy
                     subtype = Subtypes::IntelVssEntry;
                     // Needs some additional parsing of variable->intel_legacy_data to separate the name from the value
                     text = uFromUcs2(variable->intel_legacy_data().c_str());
-                    UINT32 textLengthInBytes = (UINT32)text.length()*2+2;
-                    header = vss.mid(entryOffset, variable->len_intel_legacy_header() + textLengthInBytes);
-                    body = vss.mid(entryOffset + header.size(), variable->len_total() - variable->len_intel_legacy_header() - textLengthInBytes);
-                    variableSize = (UINT32)(header.size() + body.size());
+                    UINT32 textLengthInBytes = (UINT32)text.length() * 2 + 2;
+                    headerSize = variable->len_intel_legacy_header() + textLengthInBytes;
+                    bodySize = variable->len_total() - headerSize;
+                    variableSize = headerSize + bodySize;
                     const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
                     name = guidToUString(variableGuid);
                     info = UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
                 }
                 else if (variable->is_auth()) { // Authenticated
                     subtype = Subtypes::AuthVssEntry;
-                    header = vss.mid(entryOffset, variable->len_auth_header() + variable->len_name_auth());
-                    body = vss.mid(entryOffset + header.size(), variable->len_data_auth());
-                    variableSize = (UINT32)(header.size() + body.size());
+                    headerSize = variable->len_auth_header() + variable->len_name_auth();
+                    bodySize = variable->len_data_auth();
+                    variableSize = headerSize + bodySize;
                     const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
                     name = guidToUString(variableGuid);
                     text = uFromUcs2(variable->name_auth().c_str());
@@ -460,9 +496,9 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                 }
                 else if (!variable->_is_null_apple_data_crc32()) { // Apple CRC32
                     subtype = Subtypes::AppleVssEntry;
-                    header = vss.mid(entryOffset, variable->len_apple_header() + variable->len_name());
-                    body = vss.mid(entryOffset + header.size(), variable->len_data());
-                    variableSize = (UINT32)(header.size() + body.size());
+                    headerSize = variable->len_apple_header() + variable->len_name();
+                    bodySize = variable->len_data();
+                    variableSize = headerSize + bodySize;
                     const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
                     name = guidToUString(variableGuid);
                     text = uFromUcs2(variable->name().c_str());
@@ -470,79 +506,83 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                 }
                 else { // Standard
                     subtype = Subtypes::StandardVssEntry;
-                    header = vss.mid(entryOffset, variable->len_standard_header() + variable->len_name());
-                    body = vss.mid(entryOffset + header.size(), variable->len_data());
-                    variableSize = (UINT32)(header.size() + body.size());
+                    headerSize = variable->len_standard_header() + variable->len_name();
+                    bodySize = variable->len_data();
+                    variableSize = headerSize + bodySize;
                     const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
                     name = guidToUString(variableGuid);
                     text = uFromUcs2(variable->name().c_str());
                     info = UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
                 }
-                
+
                 // Override variable type to Invalid, if needed
                 if (!variable->is_valid()) {
                     subtype = Subtypes::InvalidVssEntry;
                     name = UString("Invalid");
                     text.clear();
                 }
-                
+
                 const UINT32 variableAttributes = variable->attributes()->non_volatile()
-                + (variable->attributes()->boot_service() << 1)
-                + (variable->attributes()->runtime() << 2)
-                + (variable->attributes()->hw_error_record() << 3)
-                + (variable->attributes()->auth_write() << 4)
-                + (variable->attributes()->time_based_auth() << 5)
-                + (variable->attributes()->append_write() << 6)
-                + (UINT32)(variable->attributes()->reserved() << 7)
-                + (UINT32)(variable->attributes()->apple_data_checksum() << 31);
-                
+                    + (variable->attributes()->boot_service() << 1)
+                    + (variable->attributes()->runtime() << 2)
+                    + (variable->attributes()->hw_error_record() << 3)
+                    + (variable->attributes()->auth_write() << 4)
+                    + (variable->attributes()->time_based_auth() << 5)
+                    + (variable->attributes()->append_write() << 6)
+                    + (UINT32)(variable->attributes()->reserved() << 7)
+                    + (UINT32)(variable->attributes()->apple_data_checksum() << 31);
+
                 // Add generic info
                 info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
                                  variableSize, variableSize,
-                                 (UINT32)header.size(), (UINT32)header.size(),
-                                 (UINT32)body.size(), (UINT32)body.size(),
+                                 headerSize, headerSize,
+                                 bodySize, bodySize,
                                  variable->state(),
                                  variable->reserved(),
                                  variableAttributes) + vssAttributesToUString(variableAttributes) + UString(")");
-                
+
                 // Add specific info
                 if (variable->is_auth()) {
                     UINT64 monotonicCounter = (UINT64)variable->len_name() + ((UINT64)variable->len_data() << 32);
                     info += usprintf("\nMonotonic counter: %" PRIX64 "h\nTimestamp: ", monotonicCounter) + efiTimeToUString(*(const EFI_TIME*)variable->timestamp().c_str())
-                    + usprintf("\nPubKey index: %u", variable->pubkey_index());
+                        + usprintf("\nPubKey index: %u", variable->pubkey_index());
                 }
                 else if (!variable->_is_null_apple_data_crc32()) {
                     // Calculate CRC32 of the variable data
-                    UINT32 calculatedCrc32 = (UINT32)crc32(0, (const UINT8*)body.constData(), (uInt)body.size());
-                    
+                    UINT32 calculatedCrc32 = (UINT32)crc32(0, (const UINT8*)(vss.constData() + entryOffset + headerSize), bodySize);
+
                     info += usprintf("\nData checksum: %08Xh", variable->apple_data_crc32()) +
-                    (variable->apple_data_crc32() != calculatedCrc32 ? usprintf(", invalid, should be %08Xh", calculatedCrc32) : UString(", valid"));
+                        (variable->apple_data_crc32() != calculatedCrc32 ? usprintf(", invalid, should be %08Xh", calculatedCrc32) : UString(", valid"));
                 }
-                
+
                 // Add tree item
-                model->addItem(entryOffset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Fixed, headerIndex);
-                
+                model->addItem(
+                    entryOffset, Types::VssEntry, subtype,
+                    name, text, info,
+                    headerSize, bodySize, 0,
+                    Fixed, headerIndex);
+
                 entryOffset += variableSize;
             }
-            
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
-           // Parsing failed, try something else
+            // Parsing failed, try something else
         }
-not_vss:
+    not_vss:
         // VSS2
         try {
             if (volumeBodySize - storeOffset < sizeof(VSS2_VARIABLE_STORE_HEADER)) {
                 // No need to parse further, the rest of the volume is too small
                 goto not_vss2;
             }
-            
+
             // Perform initial sanity check
             const VSS2_VARIABLE_STORE_HEADER* storeHeader = (const VSS2_VARIABLE_STORE_HEADER*)(volumeBody.constData() + storeOffset);
             UByteArray guid = UByteArray((const char*)&storeHeader->Signature, sizeof(EFI_GUID));
-            
+
             if ((guid != NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID
                 && guid != NVRAM_VSS2_STORE_GUID
                 && guid != NVRAM_FDC_STORE_GUID)
@@ -551,10 +591,10 @@ not_vss:
                 goto not_vss2;
             }
             UINT32 storeSize = MIN(volumeBodySize - storeOffset, storeHeader->Size);
-            
+
             // This copy is required for possible FDC workaround
             UByteArray vss2 = volumeBody.mid(storeOffset, storeSize);
-            
+
             // Check if we are here to parse a special case of FDC store with size override
             UINT32 originalStoreSize = 0;
             bool fdcHeaderSizeOverrideRequired = (fdcStoreSizeOverride > 0 && guid == NVRAM_FDC_STORE_GUID && storeHeader->Size == 0xFFFFFFFF);
@@ -563,30 +603,34 @@ not_vss:
                 originalStoreSize = vss2Header->Size;
                 vss2Header->Size = fdcStoreSizeOverride;
             }
-            
+
             // Try parsing VSS store candidate
             umemstream is(vss2.constData(), vss2.size());
             kaitai::kstream ks(&is);
             edk2_vss2_t parsed(&ks);
-            
+
             // Restore original store size, if needed
             if (fdcHeaderSizeOverrideRequired) {
                 VSS2_VARIABLE_STORE_HEADER* vss2Header = (VSS2_VARIABLE_STORE_HEADER*)vss2.data();
                 vss2Header->Size = originalStoreSize;
             }
-            
+
             // VSS2 store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
 
-            // Construct header and body
-            header = vss2.left(parsed.len_vss2_store_header());
-            body = vss2.mid(header.size(), storeSize - header.size());
-            
+            // Obtain header and body size
+            headerSize = parsed.len_vss2_store_header();
+            bodySize = storeSize - headerSize;
+
             // Add info
             name = UString("VSS2 store");
             if (guid == NVRAM_VSS2_AUTH_VAR_KEY_DATABASE_GUID) {
@@ -598,24 +642,28 @@ not_vss:
             else {
                 info = UString("Signature: DDCF3617-3275-4164-98B6-FE85707FFE7D\n");
             }
-            
+
             info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nFormat: %02Xh\nState: %02Xh\nReserved: %02Xh\nReserved1: %04Xh",
-                            storeSize, storeSize,
-                            (UINT32)header.size(), (UINT32)header.size(),
-                            (UINT32)body.size(), (UINT32)body.size(),
-                            parsed.format(),
-                            parsed.state(),
-                            parsed.reserved(),
-                            parsed.reserved1());
-            
+                             storeSize, storeSize,
+                             headerSize, headerSize,
+                             bodySize, bodySize,
+                             parsed.format(),
+                             parsed.state(),
+                             parsed.reserved(),
+                             parsed.reserved1());
+
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::Vss2Store, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            UModelIndex headerIndex = model->addItem(
+                localOffset + storeOffset, Types::Vss2Store, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             // Add variables
             UINT32 entryOffset = parsed.len_vss2_store_header();
-            for (const auto & variable : *parsed.body()->variables()) {
+            for (const auto& variable : *parsed.body()->variables()) {
                 UINT8 subtype;
-                
+
                 // This is the terminating entry, needs special processing
                 if (variable->_is_null_signature_last()) {
                     // Add free space or padding after all variables, if needed
@@ -623,28 +671,37 @@ not_vss:
                         UByteArray freeSpace = vss2.mid(entryOffset, storeSize - entryOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
-                        
+
                         // Check that remaining unparsed bytes are actually empty
-                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                        auto c = checkSingle(freeSpace, (unsigned char)emptyByte);
+                        if (c == emptyByte) { // Free space
                             // Add tree item
-                            model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                            model->addItem(
+                                entryOffset, Types::FreeSpace, 0,
+                                UString("Free space"), UString(), info,
+                                0, freeSpace.size(), 0,
+                                Fixed, headerIndex);
                         }
                         else {
                             // Add tree item
-                            model->addItem(entryOffset, Types::Padding, getPaddingType(freeSpace), UString("Padding"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                            model->addItem(
+                                entryOffset, Types::Padding, getPaddingType(freeSpace),
+                                UString("Padding"), UString(), info,
+                                0, freeSpace.size(), 0,
+                                Fixed, headerIndex);
                         }
                     }
                     break;
                 }
-                
+
                 // This is a normal entry
                 UINT32 variableSize;
                 UINT32 alignmentSize;
                 if (variable->is_auth()) { // Authenticated
                     subtype = Subtypes::AuthVssEntry;
-                    header = vss2.mid(entryOffset, variable->len_auth_header() + variable->len_name_auth());
-                    body = vss2.mid(entryOffset + header.size(), variable->len_data_auth());
-                    variableSize = (UINT32)(header.size() + body.size());
+                    headerSize = variable->len_auth_header() + variable->len_name_auth();
+                    bodySize = variable->len_data_auth();
+                    variableSize = headerSize + bodySize;
                     alignmentSize = variable->len_alignment_padding_auth();
                     const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
                     name = guidToUString(variableGuid);
@@ -653,66 +710,70 @@ not_vss:
                 }
                 else { // Standard
                     subtype = Subtypes::StandardVssEntry;
-                    header = vss2.mid(entryOffset, variable->len_standard_header() + variable->len_name());
-                    body = vss2.mid(entryOffset + header.size(), variable->len_data());
-                    variableSize = (UINT32)(header.size() + body.size());
+                    headerSize = variable->len_standard_header() + variable->len_name();
+                    bodySize = variable->len_data();
+                    variableSize = headerSize + bodySize;
                     alignmentSize = variable->len_alignment_padding();
                     const EFI_GUID variableGuid = readUnaligned((const EFI_GUID*)(variable->vendor_guid().c_str()));
                     name = guidToUString(variableGuid);
                     text = uFromUcs2(variable->name().c_str());
                     info = UString("Variable GUID: ") + guidToUString(variableGuid, false) + "\n";
                 }
-                
+
                 // Override variable type to Invalid if needed
                 if (!variable->is_valid()) {
                     subtype = Subtypes::InvalidVssEntry;
                     name = UString("Invalid");
                     text.clear();
                 }
-                
+
                 const UINT32 variableAttributes = variable->attributes()->non_volatile()
-                + (variable->attributes()->boot_service() << 1)
-                + (variable->attributes()->runtime() << 2)
-                + (variable->attributes()->hw_error_record() << 3)
-                + (variable->attributes()->auth_write() << 4)
-                + (variable->attributes()->time_based_auth() << 5)
-                + (variable->attributes()->append_write() << 6)
-                + (UINT32)(variable->attributes()->reserved() << 7);
-                
+                    + (variable->attributes()->boot_service() << 1)
+                    + (variable->attributes()->runtime() << 2)
+                    + (variable->attributes()->hw_error_record() << 3)
+                    + (variable->attributes()->auth_write() << 4)
+                    + (variable->attributes()->time_based_auth() << 5)
+                    + (variable->attributes()->append_write() << 6)
+                    + (UINT32)(variable->attributes()->reserved() << 7);
+
                 // Add generic info
                 info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nReserved: %02Xh\nAttributes: %08Xh (",
                                  variableSize, variableSize,
-                                 (UINT32)header.size(), (UINT32)header.size(),
-                                 (UINT32)body.size(), (UINT32)body.size(),
+                                 headerSize, headerSize,
+                                 bodySize, bodySize,
                                  variable->state(),
                                  variable->reserved(),
                                  variableAttributes) + vssAttributesToUString(variableAttributes) + UString(")");
-                
+
                 // Add specific info
                 if (variable->is_auth()) {
                     UINT64 monotonicCounter = (UINT64)variable->len_name() + ((UINT64)variable->len_data() << 32);
                     info += usprintf("\nMonotonic counter: %" PRIX64 "h\nTimestamp: ", monotonicCounter) + efiTimeToUString(*(const EFI_TIME*)variable->timestamp().c_str())
-                    + usprintf("\nPubKey index: %u", variable->pubkey_index());
+                        + usprintf("\nPubKey index: %u", variable->pubkey_index());
                 }
-                
+
                 // Add tree item
-                model->addItem(entryOffset, Types::VssEntry, subtype, name, text, info, header, body, UByteArray(), Fixed, headerIndex);
-                
+                model->addItem(
+                    entryOffset, Types::VssEntry, subtype,
+                    name, text, info,
+                    headerSize, bodySize, 0,
+                    Fixed, headerIndex);
+
                 entryOffset += (variableSize + alignmentSize);
             }
-            
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
-           // Parsing failed, try something else
+            // Parsing failed, try something else
         }
-not_vss2:
+    not_vss2:
         // Do not try any other parsers if we are here for FDC store parsing
         if (fdcStoreSizeOverride != 0) {
             continue;
         }
-        
+
         // FTW
         try {
             if (volumeBodySize - storeOffset < sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32)) {
@@ -743,20 +804,20 @@ not_vss2:
                 goto not_ftw;
             }
             storeSize = MIN(volumeBodySize - storeOffset, storeSize);
-        
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             edk2_ftw_t parsed(&ks);
-            
+
             // Construct header and calculate header checksum
-            UINT32 headerSize;
             UINT32 calculatedCrc;
+            UByteArray crcHeader = volumeBody.mid(storeOffset, std::max(
+                sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32), sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64)));
             if (parsed._is_null_len_write_queue_64()) {
                 headerSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32);
-                header = volumeBody.mid(storeOffset, headerSize);
-                
+
+
                 // Check block header checksum
-                UByteArray crcHeader = header;
                 EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32* crcFtwBlockHeader = (EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER32*)crcHeader.data();
                 crcFtwBlockHeader->Crc = emptyByte ? 0xFFFFFFFF : 0;
                 crcFtwBlockHeader->State = emptyByte ? 0xFF : 0;
@@ -764,47 +825,51 @@ not_vss2:
             }
             else {
                 headerSize = sizeof(EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64);
-                header = volumeBody.mid(storeOffset, headerSize);
-                
+
                 // Check block header checksum
-                UByteArray crcHeader = header;
                 EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64* crcFtwBlockHeader = (EFI_FAULT_TOLERANT_WORKING_BLOCK_HEADER64*)crcHeader.data();
                 crcFtwBlockHeader->Crc = emptyByte ? 0xFFFFFFFF : 0;
                 crcFtwBlockHeader->State = emptyByte ? 0xFF : 0;
                 calculatedCrc = (UINT32)crc32(0, (const UINT8*)crcFtwBlockHeader, (UINT32)headerSize);
             }
-            
+            bodySize = storeSize - headerSize;
+
             // FTW store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct body
-            body = volumeBody.mid(storeOffset + header.size(), storeSize - header.size());
-            
+
             // Add info
             name = UString("FTW store");
             info = UString("Signature: ") + guidToUString(*(const EFI_GUID*)guid.constData(), false);
             info += usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nState: %02Xh\nHeader CRC32: %08Xh",
-                             (UINT32)storeSize, (UINT32)storeSize,
-                             (UINT32)header.size(), (UINT32)header.size(),
-                             (UINT32)body.size(), (UINT32)body.size(),
+                             storeSize, storeSize,
+                             headerSize, headerSize,
+                             bodySize, bodySize,
                              parsed.state(),
                              parsed.crc()) + (parsed.crc() != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
-            
+
             // Add header tree item
-            model->addItem(localOffset + storeOffset, Types::FtwStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            model->addItem(
+                localOffset + storeOffset, Types::FtwStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_ftw:
+    not_ftw:
         // Insyde FDC
         try {
             if (volumeBodySize - storeOffset < sizeof(INSYDE_FDC_STORE_HEADER)) {
@@ -818,43 +883,51 @@ not_ftw:
                 goto not_fdc;
             }
             UINT32 storeSize = MIN(volumeBodySize - storeOffset, storeHeader->Size);
-            
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             insyde_fdc_t parsed(&ks);
-            
+
             // Insyde FDC store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct header and body
-            header = volumeBody.mid(storeOffset, sizeof(INSYDE_FDC_STORE_HEADER));
-            body = volumeBody.mid(storeOffset + header.size(), storeSize - header.size());
-            
+
+            // Obtain header and body size
+            headerSize = sizeof(INSYDE_FDC_STORE_HEADER);
+            bodySize = storeSize - headerSize;
+
             // Add info
             name = UString("Insyde FDC store");
             info = usprintf("Signature: _FDC\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
-                                    storeSize, storeSize,
-                                    (UINT32)header.size(), (UINT32)header.size(),
-                                    (UINT32)body.size(), (UINT32)body.size());
-            
+                            storeSize, storeSize,
+                            headerSize, headerSize,
+                            bodySize, bodySize);
+
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::FdcStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            UModelIndex headerIndex = model->addItem(
+                localOffset + storeOffset, Types::FdcStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             // Parse FDC body as normal VSS/VSS2 storage with size override
-            parseNvramVolumeBody(headerIndex, (UINT32)body.size());
-            
+            parseNvramVolumeBody(headerIndex, bodySize);
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_fdc:
+    not_fdc:
         // Apple SysF
         try {
             if (volumeBodySize - storeOffset < sizeof(APPLE_SYSF_STORE_HEADER)) {
@@ -869,26 +942,30 @@ not_fdc:
                 goto not_sysf;
             }
             UINT32 storeSize = MIN(volumeBodySize - storeOffset, storeHeader->Size);
-            
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             apple_sysf_t parsed(&ks);
-            
+
             // Apple SysF/Diag store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct header and body
-            header = volumeBody.mid(storeOffset, sizeof(APPLE_SYSF_STORE_HEADER));
-            body = volumeBody.mid(storeOffset + header.size(), storeSize - header.size());
-            
+
+            // Obtain header and body size
+            headerSize = sizeof(APPLE_SYSF_STORE_HEADER);
+            bodySize = storeSize - headerSize;
+
             // Check store checksum
             UINT32 calculatedCrc = (UINT32)crc32(0, (const UINT8*)(volumeBody.constData() + storeOffset), storeSize - sizeof(UINT32));
-            
+
             // Add info
             if (storeHeader->Signature == NVRAM_APPLE_SYSF_STORE_SIGNATURE) {
                 name = UString("Apple SysF store");
@@ -899,21 +976,25 @@ not_fdc:
                 info = UString("Signature: Gaid\n");
             }
             info += usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nUnknown: %02Xh\nUnknown1: %08Xh\nCRC32: %08Xh",
-                            storeSize, storeSize,
-                            (UINT32)header.size(), (UINT32)header.size(),
-                            (UINT32)body.size(), (UINT32)body.size(),
-                            parsed.unknown(),
-                            parsed.unknown1(),
-                            parsed.crc())  + (parsed.crc() != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
-            
+                             storeSize, storeSize,
+                             headerSize, headerSize,
+                             bodySize, bodySize,
+                             parsed.unknown(),
+                             parsed.unknown1(),
+                             parsed.crc()) + (parsed.crc() != calculatedCrc ? usprintf(", invalid, should be %08Xh", calculatedCrc) : UString(", valid"));
+
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::SysFStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            UModelIndex headerIndex = model->addItem(
+                localOffset + storeOffset, Types::SysFStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             // Add variables
             UINT32 entryOffset = sizeof(APPLE_SYSF_STORE_HEADER);
-            for (const auto & variable : *parsed.body()->variables()) {
+            for (const auto& variable : *parsed.body()->variables()) {
                 UINT8 subtype;
-                
+
                 if (variable->invalid_flag()) {
                     subtype = Subtypes::InvalidSysFEntry;
                     name = UString("Invalid");
@@ -922,52 +1003,65 @@ not_fdc:
                     subtype = Subtypes::NormalSysFEntry;
                     name = usprintf("%s", variable->name().c_str());
                 }
-                
+
                 if (variable->len_name() == 3 && variable->name() == "EOF") {
-                    header = volumeBody.mid(storeOffset + entryOffset, 4);
-                    body.clear();
+                    headerSize = 4;
+                    ///??? Where is the body?
                 }
                 else {
-                    header = volumeBody.mid(storeOffset + entryOffset, sizeof(UINT8) + (UINT32)variable->len_name() + sizeof(UINT16));
-                    body = volumeBody.mid(storeOffset + entryOffset + header.size(), (UINT32)variable->len_data());
+                    headerSize = sizeof(UINT8) + (UINT32)variable->len_name() + sizeof(UINT16);
+                    bodySize = (UINT32)variable->len_data();
                 }
                 // Add generic info
-                UINT32 variableSize = (UINT32)header.size() + (UINT32)body.size();
+                UINT32 variableSize = headerSize + bodySize;
                 info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\n",
-                                 variableSize, variableSize,
-                                 (UINT32)header.size(), (UINT32)header.size(),
-                                 (UINT32)body.size(), (UINT32)body.size());
-                
+                                variableSize, variableSize,
+                                headerSize, headerSize,
+                                bodySize, bodySize);
+
                 // Add tree item
-                model->addItem(entryOffset, Types::SysFEntry, subtype, name, UString(), info, header, body, UByteArray(), Fixed, headerIndex);
-                
+                model->addItem(
+                    entryOffset, Types::SysFEntry, subtype,
+                    name, UString(), info,
+                    headerSize, bodySize, 0,
+                    Fixed, headerIndex);
+
                 entryOffset += variableSize;
             }
-            
+
             // Add free space or padding after all variables, if needed
             if (entryOffset < storeSize) {
                 UByteArray freeSpace = volumeBody.mid(storeOffset + entryOffset, storeSize - entryOffset);
                 // Add info
                 info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
-                
+
                 // Check that remaining unparsed bytes are actually zeroes
-                if (freeSpace.count('\x00') == freeSpace.size() - 4) { // Free space, 4 last bytes are always CRC32
+                auto c = checkSingle(freeSpace.left(freeSpace.size() - 4), 0); // Free space, 4 last bytes are always CRC32
+                if (c == 0) { 
                     // Add tree item
-                    model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                    model->addItem(
+                        entryOffset, Types::FreeSpace, 0,
+                        UString("Free space"), UString(), info,
+                        0, freeSpace.size(), 0,
+                        Fixed, headerIndex);
                 }
                 else {
                     // Add tree item
-                    model->addItem(entryOffset, Types::Padding, getPaddingType(freeSpace), UString("Padding"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                    model->addItem(
+                        entryOffset, Types::Padding, getPaddingType(freeSpace),
+                        UString("Padding"), UString(), info,
+                        0, freeSpace.size(), 0,
+                        Fixed, headerIndex);
                 }
             }
-            
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_sysf:
+    not_sysf:
         // Phoenix Flash Map
         try {
             if (volumeBodySize - storeOffset < sizeof(PHOENIX_FLASH_MAP_HEADER)) {
@@ -982,40 +1076,47 @@ not_sysf:
                 goto not_flm;
             }
             UINT32 storeSize = sizeof(PHOENIX_FLASH_MAP_HEADER) + storeHeader->NumEntries * sizeof(PHOENIX_FLASH_MAP_ENTRY);
-            
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             phoenix_flm_t parsed(&ks);
-            
+
             // Phoenix FlashMap store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
+
             // Construct header and body
-            header = volumeBody.left(storeOffset + sizeof(PHOENIX_FLASH_MAP_HEADER));
-            body = volumeBody.mid(storeOffset + header.size(), storeSize - header.size());
-            
+            headerSize = sizeof(PHOENIX_FLASH_MAP_HEADER); ///??? was erroneous "header = volumeBody.left(storeOffset + sizeof(PHOENIX_FLASH_MAP_HEADER))" in original
+            bodySize = storeSize - headerSize;
             // Add info
             name = UString("Phoenix SCT flash map");
             info = usprintf("Signature: _FLASH_MAP\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nEntries: %u\nReserved: %08Xh",
-                                    storeSize, storeSize,
-                                    (UINT32)header.size(), (UINT32)header.size(),
-                                    (UINT32)body.size(), (UINT32)body.size(),
-                                    parsed.num_entries(),
-                                    parsed.reserved());
-            
+                             storeSize, storeSize,
+                             headerSize, headerSize,
+                             bodySize, bodySize,
+                             parsed.num_entries(),
+                             parsed.reserved());
+
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::PhoenixFlashMapStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            UModelIndex headerIndex = model->addItem(
+                localOffset + storeOffset, Types::PhoenixFlashMapStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             // Add entries
             UINT32 entryOffset = sizeof(PHOENIX_FLASH_MAP_HEADER);
-            for (const auto & entry : *parsed.entries()) {
+            for (const auto& entry : *parsed.entries()) {
                 UINT8 subtype;
-                
+
                 if (entry->data_type() == NVRAM_PHOENIX_FLASH_MAP_ENTRY_DATA_TYPE_VOLUME) {
                     subtype = Subtypes::VolumeFlashMapEntry;
                 }
@@ -1025,36 +1126,40 @@ not_sysf:
                 else {
                     subtype = Subtypes::UnknownFlashMapEntry;
                 }
-                
+
                 const EFI_GUID guid = readUnaligned((const EFI_GUID*)entry->guid().c_str());
                 name = guidToUString(guid);
                 text = phoenixFlashMapGuidToUString(guid);
-                header = volumeBody.mid(storeOffset + entryOffset, sizeof(PHOENIX_FLASH_MAP_ENTRY));
+                headerSize = sizeof(PHOENIX_FLASH_MAP_ENTRY);
 
                 // Add info
-                UINT32 entrySize = (UINT32)header.size();
+                UINT32 entrySize = headerSize;
                 info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\nData type: %04Xh\nEntry type: %04Xh\nSize: %08Xh\nOffset: %08Xh\nPhysical address: %" PRIX64 "h",
                                 entrySize, entrySize,
-                                (UINT32)header.size(), (UINT32)header.size(),
+                                headerSize, headerSize,
                                 entry->data_type(),
                                 entry->entry_type(),
                                 entry->size(),
                                 entry->offset(),
                                 entry->physical_address());
-                
+
                 // Add tree item
-                model->addItem(entryOffset, Types::PhoenixFlashMapEntry, subtype, name, text, info, header, UByteArray(), UByteArray(), Fixed, headerIndex);
-                
+                model->addItem(
+                    entryOffset, Types::PhoenixFlashMapEntry, subtype,
+                    name, text, info,
+                    headerSize, 0, 0,
+                    Fixed, headerIndex);
+
                 entryOffset += entrySize;
             }
-            
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_flm:
+    not_flm:
         // Phoenix EVSA store
         try {
             if (volumeBodySize - storeOffset < sizeof(EVSA_STORE_ENTRY)) {
@@ -1070,48 +1175,56 @@ not_flm:
                 goto not_evsa;
             }
             UINT32 storeSize = MIN(volumeBodySize - storeOffset, storeHeader->StoreSize);
-            
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             phoenix_evsa_t parsed(&ks);
-            
+
             // Phoenix EVSA store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct header and body
-            header = volumeBody.mid(storeOffset, sizeof(EVSA_STORE_ENTRY));
-            body = volumeBody.mid(storeOffset + header.size(), storeSize - header.size());
-            
+
+            // Obtain header and body size
+            headerSize = sizeof(EVSA_STORE_ENTRY);
+            bodySize = storeSize - headerSize;
+
             // Calculate header checksum
             UINT8 calculated = calculateChecksum8(((const UINT8*)storeHeader) + 2, storeHeader->Header.Size - 2);
-            
+
             // Add info
             name = UString("Phoenix EVSA store");
             info = usprintf("Signature: EVSA\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nAttributes: %08Xh\nReserved: %08Xh\nChecksum: %02Xh",
                             storeSize, storeSize,
-                            (UINT32)header.size(), (UINT32)header.size(),
-                            (UINT32)body.size(), (UINT32)body.size(),
+                            headerSize, headerSize,
+                            bodySize, bodySize,
                             parsed.attributes(),
                             parsed.reserved(),
                             parsed.checksum())
-            + (parsed.checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"));
-            
+                            + (parsed.checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"));
+
             // Add header tree item
-            UModelIndex headerIndex = model->addItem(localOffset + storeOffset, Types::EvsaStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            UModelIndex headerIndex = model->addItem(
+                localOffset + storeOffset, Types::EvsaStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             // Add entries
             std::map<UINT16, EFI_GUID> guidMap;
             std::map<UINT16, UString> nameMap;
             UINT32 entryOffset = parsed.len_evsa_store_header();
-            for (const auto & entry : *parsed.body()->entries()) {
+            for (const auto& entry : *parsed.body()->entries()) {
                 UINT8 subtype;
                 UINT32 entrySize;
-                
+
                 // This is the terminating entry, needs special processing
                 if (entry->_is_null_checksum()) {
                     // Add free space or padding after all variables, if needed
@@ -1119,114 +1232,127 @@ not_flm:
                         UByteArray freeSpace = volumeBody.mid(storeOffset + entryOffset, storeSize - entryOffset);
                         // Add info
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
-                        
+
                         // Check that remaining unparsed bytes are actually empty
-                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                        auto c = checkSingle(freeSpace, (unsigned char)emptyByte);
+                        if (c == emptyByte) { // Free space
                             // Add tree item
-                            model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                            model->addItem(
+                                entryOffset, Types::FreeSpace, 0,
+                                UString("Free space"), UString(), info,
+                                0, freeSpace.size(), 0,
+                                Fixed, headerIndex);
                         }
                         else {
                             // Add tree item
-                            model->addItem(entryOffset, Types::Padding, getPaddingType(freeSpace), UString("Padding"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
+                            model->addItem(
+                                entryOffset, Types::Padding, getPaddingType(freeSpace),
+                                UString("Padding"), UString(), info,
+                                0, freeSpace.size(), 0,
+                                Fixed, headerIndex);
                         }
                     }
                     break;
                 }
-                
+
                 const EVSA_ENTRY_HEADER* entryHeader = (const EVSA_ENTRY_HEADER*)(volumeBody.constData() + storeOffset + entryOffset);
                 calculated = calculateChecksum8(((const UINT8*)entryHeader) + 2, entryHeader->Size - 2);
-                
+
                 // GUID entry
                 if (entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_GUID1 || entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_GUID2) {
                     const phoenix_evsa_t::evsa_guid_t* guidEntry = (const phoenix_evsa_t::evsa_guid_t*)(entry->body());
-                    header = volumeBody.mid(storeOffset + entryOffset, sizeof(EVSA_GUID_ENTRY));
-                    body = volumeBody.mid(storeOffset + entryOffset + sizeof(EVSA_GUID_ENTRY), entry->len_evsa_entry() - header.size());
-                    entrySize = (UINT32)(header.size() + body.size());
+                    headerSize = sizeof(EVSA_GUID_ENTRY);
+                    bodySize = entry->len_evsa_entry() - headerSize;
+                    entrySize = headerSize + bodySize;
                     EFI_GUID guid = *(const EFI_GUID*)(guidEntry->guid().c_str());
                     name = guidToUString(guid);
                     info = UString("GUID: ") + guidToUString(guid, false)
-                    + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
-                               entrySize, entrySize,
-                               (UINT32)header.size(), (UINT32)header.size(),
-                               (UINT32)body.size(), (UINT32)body.size(),
-                               entry->entry_type(),
-                               entry->checksum())
-                    + (entry->checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
-                    + usprintf("\nGuidId: %04Xh", guidEntry->guid_id());
+                        + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+                                   entrySize, entrySize,
+                                   headerSize, headerSize,
+                                   bodySize, bodySize,
+                                   entry->entry_type(),
+                                   entry->checksum())
+                        + (entry->checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
+                        + usprintf("\nGuidId: %04Xh", guidEntry->guid_id());
                     subtype = Subtypes::GuidEvsaEntry;
                     guidMap.insert(std::pair<UINT16, EFI_GUID>(guidEntry->guid_id(), guid));
                 }
                 // Name entry
                 else if (entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_NAME1 || entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_NAME2) {
                     const phoenix_evsa_t::evsa_name_t* nameEntry = (const phoenix_evsa_t::evsa_name_t*)(entry->body());
-                    header = volumeBody.mid(storeOffset + entryOffset, sizeof(EVSA_NAME_ENTRY));
-                    body = volumeBody.mid(storeOffset + entryOffset + sizeof(EVSA_NAME_ENTRY), entry->len_evsa_entry() - header.size());
-                    entrySize = (UINT32)(header.size() + body.size());
-                    name = uFromUcs2(body.constData());
+                    headerSize = sizeof(EVSA_NAME_ENTRY);
+                    bodySize = entry->len_evsa_entry() - headerSize;
+                    entrySize = headerSize + bodySize;
+                    name = uFromUcs2(volumeBody.constData() + storeOffset + entryOffset + headerSize);
                     info = UString("Name: ") + name
-                    + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
-                               entrySize, entrySize,
-                               (UINT32)header.size(), (UINT32)header.size(),
-                               (UINT32)body.size(), (UINT32)body.size(),
-                               entry->entry_type(),
-                               entry->checksum())
-                    + (entry->checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
-                    + usprintf("\nVarId: %04Xh", nameEntry->var_id());
+                        + usprintf("\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
+                                   entrySize, entrySize,
+                                   headerSize, headerSize,
+                                   bodySize, bodySize,
+                                   entry->entry_type(),
+                                   entry->checksum())
+                        + (entry->checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
+                        + usprintf("\nVarId: %04Xh", nameEntry->var_id());
                     subtype = Subtypes::NameEvsaEntry;
                     nameMap.insert(std::pair<UINT16, UString>(nameEntry->var_id(), name));
                 }
                 // Data entry
                 else if (entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_DATA1
-                         || entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_DATA2
-                         || entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_DATA_INVALID) {
+                    || entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_DATA2
+                    || entry->entry_type() == NVRAM_EVSA_ENTRY_TYPE_DATA_INVALID) {
                     phoenix_evsa_t::evsa_data_t* dataEntry = (phoenix_evsa_t::evsa_data_t*)(entry->body());
                     if (dataEntry->_is_null_len_data_ext()) {
-                        header = volumeBody.mid(storeOffset + entryOffset, sizeof(EVSA_DATA_ENTRY));
-                        body = volumeBody.mid(storeOffset + entryOffset + sizeof(EVSA_DATA_ENTRY), entry->len_evsa_entry() - header.size());
+                        headerSize = sizeof(EVSA_DATA_ENTRY);
+                        bodySize = entry->len_evsa_entry() - headerSize;
                     }
                     else {
-                        header = volumeBody.mid(storeOffset + entryOffset, sizeof(EVSA_DATA_ENTRY_EXTENDED));
-                        body = volumeBody.mid(storeOffset + entryOffset + sizeof(EVSA_DATA_ENTRY_EXTENDED), dataEntry->len_data_ext());
+                        headerSize = sizeof(EVSA_DATA_ENTRY_EXTENDED);
+                        bodySize = dataEntry->len_data_ext();
                     }
-                    entrySize = (UINT32)(header.size() + body.size());
+                    entrySize = headerSize + bodySize;
                     name = UString("Data");
                     subtype = Subtypes::DataEvsaEntry;
-                    
+
                     const UINT32 attributes = dataEntry->attributes()->non_volatile()
-                    + (dataEntry->attributes()->boot_service() << 1)
-                    + (dataEntry->attributes()->runtime() << 2)
-                    + (dataEntry->attributes()->hw_error_record() << 3)
-                    + (dataEntry->attributes()->auth_write() << 4)
-                    + (dataEntry->attributes()->time_based_auth() << 5)
-                    + (dataEntry->attributes()->append_write() << 6)
-                    + (UINT32)(dataEntry->attributes()->reserved() << 7)
-                    + (dataEntry->attributes()->extended_header() << 28)
-                    + (UINT32)(dataEntry->attributes()->reserved1() << 29);
-                    
+                        + (dataEntry->attributes()->boot_service() << 1)
+                        + (dataEntry->attributes()->runtime() << 2)
+                        + (dataEntry->attributes()->hw_error_record() << 3)
+                        + (dataEntry->attributes()->auth_write() << 4)
+                        + (dataEntry->attributes()->time_based_auth() << 5)
+                        + (dataEntry->attributes()->append_write() << 6)
+                        + (UINT32)(dataEntry->attributes()->reserved() << 7)
+                        + (dataEntry->attributes()->extended_header() << 28)
+                        + (UINT32)(dataEntry->attributes()->reserved1() << 29);
+
                     info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %02Xh\nChecksum: %02Xh",
                                     entrySize, entrySize,
-                                    (UINT32)header.size(), (UINT32)header.size(),
-                                    (UINT32)body.size(), (UINT32)body.size(),
+                                    headerSize, headerSize,
+                                    bodySize, bodySize,
                                     entry->entry_type(),
                                     entry->checksum())
-                    + (entry->checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
-                    + usprintf("\nVarId: %04Xh\nGuidId: %04Xh\nAttributes: %08Xh (",
-                               dataEntry->var_id(),
-                               dataEntry->guid_id(),
-                               attributes)
-                    + evsaAttributesToUString(attributes) + UString(")");
+                                    + (entry->checksum() != calculated ? usprintf(", invalid, should be %02Xh", calculated) : UString(", valid"))
+                                    + usprintf("\nVarId: %04Xh\nGuidId: %04Xh\nAttributes: %08Xh (",
+                                               dataEntry->var_id(),
+                                               dataEntry->guid_id(),
+                                               attributes)
+                                    + evsaAttributesToUString(attributes) + UString(")");
                 }
-                
+
                 // Add tree item
-                model->addItem(entryOffset, Types::EvsaEntry, subtype, name, text, info, header, body, UByteArray(), Fixed, headerIndex);
-                
+                model->addItem(
+                    entryOffset, Types::EvsaEntry, subtype,
+                    name, text, info,
+                    headerSize, bodySize, 0,
+                    Fixed, headerIndex);
+
                 entryOffset += entrySize;
             }
-            
+
             // Reparse all data variables to detect invalid ones and assign name and test to valid ones
             for (int i = 0; i < model->rowCount(headerIndex); i++) {
                 UModelIndex current = headerIndex.model()->index(i, 0, headerIndex);
-                
+
                 if (model->subtype(current) == Subtypes::DataEvsaEntry) {
                     UByteArray header = model->header(current);
                     const EVSA_DATA_ENTRY* dataHeader = (const EVSA_DATA_ENTRY*)header.constData();
@@ -1236,7 +1362,7 @@ not_flm:
                     UString name;
                     if (nameMap.count(dataHeader->VarId))
                         name = nameMap[dataHeader->VarId];
-                    
+
                     // Check for variable validity
                     if (guid.isEmpty() && name.isEmpty()) { // Both name and guid aren't found
                         model->setSubtype(current, Subtypes::InvalidEvsaEntry);
@@ -1270,14 +1396,14 @@ not_flm:
                     }
                 }
             }
-            
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
- not_evsa:
+    not_evsa:
         // Phoenix CMDB store
         try {
             if (volumeBodySize - storeOffset < NVRAM_PHOENIX_CMDB_SIZE) {
@@ -1291,36 +1417,44 @@ not_flm:
                 goto not_cmdb;
             }
             UINT32 storeSize = NVRAM_PHOENIX_CMDB_SIZE;
-            
+
             // CMDB store at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct header and body
-            header = volumeBody.mid(storeOffset, storeHeader->TotalSize);
-            body = volumeBody.mid(storeOffset + header.size(), storeSize - header.size());
-            
+
+            // Obtain header and body size
+            headerSize = storeHeader->TotalSize;
+            bodySize = storeSize - headerSize;
+
             // Add info
             name = UString("Phoenix CMDB store");
             info = usprintf("Signature: CMDB\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)",
                             storeSize, storeSize,
-                            (UINT32)header.size(), (UINT32)header.size(),
-                            (UINT32)body.size(), (UINT32)body.size());
-            
+                            headerSize, headerSize,
+                            bodySize, bodySize);
+
             // Add tree item
-            model->addItem(localOffset + storeOffset, Types::CmdbStore, 0, name, UString(), info, header, body, UByteArray(), Fixed, index);
-            
+            model->addItem(
+                localOffset + storeOffset, Types::CmdbStore, 0,
+                name, UString(), info,
+                headerSize, bodySize, 0,
+                Fixed, index);
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_cmdb:
+    not_cmdb:
         // SLIC PubKey
         try {
             if (volumeBodySize - storeOffset < sizeof(OEM_ACTIVATION_PUBKEY)) {
@@ -1336,22 +1470,26 @@ not_cmdb:
                 goto not_pubkey;
             }
             UINT32 storeSize = sizeof(OEM_ACTIVATION_PUBKEY);
-            
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             ms_slic_pubkey_t parsed(&ks);
-            
+
             // SLIC PubKey at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct header
-            header = volumeBody.mid(storeOffset, storeSize);
-            
+
+            // Obtain header size
+            headerSize = storeSize;
+
             // Add info
             name = UString("SLIC pubkey");
             info = usprintf("Type: 0h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
@@ -1363,17 +1501,21 @@ not_cmdb:
                             parsed.algorithm(),
                             parsed.bit_length(),
                             parsed.exponent());
-            
+
             // Add tree item
-            model->addItem(localOffset + storeOffset, Types::SlicData, Subtypes::PubkeySlicData, name, UString(), info, header, UByteArray(), UByteArray(), Fixed, index);
-            
+            model->addItem(
+                localOffset + storeOffset, Types::SlicData, Subtypes::PubkeySlicData,
+                name, UString(), info,
+                headerSize, 0, 0,
+                Fixed, index);
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_pubkey:
+    not_pubkey:
         // SLIC marker
         try {
             if (volumeBodySize - storeOffset < sizeof(OEM_ACTIVATION_MARKER)) {
@@ -1396,22 +1538,26 @@ not_pubkey:
                 }
             }
             UINT32 storeSize = sizeof(OEM_ACTIVATION_MARKER);
-            
+
             umemstream is(volumeBody.constData() + storeOffset, storeSize);
             kaitai::kstream ks(&is);
             ms_slic_marker_t parsed(&ks);
-            
+
             // SLIC marker at current offset parsed correctly
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
-            // Construct header
-            header = volumeBody.mid(storeOffset, storeSize);
-            
+
+            // Obtain header size
+            headerSize = storeSize;
+
             // Add info
             name = UString("SLIC marker");
             info = usprintf("Type: 1h\nFull size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: 0h (0)\n"
@@ -1422,98 +1568,106 @@ not_pubkey:
                             parsed.oem_id().c_str(),
                             parsed.oem_table_id().c_str(),
                             parsed.slic_version());
-            
+
             // Add tree item
-            model->addItem(localOffset + storeOffset, Types::SlicData, Subtypes::MarkerSlicData, name, UString(), info, header, UByteArray(), UByteArray(), Fixed, index);
-            
+            model->addItem(
+                localOffset + storeOffset, Types::SlicData, Subtypes::MarkerSlicData,
+                name, UString(), info,
+                headerSize, 0, 0,
+                Fixed, index);
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_marker:
+    not_marker:
         // Intel uCode
         try {
             // Check data size
             if (volumeBodySize - storeOffset < sizeof(INTEL_MICROCODE_HEADER)) {
                 goto not_ucode;
             }
-            
+
             const UINT32 currentUint32 = readUnaligned((const UINT32*)(volumeBody.constData() + storeOffset));
             if (currentUint32 != INTEL_MICROCODE_HEADER_VERSION_1) {
                 goto not_ucode;
             }
-            
+
             // Check microcode header candidate
             const INTEL_MICROCODE_HEADER* ucodeHeader = (const INTEL_MICROCODE_HEADER*)(volumeBody.constData() + storeOffset);
             if (FALSE == ffsParser->microcodeHeaderValid(ucodeHeader)) {
                 goto not_ucode;
             }
-            
+
             // Check candidate size
             if (ucodeHeader->TotalSize == 0) {
                 goto not_ucode;
             }
-            
+
             // We still have enough data left to fit the whole TotalSize
             UINT32 storeSize = ucodeHeader->TotalSize;
             if (volumeBodySize - storeOffset < storeSize) {
                 goto not_ucode;
             }
-            
+
             // All checks passed, microcode found
             // Check if we need to add a padding before it
             if (!outerPadding.isEmpty()) {
                 info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-                model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+                model->addItem(
+                    localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                    UString("Padding"), UString(), info,
+                    0, outerPadding.size(), 0,
+                    Fixed, index);
                 outerPadding.clear();
             }
-            
+
             // Parse microcode header
             UByteArray ucode = volumeBody.mid(storeOffset);
             UModelIndex ucodeIndex;
             if (U_SUCCESS != ffsParser->parseIntelMicrocodeHeader(ucode, localOffset + storeOffset, index, ucodeIndex)) {
                 goto not_ucode;
             }
-            
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_ucode:
+    not_ucode:
         // FFS volume
         try {
             // Check data size
             if (volumeBodySize - storeOffset < sizeof(EFI_FIRMWARE_VOLUME_HEADER)) {
                 goto not_ffs_volume;
             }
-            
+
             // Check volume header candidate
             const EFI_FIRMWARE_VOLUME_HEADER* volumeHeader = (const EFI_FIRMWARE_VOLUME_HEADER*)(volumeBody.constData() + storeOffset);
             if (volumeHeader->Signature != EFI_FV_SIGNATURE) {
                 goto not_ffs_volume;
             }
-            
+
             // All checks passed, volume found
             UByteArray volume = volumeBody.mid(storeOffset);
             UModelIndex volumeIndex;
             if (U_SUCCESS != ffsParser->parseVolumeHeader(volume, localOffset + storeOffset, index, volumeIndex)) {
                 goto not_ffs_volume;
             }
-            
+
             (VOID)ffsParser->parseVolumeBody(volumeIndex);
-            UINT32 storeSize = (UINT32)(model->header(volumeIndex).size() + model->body(volumeIndex).size());
-            
+            UINT32 storeSize = (UINT32)(model->headerSize(volumeIndex) + model->bodySize(volumeIndex));
+
             storeOffset += storeSize - 1;
             previousStoreEndOffset = storeOffset + 1;
             continue;
         } catch (...) {
             // Parsing failed, try something else
         }
-not_ffs_volume:
+    not_ffs_volume:
         // Padding
         if (storeOffset < volumeBodySize) {
             outerPadding += volumeBody[storeOffset];
@@ -1524,15 +1678,24 @@ not_ffs_volume:
     if (!outerPadding.isEmpty()) {
         // Add info
         UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
-        
+
         // Check that remaining unparsed bytes are actually empty
-        if (outerPadding.count(emptyByte) == outerPadding.size()) {
+        auto c = checkSingle(outerPadding);
+        if (c == emptyByte) {
             // Add tree item
-            model->addItem(localOffset + previousStoreEndOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+            model->addItem(
+                localOffset + previousStoreEndOffset, Types::FreeSpace, 0,
+                UString("Free space"), UString(), info,
+                0, outerPadding.size(), 0,
+                Fixed, index);
         }
         else {
             // Add tree item
-            model->addItem(localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding), UString("Padding"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
+            model->addItem(
+                localOffset + previousStoreEndOffset, Types::Padding, getPaddingType(outerPadding),
+                UString("Padding"), UString(), info,
+                0, outerPadding.size(), 0,
+                Fixed, index);
         }
     }
 

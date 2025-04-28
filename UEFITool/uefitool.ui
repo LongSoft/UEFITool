@@ -48,11 +48,11 @@
     <item>
      <widget class="QSplitter" name="messagesSplitter">
       <property name="orientation">
-       <enum>Qt::Vertical</enum>
+       <enum>Qt::Orientation::Vertical</enum>
       </property>
       <widget class="QSplitter" name="infoSplitter">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
        </property>
        <widget class="QGroupBox" name="structureGroupBox">
         <property name="title">
@@ -196,7 +196,7 @@
          <item>
           <widget class="QSplitter" name="splitter">
            <property name="orientation">
-            <enum>Qt::Horizontal</enum>
+            <enum>Qt::Orientation::Horizontal</enum>
            </property>
            <widget class="QTableWidget" name="fitTableWidget"/>
           </widget>
@@ -311,16 +311,26 @@
      <x>0</x>
      <y>0</y>
      <width>851</width>
-     <height>31</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <widget class="QMenu" name="menuOpenedImageFileTracking">
+     <property name="title">
+      <string>Opened image file tracking</string>
+     </property>
+     <addaction name="actionTrackAndIgnore"/>
+     <addaction name="actionTrackAndAsk"/>
+     <addaction name="actionTrackAndReopen"/>
+    </widget>
     <addaction name="actionOpenImageFile"/>
     <addaction name="actionOpenImageFileInNewWindow"/>
     <addaction name="actionSaveImageFile"/>
+    <addaction name="separator"/>
+    <addaction name="menuOpenedImageFileTracking"/>
     <addaction name="separator"/>
     <addaction name="actionGenerateReport"/>
     <addaction name="separator"/>
@@ -328,6 +338,7 @@
     <addaction name="actionLoadDefaultGuidDatabase"/>
     <addaction name="actionUnloadGuidDatabase"/>
     <addaction name="actionExportDiscoveredGuids"/>
+    <addaction name="separator"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -548,6 +559,9 @@
      <string>&amp;View</string>
     </property>
     <addaction name="actionToggleBootGuardMarking"/>
+    <addaction name="actionToggleCStyleHexValues"/>
+    <addaction name="separator"/>
+    <addaction name="actionExpandAll"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAction"/>
@@ -699,7 +713,7 @@
     <string>F1</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutRole</enum>
+    <enum>QAction::MenuRole::AboutRole</enum>
    </property>
   </action>
   <action name="actionAboutQt">
@@ -710,7 +724,7 @@
     <string>Shift+F1</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::AboutQtRole</enum>
+    <enum>QAction::MenuRole::AboutQtRole</enum>
    </property>
   </action>
   <action name="actionQuit">
@@ -721,7 +735,7 @@
     <string>Alt+X</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::QuitRole</enum>
+    <enum>QAction::MenuRole::QuitRole</enum>
    </property>
   </action>
   <action name="actionSearch">
@@ -934,6 +948,52 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+E</string>
+   </property>
+  </action>
+  <action name="actionToggleCStyleHexValues">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>C-style hex values</string>
+   </property>
+   <property name="toolTip">
+    <string>C-style hex values</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+C</string>
+   </property>
+  </action>
+  <action name="actionTrackAndIgnore">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Ignore changes</string>
+   </property>
+  </action>
+  <action name="actionTrackAndAsk">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Ask if changed</string>
+   </property>
+  </action>
+  <action name="actionTrackAndReopen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Auto reopen if changed</string>
+   </property>
+  </action>
+  <action name="actionExpandAll">
+   <property name="text">
+    <string>Expand all</string>
+   </property>
+   <property name="toolTip">
+    <string>Expand all tree items</string>
    </property>
   </action>
  </widget>

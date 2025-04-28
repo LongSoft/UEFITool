@@ -97,14 +97,15 @@ private:
     TreeItem *rootItem;
     bool markingEnabledFlag;
     bool markingDarkModeFlag;
+    bool cStyleHexEnabledFlag;
 
 public:
     QVariant data(const UModelIndex &index, int role) const;
     Qt::ItemFlags flags(const UModelIndex &index) const;
     QVariant headerData(int section, Qt::Orientation orientation,
         int role = Qt::DisplayRole) const;
-    TreeModel(QObject *parent = 0) : QAbstractItemModel(parent), markingEnabledFlag(true), markingDarkModeFlag(false) {
-        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), true, false);
+    TreeModel(QObject *parent = 0) : QAbstractItemModel(parent), markingEnabledFlag(true), markingDarkModeFlag(false), cStyleHexEnabledFlag (true) {
+        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), 0, 0, 0, true, false);
     }
 
 #else
@@ -116,6 +117,7 @@ private:
     TreeItem *rootItem;
     bool markingEnabledFlag;
     bool markingDarkModeFlag;
+    bool cStyleHexEnabledFlag;
 
     void dataChanged(const UModelIndex &, const UModelIndex &) {}
     void layoutAboutToBeChanged() {}
@@ -126,7 +128,7 @@ public:
     UString headerData(int section, int orientation, int role = 0) const;
 
     TreeModel() : markingEnabledFlag(false), markingDarkModeFlag(false) {
-        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), UByteArray(), UByteArray(), UByteArray(), true, false);
+        rootItem = new TreeItem(0, Types::Root, 0, UString(), UString(), UString(), 0, 0, 0, true, false);
     }
 
     bool hasIndex(int row, int column, const UModelIndex &parent = UModelIndex()) const {
@@ -142,11 +144,16 @@ public:
         delete rootItem;
     }
 
+    void setImage(const UByteArray& image) { rootItem->setContent(image); }
+
     bool markingEnabled() { return markingEnabledFlag; }
     void setMarkingEnabled(const bool enabled);
 
     bool markingDarkMode() { return markingDarkModeFlag; }
     void setMarkingDarkMode(const bool enabled);
+
+    bool cStyleHexEnabled() { return cStyleHexEnabledFlag; }
+    void setCStyleHexEnabled(const bool enabled);
 
     UModelIndex index(int row, int column, const UModelIndex &parent = UModelIndex()) const;
     UModelIndex parent(const UModelIndex &index) const;
@@ -190,12 +197,15 @@ public:
     void setMarking(const UModelIndex &index, const UINT8 marking);
 
     UByteArray header(const UModelIndex &index) const;
+    UINT32 headerSize(const UModelIndex& index) const;
     bool hasEmptyHeader(const UModelIndex &index) const;
 
     UByteArray body(const UModelIndex &index) const;
+    UINT32 bodySize(const UModelIndex& index) const;
     bool hasEmptyBody(const UModelIndex &index) const;
 
     UByteArray tail(const UModelIndex &index) const;
+    UINT32 tailSize(const UModelIndex& index) const;
     bool hasEmptyTail(const UModelIndex &index) const;
 
     UByteArray parsingData(const UModelIndex &index) const;
@@ -204,7 +214,7 @@ public:
 
     UModelIndex addItem(const UINT32 offset, const UINT8 type, const UINT8 subtype,
         const UString & name, const UString & text, const UString & info,
-        const UByteArray & header, const UByteArray & body, const UByteArray & tail,
+        const UINT32 headerSize, const UINT32 bodySize, const UINT32 tailSize,
         const ItemFixedState fixed,
         const UModelIndex & parent = UModelIndex(), const UINT8 mode = CREATE_MODE_APPEND);
 

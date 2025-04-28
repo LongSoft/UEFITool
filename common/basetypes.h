@@ -78,6 +78,8 @@ typedef size_t USTATUS;
 #define U_INVALID_SYMBOL                  55
 #define U_ZLIB_DECOMPRESSION_FAILED       56
 #define U_INVALID_STORE                   57
+#define U_INVALID_PE_HEADER               58
+#define U_INVALID_TE_HEADER               59
 
 #define U_INVALID_MANIFEST                251
 #define U_UNKNOWN_MANIFEST_HEADER_VERSION 252
@@ -220,6 +222,10 @@ typedef struct EFI_TIME_ {
 #define TCG_HASH_ALGORITHM_ID_SHA512 0x000D
 #define TCG_HASH_ALGORITHM_ID_NULL   0x0010
 #define TCG_HASH_ALGORITHM_ID_SM3    0x0012
+
+// Some whole image-related notional defines
+#define UEFI_UPPER_INVALID_ADDRESS   0x100000000ULL
+#define UEFI_LOWER_INVALID_ADDRESS   (UEFI_UPPER_INVALID_ADDRESS >> 1)
 
 // A workaround for compilers not supporting c++11 and c11
 // for using PRIX64.

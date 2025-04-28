@@ -15,6 +15,7 @@
 #define UEFITOOL_H
 
 #include <QMainWindow>
+#include <QActionGroup>
 #include <QByteArray>
 #include <QClipboard>
 #include <QDragEnterEvent>
@@ -22,6 +23,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFileSystemWatcher>
 #include <QFont>
 #include <QListWidget>
 #include <QMenu>
@@ -36,6 +38,7 @@
 #include <QString>
 #include <QTableWidget>
 #include <QTreeView>
+#include <QToolButton>
 #include <QUrl>
 
 #include "../common/basetypes.h"
@@ -75,13 +78,19 @@ private slots:
     void scrollTreeView(QListWidgetItem* item); // For messages
     void scrollTreeView(QTableWidgetItem* item); // For FIT table entries
 
+    void onTrackingAction(QAction* action);
+    void fileChangedResume();
+    void fileChanged(const QString& path);
+    void setChangedFileFlag(const bool flag);
     void openImageFile();
     void openImageFileInNewWindow();
+    void openRecentImageFile();
     void saveImageFile();
 
     void search();
     void goToBase();
     void goToAddress();
+    void expandTree();
 
     void hexView();
     void bodyHexView();
@@ -112,6 +121,8 @@ private slots:
     void clearMessages();
 
     void toggleBootGuardMarking(bool enabled);
+    void toggleCStyleHexValues(bool enabled);
+    void setExpandAll();
 
     void about();
     void aboutQt();
@@ -144,23 +155,39 @@ private:
     GoToBaseDialog* goToBaseDialog;
     GoToAddressDialog* goToAddressDialog;
     QClipboard* clipboard;
+    QList<QAction*> recentFileActions;
+    QFileSystemWatcher watcher;
+    QToolButton openedFileLabel;
+    QStringList recentFiles;
     QString currentDir;
     QString currentPath;
     QString currentProgramPath;
+    QString openImageDir;
+    QString openGuidDatabaseDir;
+    QString extractDir;
     QFont currentFont;
     const QString version;
+    int fileTrackingState;
+    bool changedFileFlag;
     bool markingEnabled;
+    bool cStyleHexEnabled;
 
     bool eventFilter(QObject* obj, QEvent* event);
     void dragEnterEvent(QDragEnterEvent* event);
     void dropEvent(QDropEvent* event);
     void contextMenuEvent(QContextMenuEvent* event);
+    void updateRecentFilesMenu(const QString& fileName = QString());
     void readSettings();
+    void askReopenImageFile();
+    void reopenImageFile();
     void showParserMessages();
     void showFinderMessages();
     void showFitTable();
     void showSecurityInfo();
     void showBuilderMessages();
+    bool isAllExpanded();
+    void saveTreeState(const QModelIndex& index, QHash<QString, bool>& states);
+    void restoreTreeState(const QModelIndex& index, const QHash<QString, bool>& states);
 
     enum {
         TAB_PARSER,
@@ -168,6 +195,14 @@ private:
         TAB_SECURITY,
         TAB_SEARCH,
         TAB_BUILDER
+    };
+
+    enum {
+        TRACK_MIN = 0,
+        TRACK_IGNORE = TRACK_MIN,
+        TRACK_ASK,
+        TRACK_REOPEN,
+        TRACK_MAX = TRACK_REOPEN
     };
 };
 

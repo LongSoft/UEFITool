@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #ifndef TREEITEM_H
 #define TREEITEM_H
 
-#include <list>
+#include <vector>
 #include <iterator>
 
 #include "basetypes.h"
@@ -25,20 +25,20 @@ class TreeItem
 {
 public:
     TreeItem(const UINT32 offset, const UINT8 type, const UINT8 subtype, const UString &name, const UString &text, const UString &info,
-        const UByteArray & header, const UByteArray & body, const UByteArray & tail,
+        const UINT32 headerSize, const UINT32 bodySize, const UINT32 tailSize,
         const bool fixed, const bool compressed,
         TreeItem *parent = 0);
     ~TreeItem();                                                               // Non-trivial implementation in CPP file
 
     // Operations with items
     void appendChild(TreeItem *item) { childItems.push_back(item); }
-    void prependChild(TreeItem *item) { childItems.push_front(item); };
+    void prependChild(TreeItem *item) { childItems.insert(childItems.begin(), item); };
     UINT8 insertChildBefore(TreeItem *item, TreeItem *newItem);                // Non-trivial implementation in CPP file
     UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);                 // Non-trivial implementation in CPP file
 
     // Model support operations
     TreeItem *child(int row);                                                  // Non-trivial implementation in CPP file
-    int childCount() const {return (int)childItems.size(); }
+    int childCount() const { return (int)childItems.size(); }
     int columnCount() const { return 5; }
     UString data(int column) const;                                            // Non-trivial implementation in CPP file
     int row() const;                                                           // Non-trivial implementation in CPP file
@@ -60,14 +60,17 @@ public:
     UString text() const { return itemText; }
     void setText(const UString &text) { itemText = text; }
 
-    UByteArray header() const { return itemHeader; }
-    bool hasEmptyHeader() const { return itemHeader.isEmpty(); }
+    UByteArray header() const { return UByteArray(content(0), itemHeaderSize); }
+    UINT32 headerSize() const { return itemHeaderSize; }
+    bool hasEmptyHeader() const { return itemHeaderSize == 0; }
 
-    UByteArray body() const { return itemBody; };
-    bool hasEmptyBody() const { return itemBody.isEmpty(); }
+    UByteArray body() const { return UByteArray(content(itemHeaderSize), itemBodySize); }
+    UINT32 bodySize() const { return itemBodySize; }
+    bool hasEmptyBody() const { return itemBodySize == 0; }
 
-    UByteArray tail() const { return itemTail; };
-    bool hasEmptyTail() const { return itemTail.isEmpty(); }
+    UByteArray tail() const { return UByteArray(content(itemHeaderSize + itemBodySize), itemTailSize); }
+    UINT32 tailSize() const { return itemTailSize; }
+    bool hasEmptyTail() const { return itemTailSize == 0; }
 
     UString info() const { return itemInfo; }
     void addInfo(const UString &info, const bool append) { if (append) itemInfo += info; else itemInfo = info + itemInfo; }
@@ -79,6 +82,10 @@ public:
     bool fixed() const { return itemFixed; }
     void setFixed(const bool fixed) { itemFixed = fixed; }
 
+    bool hasContent() const { return !itemContent.isEmpty(); }
+    void setContent(const UByteArray& c) { itemContent = c; }
+
+    bool compressedInherited() const;
     bool compressed() const { return itemCompressed; }
     void setCompressed(const bool compressed) { itemCompressed = compressed; }
 
@@ -94,8 +101,13 @@ public:
     void setMarking(const UINT8 marking) { itemMarking = marking; }
 
 private:
-    std::list<TreeItem*> childItems;
+    const char* content(UINT32 dataOffset) const;
+
+    std::vector<TreeItem*> childItems;
     UINT32     itemOffset;
+    UINT32     itemHeaderSize;
+    UINT32     itemBodySize;
+    UINT32     itemTailSize;
     UINT8      itemAction;
     UINT8      itemType;
     UINT8      itemSubtype;
@@ -103,9 +115,7 @@ private:
     UString    itemName;
     UString    itemText;
     UString    itemInfo;
-    UByteArray itemHeader;
-    UByteArray itemBody;
-    UByteArray itemTail;
+    UByteArray itemContent;
     bool       itemFixed;
     bool       itemCompressed;
     UByteArray itemParsingData;

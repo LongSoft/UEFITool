@@ -14,19 +14,42 @@
 #include <cstddef>
 #include <cstdint>
 #include <stdarg.h>
+#include "printf/printf.c"
+
+static bool cStyleHexEnabled = false;
+
+void putchar_(char c) {}
+
+void setCStyleHexView(const bool enable)
+{
+    cStyleHexEnabled = enable;
+}
 
 #if defined(QT_CORE_LIB)
+
+typedef struct {
+    char flag_cstyle_Xh;
+    UString* string;
+} qstring_opt_t;
+
+void qstring_out(char c, void* extra_arg)
+{
+    ((qstring_opt_t*)extra_arg)->string->append(c);
+}
+
 UString usprintf(const char* fmt, ...)
 {
     UString msg;
+    qstring_opt_t opt = { cStyleHexEnabled ? '\1' : '\0', &msg };
+
     va_list vl;
     va_start(vl, fmt);
-    
-    msg = msg.vasprintf(fmt, vl);
-    
+
+    int n = vofctprintf(qstring_out, &opt, fmt, vl);
+
     va_end(vl);
     return msg;
-};
+}
 
 UString urepeated(char c, int len)
 {
@@ -84,7 +107,8 @@ UString usprintf(const char* fmt, ...)
                 }
                 
                 va_start(arglist, fmt);
-                exvsnprintf(r, (char *)b->data, n + 1, fmt, arglist);
+                *(char*)b->data = cStyleHexEnabled ? '\1' : '\0';
+                r = vosnprintf_((char*)b->data, n + 1, fmt, arglist);
                 va_end(arglist);
                 
                 b->data[n] = '\0';

@@ -59,8 +59,33 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 // 32bit checksum calculation routine
 UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize);
 
-// Return padding type from it's contents
-UINT8 getPaddingType(const UByteArray & padding);
+// Check if an array is filled in by a single repeated char
+inline signed long checkSingle(const UByteArray& a, signed long defaultRc = -1)
+{
+    size_t s = a.size();
+    if (!s)
+        return defaultRc;
+    if (s == 1 || memcmp(a.constData(), a.constData() + 1, s - 1) == 0)
+        return (unsigned char)a.at(0);
+    return -1;
+}
+
+// Get padding type for a given padding
+inline UINT8 getPaddingType(const UByteArray& a)
+{
+    size_t s = a.size();
+    if (s) {
+        if (s == 1 || memcmp(a.constData(), a.constData() + 1, s - 1) == 0) {
+            switch ((UINT8)a.at(0)) {
+            case 0:
+                return Subtypes::ZeroPadding;
+            case 0xFF:
+                return Subtypes::OnePadding;
+            }
+        }
+    }
+    return Subtypes::DataPadding;
+}
 
 // Make pattern from a hexstring with an assumption of . being any char
 bool makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask);

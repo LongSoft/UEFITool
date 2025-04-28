@@ -14,6 +14,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define FFSPARSER_H
 
 #include <vector>
+#include <unordered_map>
 
 #include "basetypes.h"
 #include "ustring.h"
@@ -115,6 +116,8 @@ private:
     UModelIndex lastVtf;
     UINT32 imageBase;
     UINT64 addressDiff;
+    REGION_INFO biosRegionInfo;
+    std::unordered_map<UINT64, int> baseAddressesMap;
     
     UString securityInfo;
 
@@ -126,6 +129,7 @@ private:
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
     USTATUS parseCapsule(const UByteArray & capsule, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseImage(const UByteArray& buffer, const UINT32 localOffset, const UModelIndex& parent, UModelIndex& index);
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
@@ -136,9 +140,9 @@ private:
     
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseVolumeBody(const UModelIndex & index);
+    USTATUS parseVolumeBody(const UModelIndex & index, const bool probe = false);
     USTATUS parseMicrocodeVolumeBody(const UModelIndex & index);
-    USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
     USTATUS parseFileBody(const UModelIndex & index);
     USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
     USTATUS parseSectionBody(const UModelIndex & index);
@@ -167,8 +171,8 @@ private:
     USTATUS parseDepexSectionBody(const UModelIndex & index);
     USTATUS parseUiSectionBody(const UModelIndex & index);
     USTATUS parseRawSectionBody(const UModelIndex & index);
-    USTATUS parsePeImageSectionBody(const UModelIndex & index);
-    USTATUS parseTeImageSectionBody(const UModelIndex & index);
+    USTATUS parsePeImageSectionBody(const UModelIndex & index, const bool probe = false);
+    USTATUS parseTeImageSectionBody(const UModelIndex & index, const bool probe = false);
 
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
     USTATUS findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize);

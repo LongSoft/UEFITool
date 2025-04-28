@@ -466,7 +466,7 @@ void QHexView::checkState() {
 
     int doclines = static_cast<int>(this->lines()),
         vislines = this->visibleLines(true);
-    qint64 vscrollmax = doclines - vislines + 1; // UEFITool: ensure the very last line is visible on macOS
+    qint64 vscrollmax = doclines - vislines;
     if(doclines >= vislines)
         vscrollmax++;
 
