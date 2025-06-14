@@ -49,6 +49,8 @@ extern UString machineTypeToUString(UINT16 machineType);
 #define EFI_IMAGE_FILE_MACHINE_RISCV32        0x5032 // RISC-V 32-bit
 #define EFI_IMAGE_FILE_MACHINE_RISCV64        0x5064 // RISC-V 64-bit
 #define EFI_IMAGE_FILE_MACHINE_RISCV128       0x5128 // RISC-V 128-bit
+#define EFI_IMAGE_FILE_MACHINE_LOONGARCH32    0x6232 // LoongArch 32-bit
+#define EFI_IMAGE_FILE_MACHINE_LOONGARCH64    0x6264 // LoongArch 64-bit
 
 //
 // EXE file formats
