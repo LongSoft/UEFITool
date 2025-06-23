@@ -115,10 +115,14 @@ private slots:
     void clearMessages();
 
     void copyItemName();
-    void expandWholeSection();
-    void collapseWholeSection();
+    void expandRecursively();
+    void collapseRecursively();
 
     void toggleBootGuardMarking(bool enabled);
+    void onDockStateChange(const bool state);
+    void updateDock(QDockWidget* const dock);
+    void enableDock(QDockWidget* const dock, const bool enable);
+    void resetDocks();
 
     void about();
     void aboutQt();
@@ -132,8 +136,6 @@ private slots:
     void exportDiscoveredGuids();
 
     void generateReport();
-
-    void currentTabChanged(int index);
 
     void hashCrc32();
     void hashSha1();
@@ -175,6 +177,7 @@ private:
     QClipboard* clipboard;
     QStringList recentFiles;
     QList<QAction*> recentFileActions;
+    QHexView selectedHexView;
     QString currentDir;
     QString currentPath;
     QString currentProgramPath;
@@ -205,6 +208,8 @@ private:
     void doSha384(QByteArray data);
     void doSha512(QByteArray data);
     void doSm3(QByteArray data);
+
+    const char* propTab() { return "TAB_INDEX"; }
     
     enum {
         TAB_PARSER,
