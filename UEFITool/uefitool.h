@@ -175,6 +175,7 @@ private:
     GoToBaseDialog* goToBaseDialog;
     GoToAddressDialog* goToAddressDialog;
     QClipboard* clipboard;
+    QWidget* contextEventWidget;
     QStringList recentFiles;
     QList<QAction*> recentFileActions;
     QHexView selectedHexView;
@@ -208,16 +209,6 @@ private:
     void doSha384(QByteArray data);
     void doSha512(QByteArray data);
     void doSm3(QByteArray data);
-
-    const char* propTab() { return "TAB_INDEX"; }
-    
-    enum {
-        TAB_PARSER,
-        TAB_FIT,
-        TAB_SECURITY,
-        TAB_SEARCH,
-        TAB_BUILDER
-    };
 };
 
 #endif // UEFITOOL_H

@@ -153,10 +153,7 @@ void UEFITool::init()
     ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
     ui->securityEdit->clear();
-    ui->parserMessagesListWidget->setProperty(propTab(), TAB_PARSER);
-    ui->finderMessagesListWidget->setProperty(propTab(), TAB_SEARCH);
-    ui->builderMessagesListWidget->setProperty(propTab(), TAB_BUILDER);
-    setProperty(propTab(), -1);
+    contextEventWidget = nullptr;
     for (auto dock : findChildren<QDockWidget*>())
         enableDock(dock, false);
     
@@ -999,20 +996,19 @@ void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
 {
     ui->menuMessageActions->setEnabled(item != NULL);
     ui->actionMessagesCopy->setEnabled(item != NULL);
-    ui->actionMessagesCopyAll->setEnabled(item->listWidget()->count() > 0);
-    ui->actionMessagesClear->setEnabled(item->listWidget()->count() > 0);
+    ui->actionMessagesCopyAll->setEnabled(item != NULL);
+    ui->actionMessagesClear->setEnabled(item != NULL);
 }
 
 void UEFITool::copyMessage()
 {
     clipboard->clear();
 
-    int tab = property(propTab()).toInt();
-    if (tab == TAB_PARSER) // Parser tab
+    if (contextEventWidget == ui->parserMessagesListWidget) // Parser tab
         clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
-    else if (tab == TAB_SEARCH) // Search tab
+    else if (contextEventWidget == ui->finderMessagesListWidget) // Search tab
         clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
-    else if (tab == TAB_BUILDER) // Builder tab
+    else if (contextEventWidget == ui->builderMessagesListWidget) // Builder tab
         clipboard->setText(ui->builderMessagesListWidget->currentItem()->text());
 }
 
@@ -1021,18 +1017,17 @@ void UEFITool::copyAllMessages()
     QString text;
     clipboard->clear();
 
-    int tab = property(propTab()).toInt();
-    if (tab == TAB_PARSER) { // Parser tab
+    if (contextEventWidget == ui->parserMessagesListWidget) { // Parser tab
         for (INT32 i = 0; i < ui->parserMessagesListWidget->count(); i++)
             text.append(ui->parserMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (tab == TAB_SEARCH) {  // Search tab
+    else if (contextEventWidget == ui->finderMessagesListWidget) {  // Search tab
         for (INT32 i = 0; i < ui->finderMessagesListWidget->count(); i++)
             text.append(ui->finderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (tab == TAB_BUILDER) {  // Builder tab
+    else if (contextEventWidget == ui->builderMessagesListWidget) {  // Builder tab
         for (INT32 i = 0; i < ui->builderMessagesListWidget->count(); i++)
             text.append(ui->builderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
@@ -1041,16 +1036,15 @@ void UEFITool::copyAllMessages()
 
 void UEFITool::clearMessages()
 {
-    int tab = property(propTab()).toInt();
-    if (tab == TAB_PARSER) { // Parser tab
+    if (contextEventWidget == ui->parserMessagesListWidget) { // Parser tab
         if (ffsParser) ffsParser->clearMessages();
         ui->parserMessagesListWidget->clear();
     }
-    else if (tab == TAB_SEARCH) {  // Search tab
+    else if (contextEventWidget == ui->finderMessagesListWidget) {  // Search tab
         if (ffsFinder) ffsFinder->clearMessages();
         ui->finderMessagesListWidget->clear();
     }
-    else if (tab == TAB_BUILDER) {  // Builder tab
+    else if (contextEventWidget == ui->builderMessagesListWidget) {  // Builder tab
         if (ffsBuilder) ffsBuilder->clearMessages();
         ui->builderMessagesListWidget->clear();
     }
@@ -1181,13 +1175,12 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
         // For this reason we reimplement this manually.
         if (list->rect().contains(list->mapFromGlobal(gp))) {
-            int tab = list->property(propTab()).toInt();
-            setProperty(propTab(), QVariant::fromValue(tab));
+            contextEventWidget = list;
             QListWidgetItem* item = list->itemAt(list->mapFromGlobal(gp));
             if (item)
                 enableMessagesCopyActions(item);
             ui->menuMessageActions->exec(gp);
-            setProperty(propTab(), -1);
+            contextEventWidget = nullptr;
             break;
         }
     }
