@@ -1241,10 +1241,11 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 
     if (menu) {
         QList<QAction*> actions = menu->actions();
-        QAction s = QAction(nullptr);
-        s.setSeparator(true);
+        QAction *separator = new QAction(nullptr);
+        separator->setSeparator(true);
         QMenu::exec(
-            actions << &s << ui->actionExpandRecursively << ui->actionCollapseRecursively, gp);
+            actions << separator << ui->actionExpandRecursively << ui->actionCollapseRecursively, gp);
+        delete separator;
     }
 }
 
@@ -1274,7 +1275,9 @@ void UEFITool::readSettings()
     resetDocks();
 
     restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
-    restoreState(settings.value("mainWindow/windowState").toByteArray());
+    QByteArray state = settings.value("mainWindow/windowState").toByteArray();
+    if (state.size() > 0x100)
+        restoreState(state);
     ui->structureTreeView->setColumnWidth(0, settings.value("tree/columnWidth0", ui->structureTreeView->columnWidth(0)).toInt());
     ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
     ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
