@@ -36,6 +36,7 @@ markingEnabled(true)
     ui->setupUi(this);
     setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
     ui->hexViewWidgetContents->layout()->addWidget(&selectedHexView);
+    dockTimer.setSingleShot(true);
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
     goToAddressDialog = new GoToAddressDialog(this);
@@ -106,6 +107,7 @@ markingEnabled(true)
         connect(dock, SIGNAL(topLevelChanged(bool)), this, SLOT(onDockStateChange(bool)));
         connect(dock, SIGNAL(visibilityChanged(bool)), this, SLOT(onDockStateChange(bool)));
     }
+    connect(&dockTimer, SIGNAL(timeout()), this, SLOT(checkAndUpdateDocks()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
     
     // Enable Drag-and-Drop actions
@@ -154,8 +156,14 @@ void UEFITool::init()
     ui->infoEdit->clear();
     ui->securityEdit->clear();
     contextEventWidget = nullptr;
-    for (auto dock : findChildren<QDockWidget*>())
+    bool wayland = QGuiApplication::platformName().contains("wayland", Qt::CaseInsensitive);
+    for (auto dock : findChildren<QDockWidget*>()) {
         enableDock(dock, false);
+        if (wayland) {
+            // floating QDockWidgets are defective in Wayland
+            dock->setFeatures(dock->features() & ~QDockWidget::DockWidgetFloatable);
+        }
+    }
     
     // Set window title
     setWindowTitle(tr("UEFITool %1").arg(version));
@@ -795,56 +803,96 @@ void UEFITool::onDockStateChange(const bool topLevel)
 
 void UEFITool::updateDock(QDockWidget* const dock)
 {
-    if (dock->isHidden())
+    if (!dock || dock->isHidden())
+        return;
+    if (!dock->widget() || !dock->widget()->layout())
         return;
 
     QWidget *widget = dock->titleBarWidget();
     QMargins margins = dock->widget()->layout()->contentsMargins();
     int ref = margins.left();
     margins.setTop(ref);
+
     if (widget) {
         dock->setTitleBarWidget(nullptr);
         delete widget;
     }
+
+    // Floating? Using built-in title
     if (dock->isFloating()) {
         dock->widget()->layout()->setContentsMargins(margins);
+        return;
     }
-    else {
-        QWidget* titleBar = new QWidget(dock);
-        QHBoxLayout* layout = new QHBoxLayout(titleBar);
-        dock->setTitleBarWidget(titleBar);
-        if (!tabifiedDockWidgets(dock).isEmpty()) {
-            layout->setContentsMargins(0, ref, 0, 0);
-            dock->widget()->layout()->setContentsMargins(ref, 0, ref, ref);
-            for (auto tabBar : findChildren<QTabBar*>()) {
-                for (int i = tabBar->count() - 1; i >= 0; i--) {
-                    // hope all docks have different titles
-                    if (dock->windowTitle() == tabBar->tabText(i)) {
-                        QPalette palette = QApplication::palette();
-                        tabBar->setTabTextColor(i, !dock->isEnabled()
-                            ? palette.color(QPalette::Disabled, QPalette::WindowText)
-                                : dock->isVisible()
-                                    ? palette.color(QPalette::Active, QPalette::WindowText)
-                                        : palette.color(QPalette::Inactive, QPalette::WindowText));
-                        return;
-                    }
+
+    widget = new QWidget();
+    auto layout = new QHBoxLayout(widget);
+    dock->setTitleBarWidget(widget);
+    QString titleText = dock->windowTitle();
+
+    // Tabified? Using blank title
+    if (!tabifiedDockWidgets(dock).isEmpty()) {
+        for (auto tabBar : findChildren<QTabBar*>()) {
+            for (int i = tabBar->count() - 1; i >= 0; i--) {
+                // Hope all docks have different titles
+                if (titleText == tabBar->tabText(i)) {
+                    layout->setContentsMargins(0, ref, 0, 0);
+                    dock->widget()->layout()->setContentsMargins(ref, 0, ref, ref);
+                    QPalette palette = QApplication::palette();
+                    tabBar->setTabTextColor(i, !dock->isEnabled()
+                        ? palette.color(QPalette::Disabled, QPalette::WindowText)
+                            : dock->isVisible()
+                                ? palette.color(QPalette::Active, QPalette::WindowText)
+                                    : palette.color(QPalette::Inactive, QPalette::WindowText));
+                    return;
                 }
             }
         }
-        else {
-            layout->setContentsMargins(ref, ref / 2, ref, 0);
-            auto titleLabel = new QLabel(dock->windowTitle());
-            titleLabel->setFont(QApplication::font());
-            layout->addWidget(titleLabel);
-            dock->widget()->layout()->setContentsMargins(ref, ref / 2, ref, ref);
-        }
     }
+
+    // Docked? Setup own title with text
+    layout->setContentsMargins(ref, ref / 2, ref, 0);
+    auto titleLabel = new QLabel(titleText);
+    titleLabel->setFont(QApplication::font());
+    layout->addWidget(titleLabel);
+    dock->widget()->layout()->setContentsMargins(ref, ref / 2, ref, ref);
+
+}
+
+bool UEFITool::checkDock(QDockWidget* const dock)
+{
+    if (!dock || dock->isHidden())
+        return true;
+    if (!dock->widget() || !dock->widget()->layout())
+        return true;
+
+    QWidget* widget = dock->titleBarWidget();
+    // floating dock - no title widget
+    if (dock->isFloating())
+        return widget ? false : true;
+    // tabified dock - title widget with blank layout
+    if (!widget || !widget->layout())
+        return false;
+    if (!tabifiedDockWidgets(dock).isEmpty())
+        return true;
+    // sticked dock - title widget with layout with text widget(s)
+    return widget->layout()->findChildren<QLabel*>().isEmpty() ? false : true;
 }
 
 void UEFITool::enableDock(QDockWidget* const dock, const bool enable)
 {
+    if (!dock)
+        return;
+
     dock->setEnabled(enable);
     updateDock(dock);
+}
+
+void UEFITool::checkAndUpdateDocks()
+{
+    for (auto dock : findChildren<QDockWidget*>()) {
+        if (!checkDock(dock))
+            updateDock(dock);
+    }
 }
 
 void UEFITool::resetDocks()
@@ -1159,6 +1207,9 @@ void UEFITool::scrollTreeView(QListWidgetItem* item)
 
 void UEFITool::scrollTreeView(QTableWidgetItem* item)
 {
+    if (!item)
+        return;
+
     QByteArray second = item->data(Qt::UserRole).toByteArray();
     QModelIndex *index = (QModelIndex *)second.data();
     if (index && index->isValid()) {
@@ -1169,6 +1220,9 @@ void UEFITool::scrollTreeView(QTableWidgetItem* item)
 
 void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 {
+    if (!event)
+        return;
+
     QPoint gp = event->globalPos();
     for (QListWidget* list : { ui->parserMessagesListWidget, ui->finderMessagesListWidget, ui->builderMessagesListWidget}) {
         // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
@@ -1269,7 +1323,7 @@ void UEFITool::readSettings()
 
     restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
     QByteArray state = settings.value("mainWindow/windowState").toByteArray();
-    if (state.size() > 0x100)
+    if (state.size() > 0x100)   // stupid check for transition from classic UI to docks
         restoreState(state);
     ui->structureTreeView->setColumnWidth(0, settings.value("tree/columnWidth0", ui->structureTreeView->columnWidth(0)).toInt());
     ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());

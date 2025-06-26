@@ -35,6 +35,7 @@
 #include <QStyleFactory>
 #include <QString>
 #include <QTableWidget>
+#include <QTimer>
 #include <QTreeView>
 #include <QUrl>
 
@@ -52,6 +53,7 @@
 #include "gotoaddressdialog.h"
 #include "hexviewdialog.h"
 #include "ffsfinder.h"
+
 
 namespace Ui {
     class UEFITool;
@@ -120,9 +122,10 @@ private slots:
 
     void toggleBootGuardMarking(bool enabled);
     void onDockStateChange(const bool state);
-    void updateDock(QDockWidget* const dock);
     void enableDock(QDockWidget* const dock, const bool enable);
     void resetDocks();
+    void updateDock(QDockWidget* const dock);
+    void checkAndUpdateDocks();
 
     void about();
     void aboutQt();
@@ -178,6 +181,7 @@ private:
     QWidget* contextEventWidget;
     QStringList recentFiles;
     QList<QAction*> recentFileActions;
+    QTimer dockTimer;
     QHexView selectedHexView;
     QString currentDir;
     QString currentPath;
@@ -195,6 +199,7 @@ private:
     void contextMenuEvent(QContextMenuEvent* event);
     void updateRecentFilesMenu(const QString& fileName = QString());
     void readSettings();
+    bool checkDock(QDockWidget* const dock);
     void showParserMessages();
     void showFinderMessages();
     void showFitTable();
