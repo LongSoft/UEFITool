@@ -23,6 +23,23 @@
 #if QT_VERSION_MAJOR >= 6
 #include <QStyleHints>
 #endif
+#include <QProxyStyle>
+
+class DockProxyStyle : public QProxyStyle {
+public:
+    using QProxyStyle::QProxyStyle;
+    void drawPrimitive(PrimitiveElement element, const QStyleOption* option,
+        QPainter* painter, const QWidget* widget) const override
+    {
+        if (widget && (element == QStyle::PE_IndicatorDockWidgetResizeHandle
+            || element == QStyle::PE_FrameDockWidget))
+        {
+            // "drawing" invisible elements
+            return;
+        }
+        QProxyStyle::drawPrimitive(element, option, painter, widget);
+    }
+};
 
 UEFITool::UEFITool(QWidget *parent) :
 QMainWindow(parent),
@@ -31,9 +48,13 @@ version(tr(PROGRAM_VERSION)),
 markingEnabled(true)
 {
     clipboard = QApplication::clipboard();
-    
+
     // Create UI
     ui->setupUi(this);
+    setStyle(new DockProxyStyle(style()));
+    setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
+    ui->hexViewWidgetContents->layout()->addWidget(&selectedHexView);
+    dockTimer.setSingleShot(true);
     searchDialog = new SearchDialog(this);
     hexViewDialog = new HexViewDialog(this);
     goToAddressDialog = new GoToAddressDialog(this);
@@ -79,8 +100,8 @@ markingEnabled(true)
     connect(ui->actionGenerateReport, SIGNAL(triggered()), this, SLOT(generateReport()));
     connect(ui->actionToggleBootGuardMarking, SIGNAL(toggled(bool)), this, SLOT(toggleBootGuardMarking(bool)));
     connect(ui->actionCopyItemName, SIGNAL(triggered()), this, SLOT(copyItemName()));
-    connect(ui->actionExpandItemRecusrively, SIGNAL(triggered()), this, SLOT(expandItemRecursively()));
-    connect(ui->actionCollapseItemRecusrively, SIGNAL(triggered()), this, SLOT(collapseItemRecursively()));
+    connect(ui->actionExpandItemRecursively, SIGNAL(triggered()), this, SLOT(expandItemRecursively()));
+    connect(ui->actionCollapseItemRecursively, SIGNAL(triggered()), this, SLOT(collapseItemRecursively()));
     connect(ui->actionClearRecentlyOpenedFilesList, SIGNAL(triggered()), this, SLOT(clearRecentlyOpenedFilesList()));
     connect(ui->actionHashCrc32, SIGNAL(triggered()), this, SLOT(hashCrc32()));
     connect(ui->actionHashSha1, SIGNAL(triggered()), this, SLOT(hashSha1()));
@@ -100,13 +121,18 @@ markingEnabled(true)
     connect(ui->actionUncompressedHashSha384, SIGNAL(triggered()), this, SLOT(hashUncompressedSha384()));
     connect(ui->actionUncompressedHashSha512, SIGNAL(triggered()), this, SLOT(hashUncompressedSha512()));
     connect(ui->actionUncompressedHashSm3, SIGNAL(triggered()), this, SLOT(hashUncompressedSm3()));
+    for (auto dock : findChildren<QDockWidget*>()) {
+        connect(dock, SIGNAL(topLevelChanged(bool)), this, SLOT(onDockStateChange(bool)));
+        connect(dock, SIGNAL(visibilityChanged(bool)), this, SLOT(onDockStateChange(bool)));
+    }
+    connect(&dockTimer, SIGNAL(timeout()), this, SLOT(checkAndUpdateDocks()));
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(writeSettings()));
     
     // Enable Drag-and-Drop actions
     setAcceptDrops(true);
     
     // Disable Builder tab, doesn't work right now
-    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, false);
+    enableDock(ui->builderMessagesDock, false);
     
     // Set current directory
     currentDir = ".";
@@ -134,6 +160,10 @@ UEFITool::~UEFITool()
     delete model;
     delete hexViewDialog;
     delete searchDialog;
+    delete goToAddressDialog;
+    delete goToBaseDialog;
+    setStatusBar(nullptr);          // workaround for a bug related to the use of addDockWidget() in GUI application (or in Qt internally)
+    ui->statusBar->deleteLater();   // with QDockWidget on macOS, causing exception EXC_BAD_ACCESS right after (or somewhere in) QMainWindow destructor
     delete ui;
 }
 
@@ -147,10 +177,14 @@ void UEFITool::init()
     ui->fitTableWidget->setColumnCount(0);
     ui->infoEdit->clear();
     ui->securityEdit->clear();
-    ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
-    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
-    ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, false);
-    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, false);
+    contextEventWidget = nullptr;
+    bool wayland = QGuiApplication::platformName().contains("wayland", Qt::CaseInsensitive);
+    for (auto dock : findChildren<QDockWidget*>()) {
+        enableDock(dock, false);
+        // floating QDockWidgets are defective in Wayland
+        if (wayland)
+            dock->setFeatures(dock->features() & ~QDockWidget::DockWidgetFloatable);
+    }
     
     // Set window title
     setWindowTitle(tr("UEFITool %1").arg(version));
@@ -197,7 +231,6 @@ void UEFITool::init()
     connect(ui->builderMessagesListWidget, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(scrollTreeView(QListWidgetItem*)));
     connect(ui->builderMessagesListWidget, SIGNAL(itemEntered(QListWidgetItem*)),       this, SLOT(enableMessagesCopyActions(QListWidgetItem*)));
     connect(ui->fitTableWidget, SIGNAL(itemDoubleClicked(QTableWidgetItem*)), this, SLOT(scrollTreeView(QTableWidgetItem*)));
-    connect(ui->messagesTabWidget, SIGNAL(currentChanged(int)), this, SLOT(currentTabChanged(int)));
     
     // Allow enter/return pressing to scroll tree view
     ui->parserMessagesListWidget->installEventFilter(this);
@@ -241,6 +274,10 @@ void UEFITool::updateUiForNewColorScheme(Qt::ColorScheme scheme)
 {
     model->setMarkingDarkMode(scheme == Qt::ColorScheme::Dark);
     QApplication::setPalette(QApplication::style()->standardPalette());
+
+    QModelIndex current = ui->structureTreeView->selectionModel()->currentIndex();
+    selectedHexView.setBackground(0, model->header(current).size(),
+        model->markingDarkMode() ? Qt::darkGreen : Qt::green);
 }
 #endif
 
@@ -265,7 +302,7 @@ void UEFITool::updateRecentFilesMenu(const QString& fileName)
 
     if (!recentFiles.isEmpty()) {
         int key = 0;
-        
+
         // Enable "Clear recently opened files list" action
         ui->actionClearRecentlyOpenedFilesList->setEnabled(true);
         
@@ -276,7 +313,7 @@ void UEFITool::updateRecentFilesMenu(const QString& fileName)
                 action->setShortcut(QKeySequence(Qt::ALT | (Qt::Key_0 + key)));
             else if (key == 10)
                 action->setShortcut(QKeySequence(Qt::ALT | Qt::Key_0));
-            
+
             connect(action, SIGNAL(triggered()), this, SLOT(openRecentImageFile()));
             action->setData(path);
             ui->menuFile->insertAction(ui->actionClearRecentlyOpenedFilesList, action);
@@ -312,6 +349,14 @@ void UEFITool::populateUi(const QModelIndex &current)
     
     // Set info text
     ui->infoEdit->setPlainText(model->info(current));
+    enableDock(ui->infoDock, true);
+
+    // Set Hex view
+    selectedHexView.clearMetadata();
+    selectedHexView.setBackground(0, model->header(current).size(),
+        model->markingDarkMode() ? Qt::darkGreen : Qt::green);
+    selectedHexView.setData(model->header(current) + model->body(current) + model->tail(current));
+    enableDock(ui->hexViewDock, true);
     
     // Enable menus
     ui->menuCapsuleActions->setEnabled(type == Types::Capsule);
@@ -370,8 +415,8 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionExtract->setDisabled(empty);
     ui->actionGoToData->setEnabled(type == Types::NvarEntry && subtype == Subtypes::LinkNvarEntry);
     ui->actionCopyItemName->setDisabled(model->name(current).isEmpty());
-    ui->actionExpandItemRecusrively->setEnabled(model->rowCount(current) > 0);
-    ui->actionCollapseItemRecusrively->setEnabled(model->rowCount(current) > 0);
+    ui->actionExpandItemRecursively->setEnabled(model->rowCount(current) > 0);
+    ui->actionCollapseItemRecursively->setEnabled(model->rowCount(current) > 0);
     ui->actionHashCrc32->setDisabled(empty);
     ui->actionHashSha1->setDisabled(empty);
     ui->actionHashSha256->setDisabled(empty);
@@ -412,9 +457,53 @@ void UEFITool::populateUi(const QModelIndex &current)
 
 void UEFITool::search()
 {
+    QSettings settings(this);
+    searchDialog->restoreGeometry(settings.value("searchDialog/geometry").toByteArray());
+    searchDialog->ui->tabWidget->setCurrentIndex(settings.value("searchDialog/currentScopeMode").toInt());
+    UINT8 mode = settings.value("searchDialog/hexScopeMode", SEARCH_MODE_ALL).toUInt();
+    searchDialog->ui->hexScopeHeaderRadioButton->setChecked(mode <= SEARCH_MODE_HEADER);
+    searchDialog->ui->hexScopeBodyRadioButton->setChecked(mode == SEARCH_MODE_BODY);
+    searchDialog->ui->hexScopeFullRadioButton->setChecked(mode >= SEARCH_MODE_ALL);
+    mode = settings.value("searchDialog/guidScopeMode", SEARCH_MODE_HEADER).toUInt();
+    searchDialog->ui->guidScopeHeaderRadioButton->setChecked(mode <= SEARCH_MODE_HEADER);
+    searchDialog->ui->guidScopeBodyRadioButton->setChecked(mode == SEARCH_MODE_BODY);
+    searchDialog->ui->guidScopeFullRadioButton->setChecked(mode >= SEARCH_MODE_ALL);
+    mode = settings.value("searchDialog/textScopeMode", SEARCH_MODE_ALL).toUInt();
+    searchDialog->ui->textScopeHeaderRadioButton->setChecked(mode <= SEARCH_MODE_HEADER);
+    searchDialog->ui->textScopeBodyRadioButton->setChecked(mode == SEARCH_MODE_BODY);
+    searchDialog->ui->textScopeFullRadioButton->setChecked(mode >= SEARCH_MODE_ALL);
+    searchDialog->ui->textUnicodeCheckBox->setChecked(settings.value("searchDialog/textUnicode", true).toBool());
+    searchDialog->ui->textCaseSensitiveCheckBox->setChecked(settings.value("searchDialog/textCaseSensitive", false).toBool());
+
     if (searchDialog->exec() != QDialog::Accepted)
         return;
     
+    settings.setValue("searchDialog/geometry", searchDialog->saveGeometry());
+    settings.setValue("searchDialog/currentScopeMode", searchDialog->ui->tabWidget->currentIndex());
+    if (searchDialog->ui->hexScopeHeaderRadioButton->isChecked())
+        mode = SEARCH_MODE_HEADER;
+    else if (searchDialog->ui->hexScopeBodyRadioButton->isChecked())
+        mode = SEARCH_MODE_BODY;
+    else
+        mode = SEARCH_MODE_ALL;
+    settings.setValue("searchDialog/hexScopeMode", mode);
+    if (searchDialog->ui->guidScopeHeaderRadioButton->isChecked())
+        mode = SEARCH_MODE_HEADER;
+    else if (searchDialog->ui->guidScopeBodyRadioButton->isChecked())
+        mode = SEARCH_MODE_BODY;
+    else
+        mode = SEARCH_MODE_ALL;
+    settings.setValue("searchDialog/guidScopeMode", mode);
+    if (searchDialog->ui->textScopeHeaderRadioButton->isChecked())
+        mode = SEARCH_MODE_HEADER;
+    else if (searchDialog->ui->textScopeBodyRadioButton->isChecked())
+        mode = SEARCH_MODE_BODY;
+    else
+        mode = SEARCH_MODE_ALL;
+    settings.setValue("searchDialog/textScopeMode", mode);
+    settings.setValue("searchDialog/textUnicode", searchDialog->ui->textUnicodeCheckBox->isChecked());
+    settings.setValue("searchDialog/textCaseSensitive", searchDialog->ui->textCaseSensitiveCheckBox->isChecked());
+
     int index = searchDialog->ui->tabWidget->currentIndex();
     if (index == 0) { // Hex pattern
         searchDialog->ui->hexEdit->setFocus();
@@ -727,6 +816,144 @@ void UEFITool::saveImageFile()
     
 }
 
+void UEFITool::onDockStateChange(const bool topLevel)
+{
+    QDockWidget* dock = qobject_cast<QDockWidget*>(sender());
+    if (dock)
+        updateDock(dock);
+}
+
+void UEFITool::updateDock(QDockWidget* const dock)
+{
+    if (!dock || dock->isHidden())
+        return;
+    if (!dock->widget() || !dock->widget()->layout())
+        return;
+
+    QWidget *widget = dock->titleBarWidget();
+    QMargins margins = dock->widget()->layout()->contentsMargins();
+    int ref = margins.left();
+    margins.setTop(ref);
+
+    if (widget) {
+        dock->setTitleBarWidget(nullptr);
+        delete widget;
+    }
+
+    // Floating? Using built-in title
+    if (dock->isFloating()) {
+        dock->widget()->layout()->setContentsMargins(margins);
+        return;
+    }
+
+    widget = new QWidget();
+    auto layout = new QHBoxLayout(widget);
+    dock->setTitleBarWidget(widget);
+    QString titleText = dock->windowTitle();
+
+    // Tabified? Using blank title
+    if (!tabifiedDockWidgets(dock).isEmpty()) {
+        for (auto tabBar : findChildren<QTabBar*>()) {
+            for (int i = tabBar->count() - 1; i >= 0; i--) {
+                // Hope all docks have different titles
+                if (titleText == tabBar->tabText(i)) {
+                    layout->setContentsMargins(0, ref, 0, 0);
+                    dock->widget()->layout()->setContentsMargins(ref, 0, ref, ref);
+                    QPalette palette = QApplication::palette();
+                    tabBar->setTabTextColor(i, !dock->isEnabled()
+                        ? palette.color(QPalette::Disabled, QPalette::WindowText)
+                            : dock->isVisible()
+                                ? palette.color(QPalette::Active, QPalette::WindowText)
+                                    : palette.color(QPalette::Inactive, QPalette::WindowText));
+                    return;
+                }
+            }
+        }
+    }
+
+    // Docked? Setup own title with text
+    layout->setContentsMargins(ref, ref / 2, ref, 0);
+    auto titleLabel = new QLabel(titleText);
+    layout->addWidget(titleLabel);
+    dock->widget()->layout()->setContentsMargins(ref, ref / 2, ref, ref);
+
+}
+
+bool UEFITool::checkDock(QDockWidget* const dock)
+{
+    if (!dock || dock->isHidden())
+        return true;
+    if (!dock->widget() || !dock->widget()->layout())
+        return true;
+
+    QWidget* widget = dock->titleBarWidget();
+    // floating dock - no title widget
+    if (dock->isFloating())
+        return widget ? false : true;
+    // tabified dock - title widget with blank layout
+    if (!widget || !widget->layout())
+        return false;
+    if (!tabifiedDockWidgets(dock).isEmpty())
+        return true;
+    // sticked dock - title widget with layout with text widget(s)
+    return widget->layout()->findChildren<QLabel*>().isEmpty() ? false : true;
+}
+
+void UEFITool::enableDock(QDockWidget* const dock, const bool enable)
+{
+    if (!dock)
+        return;
+
+    dock->setEnabled(enable);
+    updateDock(dock);
+}
+
+void UEFITool::checkAndUpdateDocks()
+{
+    for (auto dock : findChildren<QDockWidget*>()) {
+        if (!checkDock(dock))
+            updateDock(dock);
+    }
+}
+
+void UEFITool::resetDocks()
+{
+    selectedHexView.setReadOnly(true);
+
+    addDockWidget(Qt::LeftDockWidgetArea, ui->structureTreeDock);
+    addDockWidget(Qt::RightDockWidgetArea, ui->infoDock);
+    addDockWidget(Qt::BottomDockWidgetArea, ui->parserMessagesDock);
+    tabifyDockWidget(ui->parserMessagesDock, ui->fitDock);
+    tabifyDockWidget(ui->fitDock, ui->securityDock);
+    tabifyDockWidget(ui->securityDock, ui->finderMessagesDock);
+    tabifyDockWidget(ui->finderMessagesDock, ui->builderMessagesDock);
+    ui->parserMessagesDock->raise();
+    tabifyDockWidget(ui->infoDock, ui->hexViewDock);
+    ui->infoDock->raise();
+
+    QSize mainSize = size();
+    int totalWidth = mainSize.width();
+    int leftWidth = totalWidth * 2 / 3;
+    resizeDocks({ ui->structureTreeDock, ui->infoDock },
+        { leftWidth, totalWidth - leftWidth }, Qt::Horizontal);
+
+    int totalHeight = mainSize.height();
+    int topHeight = totalHeight * 4 / 5;
+    resizeDocks({ ui->structureTreeDock, ui->parserMessagesDock },
+        { topHeight, totalHeight - topHeight }, Qt::Vertical);
+
+    QMargins margins = ui->structureTreeWidgetContents->layout()->contentsMargins();
+
+    for (auto dock : findChildren<QDockWidget*>()) {
+        dock->setContentsMargins(0, 0, 0, 0);
+        dock->layout()->setContentsMargins(0, 0, 0, 0);
+        dock->widget()->setContentsMargins(0, 0, 0, 0);
+        dock->widget()->layout()->setContentsMargins(margins);
+        dock->setWindowFlags(dock->windowFlags() | Qt::WindowTitleHint);
+        updateDock(dock);
+    }
+}
+
 void UEFITool::openImageFile()
 {
     QString path = QFileDialog::getOpenFileName(this, tr("Open BIOS image file"), openImageDir, tr("BIOS image files (*.rom *.bin *.cap *.scap *.bio *.fd *.wph *.dec);;All files (*)"));
@@ -790,6 +1017,7 @@ void UEFITool::openImageFile(QString path)
         ui->statusBar->showMessage(tr("Opened: %1").arg(fileInfo.fileName()));
     }
     ffsParser->outputInfo();
+    enableDock(ui->structureTreeDock, true);
     
     // Enable or disable FIT tab
     showFitTable();
@@ -828,6 +1056,9 @@ void UEFITool::openImageFile(QString path)
 
     // Update menu
     updateRecentFilesMenu(currentPath);
+
+    QModelIndex root = model->index(0, 0, QModelIndex());
+    ui->structureTreeView->selectionModel()->select(root, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
 }
 
 void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
@@ -841,11 +1072,12 @@ void UEFITool::enableMessagesCopyActions(QListWidgetItem* item)
 void UEFITool::copyMessage()
 {
     clipboard->clear();
-    if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) // Parser tab
+
+    if (contextEventWidget == ui->parserMessagesListWidget) // Parser tab
         clipboard->setText(ui->parserMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) // Search tab
+    else if (contextEventWidget == ui->finderMessagesListWidget) // Search tab
         clipboard->setText(ui->finderMessagesListWidget->currentItem()->text());
-    else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) // Builder tab
+    else if (contextEventWidget == ui->builderMessagesListWidget) // Builder tab
         clipboard->setText(ui->builderMessagesListWidget->currentItem()->text());
 }
 
@@ -853,17 +1085,18 @@ void UEFITool::copyAllMessages()
 {
     QString text;
     clipboard->clear();
-    if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) { // Parser tab
+
+    if (contextEventWidget == ui->parserMessagesListWidget) { // Parser tab
         for (INT32 i = 0; i < ui->parserMessagesListWidget->count(); i++)
             text.append(ui->parserMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) {  // Search tab
+    else if (contextEventWidget == ui->finderMessagesListWidget) {  // Search tab
         for (INT32 i = 0; i < ui->finderMessagesListWidget->count(); i++)
             text.append(ui->finderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
     }
-    else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) {  // Builder tab
+    else if (contextEventWidget == ui->builderMessagesListWidget) {  // Builder tab
         for (INT32 i = 0; i < ui->builderMessagesListWidget->count(); i++)
             text.append(ui->builderMessagesListWidget->item(i)->text()).append("\n");
         clipboard->setText(text);
@@ -872,15 +1105,15 @@ void UEFITool::copyAllMessages()
 
 void UEFITool::clearMessages()
 {
-    if (ui->messagesTabWidget->currentIndex() == TAB_PARSER) { // Parser tab
+    if (contextEventWidget == ui->parserMessagesListWidget) { // Parser tab
         if (ffsParser) ffsParser->clearMessages();
         ui->parserMessagesListWidget->clear();
     }
-    else if (ui->messagesTabWidget->currentIndex() == TAB_SEARCH) {  // Search tab
+    else if (contextEventWidget == ui->finderMessagesListWidget) {  // Search tab
         if (ffsFinder) ffsFinder->clearMessages();
         ui->finderMessagesListWidget->clear();
     }
-    else if (ui->messagesTabWidget->currentIndex() == TAB_BUILDER) {  // Builder tab
+    else if (contextEventWidget == ui->builderMessagesListWidget) {  // Builder tab
         if (ffsBuilder) ffsBuilder->clearMessages();
         ui->builderMessagesListWidget->clear();
     }
@@ -940,7 +1173,8 @@ void UEFITool::showParserMessages()
         ui->parserMessagesListWidget->addItem(item);
     }
         
-    ui->messagesTabWidget->setCurrentIndex(TAB_PARSER);
+    enableDock(ui->parserMessagesDock, true);
+    ui->parserMessagesDock->raise();
     ui->parserMessagesListWidget->scrollToBottom();
 }
 
@@ -958,8 +1192,8 @@ void UEFITool::showFinderMessages()
         ui->finderMessagesListWidget->addItem(item);
     }
     
-    ui->messagesTabWidget->setTabEnabled(TAB_SEARCH, true);
-    ui->messagesTabWidget->setCurrentIndex(TAB_SEARCH);
+    enableDock(ui->finderMessagesDock, true);
+    ui->finderMessagesDock->raise();
     ui->finderMessagesListWidget->scrollToBottom();
 }
 
@@ -977,8 +1211,8 @@ void UEFITool::showBuilderMessages()
         ui->builderMessagesListWidget->addItem(item);
     }
     
-    ui->messagesTabWidget->setTabEnabled(TAB_BUILDER, true);
-    ui->messagesTabWidget->setCurrentIndex(TAB_BUILDER);
+    enableDock(ui->builderMessagesDock, true);
+    ui->builderMessagesDock->raise();
     ui->builderMessagesListWidget->scrollToBottom();
 }
 
@@ -994,6 +1228,9 @@ void UEFITool::scrollTreeView(QListWidgetItem* item)
 
 void UEFITool::scrollTreeView(QTableWidgetItem* item)
 {
+    if (!item)
+        return;
+
     QByteArray second = item->data(Qt::UserRole).toByteArray();
     QModelIndex *index = (QModelIndex *)second.data();
     if (index && index->isValid()) {
@@ -1004,34 +1241,54 @@ void UEFITool::scrollTreeView(QTableWidgetItem* item)
 
 void UEFITool::contextMenuEvent(QContextMenuEvent* event)
 {
-    // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
-    // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
-    // For this reason we reimplement this manually.
-    if (ui->parserMessagesListWidget->rect().contains(ui->parserMessagesListWidget->mapFromGlobal(event->globalPos())) ||
-        ui->finderMessagesListWidget->rect().contains(ui->finderMessagesListWidget->mapFromGlobal(event->globalPos())) ||
-        ui->builderMessagesListWidget->rect().contains(ui->builderMessagesListWidget->mapFromGlobal(event->globalPos()))) {
-        ui->menuMessageActions->exec(event->globalPos());
+    if (!event)
         return;
+
+    QPoint gp = event->globalPos();
+    for (QListWidget* list : { ui->parserMessagesListWidget, ui->finderMessagesListWidget, ui->builderMessagesListWidget}) {
+        // The checks involving underMouse do not work well enough on macOS, and result in right-click sometimes
+        // not showing any context menu at all. Most likely it is a bug in Qt, which does not affect other systems.
+        // For this reason we reimplement this manually.
+        if (list->rect().contains(list->mapFromGlobal(gp))) {
+            contextEventWidget = list;
+            QListWidgetItem* item = list->itemAt(list->mapFromGlobal(gp));
+            if (item)
+                enableMessagesCopyActions(item);
+            ui->menuMessageActions->exec(gp);
+            contextEventWidget = nullptr;
+            break;
+        }
     }
     
-    
-    if (!ui->structureTreeView->rect().contains(ui->structureTreeView->mapFromGlobal(event->globalPos())))
-        return;
-    
     QPoint pt = event->pos();
+    if (!ui->structureTreeView->rect().contains(ui->structureTreeView->mapFromGlobal(gp))) {
+        QWidget* widget = childAt(pt);
+        while (widget) {
+            if (qobject_cast<QDockWidget*>(widget))
+                return;
+            widget = widget->parentWidget();
+        }
+        QMenu* menu = this->createPopupMenu();
+        if (menu) {
+            menu->exec(gp);
+            menu->deleteLater();
+        }
+    }
+    
     QModelIndex index = ui->structureTreeView->indexAt(ui->structureTreeView->viewport()->mapFrom(this, pt));
     if (!index.isValid()) {
         return;
     }
     
+    QMenu* menu = nullptr;
     switch (model->type(index)) {
-        case Types::Capsule:        ui->menuCapsuleActions->exec(event->globalPos());      break;
-        case Types::Image:          ui->menuImageActions->exec(event->globalPos());        break;
-        case Types::Region:         ui->menuRegionActions->exec(event->globalPos());       break;
-        case Types::Padding:        ui->menuPaddingActions->exec(event->globalPos());      break;
-        case Types::Volume:         ui->menuVolumeActions->exec(event->globalPos());       break;
-        case Types::File:           ui->menuFileActions->exec(event->globalPos());         break;
-        case Types::Section:        ui->menuSectionActions->exec(event->globalPos());      break;
+        case Types::Capsule:        menu = ui->menuCapsuleActions;                         break;
+        case Types::Image:          menu = ui->menuImageActions;                           break;
+        case Types::Region:         menu = ui->menuRegionActions;                          break;
+        case Types::Padding:        menu = ui->menuPaddingActions;                         break;
+        case Types::Volume:         menu = ui->menuVolumeActions;                          break;
+        case Types::File:           menu = ui->menuFileActions;                            break;
+        case Types::Section:        menu = ui->menuSectionActions;                         break;
         case Types::VssStore:
         case Types::Vss2Store:
         case Types::FdcStore:
@@ -1045,9 +1302,18 @@ void UEFITool::contextMenuEvent(QContextMenuEvent* event)
         case Types::CmdbStore:
         case Types::FptStore:
         case Types::CpdStore:
-        case Types::BpdtStore:      ui->menuStoreActions->exec(event->globalPos());        break;
+        case Types::BpdtStore:      menu = ui->menuStoreActions;                           break;
         case Types::FreeSpace:      break; // No menu needed for FreeSpace item
-        default:                    ui->menuEntryActions->exec(event->globalPos());        break;
+        default:                    menu = ui->menuEntryActions;                           break;
+    }
+
+    if (menu) {
+        QList<QAction*> actions = menu->actions();
+        QAction *separator = new QAction(nullptr);
+        separator->setSeparator(true);
+        QMenu::exec(
+            actions << separator << ui->actionExpandItemRecursively << ui->actionCollapseItemRecursively, gp);
+        delete separator;
     }
 }
 
@@ -1055,14 +1321,11 @@ void UEFITool::readSettings()
 {
     QSettings settings(this);
     restoreGeometry(settings.value("mainWindow/geometry").toByteArray());
-    restoreState(settings.value("mainWindow/windowState").toByteArray());
-    QList<int> horList, vertList;
-    horList.append(settings.value("mainWindow/treeWidth", 600).toInt());
-    horList.append(settings.value("mainWindow/infoWidth", 180).toInt());
-    vertList.append(settings.value("mainWindow/treeHeight", 400).toInt());
-    vertList.append(settings.value("mainWindow/messageHeight", 180).toInt());
-    ui->infoSplitter->setSizes(horList);
-    ui->messagesSplitter->setSizes(vertList);
+    QByteArray state = settings.value("mainWindow/windowState").toByteArray();
+    if (state.size() > 0x100)   // stupid check for transition from classic UI to docks
+        restoreState(state);
+    else
+        resetDocks();
     ui->structureTreeView->setColumnWidth(0, settings.value("tree/columnWidth0", ui->structureTreeView->columnWidth(0)).toInt());
     ui->structureTreeView->setColumnWidth(1, settings.value("tree/columnWidth1", ui->structureTreeView->columnWidth(1)).toInt());
     ui->structureTreeView->setColumnWidth(2, settings.value("tree/columnWidth2", ui->structureTreeView->columnWidth(2)).toInt());
@@ -1073,7 +1336,7 @@ void UEFITool::readSettings()
     openGuidDatabaseDir = settings.value("paths/openGuidDatabaseDir", ".").toString();
     extractDir = settings.value("paths/extractDir", ".").toString();
     recentFiles = settings.value("paths/recentFiles").toStringList();
-    
+
     // Set monospace font
     QString fontName;
     int fontSize;
@@ -1090,6 +1353,9 @@ void UEFITool::readSettings()
     currentFont = QFont(fontName, fontSize);
     currentFont.setStyleHint(QFont::Monospace);
     QApplication::setFont(currentFont);
+    QFont hexFont = currentFont;
+    hexFont.setStretch(QFont::SemiCondensed);
+    selectedHexView.setFont(hexFont);
 }
 
 void UEFITool::writeSettings()
@@ -1097,10 +1363,6 @@ void UEFITool::writeSettings()
     QSettings settings(this);
     settings.setValue("mainWindow/geometry", saveGeometry());
     settings.setValue("mainWindow/windowState", saveState());
-    settings.setValue("mainWindow/treeWidth", ui->structureGroupBox->width());
-    settings.setValue("mainWindow/infoWidth", ui->infoGroupBox->width());
-    settings.setValue("mainWindow/treeHeight", ui->structureGroupBox->height());
-    settings.setValue("mainWindow/messageHeight", ui->messagesTabWidget->height());
     settings.setValue("tree/columnWidth0", ui->structureTreeView->columnWidth(0));
     settings.setValue("tree/columnWidth1", ui->structureTreeView->columnWidth(1));
     settings.setValue("tree/columnWidth2", ui->structureTreeView->columnWidth(2));
@@ -1119,12 +1381,12 @@ void UEFITool::showFitTable()
     std::vector<std::pair<std::vector<UString>, UModelIndex> > fitTable = ffsParser->getFitTable();
     if (fitTable.empty()) {
         // Disable FIT tab
-        ui->messagesTabWidget->setTabEnabled(TAB_FIT, false);
+        enableDock(ui->fitDock, false);
         return;
     }
     
     // Enable FIT tab
-    ui->messagesTabWidget->setTabEnabled(TAB_FIT, true);
+    enableDock(ui->fitDock, true);
     
     // Set up the FIT table
     ui->fitTableWidget->clear();
@@ -1147,7 +1409,7 @@ void UEFITool::showFitTable()
     
     ui->fitTableWidget->resizeColumnsToContents();
     ui->fitTableWidget->resizeRowsToContents();
-    ui->messagesTabWidget->setCurrentIndex(TAB_FIT);
+    ui->fitDock->raise();
 }
 
 void UEFITool::showSecurityInfo()
@@ -1155,23 +1417,13 @@ void UEFITool::showSecurityInfo()
     // Get security info
     UString secInfo = ffsParser->getSecurityInfo();
     if (secInfo.isEmpty()) {
-        ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, false);
+        enableDock(ui->securityDock, false);
         return;
     }
     
-    ui->messagesTabWidget->setTabEnabled(TAB_SECURITY, true);
+    enableDock(ui->securityDock, true);
     ui->securityEdit->setPlainText(secInfo);
-    ui->messagesTabWidget->setCurrentIndex(TAB_SECURITY);
-}
-
-void UEFITool::currentTabChanged(int index)
-{
-    U_UNUSED_PARAMETER(index);
-    
-    ui->menuMessageActions->setEnabled(false);
-    ui->actionMessagesCopy->setEnabled(false);
-    ui->actionMessagesCopyAll->setEnabled(false);
-    ui->actionMessagesClear->setEnabled(false);
+    ui->securityDock->raise();
 }
 
 void UEFITool::loadGuidDatabase()

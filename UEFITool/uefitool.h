@@ -35,6 +35,7 @@
 #include <QStyleFactory>
 #include <QString>
 #include <QTableWidget>
+#include <QTimer>
 #include <QTreeView>
 #include <QUrl>
 
@@ -52,6 +53,7 @@
 #include "gotoaddressdialog.h"
 #include "hexviewdialog.h"
 #include "ffsfinder.h"
+
 
 namespace Ui {
     class UEFITool;
@@ -119,6 +121,11 @@ private slots:
     void collapseItemRecursively();
 
     void toggleBootGuardMarking(bool enabled);
+    void onDockStateChange(const bool state);
+    void enableDock(QDockWidget* const dock, const bool enable);
+    void resetDocks();
+    void updateDock(QDockWidget* const dock);
+    void checkAndUpdateDocks();
 
     void about();
     void aboutQt();
@@ -132,8 +139,6 @@ private slots:
     void exportDiscoveredGuids();
 
     void generateReport();
-
-    void currentTabChanged(int index);
 
     void hashCrc32();
     void hashSha1();
@@ -173,8 +178,11 @@ private:
     GoToBaseDialog* goToBaseDialog;
     GoToAddressDialog* goToAddressDialog;
     QClipboard* clipboard;
+    QWidget* contextEventWidget;
     QStringList recentFiles;
     QList<QAction*> recentFileActions;
+    QTimer dockTimer;
+    QHexView selectedHexView;
     QString currentDir;
     QString currentPath;
     QString currentProgramPath;
@@ -191,6 +199,7 @@ private:
     void contextMenuEvent(QContextMenuEvent* event);
     void updateRecentFilesMenu(const QString& fileName = QString());
     void readSettings();
+    bool checkDock(QDockWidget* const dock);
     void showParserMessages();
     void showFinderMessages();
     void showFitTable();
@@ -205,14 +214,6 @@ private:
     void doSha384(QByteArray data);
     void doSha512(QByteArray data);
     void doSm3(QByteArray data);
-    
-    enum {
-        TAB_PARSER,
-        TAB_FIT,
-        TAB_SECURITY,
-        TAB_SEARCH,
-        TAB_BUILDER
-    };
 };
 
 #endif // UEFITOOL_H
