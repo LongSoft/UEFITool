@@ -591,9 +591,9 @@ UModelIndex TreeModel::findLastParentOfType(const UModelIndex& index, UINT8 type
     return lastParentOfType;
 }
 
-UModelIndex TreeModel::findByBase(UINT32 base) const
+UModelIndex TreeModel::findByBase(const UINT32 base, const UModelIndex& parent) const
 {
-    UModelIndex parentIndex = index(0,0);
+    UModelIndex parentIndex = parent.isValid() ? parent : index(0,0);
     
 goDeeper:
     int n = rowCount(parentIndex);
@@ -611,4 +611,12 @@ goDeeper:
     }
     
     return (parentIndex == index(0, 0) ? UModelIndex() : parentIndex);
+}
+
+UModelIndex TreeModel::updatedIndex(const UModelIndex* oldIndex) const
+{
+    if (!oldIndex || !oldIndex->isValid())
+        return UModelIndex();
+
+    return index(static_cast<TreeItem*>(oldIndex->internalPointer())->row(), 0, oldIndex->parent());
 }

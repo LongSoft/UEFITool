@@ -18,6 +18,7 @@
 UString regionTypeToUString(const UINT8 type)
 {
     switch (type) {
+        // Intel specific
         case Subtypes::DescriptorRegion:  return UString("Descriptor");
         case Subtypes::BiosRegion:        return UString("BIOS");
         case Subtypes::MeRegion:          return UString("ME");
@@ -34,6 +35,10 @@ UString regionTypeToUString(const UINT8 type)
         case Subtypes::Reserved1Region:   return UString("Reserved1");
         case Subtypes::Reserved2Region:   return UString("Reserved2");
         case Subtypes::PttRegion:         return UString("PTT");
+        // AMD specific
+        case Subtypes::PspL1DirectoryRegion:return UString("PSP directory");
+        case Subtypes::PspL2DirectoryRegion:return UString("PSP L2 directory");
+        case Subtypes::PspDirectoryFile:    return UString("PSP file");
     };
     
     return  usprintf("Unknown %02Xh", type);
@@ -85,6 +90,8 @@ UString itemTypeToUString(const UINT8 type)
         case Types::CpdExtension:               return UString("CPD extension");
         case Types::CpdSpiEntry:                return UString("CPD SPI entry");
         case Types::StartupApDataEntry:         return UString("Startup AP data");
+        case Types::DirectoryTable:             return UString("Table");
+        case Types::DirectoryTableEntry:        return UString("Table entry");
     }
     
     return usprintf("Unknown %02Xh", type);
@@ -96,6 +103,7 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         case Types::Image:
             if      (subtype == Subtypes::IntelImage)                   return UString("Intel");
             else if (subtype == Subtypes::UefiImage)                    return UString("UEFI");
+            else if (subtype == Subtypes::AmdImage)                     return UString("AMD");
             break;
         case Types::Padding:
             if      (subtype == Subtypes::ZeroPadding)                  return UString("Empty (00h)");
@@ -179,6 +187,17 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
             break;
         case Types::StartupApDataEntry:
             if      (subtype == Subtypes::x86128kStartupApDataEntry)    return UString("X86 128K");
+            break;
+        case Types::DirectoryTable:
+            if (subtype == Subtypes::PSPDirectory)                 return UString("PSP table");
+            if (subtype == Subtypes::ComboDirectory)               return UString("Combo table");
+            if (subtype == Subtypes::BiosDirectory)                return UString("BIOS table");
+            if (subtype == Subtypes::ISHDirectory)                 return UString("ISH table");
+            break;
+        case Types::DirectoryTableEntry:
+            if (subtype == Subtypes::PSPDirectory)                 return UString("PSP directory");
+            if (subtype == Subtypes::ComboDirectory)               return UString("Combo directory");
+            if (subtype == Subtypes::BiosDirectory)                return UString("BIOS directory");
             break;
     }
     

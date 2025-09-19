@@ -210,7 +210,9 @@ public:
 
     UModelIndex findParentOfType(const UModelIndex & index, UINT8 type) const;
     UModelIndex findLastParentOfType(const UModelIndex & index, UINT8 type) const;
-    UModelIndex findByBase(UINT32 base) const;
+    UModelIndex findByBase(const UINT32 base, const UModelIndex& parent = UModelIndex()) const;
+
+    UModelIndex updatedIndex(const UModelIndex* oldIndex) const;
 };
 
 #if defined(QT_CORE_LIB)

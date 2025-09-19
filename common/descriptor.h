@@ -191,6 +191,364 @@ typedef struct VSCC_TABLE_ENTRY_ {
 #define FLASH_DESCRIPTOR_OEM_SECTION_BASE 0x0F00
 #define FLASH_DESCRIPTOR_OEM_SECTION_SIZE 0x100
 
+
+// AMD signatures
+#define AMD_EMBEDDED_FIRMWARE_SIGNATURE             0x55AA55AA
+#define AMD_PSP_DIRECTORY_HEADER_SIGNATURE          0x50535024  // "$PSP"
+#define AMD_PSPL2_DIRECTORY_HEADER_SIGNATURE        0x324c5024  // "$PL2"
+#define AMD_BIOS_HEADER_SIGNATURE                   0x44484224  // "$BHD"
+#define AMD_BHDL2_HEADER_SIGNATURE                  0x324c4224  // "$BL2"
+#define AMD_PSP_COMBO_DIRECTORY_HEADER_SIGNATURE    0x50535032  // "2PSP"
+#define AMD_PSP_BHD2_DIRECTORY_HEADER_SIGNATURE     0x44484232  // "2BHD"
+
+#define AMD_EFS_GEN1                                0xFFFFFFFFUL
+
+#define AMD_EMBEDDED_FIRMWARE_OFFSET                0x20000
+
+#define AMD_MAX_PSP_ENTRIES                         0xFF
+#define AMD_MAX_BIOS_ENTRIES                        0x2F
+#define AMD_MAX_COMBO_ENTRIES                       2
+#define AMD_INVALID_SIZE                            0xFFFFFFFFUL
+
+/* An address can be relative to the image/file start but it can also be the address when
+ * the image is mapped at 0xff000000. Used to ensure that we only attempt to read within
+ * the limits of the file. */
+#define SPI_ROM_BASE                                0xFF000000UL
+#define FILE_REL_MASK                               (~SPI_ROM_BASE)
+
+typedef enum AMD_ADDR_MODE_ {
+    AMD_ADDR_PHYSICAL = 0,	    // Physical address
+    AMD_ADDR_REL_BIOS,	        // Relative to beginning of image
+    AMD_ADDR_REL_TABLE,	        // Relative to table
+    AMD_ADDR_REL_SLOT,	        // Relative to table entry
+} AMD_ADDR_MODE;
+
+typedef enum AMD_BIOS_TYPE_ {
+    AMD_BIOS_SIG = 0x07,
+    AMD_BIOS_APCB = 0x60,
+    AMD_BIOS_APOB = 0x61,
+    AMD_BIOS_BIN = 0x62,
+    AMD_BIOS_APOB_NV = 0x63,
+    AMD_BIOS_PMUI = 0x64,
+    AMD_BIOS_PMUD = 0x65,
+    AMD_BIOS_UCODE = 0x66,
+    AMD_BIOS_FHP_DRIVER = 0x67,
+    AMD_BIOS_APCB_BK = 0x68,
+    AMD_BIOS_EARLY_VGA = 0x69,
+    AMD_BIOS_MP2_CFG = 0x6a,
+    AMD_BIOS_PSP_SHARED_MEM = 0x6b,
+    AMD_BIOS_L2_PTR = 0x70,
+    AMD_BIOS_INVALID,
+    AMD_BIOS_SKIP
+} AMD_BIOS_TYPE;
+
+typedef enum AMD_FW_TYPE_ {
+    AMD_FW_PSP_PUBKEY = 0x00,
+    AMD_FW_PSP_BOOTLOADER = 0x01,
+    AMD_FW_PSP_SECURED_OS = 0x02,
+    AMD_FW_PSP_RECOVERY = 0x03,
+    AMD_FW_PSP_NVRAM = 0x04,
+    AMD_FW_RTM_PUBKEY = 0x05,
+    AMD_FW_PSP_SMU_FIRMWARE = 0x08,
+    AMD_FW_PSP_SECURED_DEBUG = 0x09,
+    AMD_FW_ABL_PUBKEY = 0x0a,
+    AMD_PSP_FUSE_CHAIN = 0x0b,
+    AMD_FW_PSP_TRUSTLETS = 0x0c,
+    AMD_FW_PSP_TRUSTLETKEY = 0x0d,
+    AMD_FW_PSP_SMU_FIRMWARE2 = 0x12,
+    AMD_DEBUG_UNLOCK = 0x13,
+    AMD_FW_PSP_TEEIPKEY = 0x15,
+    AMD_SEV_DRIVER = 0x1a,
+    AMD_BOOT_DRIVER = 0x1b,
+    AMD_SOC_DRIVER = 0x1c,
+    AMD_DEBUG_DRIVER = 0x1d,
+    AMD_INTERFACE_DRIVER = 0x1f,
+    AMD_HW_IPCFG = 0x20,
+    AMD_WRAPPED_IKEK = 0x21,
+    AMD_TOKEN_UNLOCK = 0x22,
+    AMD_SEC_GASKET = 0x24,
+    AMD_MP2_FW = 0x25,
+    AMD_DRIVER_ENTRIES = 0x28,
+    AMD_FW_KVM_IMAGE = 0x29,
+    AMD_FW_MP5 = 0x2a,
+    AMD_S0I3_DRIVER = 0x2d,
+    AMD_ABL0 = 0x30,
+    AMD_ABL1 = 0x31,
+    AMD_ABL2 = 0x32,
+    AMD_ABL3 = 0x33,
+    AMD_ABL4 = 0x34,
+    AMD_ABL5 = 0x35,
+    AMD_ABL6 = 0x36,
+    AMD_ABL7 = 0x37,
+    AMD_SEV_DATA = 0x38,
+    AMD_SEV_CODE = 0x39,
+    AMD_FW_PSP_WHITELIST = 0x3a,
+    AMD_VBIOS_BTLOADER = 0x3c,
+    AMD_FW_L2_PTR = 0x40,
+    AMD_FW_DXIO = 0x42,
+    AMD_FW_USB_PHY = 0x44,
+    AMD_FW_TOS_SEC_POLICY = 0x45,
+    AMD_FW_DRTM_TA = 0x47,
+    AMD_FW_RECOVERYAB_A = 0x48,
+    AMD_FW_RECOVERYAB_B = 0x4A,
+    AMD_FW_BIOS_TABLE = 0x49,
+    AMD_FW_KEYDB_BL = 0x50,
+    AMD_FW_KEYDB_TOS = 0x51,
+    AMD_FW_PSP_VERSTAGE = 0x52,
+    AMD_FW_VERSTAGE_SIG = 0x53,
+    AMD_RPMC_NVRAM = 0x54,
+    AMD_FW_SPL = 0x55,
+    AMD_FW_DMCU_ERAM = 0x58,
+    AMD_FW_DMCU_ISR = 0x59,
+    AMD_FW_MSMU = 0x5a,
+    AMD_FW_SPIROM_CFG = 0x5c,
+    AMD_FW_MPIO = 0x5d,
+    AMD_FW_TPMLITE = 0x5f, /* family 17h & 19h */
+    AMD_FW_PSP_SMUSCS = 0x5f, /* family 15h & 16h */
+    AMD_FW_DMCUB = 0x71,
+    AMD_FW_PSP_BOOTLOADER_AB = 0x73,
+    AMD_RIB = 0x76,
+    AMD_FW_AMF_SRAM = 0x85,
+    AMD_FW_AMF_DRAM = 0x86,
+    AMD_FW_MFD_MPM = 0x87,
+    AMD_FW_AMF_WLAN = 0x88,
+    AMD_FW_AMF_MFD = 0x89,
+    AMD_FW_MPDMA_TF = 0x8c,
+    AMD_TA_IKEK = 0x8d,
+    AMD_FW_MPCCX = 0x90,
+    AMD_FW_GMI3_PHY = 0x91,
+    AMD_FW_MPDMA_PM = 0x92,
+    AMD_FW_LSDMA = 0x94,
+    AMD_FW_C20_MP = 0x95,
+    AMD_FW_FCFG_TABLE = 0x98,
+    AMD_FW_MINIMSMU = 0x9a,
+    AMD_FW_GFXIMU_0 = 0x9b,
+    AMD_FW_GFXIMU_1 = 0x9c,
+    AMD_FW_GFXIMU_2 = 0x9d,
+    AMD_FW_SRAM_FW_EXT = 0x9d,
+    AMD_FW_TOS_WL_BIN = 0x9f,
+    AMD_FW_UMSMU = 0xa2,
+    AMD_FW_S3IMG = 0xa0,
+    AMD_FW_USBDP = 0xa4,
+    AMD_FW_USBSS = 0xa5,
+    AMD_FW_USB4 = 0xa6,
+    AMD_FW_IMC = 0x200,	/* Large enough to be larger than the top BHD entry type. */
+    AMD_FW_GEC,
+    AMD_FW_XHCI,
+    AMD_FW_INVALID,		/* Real last one to detect the last entry in table. */
+    AMD_FW_SKIP		/* This is for non-applicable options. */
+} AMD_FW_TYPE;
+
+// Embedded firmware descriptor
+typedef struct AMD_EMBEDDED_FIRMWARE_ {
+    UINT32 Signature;           // 0x55AA55AA
+    UINT32 IMC_Firmware;        // Pointer to IMC blob
+    UINT32 GEC_Firmware;        // Pointer to GEC blob
+    UINT32 xHCI_Firmware;       // Pointer to xHCI blob
+    UINT32 PSP_Directory;       // Use NewPSP_Directory when 0 or AMD_INVALID_SIZE
+    UINT32 NewPSP_Directory;    // Could be upper 32-bit of PSP_Directory
+    UINT32 BIOS0_Entry;         // Unused?
+    UINT32 BIOS1_Entry;         // Used by EFS1.0
+    // Might be a BIOS directory or Combo directory table
+    UINT32 BIOS2_Entry;         // Unused?
+    UINT32 EFS_Generation;      // only used after RAVEN/PICASSO
+    // EFS 1.0
+    //  PLATFORM_CARRIZO      15h (60-6fh)  10220B00h
+    //  PLATFORM_STONEYRIDGE  15h (60-6fh)  10220B00h
+    //  PLATFORM_RAVEN        17h (00-0fh)  BC0A0000h
+    //  PLATFORM_PICASSO      17h (10-2fh)  BC0A0000h
+    // EFS 2.0
+    //  PLATFORM_RENOIR       17h (10-1fh)  BC0C0000h
+    //  PLATFORM_LUCIENNE     17h (60-6fh)  BC0C0000h
+    //  PLATFORM_CEZANNE      19h (50-5fh)  BC0C0140h
+    //  PLATFORM_MENDOCINO    17h (A0-Afh)  BC0D0900h
+    //  PLATFORM_PHOENIX      19h (70-7fh)  BC0D0400h
+    //  PLATFORM_GLINDA       17h
+    //  PLATFORM_GENOA        19h           BC0C0111h
+    //  PLATFORM_FAEGAN       19h           BC0E1000h
+    UINT32 BIOS3_Entry;         // only used when not using A/B recovery
+    // Might be a BIOS directory or Combo directory table
+    UINT32 BackupPSP_Directory;
+    UINT32 Promontory_Firmware;
+    UINT32 Reserved_1[6];
+} AMD_EMBEDDED_FIRMWARE;
+
+#define AMD_ADDITIONAL_INFO_V0_DEF \
+    UINT32               \
+        DirSize     : 10,\
+        SpiBlockSize: 4, \
+        BaseAddress : 15,\
+        AddrMode    : 2, \
+        Version     : 1
+
+#define AMD_ADDITIONAL_INFO_V1_DEF \
+    UINT32                \
+        DirSize      : 16,\
+        SpiBlockSize : 4, \
+        DirHeaderSize: 4, \
+        AddrMode     : 2, \
+        Reserved     : 5, \
+        Version      : 1
+
+#define AMD_ADDITIONAL_INFO_DEF \
+union {                             \
+    struct {                        \
+        AMD_ADDITIONAL_INFO_V0_DEF; \
+    };                              \
+    struct {                        \
+        AMD_ADDITIONAL_INFO_V1_DEF; \
+    } v1;                           \
+}
+
+typedef struct AMD_ADDITIONAL_INFO_ {
+    union {
+        UINT32 raw;
+        AMD_ADDITIONAL_INFO_DEF;
+    };
+} AMD_ADDITIONAL_INFO;
+
+#define AMD_COMMON_HEADER_DEF \
+    UINT32 Cookie;   \
+    UINT32 Checksum; \
+    UINT32 NumEntries
+
+// Common part of PSP/BIOS/Combo headers
+typedef struct AMD_COMMON_HEADER_ {
+    AMD_COMMON_HEADER_DEF;
+} AMD_COMMON_HEADER;
+
+#define AMD_PSPBIOS_COMMON_HEADER_DEF \
+    AMD_COMMON_HEADER_DEF;                  \
+    union {                                 \
+        AMD_ADDITIONAL_INFO AdditionalInfo; \
+        struct {                            \
+            AMD_ADDITIONAL_INFO_DEF;        \
+        };                                  \
+    }
+
+// Common part of PSP/BIOS headers
+typedef struct AMD_PSPBIOS_COMMON_HEADER_ {
+    AMD_PSPBIOS_COMMON_HEADER_DEF;
+} AMD_PSPBIOS_COMMON_HEADER;
+
+// PSP directory header
+typedef struct AMD_PSP_DIRECTORY_HEADER_ {
+    AMD_PSPBIOS_COMMON_HEADER_DEF;  // cookie = 0x50535024
+} AMD_PSP_DIRECTORY_HEADER;
+
+#define AMD_ADDRESS_ADDRESSMODE_DEF \
+    UINT64               \
+        Address     : 62,\
+        AddrMode    : 2
+
+typedef struct AMD_ADDRESS_ADDRESSMODE_ {
+    union {
+        UINT64 raw;
+        AMD_ADDRESS_ADDRESSMODE_DEF;
+    };
+} AMD_ADDRESS_ADDRESSMODE;
+
+#define AMD_PSP_DIRECTORY_ENTRY_FLAGS_DEF \
+    UINT16              \
+        RomId       : 2,\
+        Writable    : 1,\
+        Instance    : 4,\
+        Reserved    : 9
+
+typedef struct AMD_PSP_DIRECTORY_ENTRY_FLAGS_ {
+    union {
+        UINT16 raw;
+        AMD_PSP_DIRECTORY_ENTRY_FLAGS_DEF;
+    };
+} AMD_PSP_DIRECTORY_ENTRY_FLAGS;
+
+typedef struct AMD_PSP_DIRECTORY_ENTRY_ {
+    UINT8  Type;
+    UINT8  SubProgram;
+    union {
+        AMD_PSP_DIRECTORY_ENTRY_FLAGS Flags;
+        struct {
+            AMD_PSP_DIRECTORY_ENTRY_FLAGS_DEF;
+        };
+    };
+    UINT32 Size;
+    union {
+        AMD_ADDRESS_ADDRESSMODE AddressMode;
+        struct {
+            AMD_ADDRESS_ADDRESSMODE_DEF;
+        };
+    };
+} AMD_PSP_DIRECTORY_ENTRY;
+
+// PSP combo directory header
+typedef struct AMD_PSP_COMBO_DIRECTORY_HEADER_ {
+    AMD_COMMON_HEADER_DEF;  // cookie = 0x50535032
+    UINT32 Lookup; // 0 - by PSP Id, 1 - by Family Id
+    UINT64 Reserved[2];
+} AMD_PSP_COMBO_DIRECTORY_HEADER;
+
+typedef struct AMD_PSP_COMBO_ENTRY_ {
+    UINT32 IdSel; // 0 - Id is PSP Id, 1 - Id is Family Id
+    UINT32 Id;
+    UINT32 L2Address;
+    UINT32 Reserved; // ???
+} AMD_PSP_COMBO_ENTRY;
+
+// BIOS directory header
+typedef struct AMD_BIOS_DIRECTORY_HEADER_ {
+    AMD_PSPBIOS_COMMON_HEADER_DEF;  // cookie = 0x44484224
+} AMD_BIOS_DIRECTORY_HEADER;
+
+#define AMD_BIOS_DIRECTORY_ENTRY_FLAGS_DEF \
+    UINT16              \
+        ResetImage  : 1,\
+        CopyImage   : 1,\
+        ReadOnly    : 1,\
+        Compressed  : 1,\
+        Instance    : 4,\
+        SubProgram  : 3,\
+        RomId       : 2,\
+        Writable    : 1,\
+        Reserved    : 2
+
+typedef struct AMD_BIOS_DIRECTORY_ENTRY_FLAGS_ {
+    union {
+        UINT16 raw;
+        AMD_BIOS_DIRECTORY_ENTRY_FLAGS_DEF;
+    };
+} AMD_BIOS_DIRECTORY_ENTRY_FLAGS;
+
+typedef struct AMD_BIOS_DIRECTORY_ENTRY_ {
+    UINT8  Type;
+    UINT8  RegionType;
+    union {
+        AMD_BIOS_DIRECTORY_ENTRY_FLAGS Flags;
+        struct {
+            AMD_BIOS_DIRECTORY_ENTRY_FLAGS_DEF;
+        };
+    };
+    UINT32 Size;
+    union {
+        AMD_ADDRESS_ADDRESSMODE AddressMode;
+        struct {
+            AMD_ADDRESS_ADDRESSMODE_DEF;
+        };
+    };
+    UINT64 Destination;
+} AMD_BIOS_DIRECTORY_ENTRY;
+
+typedef struct AMD_ISH_DIRECTORY_TABLE_ {
+    UINT32 Checksum;
+    UINT32 BootPriority; // 0xFFFFFFFF: A/B, 1: B/A
+    UINT32 UpdateRetryCount;
+    UINT8  GlitchRetryCount;
+    UINT8  Reserved_1[3];
+    UINT32 L2Address;
+    UINT32 PspId;
+    UINT32 SlotMaxSize;
+    UINT32 Reserved_2;
+} AMD_ISH_DIRECTORY_TABLE;
+
 // Restore previous packing rules
 #pragma pack(pop)
 

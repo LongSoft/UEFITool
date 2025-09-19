@@ -7,8 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>270</width>
-    <height>86</height>
+    <height>104</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Select item at address</string>
@@ -34,13 +40,16 @@
    </property>
    <item>
     <widget class="QGroupBox" name="groupBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="title">
       <string/>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="spacing">
-       <number>5</number>
-      </property>
+     <layout class="QGridLayout" name="gridLayout">
       <property name="leftMargin">
        <number>5</number>
       </property>
@@ -53,14 +62,7 @@
       <property name="bottomMargin">
        <number>5</number>
       </property>
-      <item>
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Select item at address:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
+      <item row="0" column="1">
        <widget class="HexSpinBox" name="hexSpinBox">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -70,16 +72,36 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="hexLabel">
+        <property name="text">
+         <string>Select item at address:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="bankLabel">
+        <property name="text">
+         <string>Bank:</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="bankComboBox"/>
+      </item>
      </layout>
     </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
      </property>
     </widget>
    </item>

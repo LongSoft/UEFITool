@@ -20,6 +20,7 @@ WITHWARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "ubytearray.h"
 #include "treemodel.h"
 #include "intel_microcode.h"
+#include "descriptor.h"
 #include "ffs.h"
 #include "fitparser.h"
 
@@ -95,7 +96,8 @@ public:
     UString getSecurityInfo() const;
 
     // Obtain offset/address difference
-    UINT64 getAddressDiff() { return addressDiff; }
+    UINT64 getAddressDiff() const { return addressDiff; }
+    std::vector<std::pair<UModelIndex, UINT64> > getIndexesAddressDiffs() const { return indexesAddressDiffs; }
 
     // Output some info to stdout
     void outputInfo(void);
@@ -115,7 +117,7 @@ private:
     UModelIndex lastVtf;
     UINT32 imageBase;
     UINT64 addressDiff;
-    
+    std::vector<std::pair<UModelIndex, UINT64> > indexesAddressDiffs;
     UString securityInfo;
 
     std::vector<PROTECTED_RANGE> protectedRanges;
@@ -126,6 +128,7 @@ private:
     USTATUS performFirstPass(const UByteArray & imageFile, UModelIndex & index);
 
     USTATUS parseCapsule(const UByteArray & capsule, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseImage(const UByteArray& buffer, const UINT32 localOffset, const UModelIndex& parent, UModelIndex& index);
     USTATUS parseIntelImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
     USTATUS parseGenericImage(const UByteArray & intelImage, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
 
@@ -182,13 +185,39 @@ private:
 
     // Second pass
     USTATUS performSecondPass(const UModelIndex & index);
-    USTATUS addInfoRecursive(const UModelIndex & index);
+    USTATUS addInfoRecursive(const UModelIndex & index, bool enableCpuAddresses = false);
     USTATUS checkTeImageBase(const UModelIndex & index);
     
     USTATUS checkProtectedRanges(const UModelIndex & index);
     USTATUS markProtectedRangeRecursive(const UModelIndex & index, const PROTECTED_RANGE & range);
 
     USTATUS parseResetVectorData();
+    
+    USTATUS findByRange(const UINT32 offset, const UINT32 size, const UModelIndex& index, UModelIndex& found);
+    USTATUS insertByRange(const UINT32 offset, const UINT32 hdrSize, const UINT32 size, const UString name, const UString text, const UString info,
+        const UINT8 type, const UINT8 subType, const UModelIndex& parent, UModelIndex& index);
+    USTATUS decompressBios(const UByteArray& fileImage, UByteArray& decompressed);
+    UINT32 fletcher32(const UByteArray& image);
+
+    // AMD specific
+    UString pspFileName(const UINT8 type, const UINT8 sub);
+    USTATUS pspDirectoryName(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UString& typeName,
+        Subtypes::DirectorySubtypes& type, Subtypes::RegionSubtypes& subtype, const bool probe = false);
+    UString pspTypeSubInst2String(const UINT8 type, const UINT8 sub, const UINT8 inst);
+    UString pspIdIdsel2String(const UINT32 id, const UINT32 sel);
+    USTATUS pspRelativeOffset(const UModelIndex& pspRegionIndex, const AMD_ADDRESS_ADDRESSMODE addressMode, UINT64& outAddress);
+
+    USTATUS pspExtractTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UString& typeName,
+        Subtypes::DirectorySubtypes& expected, Subtypes::RegionSubtypes& subtype, UByteArray& tableImage, UINT32& regionSize, const bool probe = false);
+    USTATUS pspParsePSPDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseComboDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseBIOSDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseISHTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+
+    USTATUS pspParseDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseFirmware(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseEFTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, const bool probe = false);
+    USTATUS parseAMDImage(const UByteArray& amdImage, const UINT32 localOffset, const UModelIndex& parent, UModelIndex& index);
     
 #ifdef U_ENABLE_FIT_PARSING_SUPPORT
     friend class FitParser; // Make FFS parsing routines accessible to FitParser

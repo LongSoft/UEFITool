@@ -603,11 +603,35 @@ void UEFITool::goToAddress()
 {
     goToAddressDialog->ui->hexSpinBox->setFocus();
     goToAddressDialog->ui->hexSpinBox->selectAll();
-    if (goToAddressDialog->exec() != QDialog::Accepted)
-        return;
+    goToAddressDialog->ui->bankComboBox->clear();
+
+    UINT32 address;
+    QModelIndex index;
+    auto indexesAddressDiffs = ffsParser->getIndexesAddressDiffs();
+    if (indexesAddressDiffs.size() < 2) {
+        goToAddressDialog->ui->bankLabel->setVisible(false);
+        goToAddressDialog->ui->bankComboBox->setVisible(false);
+        if (goToAddressDialog->exec() != QDialog::Accepted)
+            return;
     
-    UINT32 address = (UINT32)goToAddressDialog->ui->hexSpinBox->value();
-    QModelIndex index = model->findByBase(address - (UINT32)ffsParser->getAddressDiff());
+        address = (UINT32)goToAddressDialog->ui->hexSpinBox->value();
+        index = model->findByBase(address - (UINT32)ffsParser->getAddressDiff());
+    }
+    else {
+        for (int i = 0; i < indexesAddressDiffs.size(); i++) {
+            index = indexesAddressDiffs.at(i).first;
+            goToAddressDialog->ui->bankComboBox->addItem(model->name(model->parent(index)) + " / " + model->name(index));
+        }
+        goToAddressDialog->ui->bankLabel->setVisible(true);
+        goToAddressDialog->ui->bankComboBox->setVisible(true);
+        if (goToAddressDialog->exec() != QDialog::Accepted)
+            return;
+
+        int selected = goToAddressDialog->ui->bankComboBox->currentIndex();
+        address = (UINT32)goToAddressDialog->ui->hexSpinBox->value();
+        index = model->findByBase(address - indexesAddressDiffs.at(selected).second, indexesAddressDiffs.at(selected).first);
+    }
+
     if (index.isValid()) {
         ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
         ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
@@ -1218,11 +1242,14 @@ void UEFITool::showBuilderMessages()
 
 void UEFITool::scrollTreeView(QListWidgetItem* item)
 {
+    if (!item)
+        return;
+
     QByteArray second = item->data(Qt::UserRole).toByteArray();
-    QModelIndex *index = (QModelIndex *)second.data();
-    if (index && index->isValid()) {
-        ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
-        ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    QModelIndex index = second.isEmpty() ? QModelIndex() : model->updatedIndex((QModelIndex*)second.constData());
+    if (index.isValid()) {
+        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
     }
 }
 
@@ -1232,10 +1259,10 @@ void UEFITool::scrollTreeView(QTableWidgetItem* item)
         return;
 
     QByteArray second = item->data(Qt::UserRole).toByteArray();
-    QModelIndex *index = (QModelIndex *)second.data();
-    if (index && index->isValid()) {
-        ui->structureTreeView->scrollTo(*index, QAbstractItemView::PositionAtCenter);
-        ui->structureTreeView->selectionModel()->select(*index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    QModelIndex index = second.isEmpty() ? QModelIndex() : model->updatedIndex((QModelIndex*)second.constData());
+    if (index.isValid()) {
+        ui->structureTreeView->scrollTo(index, QAbstractItemView::PositionAtCenter);
+        ui->structureTreeView->selectionModel()->select(index, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
     }
 }
 
