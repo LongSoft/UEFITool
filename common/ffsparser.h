@@ -60,6 +60,22 @@ typedef struct PROTECTED_RANGE_ {
     UByteArray Hash;
 } PROTECTED_RANGE;
 
+// AMD PSP file info
+typedef struct PSP_FILE_SPEC_ {
+    UINT32 offset;
+    UINT32 hdrSize;
+    UINT32 size;
+    UString name;
+    UString text;
+    UString info;
+    UINT8 type;
+    UINT8 subtype;
+    UModelIndex parent;
+    UINT8 fileType;
+    UINT16 fileFlags;
+    bool isBiosDir; // false: PSP, true: BIOS
+} PSP_FILE_SPEC;
+
 #define PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB       0x01
 #define PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB  0x02
 #define PROTECTED_RANGE_INTEL_BOOT_GUARD_OBB       0x03
@@ -117,7 +133,10 @@ private:
     UModelIndex lastVtf;
     UINT32 imageBase;
     UINT64 addressDiff;
+    UINT32 pspMinOffset;
+    UINT32 pspMaxOffset;
     std::vector<std::pair<UModelIndex, UINT64> > indexesAddressDiffs;
+    std::vector<PSP_FILE_SPEC> pspFilesList;
     UString securityInfo;
 
     std::vector<PROTECTED_RANGE> protectedRanges;
@@ -201,14 +220,15 @@ private:
 
     // AMD specific
     UString pspFileName(const UINT8 type, const UINT8 sub);
-    USTATUS pspDirectoryName(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UString& typeName,
-        Subtypes::DirectorySubtypes& type, Subtypes::RegionSubtypes& subtype, const bool probe = false);
+    USTATUS pspDirectoryName(const UByteArray& amdImage, const UINT32 offset,
+        Subtypes::DirectorySubtypes& type, Subtypes::RegionSubtypes& subtype, UString& typeName, UString& err);
     UString pspTypeSubInst2String(const UINT8 type, const UINT8 sub, const UINT8 inst);
-    UString pspIdIdsel2String(const UINT32 id, const UINT32 sel);
-    USTATUS pspRelativeOffset(const UModelIndex& pspRegionIndex, const AMD_ADDRESS_ADDRESSMODE addressMode, UINT64& outAddress);
+    UString pspIdSel2String(const UINT32 id, const UINT32 sel);
+    USTATUS pspRelativeOffset(const UModelIndex& parent, const AMD_ADDRESS_ADDRESSMODE addressMode, UINT64& outAddress);
 
-    USTATUS pspExtractTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UString& typeName,
-        Subtypes::DirectorySubtypes& expected, Subtypes::RegionSubtypes& subtype, UByteArray& tableImage, UINT32& regionSize, const bool probe = false);
+    USTATUS pspExtractTable(const UByteArray& amdImage, const UINT32 offset,
+        Subtypes::DirectorySubtypes& expected, Subtypes::RegionSubtypes& subtype, UString& typeName, UString &err,
+        UByteArray& tableImage, UINT32& regionSize, UINT64 &crc);
     USTATUS pspParsePSPDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
     USTATUS pspParseComboDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
     USTATUS pspParseBIOSDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);

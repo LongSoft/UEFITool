@@ -90,6 +90,8 @@ USTATUS FfsParser::parse(const UByteArray & buffer)
     openedImage = buffer;
     imageBase = 0;
     addressDiff = 0x100000000ULL;
+    indexesAddressDiffs.clear();
+    pspFilesList.clear();
     protectedRegionsBase = 0;
     securityInfo = "";
     protectedRanges.clear();
@@ -5474,8 +5476,8 @@ USTATUS FfsParser::findByRange(const UINT32 base, const UINT32 size, const UMode
 USTATUS FfsParser::insertByRange(UINT32 offset, const UINT32 hdrSize, const UINT32 bodySize, const UString name, const UString text, const UString info,
     const UINT8 type, const UINT8 subType, const UModelIndex& parent, UModelIndex& index)
 {
-    UString parentName = (model->type(parent) != Types::Image) ? model->name(parent) : UString();
-    UModelIndex containerIndex = (model->type(parent) != Types::Image) ? model->findParentOfType(parent, Types::Image) : parent;
+    UModelIndex containerIndex = model->type(parent) == Types::Image ? parent : model->findParentOfType(parent, Types::Image);
+    UString parentName = model->type(parent) == Types::Image ? UString() : model->name(parent);
     UINT32 imageBase = model->base(containerIndex) + offset;
     UINT32 imageSize = model->header(containerIndex).size() + model->body(containerIndex).size() + model->tail(containerIndex).size();
     UINT32 fullSize = offset + hdrSize + bodySize > imageSize ? imageSize - offset : hdrSize + bodySize;
@@ -5499,6 +5501,11 @@ USTATUS FfsParser::insertByRange(UINT32 offset, const UINT32 hdrSize, const UINT
     }
     if (result == U_SUCCESS && findIndex.isValid())
         containerIndex = findIndex;
+
+    if (pspMinOffset > offset)
+        pspMinOffset = offset;
+    if (pspMaxOffset < offset + fullSize)
+        pspMaxOffset = offset + fullSize;
 
     // Sort by inserting
     UINT8 mode = CREATE_MODE_APPEND;
@@ -5679,53 +5686,57 @@ UString FfsParser::pspTypeSubInst2String(const UINT8 type, const UINT8 sub, cons
     return text;
 }
 
-UString FfsParser::pspIdIdsel2String(const UINT32 id, const UINT32 sel)
+UString FfsParser::pspIdSel2String(const UINT32 id, const UINT32 sel)
 {
     return usprintf("%sId %08Xh", sel == 0 ? "Psp" : "Family", id);
 }
 
 USTATUS FfsParser::pspRelativeOffset(const UModelIndex& parent, const AMD_ADDRESS_ADDRESSMODE addressMode, UINT64 & outAddress)
 {
+    // Since we are operating on the BIOS/bank image, physical address is converted relative to the start of the BIOS/bank image.
+    UModelIndex containerIndex = model->type(parent) == Types::Image ? parent : model->findParentOfType(parent, Types::Image);
+    UINT64 addr = ~0ULL;
     switch (addressMode.AddrMode) {
-    /* Since this utility operates on the BIOS file, physical address is converted
-       relative to the start of the BIOS file. */
-    case AMD_ADDR_PHYSICAL:
-        if (addressMode.Address >= SPI_ROM_BASE && addressMode.Address <= (SPI_ROM_BASE + FILE_REL_MASK)) {
-            outAddress = addressMode.Address & FILE_REL_MASK;
-            return U_SUCCESS;
-        }
-        // fallthrough
-    case AMD_ADDR_REL_BIOS:
-        {
-            UModelIndex parentImageIndex = (model->type(parent) == Types::Image) ? parent : model->findParentOfType(parent, Types::Image);
-            UByteArray parentImage = model->header(parentImageIndex) + model->body(parentImageIndex) + model->tail(parentImageIndex);
-            if (addressMode.Address >= parentImage.size()) {
-                return U_INVALID_PARAMETER;
+        case AMD_ADDR_PHYSICAL:
+            if (addressMode.Address >= SPI_ROM_BASE && addressMode.Address <= (SPI_ROM_BASE + FILE_REL_MASK)) {
+                outAddress = addressMode.Address & FILE_REL_MASK;
+                return U_SUCCESS;
             }
-            outAddress = addressMode.Address;
-            return U_SUCCESS;
-        }
-    case AMD_ADDR_REL_TABLE:
-        outAddress = addressMode.Address + model->base(parent);
-        return U_SUCCESS;
-    default:
-        msg(usprintf("unsupported mode %01Xh", (UINT8)addressMode.AddrMode), parent);
-        return U_INVALID_PARAMETER;
+            // fallthrough
+        case AMD_ADDR_REL_BIOS:
+            // relative to a BIOS/bank image
+            addr = addressMode.Address;
+            break;
+        case AMD_ADDR_REL_TABLE:
+            // relative to table = parent of an entry (slot)
+            addr = addressMode.Address + model->base(model->parent(parent)) - model->base(containerIndex);
+            break;
+        case AMD_ADDR_REL_SLOT:
+            // relative to an entry (slot)
+            addr = addressMode.Address + model->base(parent) - model->base(containerIndex);
+            break;
+        default:
+            msg(usprintf("unsupported mode %01Xh", (UINT8)addressMode.AddrMode), parent);
+            return U_INVALID_PARAMETER;
     }
+
+    if (containerIndex.isValid() && addr >= model->header(containerIndex).size() + model->body(containerIndex).size() + model->tail(containerIndex).size())
+        return U_INVALID_PARAMETER;
+
+    outAddress = addr;
+    return U_SUCCESS;
 }
 
-USTATUS FfsParser::pspDirectoryName(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UString& typeName,
-    Subtypes::DirectorySubtypes& type, Subtypes::RegionSubtypes& subtype, const bool probe)
+USTATUS FfsParser::pspDirectoryName(const UByteArray& amdImage, const UINT32 offset,
+    Subtypes::DirectorySubtypes& type, Subtypes::RegionSubtypes& subtype, UString& typeName, UString& err)
 {
     if (offset % 16) {
-        if (!probe)
-            msg(usprintf("%s: invalid offset specified: %X", __FUNCTION__, offset), parent);
+        err = usprintf("%s: invalid offset specified: %X", __FUNCTION__, offset);
         return U_INVALID_PARAMETER;
     }
 
     if ((offset + sizeof(UINT32)) > amdImage.size()) {
-        if (!probe)
-            msg(usprintf("%s: directory table is located outside of the opened image: %X", __FUNCTION__, offset), parent);
+        err = usprintf("%s: directory table is located outside of the opened image: %X", __FUNCTION__, offset);
         return U_BUFFER_TOO_SMALL;
     }
 
@@ -5762,19 +5773,19 @@ USTATUS FfsParser::pspDirectoryName(const UByteArray& amdImage, const UINT32 off
         typeName = "PSP BHD2";
         break;
     default:
-        if (!probe)
-            msg(usprintf("%s: directory table header has unsupported cookie %08Xh", __FUNCTION__, *cookie), parent);
+        err = usprintf("%s: directory table header has unsupported cookie %08Xh", __FUNCTION__, *cookie);
         return U_UNKNOWN_ITEM_TYPE;
     }
 
     return U_SUCCESS;
 }
 
-USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UString& typeName,
-    Subtypes::DirectorySubtypes& expected, Subtypes::RegionSubtypes& subtype, UByteArray& tableImage, UINT32& regionSize, const bool probe)
+USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offset,
+    Subtypes::DirectorySubtypes& expected, Subtypes::RegionSubtypes& subtype, UString& typeName, UString& err,
+    UByteArray& tableImage, UINT32& regionSize, UINT64& crc)
 {
     Subtypes::DirectorySubtypes type;
-    USTATUS result = pspDirectoryName(amdImage, offset, parent, typeName, type, subtype, probe);
+    USTATUS result = pspDirectoryName(amdImage, offset, type, subtype, typeName, err);
     if (result != U_SUCCESS)
         return result;
 
@@ -5785,8 +5796,7 @@ USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offs
         case Subtypes::BiosDirectory:
         case Subtypes::ComboDirectory:
             if (expected != type) {
-                if (!probe)
-                    msg(usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table header is unexpected here"), parent);
+                err = usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table header is unexpected here");
                 return U_INVALID_IMAGE;
             }
             break;
@@ -5809,8 +5819,7 @@ USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offs
 
     // Full header is part of image?
     if ((offset + headerSize) > amdImage.size()) {
-        if (!probe)
-            msg(usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table header at %Xh is not within the image", offset), parent);
+        err = usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table header at %Xh is not within the image", offset);
         return U_BUFFER_TOO_SMALL;
     }
 
@@ -5837,8 +5846,7 @@ USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offs
 
     // Full table is part of image?
     if ((offset + tableSize) > amdImage.size()) {
-        if (!probe)
-            msg(usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table at %Xh is not within the image", offset), parent);
+        err = usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table at %Xh is not within the image", offset);
         return U_BUFFER_TOO_SMALL;
     }
 
@@ -5846,9 +5854,9 @@ USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offs
     const UINT32 checksum = ((AMD_COMMON_HEADER*)(cookie))->Checksum;
     const UINT32 checksumOffset = offsetof(AMD_COMMON_HEADER, Checksum) + sizeof(AMD_COMMON_HEADER::Checksum); // Start after checksum field
     const UINT32 calcChecksum = fletcher32(amdImage.mid(offset + checksumOffset, tableSize - checksumOffset));
+    crc = ((UINT64)calcChecksum << 32) + checksum;
     if (calcChecksum != checksum) {
-        if (!probe)
-            msg(usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table at %Xh checksum mismatch: expected %08Xh, found %08Xh", offset, checksum, calcChecksum), parent);
+        err = usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory table at %Xh checksum is invalid", offset);
         // don't fail here because somebody may want to fix the checksum  // return U_INVALID_IMAGE;
     }
 
@@ -5856,8 +5864,8 @@ USTATUS FfsParser::pspExtractTable(const UByteArray& amdImage, const UINT32 offs
     if (regionSize < tableSize || regionSize == AMD_INVALID_SIZE)
         regionSize = tableSize;
     if ((offset + regionSize) > amdImage.size()) {
-        if (!probe)
-            msg(usprintf("%s: ", __FUNCTION__) + typeName + usprintf(" directory region at %Xh is not within the image", offset), parent);
+        UString err2 = typeName + usprintf(" directory region at %Xh is not within the image", offset);
+        err = err.isEmpty() ? (usprintf("%s: ", __FUNCTION__) + err2) : (err + ", " + err2);
         regionSize = amdImage.size() - offset;
         // shall we exit with an error here?
     }
@@ -5945,26 +5953,31 @@ USTATUS FfsParser::pspParseISHTable(const UByteArray& amdImage, const UINT32 off
     UINTN length = sizeof(AMD_ISH_DIRECTORY_TABLE);
 
     // Checksum starts right after checksum field
-    UByteArray data = amdImage.mid(offset + 4, length - 4);
-    const UINT32 Checksum = fletcher32(data);
-    if (ishTable->Checksum != Checksum) {
+    const UINT32 checksumOffset = offsetof(AMD_ISH_DIRECTORY_TABLE, Checksum) + sizeof(AMD_ISH_DIRECTORY_TABLE::Checksum); // Start after checksum field
+    UByteArray data = amdImage.mid(offset + checksumOffset, length - checksumOffset);
+    const UINT32 checksum = fletcher32(data);
+    if (checksum != ishTable->Checksum) {
         if (!probe)
-            msg(usprintf("%s: ISH table checksum mismatch, expected %08Xh, found %08Xh", __FUNCTION__, ishTable->Checksum, Checksum), parent);
+            msg(usprintf("%s: ISH table at %Xh checksum is invalid", __FUNCTION__, offset), parent);
         return U_INVALID_IMAGE;
     }
 
     // Add ISH directory image tree item
     if (!probe) {
+        UModelIndex containerIndex = model->type(parent) == Types::Image ? parent : model->findParentOfType(parent, Types::Image);
+        UINT32 base = model->base(containerIndex) + offset;
         UString name("ISH table");
-        UString info = usprintf("Full size: %Xh (%u)\nPL2 location: %Xh (%u)\nBoot priority: %08Xh (%s)\nSlot max size: %Xh (%u)\nPspId: %08Xh\n",
+        UString details = usprintf("Checksum: %08Xh, ", ishTable->Checksum)
+            + (checksum == ishTable->Checksum ? "valid\n" : usprintf("invalid, should be %08Xh\n", checksum));
+        details += usprintf("Full size: %Xh (%u)\nPL2 location: %Xh (%u)\nBoot priority: %08Xh (%s)\nSlot max size: %Xh (%u)\nPspId: %08Xh\n",
             (UINT32)length, (UINT32)length,
             ishTable->L2Address, ishTable->L2Address,
             ishTable->BootPriority, ishTable->BootPriority == 0xFFFFFFFF ? " (A first)" : ishTable->BootPriority == 1 ? " (B first)" : "",
             ishTable->SlotMaxSize, ishTable->SlotMaxSize,
             ishTable->PspId);
         index = model->addItem(
-            0, Types::DirectoryTable, Subtypes::ISHDirectory,
-            name, UString(), info,
+            base - model->base(parent), Types::DirectoryTable, Subtypes::ISHDirectory,
+            name, UString(), details,
             UByteArray(), amdImage.mid(offset, length), UByteArray(),
             Fixed, parent);
     }
@@ -5972,7 +5985,7 @@ USTATUS FfsParser::pspParseISHTable(const UByteArray& amdImage, const UINT32 off
     const UModelIndex ishIndex = index;
     UModelIndex childIndex;
 
-    // Add PSPL2 directory tree item
+    // Add PSP L2 directory tree item
     result = pspParsePSPDirectory(amdImage, ishTable->L2Address, ishIndex, childIndex, probe);
     if (result != U_SUCCESS) {
         if (!probe)
@@ -5988,12 +6001,15 @@ USTATUS FfsParser::pspParseComboDirectory(const UByteArray& amdImage, const UINT
     USTATUS result;
     Subtypes::DirectorySubtypes type = Subtypes::ComboDirectory;
     Subtypes::RegionSubtypes subtype;
-    UString dirTypeName;
+    UString dirTypeName, errMsg;
     UByteArray tableImage;
     UINT32 regionSize;
+    UINT64 crc;
 
-    result = pspExtractTable(amdImage, offset, parent, dirTypeName, type, subtype, tableImage, regionSize, probe);
+    result = pspExtractTable(amdImage, offset, type, subtype, dirTypeName, errMsg, tableImage, regionSize, crc);
     if (result != U_SUCCESS) {
+        if (!probe && !errMsg.isEmpty())
+            msg(errMsg, parent);
         return result;
     }
 
@@ -6002,15 +6018,17 @@ USTATUS FfsParser::pspParseComboDirectory(const UByteArray& amdImage, const UINT
 
     // Add PSP combo directory table
     if (!probe) {
-        UString info = usprintf("Entry count: %u\n", hdr->NumEntries);
+        UString details = usprintf("Entry count: %u\nChecksum: %08Xh, ", hdr->NumEntries, (UINT32)crc)
+            + ((UINT32)crc == (crc >> 32) ? "valid\n" : usprintf("invalid, should be %08Xh\n", (UINT32)(crc >> 32)));
         result = insertByRange(
             offset, headerSize, tableImage.size() - headerSize,
-            dirTypeName + UString(" directory table"), UString(), info,
+            dirTypeName + UString(" directory table"), UString(), details,
             Types::DirectoryTable, Subtypes::ComboDirectory,
             parent, index);
-        if (result != U_SUCCESS) {
+        if (!probe && !errMsg.isEmpty())
+            msg(errMsg, index.isValid() ? index : parent);
+        if (result != U_SUCCESS)
             return result;
-        }
     }
 
     const UModelIndex pspHeaderIndex = index;
@@ -6027,7 +6045,7 @@ USTATUS FfsParser::pspParseComboDirectory(const UByteArray& amdImage, const UINT
                             e.IdSel, e.IdSel ? "Family" : "Psp", e.Id, e.L2Address);
             childIndex = model->addItem(
                 entryOffset - offset, Types::DirectoryTableEntry, Subtypes::ComboDirectory,
-                UString("L2 directory table"), pspIdIdsel2String(e.Id, e.IdSel), info,
+                UString("L2 directory table"), pspIdSel2String(e.Id, e.IdSel), info,
                 UByteArray(), amdImage.mid(entryOffset, sizeof(AMD_PSP_COMBO_ENTRY)), UByteArray(),
                 Fixed, pspHeaderIndex);
         }
@@ -6054,12 +6072,15 @@ USTATUS FfsParser::pspParseBIOSDirectory(const UByteArray& amdImage, const UINT3
     USTATUS result;
     Subtypes::DirectorySubtypes type = Subtypes::BiosDirectory;
     Subtypes::RegionSubtypes subtype;
-    UString dirTypeName;
+    UString dirTypeName, errMsg;
     UByteArray tableImage;
     UINT32 regionSize;
+    UINT64 crc;
 
-    result = pspExtractTable(amdImage, offset, parent, dirTypeName, type, subtype, tableImage, regionSize, probe);
+    result = pspExtractTable(amdImage, offset, type, subtype, dirTypeName, errMsg, tableImage, regionSize, crc);
     if (result != U_SUCCESS) {
+        if (!probe && !errMsg.isEmpty())
+            msg(errMsg, parent);
         return result;
     }
 
@@ -6077,133 +6098,110 @@ USTATUS FfsParser::pspParseBIOSDirectory(const UByteArray& amdImage, const UINT3
                 dirTypeName + UString(" directory region"), UString(), UString(),
                 Types::Region, subtype,
                 parent, index);
-            if (result != U_SUCCESS) {
+            if (result != U_SUCCESS)
                 return result;
-            }
             biosRegionIndex = index;
         }
         biosHeaderIndex = biosRegionIndex;
 
         // Add Bios directory table
         UINT32 spiEraseBlockSize = 4096 << (hdr->Version ? hdr->v1.SpiBlockSize : hdr->SpiBlockSize);
-        UString details = usprintf("Entry count: %u\nAdditional info: %08Xh\n"
+        UString details = usprintf("Entry count: %u\nChecksum: %08Xh, ", hdr->NumEntries, (UINT32)crc)
+            + ((UINT32)crc == (crc >> 32) ? "valid\n" : usprintf("invalid, should be %08Xh\n", (UINT32)(crc >> 32)));
+        details += usprintf("Additional info: %08Xh\n"
             "  Info version: %01u\n  SPI erase block size: %Xh (%u)\n  Address mode: %01Xh\n",
-            hdr->NumEntries, hdr->AdditionalInfo.raw,
+            hdr->AdditionalInfo.raw,
             hdr->Version, spiEraseBlockSize, spiEraseBlockSize, hdr->Version ? hdr->v1.AddrMode : hdr->AddrMode);
         result = insertByRange(
             offset, headerSize, tableImage.size() - headerSize,
             dirTypeName + UString(" directory table"), UString(), details,
             Types::DirectoryTable, Subtypes::BiosDirectory,
             biosRegionIndex, biosHeaderIndex);
-        if (result != U_SUCCESS) {
+        if (!probe && !errMsg.isEmpty())
+            msg(errMsg, index.isValid() ? biosHeaderIndex : biosRegionIndex);
+        if (result != U_SUCCESS)
             return result;
-        }
-        if (regionSize <= tableImage.size()) {
+        if (regionSize <= tableImage.size())
             index = biosHeaderIndex;
-        }
     }
 
     UModelIndex childIndex;
 
-    for (UINTN i = 0; i < hdr->NumEntries; i++) {
-        UINT32 entryOffset = offset + headerSize + i * sizeof(AMD_BIOS_DIRECTORY_ENTRY);
-        const AMD_BIOS_DIRECTORY_ENTRY& e = *(AMD_BIOS_DIRECTORY_ENTRY*)(amdImage.constData() + entryOffset);
-        const UINT32 size = e.Size;
+    for (int order = 0; order < 2; order++) {
+        for (int i = 0; i < hdr->NumEntries; i++) {
+            const UINT32 entryOffset = offset + headerSize + i * sizeof(AMD_BIOS_DIRECTORY_ENTRY);
+            const AMD_BIOS_DIRECTORY_ENTRY& e = *(AMD_BIOS_DIRECTORY_ENTRY*)(amdImage.constData() + entryOffset);
+            switch (e.Type) {
+                case AMD_BIOS_L2_PTR:
+                    if (order != 0)
+                        continue;
+                    break;
+                default:
+                    if (order == 0)
+                        continue;
+                    break;
+            }
+            const UINT32 size = e.Size;
 
-        UString fileName = pspFileName(e.Type, e.SubProgram);
-        if (e.SubProgram != 0 || e.Instance != 0) {
-            fileName += usprintf(" (%X:%01X)", e.SubProgram, e.Instance);
-        }
-        UString details = usprintf("Type: %02Xh\nRegion type: %02Xh\nFlags: %04Xh\n"
-            "  SubProgram: %01Xh\n  Instance: %01Xh\n  RomId: %01Xh\n  Reset-image: %s\n  Copy image: %s\n  Read only: %s\n  Writable: %s\n  Compressed: %s\n",
-            e.Type, e.RegionType, e.Flags.raw,
-            e.SubProgram, e.Instance, e.RomId,
-            (e.ResetImage) ? "true" : "false",
-            (e.CopyImage) ? "true" : "false",
-            (e.ReadOnly) ? "true" : "false",
-            (e.Writable) ? "true" : "false",
-            (e.Compressed) ? "true" : "false");
-        // Add Bios table entry image tree item
-        UString fileText = pspTypeSubInst2String(e.Type, e.SubProgram, e.Instance);
-        if (!probe) {
-            UString info = usprintf("Full size: %Xh (%u)\n", (UINT32)sizeof(AMD_BIOS_DIRECTORY_ENTRY), (UINT32)sizeof(AMD_BIOS_DIRECTORY_ENTRY));
-            info += details + usprintf("File size: %Xh (%u)\nFile location: %" PRIX64 "h\nAddress mode: %01Xh\nDestination: %" PRIX64 "h\n",
-                    size, size, e.Address, (UINT8)e.AddrMode, e.Destination);
-            childIndex = model->addItem(
-                entryOffset - offset, Types::DirectoryTableEntry, Subtypes::BiosDirectory,
-                fileName, fileText, info,
-                UByteArray(), amdImage.mid(entryOffset, sizeof(AMD_BIOS_DIRECTORY_ENTRY)), UByteArray(),
-                Fixed, biosHeaderIndex);
-        }
-
-        // Look for files based on directory table
-        UINT64 fileOffset = 0;
-        result = pspRelativeOffset(childIndex, e.AddressMode, fileOffset);
-        if (result != U_SUCCESS) {
-            if (!probe)
-                msg(usprintf("%s: invalid offset (%0" PRIX64 "h) or mode (%01Xh) for file: ", __FUNCTION__, e.Address, (UINT8)e.AddrMode) + fileName, childIndex);
-            continue;
-        }
-        if (size == 0x00000000 || size == AMD_INVALID_SIZE) {
-            if (!probe)
-                msg(usprintf("%s: skipping BIOS directory file with no size: ", __FUNCTION__) + fileName, childIndex);
-            continue;
-        }
-
-        result = U_ITEM_NOT_FOUND;
-        switch (e.Type) {
-            case AMD_BIOS_L2_PTR:
-                //if (level == 1) {
-                    result = pspParseBIOSDirectory(amdImage, fileOffset, biosRegionIndex, childIndex, probe);
-                //}
-                break;
-        }
-
-        if (result != U_SUCCESS) {
+            UString fileName = pspFileName(e.Type, e.SubProgram);
+            if (e.SubProgram != 0 || e.Instance != 0)
+                fileName += usprintf(" (%X:%01X)", e.SubProgram, e.Instance);
+            const UString details = usprintf("Type: %02Xh\nRegion type: %02Xh\nFlags: %04Xh\n"
+                "  SubProgram: %01Xh\n  Instance: %01Xh\n  RomId: %01Xh\n  Reset-image: %s\n  Copy image: %s\n  Read only: %s\n  Writable: %s\n  Compressed: %s\n",
+                e.Type, e.RegionType, e.Flags.raw,
+                e.SubProgram, e.Instance, e.RomId,
+                (e.ResetImage) ? "true" : "false",
+                (e.CopyImage) ? "true" : "false",
+                (e.ReadOnly) ? "true" : "false",
+                (e.Writable) ? "true" : "false",
+                (e.Compressed) ? "true" : "false");
+            // Add Bios table entry image tree item
+            const UString fileText = pspTypeSubInst2String(e.Type, e.SubProgram, e.Instance);
             if (!probe) {
-                // BIOS file entry
-                result = insertByRange(
-                    (UINT32)fileOffset, 0, size,
-                    fileName, fileText, details,
-                    Types::Region, Subtypes::PspDirectoryFile,
-                    biosRegionIndex, childIndex);
-                if (result != U_SUCCESS) {
-                    msg(usprintf("%s: failed to create BIOS directory file: ", __FUNCTION__) + fileName, biosHeaderIndex);
-                    continue;
-                }
-                switch (e.Type) {
-                    case AMD_BIOS_BIN:
-                        if (model->rowCount(childIndex) > 0)
-                            continue;
-                        if (!probe) {
-                            UByteArray cpubin;
-                            if (e.Compressed) {
-                                result = decompressBios(amdImage.mid(fileOffset, size), cpubin);
-                                if (result != U_SUCCESS) {
-                                    msg(usprintf("%s: decompression failed with error: ", __FUNCTION__) + errorCodeToUString(result), childIndex);
-                                    break;
-                                }
-                                model->setUncompressedData(childIndex, cpubin);
-                                model->setCompressed(childIndex, true);
-                                details += usprintf("Compression algorithm: Zlib\nDecompressed size: %Xh (%u)\n", (UINT32)cpubin.size(), (UINT32)cpubin.size());
-                                model->setInfo(childIndex, details);
-                            }
-                            else {
-                                cpubin = amdImage.mid(fileOffset, size);
-                            }
-                            UModelIndex biosIndex;
-                            parseGenericImage(cpubin, 0, childIndex, biosIndex);
-                        }
-                        break;
-                    }
+                UString info = usprintf("Full size: %Xh (%u)\n", (UINT32)sizeof(AMD_BIOS_DIRECTORY_ENTRY), (UINT32)sizeof(AMD_BIOS_DIRECTORY_ENTRY));
+                info += details + usprintf("File size: %Xh (%u)\nFile location: %" PRIX64 "h\nAddress mode: %01Xh\nDestination: %" PRIX64 "h\n",
+                    size, size, e.Address, (UINT8)e.AddrMode, e.Destination);
+                result = insertByRange(entryOffset, 0, sizeof(AMD_BIOS_DIRECTORY_ENTRY),
+                    fileName, fileText, info,
+                    Types::DirectoryTableEntry, Subtypes::BiosDirectory,
+                    biosHeaderIndex, childIndex);
             }
 
-        }
-
-        if (result != U_SUCCESS) {
-            if (!probe) {
-                msg(usprintf("%s: failed to parse BIOS directory file: ", __FUNCTION__) + fileName, childIndex);
+            // Look for files based on directory table
+            UINT64 fileOffset = 0;
+            result = pspRelativeOffset(childIndex, e.AddressMode, fileOffset);
+            if (result != U_SUCCESS) {
+                if (!probe)
+                    msg(usprintf("%s: invalid offset (%0" PRIX64 "h) or mode (%01Xh) for file: ", __FUNCTION__, e.Address, (UINT8)e.AddrMode) + fileName, childIndex);
                 continue;
+            }
+            if (size == 0 || size == AMD_INVALID_SIZE) {
+                if (!probe)
+                    msg(usprintf("%s: skipping BIOS directory file with no size: ", __FUNCTION__) + fileName, childIndex);
+                continue;
+            }
+
+            bool processed = true;
+            switch (e.Type) {
+                case AMD_BIOS_L2_PTR:
+                    result = pspParseBIOSDirectory(amdImage, fileOffset, biosRegionIndex, childIndex, probe);
+                    break;
+                default:
+                    processed = false;
+                    break;
+            }
+
+            if (!processed) {
+                // BIOS directory regular file
+                pspFilesList.push_back({ (UINT32)fileOffset, 0, size, fileName, fileText, details,
+                    Types::Region, Subtypes::PspDirectoryFile, biosRegionIndex, e.Type, e.Flags.raw, true });
+            }
+
+            if (result != U_SUCCESS) {
+                if (!probe) {
+                    msg(usprintf("%s: failed to parse BIOS directory file: ", __FUNCTION__) + fileName, childIndex);
+                    continue;
+                }
             }
         }
     }
@@ -6216,12 +6214,15 @@ USTATUS FfsParser::pspParsePSPDirectory(const UByteArray& amdImage, const UINT32
     USTATUS result;
     Subtypes::DirectorySubtypes type = Subtypes::PSPDirectory;
     Subtypes::RegionSubtypes subtype;
-    UString dirTypeName;
+    UString dirTypeName, errMsg;
     UByteArray tableImage;
     UINT32 regionSize;
+    UINT64 crc;
 
-    result = pspExtractTable(amdImage, offset, parent, dirTypeName, type, subtype, tableImage, regionSize, probe);
+    result = pspExtractTable(amdImage, offset, type, subtype, dirTypeName, errMsg, tableImage, regionSize, crc);
     if (result != U_SUCCESS) {
+        if (!probe && !errMsg.isEmpty())
+            msg(errMsg, parent);
         return result;
     }
 
@@ -6240,124 +6241,131 @@ USTATUS FfsParser::pspParsePSPDirectory(const UByteArray& amdImage, const UINT32
                 dirTypeName + UString(" directory region"), UString(), UString(),
                 Types::Region, subtype,
                 parent, index);
-            if (result != U_SUCCESS) {
+            if (result != U_SUCCESS)
                 return result;
-            }
             pspRegionIndex = index;
         }
         pspHeaderIndex = pspRegionIndex;
 
         // Add PSP directory table
         UINT32 spiEraseBlockSize = 4096 << (hdr->Version ? hdr->v1.SpiBlockSize : hdr->SpiBlockSize);
-        UString details = usprintf("Entry count: %u\nAdditional info: %08Xh\n"
+        UString details = usprintf("Entry count: %u\nChecksum: %08Xh, ", hdr->NumEntries, (UINT32)crc)
+            + ((UINT32)crc == (crc >> 32) ? "valid\n" : usprintf("invalid, should be %08Xh\n", (UINT32)(crc >> 32)));
+        details += usprintf("Additional info: %08Xh\n"
             "  Info version: %01u\n  SPI erase block size: %Xh (%u)\n  Address mode: %01Xh\n",
-            hdr->NumEntries, hdr->AdditionalInfo.raw,
+            hdr->AdditionalInfo.raw,
             hdr->Version, spiEraseBlockSize, spiEraseBlockSize, hdr->Version ? hdr->v1.AddrMode : hdr->AddrMode);
         result = insertByRange(
             offset, headerSize, tableImage.size() - headerSize,
             dirTypeName + UString(" directory table"), UString(), details,
             Types::DirectoryTable, Subtypes::PSPDirectory,
             pspRegionIndex, pspHeaderIndex);
-        if (result != U_SUCCESS) {
+        if (!probe && !errMsg.isEmpty())
+            msg(errMsg, index.isValid() ? pspHeaderIndex : pspRegionIndex);
+        if (result != U_SUCCESS)
             return result;
-        }
-        if (regionSize <= tableImage.size()) {
+        if (regionSize <= tableImage.size())
             index = pspHeaderIndex;
-        }
-
     }
 
     UModelIndex childIndex;
 
-    for (UINTN i = 0; i < hdr->NumEntries; i++) {
-        UINT32 entryOffset = offset + headerSize + i * sizeof(AMD_PSP_DIRECTORY_ENTRY);
-        const AMD_PSP_DIRECTORY_ENTRY& e = *(AMD_PSP_DIRECTORY_ENTRY*)(amdImage.constData() + entryOffset);
-        UINT32 size = e.Size;
-
-        UString fileName = pspFileName(e.Type, e.SubProgram);
-        if (e.SubProgram != 0 || e.Instance != 0) {
-            fileName += usprintf(" (%X:%01X)", e.SubProgram, e.Instance);
-        }
-        UString details = usprintf("Type: %02Xh\nSubProgram: %02Xh\nFlags: %04Xh\n"
-            "  Instance: %01Xh\n  RomId: %01Xh\n  Writable: %s\n",
-            e.Type, e.SubProgram, e.Flags.raw,
-            e.Instance, e.RomId, (e.Writable) ? "true" : "false");
-        // Add PSP table entry image tree item
-        UString fileText = pspTypeSubInst2String(e.Type, e.SubProgram, e.Instance);
-        if (!probe) {
-            UString info = usprintf("Full size: %Xh (%u)\n", (UINT32)sizeof(AMD_PSP_DIRECTORY_ENTRY), (UINT32)sizeof(AMD_PSP_DIRECTORY_ENTRY));
-            info += details + usprintf("File size: %Xh (%u)\nFile location: %" PRIX64 "h\nAddress mode: %01Xh\n",
-                size, size, e.Address, (UINT8)e.AddrMode);
-            childIndex = model->addItem(
-                entryOffset - offset, Types::DirectoryTableEntry, Subtypes::PSPDirectory,
-                fileName, fileText, info,
-                UByteArray(), amdImage.mid(entryOffset, sizeof(AMD_PSP_DIRECTORY_ENTRY)), UByteArray(),
-                Fixed, pspHeaderIndex);
-        }
-
-        // Look for files based on directory table
-        UINT64 fileOffset = 0;
-        result = pspRelativeOffset(childIndex, e.AddressMode, fileOffset);
-        if (result != U_SUCCESS) {
-            if (!probe)
-                msg(usprintf("%s: invalid offset (%" PRIX64 "h) or mode (%01Xh) for file: ", __FUNCTION__, e.Address, (UINT8)e.AddrMode) + fileName, childIndex);
-            continue;
-        }
-
-        // Some firmwares are broken and set size 0 for ISH directory table
-        switch (e.Type) {
-            case AMD_FW_RECOVERYAB_A:
-            case AMD_FW_RECOVERYAB_B:
-            size = 4096;
-        }
-
-        if (size == 0x00000000 || size == AMD_INVALID_SIZE) {
-            if (!probe)
-                msg(usprintf("%s: skipping PSP directory file with no size: ", __FUNCTION__) + fileName, childIndex);
-            continue;
-        }
-
-        result = U_ITEM_NOT_FOUND;
-        switch (e.Type) {
-            // Special files - tables
-            case AMD_FW_L2_PTR:
-                result = pspParsePSPDirectory(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
-                break;
-            case AMD_FW_RECOVERYAB_A:
-            case AMD_FW_RECOVERYAB_B:
-                if (subtype == Subtypes::PspL1DirectoryRegion) {
-                    // Can be a PSPL2 table or ISH directory
-                    result = pspParsePSPDirectory(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
-                    if (result != U_SUCCESS) /// also check rows!
-                        result = pspParseISHTable(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
-                }
-                break;
-            case AMD_FW_BIOS_TABLE:
-                //if (subtype == Subtypes::PspL2DirectoryRegion) {
-                result = pspParseBIOSDirectory(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
-                //}
-                break;
-        }
-
-        if (result != U_SUCCESS) {
-            // Add PSP file tree item
-            if (!probe) {
-                result = insertByRange(
-                    (UINT32)fileOffset, 0, size,
-                    fileName, fileText, details,
-                    Types::Region, Subtypes::PspDirectoryFile,
-                    pspRegionIndex, childIndex);
-                if (result != U_SUCCESS) {
-                    if (!probe)
-                        msg(usprintf("%s: failed to create PSP directory file: ", __FUNCTION__) + fileName, childIndex);
-                }
-
+    for (int order = 0; order < 2; order++) {
+        for (int i = 0; i < hdr->NumEntries; i++) {
+            const UINT32 entryOffset = offset + headerSize + i * sizeof(AMD_PSP_DIRECTORY_ENTRY);
+            const AMD_PSP_DIRECTORY_ENTRY& e = *(AMD_PSP_DIRECTORY_ENTRY*)(amdImage.constData() + entryOffset);
+            switch (e.Type) {
+                case AMD_FW_L2_PTR:
+                case AMD_FW_BIOS_TABLE:
+                case AMD_FW_RECOVERYAB_A:
+                case AMD_FW_RECOVERYAB_B:
+                    if (order != 0)
+                        continue;
+                    break;
+                default:
+                    if (order == 0)
+                        continue;
+                    break;
             }
-        }
+            UINT32 size = e.Size;
 
-        if (result != U_SUCCESS) {
-            if (!probe)
-                msg(usprintf("%s: failed to parse PSP directory file: ", __FUNCTION__) + fileName, childIndex.isValid() ? childIndex : pspHeaderIndex);
+            UString fileName = pspFileName(e.Type, e.SubProgram);
+            if (e.SubProgram != 0 || e.Instance != 0)
+                fileName += usprintf(" (%X:%01X)", e.SubProgram, e.Instance);
+            const UString details = usprintf("Type: %02Xh\nSubProgram: %02Xh\nFlags: %04Xh\n"
+                "  Instance: %01Xh\n  RomId: %01Xh\n  Writable: %s\n",
+                e.Type, e.SubProgram, e.Flags.raw,
+                e.Instance, e.RomId, (e.Writable) ? "true" : "false");
+            // Add PSP table entry image tree item
+            const UString fileText = pspTypeSubInst2String(e.Type, e.SubProgram, e.Instance);
+            if (!probe) {
+                UString info = usprintf("Full size: %Xh (%u)\n", (UINT32)sizeof(AMD_PSP_DIRECTORY_ENTRY), (UINT32)sizeof(AMD_PSP_DIRECTORY_ENTRY));
+                info += details + usprintf("File size: %Xh (%u)\nFile location: %" PRIX64 "h\nAddress mode: %01Xh\n",
+                    size, size, e.Address, (UINT8)e.AddrMode);
+                result = insertByRange(entryOffset, 0, sizeof(AMD_PSP_DIRECTORY_ENTRY),
+                    fileName, fileText, info,
+                    Types::DirectoryTableEntry, Subtypes::PSPDirectory,
+                    pspHeaderIndex, childIndex);
+            }
+
+            // Look for files based on directory table
+            UINT64 fileOffset = 0;
+            result = pspRelativeOffset(childIndex, e.AddressMode, fileOffset);
+            if (result != U_SUCCESS) {
+                if (!probe)
+                    msg(usprintf("%s: invalid offset (%" PRIX64 "h) or mode (%01Xh) for file: ", __FUNCTION__, e.Address, (UINT8)e.AddrMode) + fileName, childIndex);
+                continue;
+            }
+
+            if (size == 0 || size == AMD_INVALID_SIZE) {
+                if (!probe)
+                    msg(usprintf("%s: skipping PSP directory file with no size: ", __FUNCTION__) + fileName, childIndex);
+                // Some firmwares are broken and set size 0 for ISH directory table
+                switch (e.Type) {
+                    case AMD_FW_RECOVERYAB_A:
+                    case AMD_FW_RECOVERYAB_B:
+                        size = 4096;
+                        break;
+                    default:
+                        continue;
+                }
+            }
+
+            bool processed = true;
+            switch (e.Type) {
+                // Special files - tables
+                case AMD_FW_L2_PTR:
+                    result = pspParsePSPDirectory(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
+                    break;
+                case AMD_FW_RECOVERYAB_A:
+                case AMD_FW_RECOVERYAB_B:
+                    if (subtype == Subtypes::PspL1DirectoryRegion) {
+                        // Can be a PSPL2 table or ISH directory
+                        result = pspParsePSPDirectory(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
+                        if (result != U_SUCCESS) /// also check rows!
+                            result = pspParseISHTable(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
+                    }
+                    break;
+                case AMD_FW_BIOS_TABLE:
+                    //if (subtype == Subtypes::PspL2DirectoryRegion) {
+                    result = pspParseBIOSDirectory(amdImage, fileOffset, pspHeaderIndex, childIndex, probe);
+                    //}
+                    break;
+                default:
+                    processed = false;
+                    break;
+            }
+
+            if (!processed) {
+                // PSP directory regular file
+                pspFilesList.push_back({ (UINT32)fileOffset, 0, size, fileName, fileText, details,
+                    Types::Region, Subtypes::PspDirectoryFile, pspRegionIndex, e.Type, e.Flags.raw, false });
+            }
+
+            if (result != U_SUCCESS) {
+                if (!probe)
+                    msg(usprintf("%s: failed to parse PSP directory file: ", __FUNCTION__) + fileName, childIndex.isValid() ? childIndex : pspHeaderIndex);
+            }
         }
     }
 
@@ -6484,6 +6492,55 @@ USTATUS FfsParser::pspParseEFTable(const UByteArray & amdImage, const UINT32 off
     if (foundDirs == 0)
         return overall;
 
+    if (!probe) {
+//        std::sort(pspFilesList.begin(), pspFilesList.end(), [](auto& a, auto& b) { return a.first > b.first; });
+        qsort(pspFilesList.data(), pspFilesList.size(), sizeof(PSP_FILE_SPEC),
+            [](const void* pa, const void* pb)->int {
+                const PSP_FILE_SPEC* a = static_cast<const PSP_FILE_SPEC*>(pa);
+                const PSP_FILE_SPEC* b = static_cast<const PSP_FILE_SPEC*>(pb);
+                return (b->size > a->size) - (a->size > b->size);
+            });
+        for (const auto& f : pspFilesList) {
+            UModelIndex childIndex, updatedParent = model->updatedIndex(&f.parent);
+            result = insertByRange(
+                f.offset, f.hdrSize, f.size,
+                f.name, f.text, f.info,
+                f.type, f.subtype,
+                updatedParent, childIndex);
+            if (result != U_SUCCESS) {
+                msg(usprintf("%s: failed to create %s directory file: ", __FUNCTION__, f.isBiosDir ? "BIOS" : "PSP")
+                    + f.name, childIndex);
+                continue;
+            }
+            switch (f.fileType) {
+                case AMD_BIOS_BIN:
+                    if (model->rowCount(childIndex) == 0) {
+                        UByteArray cpubin = amdImage.mid(f.offset, f.size);
+                        if (f.isBiosDir) {
+                            const AMD_BIOS_DIRECTORY_ENTRY_FLAGS flags = *((AMD_BIOS_DIRECTORY_ENTRY_FLAGS*)&f.fileFlags);
+                            if (flags.Compressed) {
+                                UByteArray cpubinUncompressed;
+                                result = decompressBios(cpubin, cpubinUncompressed);
+                                if (result == U_SUCCESS) {
+                                    cpubin = cpubinUncompressed;
+                                    model->setUncompressedData(childIndex, cpubin);
+                                    model->setCompressed(childIndex, true);
+                                    model->setInfo(childIndex, f.info + usprintf(
+                                        "Compression algorithm: Zlib\nDecompressed size: %Xh (%u)\n", (UINT32)cpubin.size(), (UINT32)cpubin.size()));
+                                }
+                                else
+                                    msg(usprintf("%s: decompression failed with error: ", __FUNCTION__) + errorCodeToUString(result), childIndex);
+                            }
+                        }
+                        UModelIndex biosIndex;
+                        parseGenericImage(cpubin, 0, childIndex, biosIndex);
+                    }
+                    break;
+            }
+        }
+    }
+    pspFilesList.clear();
+
     return U_SUCCESS;
 }
 
@@ -6505,6 +6562,8 @@ USTATUS FfsParser::parseAMDImage(const UByteArray& amdImage, const UINT32 localO
         while (bankOffsetTemp < probeOffset) {
             UByteArray bankImage = amdImage.mid(bankOffsetTemp, amdImage.size() - bankOffsetTemp);
             UModelIndex index;
+            pspMaxOffset = 0;
+            pspMinOffset = UINT32_MAX;
             if (pspParseEFTable(bankImage, probeOffset - bankOffsetTemp, parent, true) == U_SUCCESS) {
                 bankOffset = bankOffsetTemp;
                 ef_descriptors.push_back(((UINT64)bankOffset << 32) + probeOffset);
@@ -6523,6 +6582,7 @@ USTATUS FfsParser::parseAMDImage(const UByteArray& amdImage, const UINT32 localO
     if (bankOffset > 0) {
         ef_descriptors.insert(ef_descriptors.begin(), ~0UL); // add dummy bank if 1st detected bank is not at the beginning of the image
     }
+    bankOffset = (UINT32)(ef_descriptors.back() >> 32);
 
     // AMD image
     UString name("AMD image");
@@ -6550,7 +6610,7 @@ USTATUS FfsParser::parseAMDImage(const UByteArray& amdImage, const UINT32 localO
     for (int i = 0; i < ef_descriptors.size(); i++) {
         bankOffset = ef_descriptors.at(i) >> 32;
         probeOffset = (UINT32)(ef_descriptors.at(i) & ~0UL) - bankOffset;
-        UString bankName = usprintf("Bank %d", bankOffset / bankSize);
+        UString bankName = usprintf("Bank %u", bankOffset / bankSize);
 
         UModelIndex bankIndex = amdIndex;
         UByteArray bankImage = amdImage.mid(bankOffset, bankSize);

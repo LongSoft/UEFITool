@@ -403,7 +403,9 @@ union {                             \
 typedef struct AMD_ADDITIONAL_INFO_ {
     union {
         UINT32 raw;
-        AMD_ADDITIONAL_INFO_DEF;
+        struct {
+            AMD_ADDITIONAL_INFO_DEF;
+        };
     };
 } AMD_ADDITIONAL_INFO;
 
@@ -444,7 +446,9 @@ typedef struct AMD_PSP_DIRECTORY_HEADER_ {
 typedef struct AMD_ADDRESS_ADDRESSMODE_ {
     union {
         UINT64 raw;
-        AMD_ADDRESS_ADDRESSMODE_DEF;
+        struct {
+            AMD_ADDRESS_ADDRESSMODE_DEF;
+        };
     };
 } AMD_ADDRESS_ADDRESSMODE;
 
@@ -458,7 +462,9 @@ typedef struct AMD_ADDRESS_ADDRESSMODE_ {
 typedef struct AMD_PSP_DIRECTORY_ENTRY_FLAGS_ {
     union {
         UINT16 raw;
-        AMD_PSP_DIRECTORY_ENTRY_FLAGS_DEF;
+        struct {
+            AMD_PSP_DIRECTORY_ENTRY_FLAGS_DEF;
+        };
     };
 } AMD_PSP_DIRECTORY_ENTRY_FLAGS;
 
@@ -514,7 +520,9 @@ typedef struct AMD_BIOS_DIRECTORY_HEADER_ {
 typedef struct AMD_BIOS_DIRECTORY_ENTRY_FLAGS_ {
     union {
         UINT16 raw;
-        AMD_BIOS_DIRECTORY_ENTRY_FLAGS_DEF;
+        struct {
+            AMD_BIOS_DIRECTORY_ENTRY_FLAGS_DEF;
+        };
     };
 } AMD_BIOS_DIRECTORY_ENTRY_FLAGS;
 
