@@ -62,6 +62,8 @@ UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize);
 // Return padding type from it's contents
 UINT8 getPaddingType(const UByteArray & padding);
 
+static UINT64 bitMaskFromValue(UINT64 x) { x |= x >> 1; x |= x >> 2; x |= x >> 4; x |= x >> 8; x |= x >> 16; x |= x >> 32; return x; }
+
 // Make pattern from a hexstring with an assumption of . being any char
 bool makePattern(const CHAR8 *textPattern, std::vector<UINT8> &pattern, std::vector<UINT8> &patternMask);
 

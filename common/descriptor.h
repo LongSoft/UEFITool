@@ -195,9 +195,9 @@ typedef struct VSCC_TABLE_ENTRY_ {
 // AMD signatures
 #define AMD_EMBEDDED_FIRMWARE_SIGNATURE             0x55AA55AA
 #define AMD_PSP_DIRECTORY_HEADER_SIGNATURE          0x50535024  // "$PSP"
-#define AMD_PSPL2_DIRECTORY_HEADER_SIGNATURE        0x324c5024  // "$PL2"
+#define AMD_PSPL2_DIRECTORY_HEADER_SIGNATURE        0x324C5024  // "$PL2"
 #define AMD_BIOS_HEADER_SIGNATURE                   0x44484224  // "$BHD"
-#define AMD_BHDL2_HEADER_SIGNATURE                  0x324c4224  // "$BL2"
+#define AMD_BHDL2_HEADER_SIGNATURE                  0x324C4224  // "$BL2"
 #define AMD_PSP_COMBO_DIRECTORY_HEADER_SIGNATURE    0x50535032  // "2PSP"
 #define AMD_PSP_BHD2_DIRECTORY_HEADER_SIGNATURE     0x44484232  // "2BHD"
 
@@ -205,9 +205,6 @@ typedef struct VSCC_TABLE_ENTRY_ {
 
 #define AMD_EMBEDDED_FIRMWARE_OFFSET                0x20000
 
-#define AMD_MAX_PSP_ENTRIES                         0xFF
-#define AMD_MAX_BIOS_ENTRIES                        0x2F
-#define AMD_MAX_COMBO_ENTRIES                       2
 #define AMD_INVALID_SIZE                            0xFFFFFFFFUL
 
 /* An address can be relative to the image/file start but it can also be the address when
@@ -223,25 +220,6 @@ typedef enum AMD_ADDR_MODE_ {
     AMD_ADDR_REL_SLOT,	        // Relative to table entry
 } AMD_ADDR_MODE;
 
-typedef enum AMD_BIOS_TYPE_ {
-    AMD_BIOS_SIG = 0x07,
-    AMD_BIOS_APCB = 0x60,
-    AMD_BIOS_APOB = 0x61,
-    AMD_BIOS_BIN = 0x62,
-    AMD_BIOS_APOB_NV = 0x63,
-    AMD_BIOS_PMUI = 0x64,
-    AMD_BIOS_PMUD = 0x65,
-    AMD_BIOS_UCODE = 0x66,
-    AMD_BIOS_FHP_DRIVER = 0x67,
-    AMD_BIOS_APCB_BK = 0x68,
-    AMD_BIOS_EARLY_VGA = 0x69,
-    AMD_BIOS_MP2_CFG = 0x6a,
-    AMD_BIOS_PSP_SHARED_MEM = 0x6b,
-    AMD_BIOS_L2_PTR = 0x70,
-    AMD_BIOS_INVALID,
-    AMD_BIOS_SKIP
-} AMD_BIOS_TYPE;
-
 typedef enum AMD_FW_TYPE_ {
     AMD_FW_PSP_PUBKEY = 0x00,
     AMD_FW_PSP_BOOTLOADER = 0x01,
@@ -249,14 +227,17 @@ typedef enum AMD_FW_TYPE_ {
     AMD_FW_PSP_RECOVERY = 0x03,
     AMD_FW_PSP_NVRAM = 0x04,
     AMD_FW_RTM_PUBKEY = 0x05,
+    AMD_FW_BIOS_RTM = 0x06,
     AMD_FW_PSP_SMU_FIRMWARE = 0x08,
     AMD_FW_PSP_SECURED_DEBUG = 0x09,
     AMD_FW_ABL_PUBKEY = 0x0a,
     AMD_PSP_FUSE_CHAIN = 0x0b,
     AMD_FW_PSP_TRUSTLETS = 0x0c,
     AMD_FW_PSP_TRUSTLETKEY = 0x0d,
+    AMD_FW_AGESA_RESUME = 0x10,
     AMD_FW_PSP_SMU_FIRMWARE2 = 0x12,
     AMD_DEBUG_UNLOCK = 0x13,
+    AMD_PSP_MCLF_TRUSTLETS = 0x14, // ???
     AMD_FW_PSP_TEEIPKEY = 0x15,
     AMD_SEV_DRIVER = 0x1a,
     AMD_BOOT_DRIVER = 0x1b,
@@ -288,6 +269,7 @@ typedef enum AMD_FW_TYPE_ {
     AMD_FW_DXIO = 0x42,
     AMD_FW_USB_PHY = 0x44,
     AMD_FW_TOS_SEC_POLICY = 0x45,
+    AMD_FET_BACKUP = 0x46,
     AMD_FW_DRTM_TA = 0x47,
     AMD_FW_RECOVERYAB_A = 0x48,
     AMD_FW_RECOVERYAB_B = 0x4A,
@@ -332,12 +314,24 @@ typedef enum AMD_FW_TYPE_ {
     AMD_FW_USBDP = 0xa4,
     AMD_FW_USBSS = 0xa5,
     AMD_FW_USB4 = 0xa6,
-    AMD_FW_IMC = 0x200,	/* Large enough to be larger than the top BHD entry type. */
-    AMD_FW_GEC,
-    AMD_FW_XHCI,
-    AMD_FW_INVALID,		/* Real last one to detect the last entry in table. */
-    AMD_FW_SKIP		/* This is for non-applicable options. */
 } AMD_FW_TYPE;
+
+typedef enum AMD_BIOS_TYPE_ {
+    AMD_BIOS_SIG = 0x07,
+    AMD_BIOS_APCB = 0x60,
+    AMD_BIOS_APOB = 0x61,
+    AMD_BIOS_BIN = 0x62,
+    AMD_BIOS_APOB_NV = 0x63,
+    AMD_BIOS_PMUI = 0x64,
+    AMD_BIOS_PMUD = 0x65,
+    AMD_BIOS_UCODE = 0x66,
+    AMD_BIOS_FHP_DRIVER = 0x67,
+    AMD_BIOS_APCB_BK = 0x68,
+    AMD_BIOS_EARLY_VGA = 0x69,
+    AMD_BIOS_MP2_CFG = 0x6a,
+    AMD_BIOS_PSP_SHARED_MEM = 0x6b,
+    AMD_BIOS_L2_PTR = 0x70,
+} AMD_BIOS_TYPE;
 
 // Embedded firmware descriptor
 typedef struct AMD_EMBEDDED_FIRMWARE_ {

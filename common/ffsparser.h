@@ -62,18 +62,15 @@ typedef struct PROTECTED_RANGE_ {
 
 // AMD PSP file info
 typedef struct PSP_FILE_SPEC_ {
+    bool isBiosDir; // false: PSP, true: BIOS
+    UINT8 id;
+    UINT16 flags;
     UINT32 offset;
-    UINT32 hdrSize;
     UINT32 size;
     UString name;
     UString text;
     UString info;
-    UINT8 type;
-    UINT8 subtype;
     UModelIndex parent;
-    UINT8 fileType;
-    UINT16 fileFlags;
-    bool isBiosDir; // false: PSP, true: BIOS
 } PSP_FILE_SPEC;
 
 #define PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB       0x01
@@ -135,6 +132,7 @@ private:
     UINT64 addressDiff;
     UINT32 pspMinOffset;
     UINT32 pspMaxOffset;
+    UINT32 pspSpiRomBase;
     std::vector<std::pair<UModelIndex, UINT64> > indexesAddressDiffs;
     std::vector<PSP_FILE_SPEC> pspFilesList;
     UString securityInfo;
@@ -213,7 +211,7 @@ private:
     USTATUS parseResetVectorData();
     
     USTATUS findByRange(const UINT32 offset, const UINT32 size, const UModelIndex& index, UModelIndex& found);
-    USTATUS insertByRange(const UINT32 offset, const UINT32 hdrSize, const UINT32 size, const UString name, const UString text, const UString info,
+    USTATUS insertByRange(const UINT32 offset, const UINT32 hdrSize, const UINT32 bodySize, const UString name, const UString text, const UString info,
         const UINT8 type, const UINT8 subType, const UModelIndex& parent, UModelIndex& index);
     USTATUS decompressBios(const UByteArray& fileImage, UByteArray& decompressed);
     UINT32 fletcher32(const UByteArray& image);
