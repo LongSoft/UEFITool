@@ -201,17 +201,7 @@ typedef struct VSCC_TABLE_ENTRY_ {
 #define AMD_PSP_COMBO_DIRECTORY_HEADER_SIGNATURE    0x50535032  // "2PSP"
 #define AMD_PSP_BHD2_DIRECTORY_HEADER_SIGNATURE     0x44484232  // "2BHD"
 
-#define AMD_EFS_GEN1                                0xFFFFFFFFUL
-
 #define AMD_EMBEDDED_FIRMWARE_OFFSET                0x20000
-
-#define AMD_INVALID_SIZE                            0xFFFFFFFFUL
-
-/* An address can be relative to the image/file start but it can also be the address when
- * the image is mapped at 0xff000000. Used to ensure that we only attempt to read within
- * the limits of the file. */
-#define SPI_ROM_BASE                                0xFF000000UL
-#define FILE_REL_MASK                               (~SPI_ROM_BASE)
 
 typedef enum AMD_ADDR_MODE_ {
     AMD_ADDR_PHYSICAL = 0,	    // Physical address
@@ -269,7 +259,7 @@ typedef enum AMD_FW_TYPE_ {
     AMD_FW_DXIO = 0x42,
     AMD_FW_USB_PHY = 0x44,
     AMD_FW_TOS_SEC_POLICY = 0x45,
-    AMD_FET_BACKUP = 0x46,
+    AMD_EFS_BACKUP = 0x46,
     AMD_FW_DRTM_TA = 0x47,
     AMD_FW_RECOVERYAB_A = 0x48,
     AMD_FW_RECOVERYAB_B = 0x4A,
@@ -364,7 +354,7 @@ typedef struct AMD_EMBEDDED_FIRMWARE_ {
     // Might be a BIOS directory or Combo directory table
     UINT32 BackupPSP_Directory;
     UINT32 Promontory_Firmware;
-    UINT32 Reserved_1[6];
+    UINT32 Reserved_1[7];
 } AMD_EMBEDDED_FIRMWARE;
 
 #define AMD_ADDITIONAL_INFO_V0_DEF \

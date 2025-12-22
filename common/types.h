@@ -156,8 +156,9 @@ namespace Subtypes {
     enum DirectorySubtypes {
         PSPDirectory = 155,
         ComboDirectory,
-        BiosDirectory,
+        BIOSDirectory,
         ISHDirectory,
+        AnyDirectory,
     };
     
     enum EvsaEntrySubtypes {

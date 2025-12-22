@@ -62,15 +62,23 @@ typedef struct PROTECTED_RANGE_ {
 
 // AMD PSP file info
 typedef struct PSP_FILE_SPEC_ {
-    bool isBiosDir; // false: PSP, true: BIOS
-    UINT8 id;
-    UINT16 flags;
     UINT32 offset;
     UINT32 size;
+    UINT32 parent;  // parent base
     UString name;
-    UString text;
-    UString info;
-    UModelIndex parent;
+    UINT16 flags;
+    UINT8 type;
+    UINT8 sub;
+    UINT8 inst;
+    UINT8 rom;
+    UINT8 wr : 1,
+        dir : 1,    // false: PSP, true: BIOS
+        rst : 1,    // BIOS only
+        cpy : 1,    // BIOS only
+        ro : 1,     // BIOS only
+        comp : 1;   // BIOS only
+    UINT8 reg;      // BIOS only
+    UINT64 dest;    // BIOS only
 } PSP_FILE_SPEC;
 
 #define PROTECTED_RANGE_INTEL_BOOT_GUARD_IBB       0x01
@@ -130,8 +138,7 @@ private:
     UModelIndex lastVtf;
     UINT32 imageBase;
     UINT64 addressDiff;
-    UINT32 pspMinOffset;
-    UINT32 pspMaxOffset;
+    UINT64 pspMaxOffset;
     UINT32 pspSpiRomBase;
     std::vector<std::pair<UModelIndex, UINT64> > indexesAddressDiffs;
     std::vector<PSP_FILE_SPEC> pspFilesList;
@@ -210,31 +217,37 @@ private:
 
     USTATUS parseResetVectorData();
     
+    UModelIndex imageIndex(const UModelIndex & index) const
+        { return model->type(index) == Types::Image ? index : model->findParentOfType(index, Types::Image); }
+    UINT32 offsetToBase(const UModelIndex& index, const UINT32 offset) const
+        { return model->base(imageIndex(index)) + offset; }
     USTATUS findByRange(const UINT32 offset, const UINT32 size, const UModelIndex& index, UModelIndex& found);
-    USTATUS insertByRange(const UINT32 offset, const UINT32 hdrSize, const UINT32 bodySize, const UString name, const UString text, const UString info,
-        const UINT8 type, const UINT8 subType, const UModelIndex& parent, UModelIndex& index);
+    USTATUS insertByRange(const UINT32 offset, const UINT8 type, const UINT8 subType,
+        const UString name, const UString text, const UString info,
+        const UINT32 hdrSize, const UINT32 bodySize, const UINT32 tailSize,
+        const UModelIndex& parent, UModelIndex& index);
     USTATUS decompressBios(const UByteArray& fileImage, UByteArray& decompressed);
     UINT32 fletcher32(const UByteArray& image);
 
     // AMD specific
     UString pspFileName(const UINT8 type, const UINT8 sub);
-    USTATUS pspDirectoryName(const UByteArray& amdImage, const UINT32 offset,
-        Subtypes::DirectorySubtypes& type, Subtypes::RegionSubtypes& subtype, UString& typeName, UString& err);
-    UString pspTypeSubInst2String(const UINT8 type, const UINT8 sub, const UINT8 inst);
-    UString pspIdSel2String(const UINT32 id, const UINT32 sel);
-    USTATUS pspRelativeOffset(const UModelIndex& parent, const AMD_ADDRESS_ADDRESSMODE addressMode, UINT64& outAddress);
+    UINT32 pspFileOffset(const UByteArray& amdImage, const UINT32 offset, const UINT32 entryOffset,
+        const UINT32 size, const AMD_ADDRESS_ADDRESSMODE& addressMode);
+    UINT32 pspDirectoryOffset(const UByteArray& amdImage, const UINT32 offset);
 
-    USTATUS pspExtractTable(const UByteArray& amdImage, const UINT32 offset,
-        Subtypes::DirectorySubtypes& expected, Subtypes::RegionSubtypes& subtype, UString& typeName, UString &err,
-        UByteArray& tableImage, UINT32& regionSize, UINT64 &crc);
-    USTATUS pspParsePSPDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
-    USTATUS pspParseComboDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
-    USTATUS pspParseBIOSDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
-    USTATUS pspParseISHTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseISHDirectory(const UByteArray& amdImage, const UINT32 offset,
+        const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseComboEntries(const UByteArray& amdImage, const UINT32 offset, const UINT32 headerSize, const UINT32 numEntries,
+        const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseBIOSEntries(const UByteArray& amdImage, const UINT32 offset, const UINT32 headerSize, const UINT32 numEntries,
+        const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParsePSPEntries(const UByteArray& amdImage, const UINT32 offset, const UINT32 headerSize, const UINT32 numEntries,
+        const UModelIndex& parent, UModelIndex& index, const bool probe = false);
 
-    USTATUS pspParseDirectory(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
+    USTATUS pspParseDirectory(const UByteArray& amdImage, const UINT32 offset, const Subtypes::DirectorySubtypes expected,
+        const UModelIndex& parent, UModelIndex& index, const bool probe = false);
     USTATUS pspParseFirmware(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
-    USTATUS pspParseEFTable(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, const bool probe = false);
+    USTATUS pspParseEFStructure(const UByteArray& amdImage, const UINT32 offset, const UModelIndex& parent, UModelIndex& index, const bool probe = false);
     USTATUS parseAMDImage(const UByteArray& amdImage, const UINT32 localOffset, const UModelIndex& parent, UModelIndex& index);
     
 #ifdef U_ENABLE_FIT_PARSING_SUPPORT

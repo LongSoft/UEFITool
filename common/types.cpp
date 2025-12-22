@@ -191,13 +191,13 @@ UString itemSubtypeToUString(const UINT8 type, const UINT8 subtype)
         case Types::DirectoryTable:
             if (subtype == Subtypes::PSPDirectory)                 return UString("PSP table");
             if (subtype == Subtypes::ComboDirectory)               return UString("Combo table");
-            if (subtype == Subtypes::BiosDirectory)                return UString("BIOS table");
+            if (subtype == Subtypes::BIOSDirectory)                return UString("BIOS table");
             if (subtype == Subtypes::ISHDirectory)                 return UString("ISH table");
             break;
         case Types::DirectoryTableEntry:
             if (subtype == Subtypes::PSPDirectory)                 return UString("PSP directory");
             if (subtype == Subtypes::ComboDirectory)               return UString("Combo directory");
-            if (subtype == Subtypes::BiosDirectory)                return UString("BIOS directory");
+            if (subtype == Subtypes::BIOSDirectory)                return UString("BIOS directory");
             break;
     }
     
