@@ -48,6 +48,7 @@ public:
     
     int startup()
     {
+        QApplication::processEvents();
         tool->setProgramPath(arguments().at(0));
         if (arguments().length() > 1)
             tool->openImageFile(arguments().at(1));
