@@ -89,7 +89,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 // Get info
                 UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
 
-                if ((UINT32)padding.count(emptyByte) == unparsedSize) { // Free space
+                if (checkSingleByte(padding) == emptyByte) { // Free space
                     // Add tree item
                     model->addItem(localOffset + entry->offset(), Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
                 }
@@ -422,7 +422,7 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
                         // Check that remaining unparsed bytes are actually empty
-                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                        if (checkSingleByte(freeSpace) == emptyByte) { // Free space
                             // Add tree item
                             model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
                         }
@@ -625,7 +625,7 @@ not_vss:
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
                         // Check that remaining unparsed bytes are actually empty
-                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                        if (checkSingleByte(freeSpace) == emptyByte) { // Free space
                             // Add tree item
                             model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
                         }
@@ -951,7 +951,7 @@ not_fdc:
                 info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                 
                 // Check that remaining unparsed bytes are actually zeroes
-                if (freeSpace.count('\x00') == freeSpace.size() - 4) { // Free space, 4 last bytes are always CRC32
+                if (checkSingleByte(freeSpace.left(freeSpace.size() - 4)) == 0) { // Free space, 4 last bytes are always CRC32
                     // Add tree item
                     model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
                 }
@@ -1121,7 +1121,7 @@ not_flm:
                         info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                         
                         // Check that remaining unparsed bytes are actually empty
-                        if (freeSpace.count(emptyByte) == freeSpace.size()) { // Free space
+                        if (checkSingleByte(freeSpace) == emptyByte) { // Free space
                             // Add tree item
                             model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
                         }
@@ -1526,7 +1526,7 @@ not_ffs_volume:
         UString info = usprintf("Full size: %Xh (%u)", (UINT32)outerPadding.size(), (UINT32)outerPadding.size());
         
         // Check that remaining unparsed bytes are actually empty
-        if (outerPadding.count(emptyByte) == outerPadding.size()) {
+        if (checkSingleByte(outerPadding) == emptyByte) {
             // Add tree item
             model->addItem(localOffset + previousStoreEndOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), outerPadding, UByteArray(), Fixed, index);
         }

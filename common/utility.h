@@ -59,6 +59,9 @@ UINT16 calculateChecksum16(const UINT16* buffer, UINT32 bufferSize);
 // 32bit checksum calculation routine
 UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize);
 
+// Check if an array is filled in by a single repeated value
+UINT32 checkSingleByte(const UByteArray& a);
+
 // Returns padding type from it's contents
 UINT8 getPaddingType(const UByteArray & padding);
 

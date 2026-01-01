@@ -709,8 +709,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     // Add postIbbHash protected range
                     UByteArray postIbbHash(ibbs_body->post_ibb_hash()->hash().data(), ibbs_body->post_ibb_hash()->len_hash());
-                    if (postIbbHash.count('\x00') != postIbbHash.size()
-                        && postIbbHash.count('\xFF') != postIbbHash.size()) {
+                    auto c = checkSingleByte(postIbbHash);
+                    if (c != 0 && c != 0xFF) {
                         PROTECTED_RANGE range = {};
                         range.Type = PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
                         range.AlgorithmId = ibbs_body->post_ibb_hash()->hash_algorithm_id();
@@ -990,8 +990,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                 else {
                     // Add postIbbHash protected range
                     UByteArray postIbbHash(ibbs_body->post_ibb_digest()->hash().data(), ibbs_body->post_ibb_digest()->len_hash());
-                    if (postIbbHash.count('\x00') != postIbbHash.size()
-                        && postIbbHash.count('\xFF') != postIbbHash.size()) {
+                    auto c = checkSingleByte(postIbbHash);
+                    if (c != 0 && c != 0xFF) {
                         PROTECTED_RANGE range = {};
                         range.Type = PROTECTED_RANGE_INTEL_BOOT_GUARD_POST_IBB;
                         range.AlgorithmId = ibbs_body->post_ibb_digest()->hash_algorithm_id();
@@ -1021,8 +1021,8 @@ USTATUS FitParser::parseFitEntryBootGuardBootPolicy(const UByteArray & bootPolic
                     
                     // Add ObbHash protected range
                     UByteArray obbHash(ibbs_body->obb_digest()->hash().data(), ibbs_body->obb_digest()->len_hash());
-                    if (obbHash.count('\x00') != obbHash.size()
-                        && obbHash.count('\xFF') != obbHash.size()) {
+                    auto c = checkSingleByte(obbHash);
+                    if (c != 0 && c != 0xFF) {
                         PROTECTED_RANGE range = {};
                         range.Type = PROTECTED_RANGE_INTEL_BOOT_GUARD_OBB;
                         range.AlgorithmId = ibbs_body->obb_digest()->hash_algorithm_id();
