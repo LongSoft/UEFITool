@@ -39,7 +39,7 @@ USTATUS FfsBuilder::erase(const UModelIndex & index, UByteArray & erased)
         }
     }
     
-    erased = UByteArray(model->header(index).size() + model->body(index).size() + model->tail(index).size(), emptyByte);
+    erased = UByteArray(model->raw(index).size(), emptyByte);
     
     return U_SUCCESS;
 }
@@ -74,7 +74,7 @@ USTATUS FfsBuilder::buildCapsule(const UModelIndex & index, UByteArray & capsule
     // No action
     if (model->action(index) == Actions::NoAction) {
         // Use original item data
-        capsule = model->header(index) + model->body(index) + model->tail(index);
+        capsule = model->raw(index);
         return U_SUCCESS;
     }
     
@@ -154,7 +154,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
     
     // No action
     if (model->action(index) == Actions::NoAction) {
-        intelImage = model->header(index) + model->body(index) + model->tail(index);
+        intelImage = model->raw(index);
         return U_SUCCESS;
     }
     // Remove
@@ -165,7 +165,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
     // Rebuild
     else if (model->action(index) == Actions::Rebuild) {
         // First child will always be descriptor for this type of image, and it's read only for now
-        intelImage = model->header(index.model()->index(0, 0, index)) + model->body(index.model()->index(0, 0, index)) + model->tail(index.model()->index(0, 0, index));
+        intelImage = model->raw(index.model()->index(0, 0, index));
         
         // Process other regions
         for (int i = 1; i < model->rowCount(index); i++) {
@@ -179,7 +179,7 @@ USTATUS FfsBuilder::buildIntelImage(const UModelIndex & index, UByteArray & inte
             UINT8 type = model->type(currentRegion);
             if (type == Types::Padding) {
                 // Add padding as is
-                intelImage += model->header(currentRegion) + model->body(currentRegion) + model->tail(currentRegion);
+                intelImage += model->raw(currentRegion);
                 continue;
             }
             
@@ -250,7 +250,7 @@ USTATUS FfsBuilder::buildRawArea(const UModelIndex & index, UByteArray & rawArea
     
     // No action required
     if (model->action(index) == Actions::NoAction) {
-        rawArea = model->header(index) + model->body(index) + model->tail(index);
+        rawArea = model->raw(index);
         return U_SUCCESS;
     }
     // Remove
@@ -326,7 +326,7 @@ USTATUS FfsBuilder::buildPadding(const UModelIndex & index, UByteArray & padding
     
     // No action required
     if (model->action(index) == Actions::NoAction) {
-        padding = model->header(index) + model->body(index) + model->tail(index);
+        padding = model->raw(index);
         return U_SUCCESS;
     }
     // Remove
@@ -351,7 +351,7 @@ USTATUS FfsBuilder::buildNonUefiData(const UModelIndex & index, UByteArray & dat
     
     // No action required
     if (model->action(index) == Actions::NoAction) {
-        data = model->header(index) + model->body(index) + model->tail(index);
+        data = model->raw(index);
         return U_SUCCESS;
     }
     // Remove
@@ -377,7 +377,7 @@ USTATUS FfsBuilder::buildFreeSpace(const UModelIndex & index, UByteArray & freeS
         return U_INVALID_PARAMETER;
     
     // No actions possible for free space
-    freeSpace = model->header(index) + model->body(index) + model->tail(index);
+    freeSpace = model->raw(index);
     return U_SUCCESS;
 }
 

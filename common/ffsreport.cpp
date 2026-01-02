@@ -48,7 +48,7 @@ USTATUS FfsReport::generateRecursive(std::vector<UString> & report, const UModel
         return U_SUCCESS; // Nothing to report for invalid index
     
     // Calculate item CRC32
-    UByteArray data = model->header(index) + model->body(index) + model->tail(index);
+    UByteArray data = model->raw(index);
     UINT32 crc = (UINT32)crc32(0, (const UINT8*)data.constData(), (uInt)data.size());
     
     // Information on current item

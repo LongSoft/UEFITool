@@ -189,6 +189,8 @@ public:
     UINT8 marking(const UModelIndex &index) const;
     void setMarking(const UModelIndex &index, const UINT8 marking);
 
+    UByteArray raw(const UModelIndex& index) const;
+
     UByteArray header(const UModelIndex &index) const;
     bool hasEmptyHeader(const UModelIndex &index) const;
 

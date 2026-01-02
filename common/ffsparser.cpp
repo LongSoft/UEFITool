@@ -3790,7 +3790,7 @@ USTATUS FfsParser::performSecondPass(const UModelIndex & index)
     }
     
     // Calculate address difference
-    const UINT32 vtfSize = (UINT32)(model->header(lastVtf).size() + model->body(lastVtf).size() + model->tail(lastVtf).size());
+    const UINT32 vtfSize = (UINT32)(model->raw(lastVtf).size());
     addressDiff = 0xFFFFFFFFULL - model->base(lastVtf) - vtfSize + 1;
     
     // Parse reset vector data
@@ -3815,7 +3815,7 @@ USTATUS FfsParser::parseResetVectorData()
         return U_SUCCESS;
     
     // Check VTF to have enough space at the end to fit Reset Vector Data
-    UByteArray vtf = model->header(lastVtf) + model->body(lastVtf) + model->tail(lastVtf);
+    UByteArray vtf = model->raw(lastVtf);
     if ((UINT32)vtf.size() < sizeof(X86_RESET_VECTOR_DATA))
         return U_SUCCESS;
     
@@ -4042,7 +4042,7 @@ USTATUS FfsParser::checkProtectedRanges(const UModelIndex & index)
                 else {
                     try {
                         protectedRanges[i].Offset = model->base(dxeRootVolumeIndex);
-                        protectedRanges[i].Size = (UINT32)(model->header(dxeRootVolumeIndex).size() + model->body(dxeRootVolumeIndex).size() + model->tail(dxeRootVolumeIndex).size());
+                        protectedRanges[i].Size = (UINT32)(model->raw(dxeRootVolumeIndex).size());
                         protectedParts = openedImage.mid(protectedRanges[i].Offset, protectedRanges[i].Size);
                         
                         // Calculate the hash
@@ -4288,7 +4288,7 @@ USTATUS FfsParser::markProtectedRangeRecursive(const UModelIndex & index, const 
     // Mark normal items
     else {
         UINT32 currentOffset = model->base(index);
-        UINT32 currentSize = (UINT32)(model->header(index).size() + model->body(index).size() + model->tail(index).size());
+        UINT32 currentSize = (UINT32)(model->raw(index).size());
         
         if (std::min(currentOffset + currentSize, range.Offset + range.Size) > std::max(currentOffset, range.Offset)) {
             if (range.Offset <= currentOffset && currentOffset + currentSize <= range.Offset + range.Size) { // Mark as fully in range
@@ -4522,7 +4522,7 @@ USTATUS FfsParser::parseMicrocodeVolumeBody(const UModelIndex & index)
         }
         
         // Get to next candidate
-        offset += model->header(currentMicrocode).size() + model->body(currentMicrocode).size() + model->tail(currentMicrocode).size();
+        offset += model->raw(currentMicrocode).size();
         if (offset >= bodySize)
             break;
     }
@@ -5457,7 +5457,7 @@ USTATUS FfsParser::findByRange(const UINT32 base, const UINT32 size, const UMode
     // Sort by inserting
     for (int i = 0; i < model->rowCount(index); i++) {
         UModelIndex current = model->index(i, 0, index);
-        UINT32 currentSize = model->header(current).size() + model->body(current).size() + model->tail(current).size();
+        UINT32 currentSize = model->raw(current).size();
 
         // Must be within the existing region
         if (base < model->base(current) || (base + size) >(model->base(current) + currentSize))
@@ -5481,7 +5481,7 @@ USTATUS FfsParser::insertByRange(UINT32 offset, const UINT8 type, const UINT8 su
     UModelIndex containerIndex = imageIndex(parent);
     const UString parentName = model->type(parent) == Types::Image ? UString() : model->name(parent);
     const UINT32 imageBase = model->base(containerIndex) + offset;
-    const UINT32 imageSize = model->header(containerIndex).size() + model->body(containerIndex).size() + model->tail(containerIndex).size();
+    const UINT32 imageSize = model->raw(containerIndex).size();
     const UINT32 fullSize = offset + hdrSize + bodySize + tailSize > imageSize ? imageSize - offset : hdrSize + bodySize + tailSize;
 
     UModelIndex foundIndex;
@@ -5496,8 +5496,7 @@ USTATUS FfsParser::insertByRange(UINT32 offset, const UINT8 type, const UINT8 su
         parentInfo += model->name(parent) + usprintf(", base: %Xh\n", model->base(parent));
     if (result == U_SUCCESS && foundIndex.isValid()) {
         if (model->type(foundIndex) == type && model->subtype(foundIndex) == subtype
-            && model->base(foundIndex) == imageBase && (model->header(foundIndex).size()
-                + model->body(foundIndex).size() + model->tail(foundIndex).size()) == fullSize)
+            && model->base(foundIndex) == imageBase && model->raw(foundIndex).size() == fullSize)
         {
             index = foundIndex;
             if (static_cast<TreeItem*>(parent.internalPointer()) != static_cast<TreeItem*>(index.internalPointer())->parent())
@@ -5540,7 +5539,7 @@ USTATUS FfsParser::insertByRange(UINT32 offset, const UINT8 type, const UINT8 su
     const UINT32 hdrOffset = imageBase - model->base(containerIndex);
     const UINT32 bodyOffset = hdrOffset + realHdrSize;
     const UINT32 tailOffset = bodyOffset + realBodySize;
-    const UByteArray containerImage = model->header(containerIndex) + model->body(containerIndex) + model->tail(containerIndex);
+    const UByteArray containerImage = model->raw(containerIndex);
     index = model->addItem(hdrOffset, type, subtype, name, text, itemInfo,
         containerImage.mid(hdrOffset, realHdrSize), containerImage.mid(bodyOffset, realBodySize), containerImage.mid(tailOffset, realTailSize),
         Fixed, insertIndex, mode);
@@ -6771,7 +6770,7 @@ USTATUS FfsParser::parseAMDImage(const UByteArray& amdImage, const UINT32 localO
         }
         typename std::decay<decltype(indexesAddressDiffs)>::type::value_type p;
         p.first = uefiIndex;
-        p.second = 0x100000000ULL - model->base(p.first) - model->header(p.first).size() - model->body(p.first).size() - model->tail(p.first).size();
+        p.second = 0x100000000ULL - model->base(p.first) - model->raw(p.first).size();
         addressDiff = p.second;
         indexesAddressDiffs.push_back(p);
     }
