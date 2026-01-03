@@ -68,7 +68,7 @@ public:
 
     UByteArray tail() const { return itemTail; };
     bool hasEmptyTail() const { return itemTail.isEmpty(); }
-    UByteArray raw() const { return itemHeader + itemBody + itemTail; }
+    UByteArray entire() const { return itemHeader + itemBody + itemTail; }
 
     UString info() const { return itemInfo; }
     void addInfo(const UString &info, const bool append) { if (append) itemInfo += info; else itemInfo = info + itemInfo; }

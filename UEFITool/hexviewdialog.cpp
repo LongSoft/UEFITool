@@ -49,7 +49,7 @@ void HexViewDialog::setItem(const UModelIndex & index, HexViewType type)
     switch (type) {
         case fullHexView:
             dialogTitle = UString("Hex view: ");
-            hexdata = model->raw(index);
+            hexdata = model->entire(index);
             break;
         case bodyHexView:
             dialogTitle = UString("Body hex view: ");

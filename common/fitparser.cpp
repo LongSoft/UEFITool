@@ -131,7 +131,7 @@ USTATUS FitParser::parseFit(const UModelIndex & index)
             UINT32 currentEntryBase = (UINT32)(currentEntry->Address - ffsParser->addressDiff);
             itemIndex = model->findByBase(currentEntryBase);
             if (itemIndex.isValid()) {
-                UByteArray item = model->raw(itemIndex);
+                UByteArray item = model->entire(itemIndex);
                 UINT32 localOffset = currentEntryBase - model->base(itemIndex);
                 
                 switch (currentEntry->Type) {

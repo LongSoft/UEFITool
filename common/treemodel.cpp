@@ -206,12 +206,12 @@ UINT8 TreeModel::marking(const UModelIndex &index) const
     return item->marking();
 }
 
-UByteArray TreeModel::raw(const UModelIndex& index) const
+UByteArray TreeModel::entire(const UModelIndex& index) const
 {
     if (!index.isValid())
         return UByteArray();
     TreeItem* item = static_cast<TreeItem*>(index.internalPointer());
-    return item->raw();
+    return item->entire();
 }
 
 UByteArray TreeModel::header(const UModelIndex &index) const
@@ -609,7 +609,7 @@ goDeeper:
         UModelIndex currentIndex = parentIndex.model()->index(i, 0, parentIndex);
         
         UINT32 currentBase = this->base(currentIndex);
-        UINT32 fullSize = (UINT32)(raw(currentIndex).size());
+        UINT32 fullSize = (UINT32)(entire(currentIndex).size());
         if ((compressed(currentIndex) == false || (compressed(currentIndex) == true && compressed(currentIndex.parent()) == false)) // Base is meaningful only for true uncompressed items
             && currentBase <= base && base < currentBase + fullSize) { // Base must be in range [currentBase, currentBase + fullSize)
             // Found a better candidate

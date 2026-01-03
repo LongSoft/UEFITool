@@ -355,7 +355,7 @@ void UEFITool::populateUi(const QModelIndex &current)
     selectedHexView.clearMetadata();
     selectedHexView.setBackground(0, model->header(current).size(),
         model->markingDarkMode() ? Qt::darkGreen : Qt::green);
-    selectedHexView.setData(model->raw(current));
+    selectedHexView.setData(model->entire(current));
     enableDock(ui->hexViewDock, true);
     
     // Enable menus
@@ -1562,7 +1562,7 @@ void UEFITool::hashCrc32()
     if (!index.isValid())
         return;
     
-    QByteArray data = model->raw(index);
+    QByteArray data = model->entire(index);
     doCrc32(data);
 }
 
@@ -1572,7 +1572,7 @@ void UEFITool::hashSha1()
     if (!index.isValid())
         return;
     
-    QByteArray data = model->raw(index);
+    QByteArray data = model->entire(index);
     doSha1(data);
 }
 
@@ -1582,7 +1582,7 @@ void UEFITool::hashSha256()
     if (!index.isValid())
         return;
     
-    QByteArray data = model->raw(index);
+    QByteArray data = model->entire(index);
     doSha256(data);
 }
 
@@ -1592,7 +1592,7 @@ void UEFITool::hashSha384()
     if (!index.isValid())
         return;
     
-    QByteArray data = model->raw(index);
+    QByteArray data = model->entire(index);
     doSha384(data);
 }
 
@@ -1602,7 +1602,7 @@ void UEFITool::hashSha512()
     if (!index.isValid())
         return;
     
-    QByteArray data = model->raw(index);
+    QByteArray data = model->entire(index);
     doSha512(data);
 }
 
@@ -1612,7 +1612,7 @@ void UEFITool::hashSm3()
     if (!index.isValid())
         return;
     
-    QByteArray data = model->raw(index);
+    QByteArray data = model->entire(index);
     doSm3(data);
 }
 
