@@ -18,6 +18,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "../common/zlib/zlib.h"
 
+#include "../common/brotli/include/brotli/decode.h"
+
 #include "basetypes.h"
 #include "ustring.h"
 #include "treemodel.h"
@@ -46,6 +48,9 @@ USTATUS gzipDecompress(const UByteArray & compressed, UByteArray & decompressed)
 
 // ZLIB decompression routine
 USTATUS zlibDecompress(const UByteArray& compressed, UByteArray& decompressed);
+
+// Brotli decompression routine
+USTATUS brotliDecompress(const UByteArray& compressed, UByteArray& decompressed);
 
 // 8bit sum calculation routine
 UINT8 calculateSum8(const UINT8* buffer, UINT32 bufferSize);

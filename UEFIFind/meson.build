@@ -6,6 +6,7 @@ executable(
   ],
   link_with: [
     lzma,
+    brotli,
     bstrlib,
     uefitoolcommon,
   ],

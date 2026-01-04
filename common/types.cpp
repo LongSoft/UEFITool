@@ -216,6 +216,7 @@ UString compressionTypeToUString(const UINT8 algorithm)
         case COMPRESSION_ALGORITHM_LZMAF86:                 return UString("LZMAF86");
         case COMPRESSION_ALGORITHM_GZIP:                    return UString("GZip");
         case COMPRESSION_ALGORITHM_ZLIB:                    return UString("Zlib");
+        case COMPRESSION_ALGORITHM_BROTLI:                  return UString("Brotli");
     }
     
     return usprintf("Unknown %02Xh", algorithm);

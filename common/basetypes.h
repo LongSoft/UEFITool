@@ -78,6 +78,7 @@ typedef size_t USTATUS;
 #define U_INVALID_SYMBOL                  55
 #define U_ZLIB_DECOMPRESSION_FAILED       56
 #define U_INVALID_STORE                   57
+#define U_BROTLI_DECOMPRESSION_FAILED     58
 
 #define U_INVALID_MANIFEST                251
 #define U_UNKNOWN_MANIFEST_HEADER_VERSION 252
@@ -138,6 +139,7 @@ typedef ptrdiff_t INTN;
 #define COMPRESSION_ALGORITHM_LZMAF86                7
 #define COMPRESSION_ALGORITHM_GZIP                   8
 #define COMPRESSION_ALGORITHM_ZLIB                   9
+#define COMPRESSION_ALGORITHM_BROTLI                 10
 
 // Item create modes
 #define CREATE_MODE_APPEND    0

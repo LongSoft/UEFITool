@@ -24,6 +24,18 @@ SET(PROJECT_SOURCES
  ../common/treeitem.cpp
  ../common/treemodel.cpp
  ../common/utility.cpp
+ ../common/brotli/common/constants.c
+ ../common/brotli/common/context.c
+ ../common/brotli/common/dictionary.c
+ ../common/brotli/common/platform.c
+ ../common/brotli/common/shared_dictionary.c
+ ../common/brotli/common/transform.c
+ ../common/brotli/dec/bit_reader.c
+ ../common/brotli/dec/decode.c
+ ../common/brotli/dec/huffman.c
+ ../common/brotli/dec/prefix.c
+ ../common/brotli/dec/state.c
+ ../common/brotli/dec/static_init.c
  ../common/LZMA/LzmaDecompress.c
  ../common/LZMA/SDK/C/Bra.c
  ../common/LZMA/SDK/C/Bra86.c

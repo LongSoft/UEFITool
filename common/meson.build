@@ -1,3 +1,20 @@
+brotli = static_library('brotli',
+  sources: [
+    'brotli/common/constants.c',
+    'brotli/common/context.c',
+    'brotli/common/dictionary.c',
+    'brotli/common/platform.c',
+    'brotli/common/shared_dictionary.c',
+    'brotli/common/transform.c',
+    'brotli/dec/bit_reader.c',
+    'brotli/dec/decode.c',
+    'brotli/dec/huffman.c',
+    'brotli/dec/prefix.c',
+    'brotli/dec/state.c',
+    'brotli/dec/static_init.c',
+  ],
+)
+
 lzma = static_library('lzma',
   sources: [
     'LZMA/LzmaDecompress.c',

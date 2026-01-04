@@ -2874,6 +2874,18 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         // Adjust dataOffset
         dataOffset += sizeof(EFI_AMD_ZLIB_SECTION_HEADER);
     }
+    else if (baGuid == EFI_GUIDED_SECTION_BROTLI)
+    {
+        if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on compressed GUIDed sections
+            msgNoProcessingRequiredAttributeCompressed = true;
+        }
+
+        if ((UINT32)section.size() < headerSize + sizeof(EFI_BROTLI_SECTION_HEADER))
+            return U_INVALID_SECTION;
+
+        // Adjust dataOffset
+        dataOffset += sizeof(EFI_BROTLI_SECTION_HEADER);
+    }
     else if (baGuid == EFI_CERT_TYPE_RSA2048_SHA256_GUID) {
         if ((attributes & EFI_GUIDED_SECTION_PROCESSING_REQUIRED) == 0) { // Check that ProcessingRequired attribute is set on signed GUIDed sections
             msgNoProcessingRequiredAttributeSigned = true;
@@ -3395,6 +3407,19 @@ USTATUS FfsParser::parseGuidedSectionBody(const UModelIndex & index)
 
         algorithm = COMPRESSION_ALGORITHM_ZLIB;
         info += UString("\nCompression algorithm: Zlib");
+        info += usprintf("\nDecompressed size: %Xh (%u)", (UINT32)processed.size(), (UINT32)processed.size());
+    }
+    // Brotli compressed section
+    else if (baGuid == EFI_GUIDED_SECTION_BROTLI)
+    {
+        USTATUS result = brotliDecompress(model->body(index), processed);
+        if (result) {
+            msg(usprintf("%s: decompression failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+            return U_SUCCESS;
+        }
+
+        algorithm = COMPRESSION_ALGORITHM_BROTLI;
+        info += UString("\nCompression algorithm: Brotli");
         info += usprintf("\nDecompressed size: %Xh (%u)", (UINT32)processed.size(), (UINT32)processed.size());
     }
     

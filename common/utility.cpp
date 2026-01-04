@@ -573,6 +573,40 @@ USTATUS zlibDecompress(const UByteArray& input, UByteArray& output)
     return ret == Z_STREAM_END ? U_SUCCESS : U_ZLIB_DECOMPRESSION_FAILED;
 }
 
+USTATUS brotliDecompress(const UByteArray& input, UByteArray& output)
+{
+    output.clear();
+
+    if (input.size() == 0)
+        return U_SUCCESS;
+
+    const uint8_t *next_in = (const uint8_t*)input.data();
+    size_t avail_in = input.size();
+
+    BrotliDecoderStateStruct *decoder = BrotliDecoderCreateInstance(nullptr, nullptr, nullptr);
+    if (decoder == nullptr)
+        return U_BROTLI_DECOMPRESSION_FAILED;
+
+    BROTLI_BOOL ret_param = BrotliDecoderSetParameter(decoder, BROTLI_DECODER_PARAM_LARGE_WINDOW, 1);
+    if (ret_param == BROTLI_FALSE)
+        return U_BROTLI_DECOMPRESSION_FAILED;
+
+    BrotliDecoderResult ret = BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT;
+    while (ret == BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT) {
+        uint8_t out[0x1000] = {};
+        uint8_t *next_out = out;
+        size_t avail_out = sizeof(out);
+
+        ret = BrotliDecoderDecompressStream(decoder, &avail_in, &next_in, &avail_out, &next_out, NULL);
+        if ((ret == BROTLI_DECODER_RESULT_NEEDS_MORE_OUTPUT || ret == BROTLI_DECODER_RESULT_SUCCESS) && avail_out != sizeof(out))
+            output += UByteArray((char*)out, sizeof(out) - avail_out);
+    }
+
+    BrotliDecoderDestroyInstance(decoder);
+
+    return ret == BROTLI_DECODER_RESULT_SUCCESS ? U_SUCCESS : U_BROTLI_DECOMPRESSION_FAILED;
+}
+
 UString fourCC(const UINT32 value)
 {
     const UINT8 byte0 = (const UINT8)(value & 0xFF);
