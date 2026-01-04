@@ -429,8 +429,8 @@ UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize)
     return (UINT32)(0x100000000ULL - counter);
 }
 
-// Check if an array is filled in by a single repeated value
-UINT32 checkSingleByte(const UByteArray& a)
+// Returns 0x00..0xFF if an array is filled by a single repeated value, and 0xFFFFFFFF if not
+UINT32 uniformByte(const UByteArray& a)
 {
     size_t s = a.size();
     if ((s == 1) || (s > 1 && memcmp(a.constData(), a.constData() + 1, s - 1) == 0))
@@ -441,7 +441,7 @@ UINT32 checkSingleByte(const UByteArray& a)
 // Get padding type for a given padding
 UINT8 getPaddingType(const UByteArray & padding)
 {
-    switch (checkSingleByte(padding)) {
+    switch (uniformByte(padding)) {
         case 0:
             return Subtypes::ZeroPadding;
         case 0xFF:

@@ -709,7 +709,7 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
     bool versionFound = true;
     bool emptyRegion = false;
     // Check for empty region
-    auto c = checkSingleByte(me);
+    auto c = uniformByte(me);
     if (c <= UINT8_MAX) {
         // Further parsing not needed
         emptyRegion = true;
@@ -774,7 +774,7 @@ USTATUS FfsParser::parsePdrRegion(const UByteArray & pdr, const UINT32 localOffs
     
     // Check for empty region
     bool emptyRegion = false;
-    auto c = checkSingleByte(pdr);
+    auto c = uniformByte(pdr);
     if (c <= UINT8_MAX) {
         // Further parsing not needed
         emptyRegion = true;
@@ -806,7 +806,7 @@ USTATUS FfsParser::parseDevExp1Region(const UByteArray & devExp1, const UINT32 l
     
     // Check for empty region
     bool emptyRegion = false;
-    auto c = checkSingleByte(devExp1);
+    auto c = uniformByte(devExp1);
     if (c <= UINT8_MAX) {
         // Further parsing not needed
         emptyRegion = true;
@@ -834,7 +834,7 @@ USTATUS FfsParser::parseGenericRegion(const UINT8 subtype, const UByteArray & re
     
     // Check for empty region
     bool emptyRegion = false;
-    auto c = checkSingleByte(region);
+    auto c = uniformByte(region);
     if (c <= UINT8_MAX) {
         // Further parsing not needed
         emptyRegion = true;
@@ -1150,7 +1150,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
                             info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                             
                             // Check that remaining unparsed bytes are actually empty
-                            if (checkSingleByte(freeSpace) == emptyByte) { // Free space
+                            if (uniformByte(freeSpace) == emptyByte) { // Free space
                                 // Add tree item
                                 model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
                             }
@@ -1956,7 +1956,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
         
         // Check that we are at the empty space
         UByteArray header = volumeBody.mid(fileOffset, (int)std::min(sizeof(EFI_FFS_FILE_HEADER), (size_t)volumeBodySize - fileOffset));
-        if (checkSingleByte(header) == emptyByte) { // Empty space
+        if (uniformByte(header) == emptyByte) { // Empty space
             // Check volume usedSpace entry to be valid
             if (usedSpace > 0 && usedSpace == fileOffset + volumeHeaderSize) {
                 if (model->hasEmptyParsingData(index) == false) {
@@ -1970,7 +1970,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index)
             
             // Check free space to be actually free
             UByteArray freeSpace = volumeBody.mid(fileOffset);
-            if (checkSingleByte(freeSpace) != emptyByte) {
+            if (uniformByte(freeSpace) != emptyByte) {
                 // Search for the first non-empty byte
                 UINT32 i;
                 UINT32 size = (UINT32)freeSpace.size();
@@ -2424,7 +2424,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     }
     
     // Check if the while padding file is empty
-    if (checkSingleByte(body) == emptyByte)
+    if (uniformByte(body) == emptyByte)
         return U_SUCCESS;
     
     // Search for the first non-empty byte
@@ -4485,8 +4485,7 @@ USTATUS FfsParser::parseMicrocodeVolumeBody(const UModelIndex & index)
         UByteArray ucode = model->body(index).mid(offset);
         
         // Check for empty area
-        auto c = checkSingleByte(ucode);
-        if (c == 0 || c == 0xFF) {
+        if (getPaddingType(ucode) != Subtypes::DataPadding) {
             result = U_INVALID_MICROCODE;
         }
         else {
