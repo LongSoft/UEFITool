@@ -38,7 +38,7 @@ public:
 
     // NVRAM parsing
     USTATUS parseNvramVolumeBody(const UModelIndex & index, const UINT32 fdcStoreSizeOverride = 0);
-    USTATUS parseNvarStore(const UModelIndex & index);
+    USTATUS parseNvarStore(const UModelIndex & index, const bool probe = false);
     
 private:
     TreeModel *model;
@@ -63,7 +63,7 @@ public:
 
     // NVRAM parsing
     USTATUS parseNvramVolumeBody(const UModelIndex &) { return U_SUCCESS; }
-    USTATUS parseNvarStore(const UModelIndex &)  { return U_SUCCESS; }
+    USTATUS parseNvarStore(const UModelIndex &, const bool probe = false)  { return U_SUCCESS; }
 };
 #endif // U_ENABLE_NVRAM_PARSING_SUPPORT
 #endif // NVRAMPARSER_H

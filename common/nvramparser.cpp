@@ -40,7 +40,7 @@
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
+USTATUS NvramParser::parseNvarStore(const UModelIndex & index, const bool probe)
 {
     // Sanity check
     if (!index.isValid())
@@ -50,7 +50,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
 
     // Nothing to parse in an empty store
     if (nvar.isEmpty())
-        return U_SUCCESS;
+        return probe ? U_STORES_NOT_FOUND : U_SUCCESS;
 
     // Obtain required fields from parsing data
     UINT8 emptyByte = 0xFF;
@@ -90,14 +90,17 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index)
                 UString info = usprintf("Full size: %Xh (%u)", (UINT32)padding.size(), (UINT32)padding.size());
 
                 if (uniformByte(padding) == emptyByte) { // Free space
+                    if (probe && nvar.size() == padding.size())
+                        return U_STORES_NOT_FOUND;
                     // Add tree item
                     model->addItem(localOffset + entry->offset(), Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), padding, UByteArray(), Fixed, index);
                 }
                 else {
                     // Nothing is parsed yet, but the file is not empty
                     if (entry->offset() == 0) {
-                        msg(usprintf("%s: file can't be parsed as NVAR variable store", __FUNCTION__), index);
-                        return U_SUCCESS;
+                        if (!probe)
+                            msg(usprintf("%s: file can't be parsed as NVAR variable store", __FUNCTION__), index);
+                        return U_INVALID_FILE;
                     }
 
                     // Add tree item
@@ -295,6 +298,8 @@ processing_done:
         }
     }
     catch (...) {
+        if (!probe)
+            msg(usprintf("%s: unable to parse AMI NVAR storage", __FUNCTION__), index);
         return U_INVALID_STORE;
     }
 

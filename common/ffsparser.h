@@ -163,11 +163,11 @@ private:
     
     USTATUS parseRawArea(const UModelIndex & index);
     USTATUS parseVolumeHeader(const UByteArray & volume, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
-    USTATUS parseVolumeBody(const UModelIndex & index);
+    USTATUS parseVolumeBody(const UModelIndex & index, const bool probe = false);
     USTATUS parseMicrocodeVolumeBody(const UModelIndex & index);
-    USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
+    USTATUS parseFileHeader(const UByteArray & file, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
     USTATUS parseFileBody(const UModelIndex & index);
-    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
     USTATUS parseSectionBody(const UModelIndex & index);
 
     USTATUS parseGbeRegion(const UByteArray & gbe, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index);
@@ -180,13 +180,13 @@ private:
     USTATUS parsePadFileBody(const UModelIndex & index);
     USTATUS parseVolumeNonUefiData(const UByteArray & data, const UINT32 localOffset, const UModelIndex & index);
 
-    USTATUS parseSections(const UByteArray & sections, const UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
-    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool insertIntoTree);
+    USTATUS parseSections(const UByteArray & sections, const UModelIndex & index, const bool probe = false);
+    USTATUS parseCommonSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
+    USTATUS parseCompressedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
+    USTATUS parseGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
+    USTATUS parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
+    USTATUS parseVersionSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
+    USTATUS parsePostcodeSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe = false);
 
     USTATUS parseCompressedSectionBody(const UModelIndex & index);
     USTATUS parseGuidedSectionBody(const UModelIndex & index);
@@ -194,8 +194,8 @@ private:
     USTATUS parseDepexSectionBody(const UModelIndex & index);
     USTATUS parseUiSectionBody(const UModelIndex & index);
     USTATUS parseRawSectionBody(const UModelIndex & index);
-    USTATUS parsePeImageSectionBody(const UModelIndex & index);
-    USTATUS parseTeImageSectionBody(const UModelIndex & index);
+    USTATUS parsePeImageSectionBody(const UModelIndex & index, const bool probe = false);
+    USTATUS parseTeImageSectionBody(const UModelIndex & index, const bool probe = false);
 
     USTATUS parseAprioriRawSection(const UByteArray & body, UString & parsed);
     USTATUS findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize);
