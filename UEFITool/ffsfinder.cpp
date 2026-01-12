@@ -37,7 +37,7 @@ USTATUS FfsFinder::findHexPattern(const UModelIndex & index, const UByteArray & 
         return U_INVALID_PARAMETER;
     
     // Check for "all substrings" pattern
-    if (uniformByte(hexPattern) == '.')
+    if (isUniformByte(hexPattern, '.'))
         return U_SUCCESS;
     
     USTATUS ret = U_ITEM_NOT_FOUND;
@@ -166,7 +166,7 @@ USTATUS FfsFinder::findGuidPattern(const UModelIndex & index, const UByteArray &
     hexPattern.append(list.at(3)).append(list.at(4));
 
     // Check for "all substrings" pattern
-    if (uniformByte(hexPattern) == '.')
+    if (isUniformByte(hexPattern, '.'))
         return U_SUCCESS;
 
 #if QT_VERSION_MAJOR >= 6

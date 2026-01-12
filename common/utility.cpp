@@ -430,12 +430,20 @@ UINT32 calculateChecksum32(const UINT32* buffer, UINT32 bufferSize)
 }
 
 // Returns 0x00..0xFF if an array is filled by a single repeated value, and 0xFFFFFFFF if not
-UINT32 uniformByte(const UByteArray& a)
+UINT32 uniformByte(const UByteArray& a, const UINT32 rcIfEmpty)
 {
+    if (a.isEmpty())
+        return rcIfEmpty;
     size_t s = a.size();
     if ((s == 1) || (s > 1 && memcmp(a.constData(), a.constData() + 1, s - 1) == 0))
         return (UINT8)a.at(0);
     return UINT32_MAX;
+}
+
+// Returns true if an array is filled by a specified single repeated value or an array is empty
+UINT32 isUniformByte(const UByteArray& a, const UINT8 value)
+{
+    return uniformByte(a, value) == value;
 }
 
 // Get padding type for a given padding

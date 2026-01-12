@@ -1156,7 +1156,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
                             info = usprintf("Full size: %Xh (%u)", (UINT32)freeSpace.size(), (UINT32)freeSpace.size());
                             
                             // Check that remaining unparsed bytes are actually empty
-                            if (uniformByte(freeSpace) == emptyByte) { // Free space
+                            if (isUniformByte(freeSpace, emptyByte)) { // Free space
                                 // Add tree item
                                 model->addItem(entryOffset, Types::FreeSpace, 0, UString("Free space"), UString(), info, UByteArray(), freeSpace, UByteArray(), Fixed, headerIndex);
                             }
@@ -1932,7 +1932,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index, const bool probe)
         
         // Check that we are at the empty space
         UByteArray header = volumeBody.mid(fileOffset, (int)std::min(sizeof(EFI_FFS_FILE_HEADER), (size_t)volumeBodySize - fileOffset));
-        if (uniformByte(header) == emptyByte) { // Empty space
+        if (isUniformByte(header, emptyByte)) { // Empty space
             // Check volume usedSpace entry to be valid
             if (usedSpace > 0 && usedSpace == fileOffset + volumeHeaderSize) {
                 if (model->hasEmptyParsingData(index) == false) {
@@ -1946,7 +1946,7 @@ USTATUS FfsParser::parseVolumeBody(const UModelIndex & index, const bool probe)
             
             // Check free space to be actually free
             UByteArray freeSpace = volumeBody.mid(fileOffset);
-            if (uniformByte(freeSpace) != emptyByte) {
+            if (!isUniformByte(freeSpace, emptyByte)) {
                 // Search for the first non-empty byte
                 UINT32 i;
                 UINT32 size = (UINT32)freeSpace.size();
@@ -2395,10 +2395,6 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     
     UByteArray body = model->body(index);
     
-    // Zero-body pad file is fine
-    if (body.isEmpty())
-        return U_SUCCESS;
-    
     // Check if all bytes of the file are empty
     // Obtain required information from parent file
     UINT8 emptyByte = 0xFF;
@@ -2410,7 +2406,7 @@ USTATUS FfsParser::parsePadFileBody(const UModelIndex & index)
     }
     
     // Check if the whole padding file is empty
-    if (uniformByte(body) == emptyByte)
+    if (isUniformByte(body, emptyByte))
         return U_SUCCESS;
     
     // Search for the first non-empty byte
