@@ -39,7 +39,7 @@
 #define bswap_16(x) swap16(x)
 #define bswap_32(x) swap32(x)
 #define bswap_64(x) swap64(x)
-#elif defined(BSD)
+#elif defined(BSD) && !defined(GNU)
 // Supposed to work on FreeBSD: https://man.freebsd.org/cgi/man.cgi?query=bswap16&manpath=FreeBSD+14.0-RELEASE
 // Supposed to work on NetBSD: https://man.netbsd.org/NetBSD-10.0/bswap16.3
 #include <sys/endian.h>
