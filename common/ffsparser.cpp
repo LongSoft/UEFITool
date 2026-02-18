@@ -5430,6 +5430,8 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
     UByteArray body = model->body(index);
     UINT32 offset = 0;
     while (offset < (UINT32)body.size()) {
+        if(body.size() - offset < sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE))
+            break;
         const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
         if ((sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) + moduleHeader->HashSize) <= ((UINT32)body.size() - offset)) {
             UByteArray module((const char*)moduleHeader, CpdExtSignedPkgMetadataHashOffset + moduleHeader->HashSize);
