@@ -5327,7 +5327,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index, const UINT3
                 }
             }
             // Parse IFWI Partition Manifest a bit further
-            else if (extHeader->Type == CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST) {
+            else if (extHeader->Type == CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST && partition.size() >= sizeof(CPD_EXT_IFWI_PARTITION_MANIFEST)) {
                 const CPD_EXT_IFWI_PARTITION_MANIFEST* attrHeader = (const CPD_EXT_IFWI_PARTITION_MANIFEST*)partition.constData();
                 
                 // Check HashSize to be sane.
