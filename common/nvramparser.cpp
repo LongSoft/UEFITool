@@ -208,7 +208,7 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index, const bool probe)
                     guidsInStore = entry_body->guid_index() + 1;
 
                 // Sanity check.
-                if(nvar.size() < sizeof(EFI_GUID) * (entry_body->guid_index() + 1))
+                if (nvar.size() < sizeof(EFI_GUID) * (entry_body->guid_index() + 1))
                    goto processing_done;
 
                 // The list begins at the end of the store and goes backwards

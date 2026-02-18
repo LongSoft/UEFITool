@@ -352,7 +352,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     if (regionSection->MeLimit) {
         me.offset = calculateRegionOffset(regionSection->MeBase);
         me.length = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
-        if(me.offset + me.length < me.offset){
+        if (me.offset + me.length < me.offset) {
             return U_INVALID_FLASH_DESCRIPTOR;
         }
         if ((UINT32)intelImage.size() < me.offset + me.length) {
@@ -394,7 +394,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                 index);
             return U_TRUNCATED_IMAGE;
         }
-        if(intelImage.size() > bios.offset){
+
+        if (intelImage.size() > bios.offset) {
             bios.data = intelImage.mid(bios.offset, bios.length);
             regions.push_back(bios);
         }
@@ -425,7 +426,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                     return U_TRUNCATED_IMAGE;
                 }
 
-                if(intelImage.size() > region.offset){
+                if (intelImage.size() > region.offset) {
                     region.data = intelImage.mid(region.offset, region.length);
                     regions.push_back(region);
                 }
@@ -2180,9 +2181,11 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     
     // Get file body
     UByteArray body = file.mid(header.size());
-    if(body.size() < sizeof(UINT16)){
+
+    if (body.size() < sizeof(UINT16)) {
         return U_INVALID_FILE;
     }
+
     // Check for file tail presence
     UByteArray tail;
     bool msgInvalidTailValue = false;
@@ -2792,6 +2795,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         dataOffset = guidDefinedSectionHeader->DataOffset;
         attributes = guidDefinedSectionHeader->Attributes;
     }
+
     // Check sanity again
     if ((UINT32)section.size() < headerSize || section.size() < dataOffset)
         return U_INVALID_SECTION;
@@ -4990,9 +4994,11 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
     std::vector<CPD_PARTITION_INFO> partitions;
     UINT32 offset = ptHeaderSize;
     const CPD_ENTRY* firstCpdEntry = (const CPD_ENTRY*)(body.constData());
-    if(cpdHeader->NumEntries * sizeof(CPD_ENTRY) > (UINT32)body.size()){
+
+    if (cpdHeader->NumEntries * sizeof(CPD_ENTRY) > (UINT32)body.size()) {
         return U_INVALID_ME_PARTITION_TABLE;
     }
+
     for (UINT32 i = 0; i < cpdHeader->NumEntries; i++) {
         // Populate entry header
         const CPD_ENTRY* cpdEntry = firstCpdEntry + i;
@@ -5057,8 +5063,11 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         // Parse into data block, find Module Attributes extension, and get compressed size from there
         UINT32 offset = 0;
         UINT32 length = 0xFFFFFFFF; // Special guardian value
-        if(region.size() <= partitions[i].ptEntry.Offset.Offset)
+
+        if (region.size() <= partitions[i].ptEntry.Offset.Offset) {
             break;
+        }
+
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
         while (offset < ((UINT32)partition.size() - sizeof(CPD_EXTENTION_HEADER))) {
             const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (partition.constData() + offset);
@@ -5315,9 +5324,9 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index, const UINT3
             if (extHeader->Type == CPD_EXT_TYPE_SIGNED_PACKAGE_INFO) {
                 UByteArray header = partition.left(sizeof(CPD_EXT_SIGNED_PACKAGE_INFO));
                 UByteArray data = partition.mid(header.size());
-                if(header.size() >= sizeof(CPD_EXT_SIGNED_PACKAGE_INFO)){
+                if (header.size() >= sizeof(CPD_EXT_SIGNED_PACKAGE_INFO)) {
                     const CPD_EXT_SIGNED_PACKAGE_INFO* infoHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO*)header.constData();
-                
+
                     info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
                                     "Package name: %.4s\nVersion control number: %Xh\nSecurity version number: %Xh\n"
                                     "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
@@ -5439,7 +5448,7 @@ USTATUS FfsParser::parseSignedPackageInfoData(const UModelIndex & index)
     UByteArray body = model->body(index);
     UINT32 offset = 0;
     while (offset < (UINT32)body.size()) {
-        if(body.size() - offset < sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE))
+        if (body.size() - offset < sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE))
             break;
         const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE* moduleHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO_MODULE*)(body.constData() + offset);
         if ((sizeof(CPD_EXT_SIGNED_PACKAGE_INFO_MODULE) + moduleHeader->HashSize) <= ((UINT32)body.size() - offset)) {

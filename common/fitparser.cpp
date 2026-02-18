@@ -227,7 +227,7 @@ void FitParser::findFitRecursive(const UModelIndex & index, UModelIndex & found,
     UINT64 fitSignatureValue = INTEL_FIT_SIGNATURE;
     UByteArray fitSignature((const char*)&fitSignatureValue, sizeof(fitSignatureValue));
 
-    if(lastVtfBody.size() < INTEL_FIT_POINTER_OFFSET)
+    if (lastVtfBody.size() < INTEL_FIT_POINTER_OFFSET)
         return;
 
     UINT32 storedFitAddress = *(const UINT32*)(lastVtfBody.constData() + lastVtfBody.size() - INTEL_FIT_POINTER_OFFSET);
