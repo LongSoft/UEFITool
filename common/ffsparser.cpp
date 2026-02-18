@@ -2904,6 +2904,10 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         if (certType == WIN_CERT_TYPE_EFI_GUID) {
             additionalInfo += UString("\nCertificate type: UEFI");
             
+            // Sanity check
+            if ((UINT32)section.size() < headerSize + sizeof(WIN_CERTIFICATE_UEFI_GUID))
+                return U_INVALID_SECTION;
+
             // Get certificate GUID
             const WIN_CERTIFICATE_UEFI_GUID* winCertificateUefiGuid = (const WIN_CERTIFICATE_UEFI_GUID*)(section.constData() + headerSize);
             UByteArray certTypeGuid((const char*)&winCertificateUefiGuid->CertType, sizeof(EFI_GUID));
