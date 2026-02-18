@@ -2774,6 +2774,8 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
     }
     else { // Normal section
         const EFI_GUID_DEFINED_SECTION* guidDefinedSectionHeader = (const EFI_GUID_DEFINED_SECTION*)(sectionHeader + 1);
+        if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_GUID_DEFINED_SECTION))
+            return U_INVALID_SECTION;
         headerSize = sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_GUID_DEFINED_SECTION);
         guid = guidDefinedSectionHeader->SectionDefinitionGuid;
         dataOffset = guidDefinedSectionHeader->DataOffset;
