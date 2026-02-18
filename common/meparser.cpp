@@ -249,9 +249,9 @@ make_partition_table_consistent:
     // Check for intersections/paddings between partitions
     for (size_t i = 1; i < partitions.size(); i++) {
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
-        
         // Check that current region is fully present in the image
-        if ((UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
+        if (partitions[i].ptEntry.Offset > UINT_MAX - partitions[i].ptEntry.Size ||
+            (UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
             if ((UINT32)partitions[i].ptEntry.Offset >= (UINT32)region.size()) {
                 msg(usprintf("%s: FPT partition is located outside of the opened image, skipped", __FUNCTION__), partitions[i].index);
                 partitions.erase(partitions.begin() + i);
