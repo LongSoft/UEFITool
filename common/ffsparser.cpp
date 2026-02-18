@@ -5053,7 +5053,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
         while (offset < ((UINT32)partition.size() - sizeof(CPD_EXTENTION_HEADER))) {
             const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (partition.constData() + offset);
-            if (extHeader->Length <= ((UINT32)partition.size() - offset)) {
+            if (extHeader->Length && extHeader->Length <= ((UINT32)partition.size() - offset)) {
                 if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
                     const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)(partition.constData() + offset);
                     length = attrHeader->CompressedSize;
