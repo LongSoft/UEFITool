@@ -289,6 +289,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
             if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
                 // Get info as Intel legacy LZMA section
                 data += sizeof(UINT32);
+                dataSize -= sizeof(UINT32);
                 if (U_SUCCESS != LzmaGetInfo(data, dataSize, &decompressedSize)) {
                     return U_CUSTOMIZED_DECOMPRESSION_FAILED;
                 }
