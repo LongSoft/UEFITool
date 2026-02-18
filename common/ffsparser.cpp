@@ -2983,7 +2983,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
 USTATUS FfsParser::parseFreeformGuidedSectionHeader(const UByteArray & section, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index, const bool probe)
 {
     // Check sanity
-    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER))
+    if ((UINT32)section.size() < sizeof(EFI_COMMON_SECTION_HEADER) + sizeof(EFI_FREEFORM_SUBTYPE_GUID_SECTION))
         return U_INVALID_SECTION;
     
     // Obtain required information from parent volume
