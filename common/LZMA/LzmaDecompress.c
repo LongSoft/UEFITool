@@ -72,7 +72,7 @@ checking of the validity of the source data. It just retrieves the "Original Siz
 field from the LZMA_HEADER_SIZE beginning bytes of the source data and output it as DestinationSize.
 And ScratchSize is specific to the decompression implementation.
 
-If SourceSize is less than LZMA_HEADER_SIZE, then ASSERT().
+If SourceSize is less than LZMA_HEADER_SIZE, then return U_BUFFER_TOO_SMALL.
 
 @param  Source          The source buffer containing the compressed data.
 @param  SourceSize      The size, bytes, of the source buffer.
@@ -94,7 +94,9 @@ LzmaGetInfo (
     )
 {
     UINT64 DecodedSize;
-    ASSERT(SourceSize >= LZMA_HEADER_SIZE);
+    if(SourceSize <= LZMA_HEADER_SIZE){
+        return U_BUFFER_TOO_SMALL;
+    }
     (void)SourceSize;
 
     DecodedSize = GetDecodedSizeOfBuf((UINT8*)Source);
