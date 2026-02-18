@@ -237,7 +237,10 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
             // Get info function is the same for both algorithms
             if (U_SUCCESS != EfiTianoGetInfo(data, dataSize, &decompressedSize, &scratchSize))
                 return U_STANDARD_DECOMPRESSION_FAILED;
-            
+
+            if (decompressedSize > INT32_MAX)
+                return U_STANDARD_DECOMPRESSION_FAILED;
+
             // Allocate memory
             decompressed = (UINT8*)malloc(decompressedSize);
             efiDecompressed = (UINT8*)malloc(decompressedSize);
@@ -256,10 +259,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
             // Try EFI 1.1
             USTATUS EfiResult = EfiDecompress(data, dataSize, efiDecompressed, decompressedSize, scratch, scratchSize);
             
-            if (decompressedSize > INT32_MAX) {
-                result = U_STANDARD_DECOMPRESSION_FAILED;
-            }
-            else if (EfiResult == U_SUCCESS && TianoResult == U_SUCCESS) { // Both decompressions are OK
+            if (EfiResult == U_SUCCESS && TianoResult == U_SUCCESS) { // Both decompressions are OK
                 algorithm = COMPRESSION_ALGORITHM_UNDECIDED;
                 decompressedData = UByteArray((const char*)decompressed, (int)decompressedSize);
                 efiDecompressedData = UByteArray((const char*)efiDecompressed, (int)decompressedSize);
