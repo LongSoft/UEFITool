@@ -70,7 +70,12 @@ USTATUS FitParser::parseFit(const UModelIndex & index)
         msg(usprintf("%s: not enough space to contain the whole FIT table", __FUNCTION__), fitIndex);
         return U_INVALID_FIT;
     }
-    
+
+    if (fitSize == 0) {
+        msg(usprintf("%s: FIT header size is 0", __FUNCTION__));
+        return U_INVALID_FIT;
+    }
+
     // Check FIT checksum, if present
     if (fitHeader->ChecksumValid) {
         // Calculate FIT entry checksum
