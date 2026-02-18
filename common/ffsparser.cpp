@@ -5191,7 +5191,7 @@ make_partition_table_consistent:
                 if (!partitions[i].ptEntry.Offset.HuffmanCompressed
                     && partitions[i].ptEntry.Length >= sizeof(CPD_MANIFEST_HEADER)) {
                     const CPD_MANIFEST_HEADER* manifestHeader = (const CPD_MANIFEST_HEADER*) partition.constData();
-                    if (manifestHeader->HeaderId == ME_MANIFEST_HEADER_ID) {
+                    if (manifestHeader->HeaderId == ME_MANIFEST_HEADER_ID && (manifestHeader->HeaderLength * sizeof(UINT32)) <= partition.size()) {
                         UByteArray header = partition.left(manifestHeader->HeaderLength * sizeof(UINT32));
                         UByteArray body = partition.mid(manifestHeader->HeaderLength * sizeof(UINT32));
                         
@@ -5296,27 +5296,28 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index, const UINT3
             if (extHeader->Type == CPD_EXT_TYPE_SIGNED_PACKAGE_INFO) {
                 UByteArray header = partition.left(sizeof(CPD_EXT_SIGNED_PACKAGE_INFO));
                 UByteArray data = partition.mid(header.size());
+                if(header.size() >= sizeof(CPD_EXT_SIGNED_PACKAGE_INFO)){
+                    const CPD_EXT_SIGNED_PACKAGE_INFO* infoHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO*)header.constData();
                 
-                const CPD_EXT_SIGNED_PACKAGE_INFO* infoHeader = (const CPD_EXT_SIGNED_PACKAGE_INFO*)header.constData();
-                
-                info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
-                                "Package name: %.4s\nVersion control number: %Xh\nSecurity version number: %Xh\n"
-                                "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                                (UINT32)partition.size(), (UINT32)partition.size(),
-                                (UINT32)header.size(), (UINT32)header.size(),
-                                (UINT32)body.size(), (UINT32)body.size(),
-                                infoHeader->ExtensionType,
-                                infoHeader->PackageName,
-                                infoHeader->Vcn,
-                                infoHeader->Svn,
-                                infoHeader->UsageBitmap[0],  infoHeader->UsageBitmap[1],  infoHeader->UsageBitmap[2],  infoHeader->UsageBitmap[3],
-                                infoHeader->UsageBitmap[4],  infoHeader->UsageBitmap[5],  infoHeader->UsageBitmap[6],  infoHeader->UsageBitmap[7],
-                                infoHeader->UsageBitmap[8],  infoHeader->UsageBitmap[9],  infoHeader->UsageBitmap[10], infoHeader->UsageBitmap[11],
-                                infoHeader->UsageBitmap[12], infoHeader->UsageBitmap[13], infoHeader->UsageBitmap[14], infoHeader->UsageBitmap[15]);
-                
-                // Add tree item
-                extIndex = model->addItem(offset + localOffset, Types::CpdExtension, 0, name, UString(), info, header, data, UByteArray(), Fixed, index);
-                parseSignedPackageInfoData(extIndex);
+                    info = usprintf("Full size: %Xh (%u)\nHeader size: %Xh (%u)\nBody size: %Xh (%u)\nType: %Xh\n"
+                                    "Package name: %.4s\nVersion control number: %Xh\nSecurity version number: %Xh\n"
+                                    "Usage bitmap: %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+                                    (UINT32)partition.size(), (UINT32)partition.size(),
+                                    (UINT32)header.size(), (UINT32)header.size(),
+                                    (UINT32)body.size(), (UINT32)body.size(),
+                                    infoHeader->ExtensionType,
+                                    infoHeader->PackageName,
+                                    infoHeader->Vcn,
+                                    infoHeader->Svn,
+                                    infoHeader->UsageBitmap[0],  infoHeader->UsageBitmap[1],  infoHeader->UsageBitmap[2],  infoHeader->UsageBitmap[3],
+                                    infoHeader->UsageBitmap[4],  infoHeader->UsageBitmap[5],  infoHeader->UsageBitmap[6],  infoHeader->UsageBitmap[7],
+                                    infoHeader->UsageBitmap[8],  infoHeader->UsageBitmap[9],  infoHeader->UsageBitmap[10], infoHeader->UsageBitmap[11],
+                                    infoHeader->UsageBitmap[12], infoHeader->UsageBitmap[13], infoHeader->UsageBitmap[14], infoHeader->UsageBitmap[15]);
+
+                    // Add tree item
+                    extIndex = model->addItem(offset + localOffset, Types::CpdExtension, 0, name, UString(), info, header, data, UByteArray(), Fixed, index);
+                    parseSignedPackageInfoData(extIndex);
+                }
             }
             // Parse IFWI Partition Manifest a bit further
             else if (extHeader->Type == CPD_EXT_TYPE_IFWI_PARTITION_MANIFEST) {
