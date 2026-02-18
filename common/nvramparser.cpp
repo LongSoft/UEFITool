@@ -205,6 +205,10 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index, const bool probe)
                 if (guidsInStore < entry_body->guid_index() + 1)
                     guidsInStore = entry_body->guid_index() + 1;
 
+                // Sanity check.
+                if(nvar.size() < sizeof(EFI_GUID) * (entry_body->guid_index() + 1))
+                   goto processing_done;
+
                 // The list begins at the end of the store and goes backwards
                 const EFI_GUID g = readUnaligned((EFI_GUID*)(nvar.constData() + nvar.size()) - (entry_body->guid_index() + 1));
                 name = guidToUString(g);
