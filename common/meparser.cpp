@@ -460,6 +460,9 @@ make_partition_table_consistent:
     
     // Partition map is consistent
     for (size_t i = 0; i < partitions.size(); i++) {
+        // Sanity check
+        if (partitions[i].ptEntry.Offset > region.size())
+            break;
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset, partitions[i].ptEntry.Size);
         if (partitions[i].type == Types::IfwiPartition) {
             UModelIndex partitionIndex;
