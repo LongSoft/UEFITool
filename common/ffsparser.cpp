@@ -2171,7 +2171,9 @@ USTATUS FfsParser::parseFileHeader(const UByteArray & file, const UINT32 localOf
     
     // Get file body
     UByteArray body = file.mid(header.size());
-    
+    if(body.size() < sizeof(UINT16)){
+        return U_INVALID_FILE;
+    }
     // Check for file tail presence
     UByteArray tail;
     bool msgInvalidTailValue = false;
