@@ -3695,7 +3695,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index, const bool
     }
     
     const EFI_IMAGE_PE_HEADER* peHeader = (EFI_IMAGE_PE_HEADER*)(body.constData() + dosHeader->e_lfanew);
-    if (body.size() < (UINT8*)peHeader - (UINT8*)dosHeader) {
+    if (body.size() < (UINT8*)peHeader - (UINT8*)dosHeader + sizeof(EFI_IMAGE_PE_HEADER)) {
         if (probe)
             return U_INVALID_IMAGE;
         info += UString("\nDOS header: invalid");
@@ -3714,7 +3714,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index, const bool
     }
     
     const EFI_IMAGE_FILE_HEADER* imageFileHeader = (const EFI_IMAGE_FILE_HEADER*)(peHeader + 1);
-    if (body.size() < (UINT8*)imageFileHeader - (UINT8*)dosHeader) {
+    if (body.size() < (UINT8*)imageFileHeader - (UINT8*)dosHeader + sizeof(EFI_IMAGE_FILE_HEADER)) {
         if (probe)
             return U_INVALID_IMAGE;
         info += UString("\nPE header: invalid");
@@ -3733,7 +3733,7 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index, const bool
     
     EFI_IMAGE_OPTIONAL_HEADER_POINTERS_UNION optionalHeader = {};
     optionalHeader.H32 = (const EFI_IMAGE_OPTIONAL_HEADER32*)(imageFileHeader + 1);
-    if (body.size() < (UINT8*)optionalHeader.H32 - (UINT8*)dosHeader) {
+    if (body.size() < (UINT8*)optionalHeader.H32 - (UINT8*)dosHeader + sizeof(EFI_IMAGE_OPTIONAL_HEADER32)) {
         if (probe)
             return U_INVALID_IMAGE;
         info += UString("\nPE optional header: invalid");
