@@ -5040,6 +5040,8 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         // Parse into data block, find Module Attributes extension, and get compressed size from there
         UINT32 offset = 0;
         UINT32 length = 0xFFFFFFFF; // Special guardian value
+        if(region.size() < partitions[i].ptEntry.Offset.Offset)
+            break;
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
         while (offset < ((UINT32)partition.size() - sizeof(CPD_EXTENTION_HEADER))) {
             const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (partition.constData() + offset);
