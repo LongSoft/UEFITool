@@ -48,6 +48,7 @@ SET(PROJECT_SOURCES
  ../common/utility.cpp
  ../common/ffsbuilder.cpp
  ../common/ffsparser.cpp
+ ../common/amd_microcode.cpp
  ../common/ffsreport.cpp
  ../common/treeitem.cpp
  ../common/treemodel.cpp

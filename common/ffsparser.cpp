@@ -980,7 +980,15 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
             UByteArray microcode = data.mid(itemOffset, itemSize);
             result = parseIntelMicrocodeHeader(microcode, headerSize + itemOffset, index, microcodeIndex);
             if (result) {
-                msg(usprintf("%s: microcode header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+                msg(usprintf("%s: Intel microcode header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
+            }
+        }
+        else if (itemType == Subtypes::AmdMicrocode) {
+            UModelIndex microcodeIndex;
+            UByteArray microcode = data.mid(itemOffset, itemSize);
+            result = parseAmdMicrocodeHeader(microcode, headerSize + itemOffset, index, microcodeIndex);
+            if (result) {
+                msg(usprintf("%s: AMD microcode header parsing failed with error ", __FUNCTION__) + errorCodeToUString(result), index);
             }
         }
         else if (itemType == Types::BpdtStore) {
@@ -1676,6 +1684,66 @@ bool FfsParser::microcodeHeaderValid(const INTEL_MICROCODE_HEADER* ucodeHeader)
     return TRUE;
 }
 
+bool FfsParser::microcodeHeaderValidAmd(const AMD_MICROCODE_HEADER* ucodeHeader)
+{
+    UINT8  DateDay = getDayMicrocodeAmd(ucodeHeader);
+    UINT8  DateMonth = getMonthMicrocodeAmd(ucodeHeader);
+    UINT16 DateYear = getYearMicrocodeAmd(ucodeHeader);
+
+    // Check day to be in 0x01-0x09, 0x10-0x19, 0x20-0x29, 0x30-0x31
+    if (DateDay < 0x01 ||
+        (DateDay > 0x09 && DateDay < 0x10) ||
+        (DateDay > 0x19 && DateDay < 0x20) ||
+        (DateDay > 0x29 && DateDay < 0x30) ||
+        DateDay > 0x31) {
+        return FALSE;
+    }
+
+    // Check month to be in 0x01-0x09, 0x10-0x12
+    if (DateMonth < 0x01 ||
+        (DateMonth > 0x09 && DateMonth < 0x10) ||
+        DateMonth > 0x12) {
+        return FALSE;
+    }
+
+    // Check year to be in 0x2001-0x2009, 0x2010-0x2019, 0x2020-0x2029
+    if (DateYear < 0x2001 ||
+        (DateYear > 0x2009 && DateYear < 0x2010) ||
+        (DateYear > 0x2019 && DateYear < 0x2020) ||
+        (DateYear > 0x2029)) {
+        return FALSE;
+    }
+
+    UINT32 microcodeDataLen = getDataSizeMicrocodeAmd(ucodeHeader);
+    UINT32 cpuId = getCpuIdMicrocodeAmd(ucodeHeader);
+
+    if (cpuId == 0x00000F00 && microcodeDataLen != 0x10 && microcodeDataLen != 0x20) {
+        return FALSE;
+    }
+
+    if (((ucodeHeader->LoaderID >> 8) & 0xFF) != 0x80) {
+        return FALSE;
+    }
+
+    if (ucodeHeader->NorthBridgeVEN_ID != 0x0000 && ucodeHeader->NorthBridgeVEN_ID != 0x1022) {
+        return FALSE;
+    }
+
+    if (ucodeHeader->SouthBridgeVEN_ID != 0x0000 && ucodeHeader->SouthBridgeVEN_ID != 0x1022) {
+        return FALSE;
+    }
+
+    if (ucodeHeader->BiosApiRevision != 0x00 && ucodeHeader->BiosApiRevision != 0x01) {
+        return FALSE;
+    }
+
+    if (ucodeHeader->LoadControl > 0x0F && ucodeHeader->LoadControl != 0xAA) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 USTATUS FfsParser::findNextRawAreaItem(const UModelIndex & index, const UINT32 localOffset, UINT8 & nextItemType, UINT32 & nextItemOffset, UINT32 & nextItemSize, UINT32 & nextItemAlternativeSize)
 {
     UByteArray data = model->body(index);
@@ -1851,6 +1919,29 @@ continue_searching: {}
             break;
         }
 #endif
+
+        // Since the AMD microcode header lacks a clear signature, we attempt to parse it as a last resort
+        else if (restSize >= sizeof(AMD_MICROCODE_HEADER) + 0x44) {
+            const AMD_MICROCODE_HEADER* ucodeHeader = (const AMD_MICROCODE_HEADER*)currentPos;
+            if (FALSE == microcodeHeaderValidAmd(ucodeHeader)) {
+                continue;
+            }
+
+            if (readUnaligned(currentPos + 0x40) == 0x00000000) {
+                continue;
+            }
+
+            UINT32 microcodeLen = getSizeMicrocodeAmd(ucodeHeader);
+            if (microcodeLen == 0 || restSize < microcodeLen) {
+                continue;
+            }
+
+            nextItemType = Subtypes::AmdMicrocode;
+            nextItemSize = microcodeLen;
+            nextItemAlternativeSize = microcodeLen;
+            nextItemOffset = offset;
+            break;
+        }
     }
     
     // No more stores found
@@ -3748,6 +3839,10 @@ USTATUS FfsParser::parsePeImageSectionBody(const UModelIndex & index, const bool
     }
     
     model->addInfo(index, info);
+
+    // Search for AMD Microcode in certain PE images
+    searchForAmdMicrocode(index);
+
     return U_SUCCESS;
 }
 
@@ -3798,7 +3893,10 @@ USTATUS FfsParser::parseTeImageSectionBody(const UModelIndex & index, const bool
     
     // Add TE info
     model->addInfo(index, info);
-    
+
+    // Search for AMD Microcode in certain TE images
+    searchForAmdMicrocode(index);
+
     return U_SUCCESS;
 }
 
@@ -4682,6 +4780,89 @@ USTATUS FfsParser::parseIntelMicrocodeHeader(const UByteArray & microcode, const
     if (msgUnknownOrDamagedMicrocodeTail)
         msg(usprintf("%s: extended header of size %Xh (%u) found, but it's damaged or has unknown format", __FUNCTION__, (UINT32)tail.size(), (UINT32)tail.size()), index);
     
+    // No need to parse the body further for now
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::searchForAmdMicrocode(const UModelIndex &index) {
+    UModelIndex fileIndex = model->parent(index);
+    if (!fileIndex.isValid()) {
+        return U_INVALID_PARAMETER;
+    }
+
+    if (model->type(fileIndex) != Types::File) {
+        return U_INVALID_PARAMETER;
+    }
+
+    UByteArray fileHeader = model->header(fileIndex);
+    if (fileHeader.size() < sizeof(EFI_GUID)) {
+        return U_INVALID_PARAMETER;
+    }
+
+    USTATUS status = U_ITEM_NOT_FOUND;
+
+    UByteArray fileGuid = UByteArray(fileHeader.constData(), sizeof(EFI_GUID));
+    if (fileGuid != AMD_MICROCODE_FILE_GUID) {
+        return status;
+    }
+
+    UByteArray body = model->body(index);
+    UINT32 dataSize = body.size();
+    UINT32 minSize = sizeof(AMD_MICROCODE_HEADER) + 0x44;
+    if (dataSize < minSize) {
+        return U_INVALID_PARAMETER;
+    }
+
+    for (UINT32 offset = 0; offset < dataSize - minSize; offset++) {
+        const AMD_MICROCODE_HEADER* ucodeHeader = (const AMD_MICROCODE_HEADER*)(body.constData() + offset);
+        if (!microcodeHeaderValidAmd(ucodeHeader)) {
+            continue;
+        }
+
+        UModelIndex microcodeIndex;
+        if (parseAmdMicrocodeHeader(body.mid(offset), offset, index.parent(), microcodeIndex) == U_SUCCESS) {
+            // we might find several microcode items in body, so keep scanning
+            msg(usprintf("%s: found microcode in PE/TE file", __FUNCTION__), microcodeIndex);
+            status = U_SUCCESS;
+        }
+    }
+
+    return status;
+}
+
+USTATUS FfsParser::parseAmdMicrocodeHeader(const UByteArray & microcode, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+{
+    // We have enough data to fit the header
+    if ((UINT32)microcode.size() < sizeof(AMD_MICROCODE_HEADER)) {
+        return U_INVALID_MICROCODE;
+    }
+
+    const AMD_MICROCODE_HEADER* ucodeHeader = (const AMD_MICROCODE_HEADER*)microcode.constData();
+
+    if (!microcodeHeaderValidAmd(ucodeHeader)) {
+        return U_INVALID_MICROCODE;
+    }
+
+    // We have enough data to fit the whole TotalSize
+    UINT32 microcodeSize = getSizeMicrocodeAmd(ucodeHeader);
+    if ((UINT32)microcode.size() < microcodeSize) {
+        return U_INVALID_MICROCODE;
+    }
+
+    // Add info
+    UString name("AMD microcode");
+    UString info = usprintf("Full size: %Xh (%u)\n"
+                            "Date: %02X.%02X.%04x\nCPU signature: %08Xh\nRevision: %08Xh\n",
+                            (UINT32)microcodeSize, (UINT32)microcodeSize,
+                            getDayMicrocodeAmd(ucodeHeader),
+                            getMonthMicrocodeAmd(ucodeHeader),
+                            getYearMicrocodeAmd(ucodeHeader),
+                            ucodeHeader->ProcessorSignature,
+                            ucodeHeader->UpdateRevision);
+
+    // Add tree item
+    index = model->addItem(localOffset, Types::Microcode, Subtypes::AmdMicrocode, name, UString(), info, UByteArray(), microcode, UByteArray(), Fixed, parent);
+
     // No need to parse the body further for now
     return U_SUCCESS;
 }

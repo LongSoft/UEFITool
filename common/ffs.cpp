@@ -85,6 +85,10 @@ extern const UByteArray EFI_DXE_CORE_GUID // D6A2CB7F-6A18-4E2F-B43B-9920A733700
 extern const UByteArray AMD_COMPRESSED_RAW_FILE_GUID //20BC8AC9-94D1-4208-AB28-5D673FD73487
 ("\xC9\x8A\xBC\x20\xD1\x94\x08\x42\xAB\x28\x5D\x67\x3F\xD7\x34\x87", 16);
 
+// TE/PE files containing AMD microcode
+extern const UByteArray AMD_MICROCODE_FILE_GUID // DE3E049C-A218-4891-8658-5FC0FA84C788
+("\x9C\x04\x3E\xDE\x18\xA2\x91\x48\x86\x58\x5F\xC0\xFA\x84\xC7\x88", 16);
+
 // Insyde Flash Device Map GUIDs
 extern const UByteArray INSYDE_FLASH_MAP_REGION_BOOT_FV_GUID
 ("\x56\x6d\xd7\xe3\x8a\x98\x6b\x4d\x89\x13\x64\xf2\xdf\x1d\xf6\xa6", 16);

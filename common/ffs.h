@@ -370,6 +370,9 @@ extern const UByteArray EFI_DXE_CORE_GUID; // D6A2CB7F-6A18-4E2F-B43B-9920A73370
 // AMD compressed raw file
 extern const UByteArray AMD_COMPRESSED_RAW_FILE_GUID; //20BC8AC9-94D1-4208-AB28-5D673FD73487
 
+// TE/PE files containing AMD microcode
+extern const UByteArray AMD_MICROCODE_FILE_GUID; // DE3E049C-A218-4891-8658-5FC0FA84C788
+
 // FFS size conversion routines
 extern VOID uint32ToUint24(UINT32 size, UINT8* ffsSize);
 extern UINT32 uint24ToUint32(const UINT8* ffsSize);

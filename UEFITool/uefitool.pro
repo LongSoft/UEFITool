@@ -39,6 +39,7 @@ HEADERS += uefitool.h \
  ../common/treeitem.h \
  ../common/intel_fit.h \
  ../common/intel_microcode.h \
+ ../common/amd_microcode.h \
  ../common/treemodel.h \
  ../common/LZMA/LzmaCompress.h \
  ../common/LZMA/LzmaDecompress.h \
@@ -109,6 +110,7 @@ SOURCES += uefitool_main.cpp \
  ../common/utility.cpp \
  ../common/ffsbuilder.cpp \
  ../common/ffsparser.cpp \
+ ../common/amd_microcode.cpp \
  ../common/ffsreport.cpp \
  ../common/treeitem.cpp \
  ../common/treemodel.cpp \
