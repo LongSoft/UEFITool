@@ -478,13 +478,24 @@ uint64_t kaitai::kstream::read_bits_int_le(int n) {
 // ========================================================================
 
 std::string kaitai::kstream::read_bytes(std::streamsize len) {
-    std::vector<char> result(len);
-
     // NOTE: streamsize type is signed, negative values are only *supposed* to not be used.
     // https://en.cppreference.com/w/cpp/io/streamsize
     if (len < 0) {
         throw std::runtime_error("read_bytes: requested a negative amount");
     }
+
+    if (len > 0) {
+        // Check that the stream has enough data before allocating
+        std::streampos cur_pos = m_io->tellg();
+        m_io->seekg(0, std::ios::end);
+        std::streampos end_pos = m_io->tellg();
+        m_io->seekg(cur_pos);
+        if (len > end_pos - cur_pos) {
+            throw std::runtime_error("read_bytes: requested more bytes than available in stream");
+        }
+    }
+
+    std::vector<char> result(len);
 
     if (len > 0) {
         m_io->read(&result[0], len);
