@@ -600,7 +600,8 @@ make_partition_table_consistent:
         UINT32 previousPartitionEnd = partitions[i - 1].ptEntry.Offset + partitions[i - 1].ptEntry.Size;
         
         // Check that current region is fully present in the image
-        if ((UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
+        if (partitions[i].ptEntry.Offset > UINT_MAX - partitions[i].ptEntry.Size ||
+            (UINT32)partitions[i].ptEntry.Offset + (UINT32)partitions[i].ptEntry.Size > (UINT32)region.size()) {
             if ((UINT32)partitions[i].ptEntry.Offset >= (UINT32)region.size()) {
                 msg(usprintf("%s: IFWI partition is located outside of the opened image, skipped", __FUNCTION__), index);
                 partitions.erase(partitions.begin() + i);
