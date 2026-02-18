@@ -422,8 +422,11 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                         index);
                     return U_TRUNCATED_IMAGE;
                 }
-                region.data = intelImage.mid(region.offset, region.length);
-                regions.push_back(region);
+
+                if(intelImage.size() > region.offset){
+                    region.data = intelImage.mid(region.offset, region.length);
+                    regions.push_back(region);
+                }
             }
         }
     }
