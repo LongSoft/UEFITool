@@ -3432,7 +3432,8 @@ USTATUS FfsParser::parseVersionSectionBody(const UModelIndex & index)
         return U_INVALID_PARAMETER;
     
     // Add info
-    model->addInfo(index, UString("\nVersion string: ") + uFromUcs2(model->body(index).constData()));
+    UByteArray body = model->body(index);
+    model->addInfo(index, UString("\nVersion string: ") + uFromUcs2(body.constData(), body.size()));
     
     return U_SUCCESS;
 }
