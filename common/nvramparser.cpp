@@ -56,8 +56,10 @@ USTATUS NvramParser::parseNvarStore(const UModelIndex & index, const bool probe)
     UINT8 emptyByte = 0xFF;
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
-        const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
-        emptyByte = pdata->emptyByte;
+        if ((UINT32)data.size() >= sizeof(VOLUME_PARSING_DATA)) {
+            const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
+            emptyByte = pdata->emptyByte;
+        }
     }
     
     try {
@@ -320,8 +322,10 @@ USTATUS NvramParser::parseNvramVolumeBody(const UModelIndex & index,const UINT32
     UINT8 emptyByte = 0xFF;
     if (model->hasEmptyParsingData(index) == false) {
         UByteArray data = model->parsingData(index);
-        const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
-        emptyByte = pdata->emptyByte;
+        if ((UINT32)data.size() >= sizeof(VOLUME_PARSING_DATA)) {
+            const VOLUME_PARSING_DATA* pdata = (const VOLUME_PARSING_DATA*)data.constData();
+            emptyByte = pdata->emptyByte;
+        }
     }
     
     // Get local offset
