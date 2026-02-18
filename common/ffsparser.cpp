@@ -5041,7 +5041,7 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
         UINT32 offset = 0;
         UINT32 length = 0xFFFFFFFF; // Special guardian value
         UByteArray partition = region.mid(partitions[i].ptEntry.Offset.Offset, partitions[i].ptEntry.Length);
-        while (offset < (UINT32)partition.size()) {
+        while (offset < ((UINT32)partition.size() - sizeof(CPD_EXTENTION_HEADER))) {
             const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (partition.constData() + offset);
             if (extHeader->Length <= ((UINT32)partition.size() - offset)) {
                 if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
@@ -5282,7 +5282,7 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index, const UINT3
     
     UByteArray body = model->body(index);
     UINT32 offset = 0;
-    while (offset < (UINT32)body.size()) {
+    while (offset < (UINT32)body.size() - sizeof(CPD_EXTENTION_HEADER)) {
         const CPD_EXTENTION_HEADER* extHeader = (const CPD_EXTENTION_HEADER*) (body.constData() + offset);
         if (extHeader->Length > 0
             && extHeader->Length <= ((UINT32)body.size() - offset)) {
