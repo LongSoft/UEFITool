@@ -207,7 +207,7 @@ USTATUS decompress(const UByteArray & compressedData, const UINT8 compressionTyp
     UINT32 scratchSize = 0;
     const EFI_TIANO_HEADER* header;
 
-    if(compressedData.size() == 0){
+    if(compressedData.size() < 4){
         return U_BUFFER_TOO_SMALL;
     }
 
