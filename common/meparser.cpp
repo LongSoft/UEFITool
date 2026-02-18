@@ -183,6 +183,12 @@ USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & 
     UINT32 offset = (UINT32)header.size();
     UINT32 numEntries = ptHeader->NumEntries;
     const FPT_HEADER_ENTRY* firstPtEntry = (const FPT_HEADER_ENTRY*)(region.constData() + offset);
+
+    if ((UINT32)offset + sizeof(const FPT_HEADER_ENTRY*) * numEntries > region.size()) {
+        msg(usprintf("%s: Corrupted ME region, too many header entries", __FUNCTION__), parent);
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
+
     for (UINT32 i = 0; i < numEntries; i++) {
         // Populate entry header
         const FPT_HEADER_ENTRY* ptEntry = firstPtEntry + i;
