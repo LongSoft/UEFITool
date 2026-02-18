@@ -5372,10 +5372,10 @@ USTATUS FfsParser::parseCpdExtensionsArea(const UModelIndex & index, const UINT3
                 }
             }
             // Parse Module Attributes a bit further
-            else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES) {
+            else if (extHeader->Type == CPD_EXT_TYPE_MODULE_ATTRIBUTES && partition.size() >= sizeof(CPD_EXT_MODULE_ATTRIBUTES)) {
                 const CPD_EXT_MODULE_ATTRIBUTES* attrHeader = (const CPD_EXT_MODULE_ATTRIBUTES*)partition.constData();
                 int hashSize = (UINT32)partition.size() - CpdExtModuleImageHashOffset;
-                
+
                 // This hash is stored reversed
                 // Need to reverse it back to normal
                 UByteArray hash((const char*)attrHeader + CpdExtModuleImageHashOffset, hashSize);
