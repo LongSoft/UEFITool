@@ -1874,7 +1874,11 @@ USTATUS FfsParser::parseVolumeNonUefiData(const UByteArray & data, const UINT32 
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
-    
+
+    // If parent has the same offset as this item, then we are in infinite recursion, so we break here.
+    if (model->offset(index) == localOffset)
+        return U_INVALID_PARAMETER;
+
     // Get info
     UString info = usprintf("Full size: %Xh (%u)", (UINT32)data.size(), (UINT32)data.size());
     
