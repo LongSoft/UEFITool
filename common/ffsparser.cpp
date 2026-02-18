@@ -394,8 +394,10 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                 index);
             return U_TRUNCATED_IMAGE;
         }
-        bios.data = intelImage.mid(bios.offset, bios.length);
-        regions.push_back(bios);
+        if(intelImage.size() > bios.offset){
+            bios.data = intelImage.mid(bios.offset, bios.length);
+            regions.push_back(bios);
+        }
     }
     else {
         msg(usprintf("%s: descriptor parsing failed, BIOS region not found in descriptor", __FUNCTION__));
