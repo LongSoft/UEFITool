@@ -3563,8 +3563,9 @@ USTATUS FfsParser::parseUiSectionBody(const UModelIndex & index)
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
-    
-    UString text = uFromUcs2(model->body(index).constData());
+
+    const auto body = model->body(index);
+    UString text = uFromUcs2(body.constData(), body.size());
     
     // Add info
     model->addInfo(index, UString("\nText: ") + text);

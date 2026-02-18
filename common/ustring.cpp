@@ -112,11 +112,11 @@ UString uFromUcs2(const char* str, size_t max_len)
     // Naive implementation assuming that only ASCII LE part of UCS2 is used, str may not be aligned.
     UString msg;
     const char *str8 = str;
-    size_t rest = (max_len == 0) ? SIZE_MAX : max_len;
-    while (str8[0] && rest) {
+    size_t rest = (max_len == 0) ? SIZE_MAX : max_len - (max_len % 2);
+    while (rest > 0 && str8[0]) {
         msg += str8[0];
         str8 += 2;
-        rest--;
+        rest -= 2;
     }
     return msg;
 }
