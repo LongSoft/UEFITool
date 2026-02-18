@@ -352,6 +352,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     if (regionSection->MeLimit) {
         me.offset = calculateRegionOffset(regionSection->MeBase);
         me.length = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
+        if(me.offset + me.length < me.offset){
+            return U_INVALID_FLASH_DESCRIPTOR;
+        }
         if ((UINT32)intelImage.size() < me.offset + me.length) {
             msg(usprintf("%s: ", __FUNCTION__)
                 + itemSubtypeToUString(Types::Region, me.type)
