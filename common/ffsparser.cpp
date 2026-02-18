@@ -2777,7 +2777,7 @@ USTATUS FfsParser::parseGuidedSectionHeader(const UByteArray & section, const UI
         attributes = guidDefinedSectionHeader->Attributes;
     }
     // Check sanity again
-    if ((UINT32)section.size() < headerSize)
+    if ((UINT32)section.size() < headerSize || section.size() < dataOffset)
         return U_INVALID_SECTION;
     
     // Check for special GUIDed sections
