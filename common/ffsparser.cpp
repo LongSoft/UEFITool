@@ -3625,6 +3625,12 @@ USTATUS FfsParser::parseRawSectionBody(const UModelIndex & index)
         // Parse NVAR area
         return nvramParser->parseNvarStore(index);
     }
+    else if (parentFileGuid == FFS_PHOENIX_RAW_SECTION_EVSA_GUID) { // Phoenix NVRAM external defaults
+        // Rename parent file
+        model->setText(parentFile, UString("Phoenix NVRAM EVSA"));
+        // Parse NVAR area
+        return nvramParser->parseNvramVolumeBody(index);
+    }
     else if (parentFileGuid == PROTECTED_RANGE_VENDOR_HASH_FILE_GUID_AMI) { // AMI vendor hash file
         // Parse AMI vendor hash file
         return parseVendorHashFile(parentFileGuid, index);
