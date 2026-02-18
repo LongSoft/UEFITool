@@ -4981,6 +4981,9 @@ USTATUS FfsParser::parseCpdRegion(const UByteArray & region, const UINT32 localO
     std::vector<CPD_PARTITION_INFO> partitions;
     UINT32 offset = ptHeaderSize;
     const CPD_ENTRY* firstCpdEntry = (const CPD_ENTRY*)(body.constData());
+    if(cpdHeader->NumEntries * sizeof(CPD_ENTRY) > (UINT32)body.size()){
+        return U_INVALID_ME_PARTITION_TABLE;
+    }
     for (UINT32 i = 0; i < cpdHeader->NumEntries; i++) {
         // Populate entry header
         const CPD_ENTRY* cpdEntry = firstCpdEntry + i;
