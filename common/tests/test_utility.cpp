@@ -1,3 +1,5 @@
+#include <vector>
+
 #include <catch_amalgamated.hpp>
 #include "utility.h"
 
@@ -173,5 +175,93 @@ TEST_CASE("getPaddingType", "[utility][padding]") {
         UByteArray empty;
         // uniformByte returns UINT32_MAX, no case matches
         REQUIRE(getPaddingType(empty) == Subtypes::DataPadding);
+    }
+}
+
+TEST_CASE("makePattern", "[utility][pattern]") {
+    std::vector<UINT8> pattern, mask;
+
+    SECTION("valid hex pair") {
+        REQUIRE(makePattern("AABB", pattern, mask));
+        REQUIRE(pattern.size() == 2);
+        REQUIRE(pattern[0] == 0xAA);
+        REQUIRE(pattern[1] == 0xBB);
+        REQUIRE(mask[0] == 0xFF);
+        REQUIRE(mask[1] == 0xFF);
+    }
+    SECTION("case insensitive") {
+        REQUIRE(makePattern("aabb", pattern, mask));
+        REQUIRE(pattern[0] == 0xAA);
+        REQUIRE(pattern[1] == 0xBB);
+    }
+    SECTION("high nibble wildcard") {
+        REQUIRE(makePattern(".B", pattern, mask));
+        REQUIRE(pattern.size() == 1);
+        REQUIRE(pattern[0] == 0x0B);
+        REQUIRE(mask[0] == 0x0F);
+    }
+    SECTION("low nibble wildcard") {
+        REQUIRE(makePattern("A.", pattern, mask));
+        REQUIRE(pattern.size() == 1);
+        REQUIRE(pattern[0] == 0xA0);
+        REQUIRE(mask[0] == 0xF0);
+    }
+    SECTION("full wildcard byte") {
+        REQUIRE(makePattern("..", pattern, mask));
+        REQUIRE(pattern.size() == 1);
+        REQUIRE(pattern[0] == 0x00);
+        REQUIRE(mask[0] == 0x00);
+    }
+    SECTION("empty string fails") {
+        REQUIRE_FALSE(makePattern("", pattern, mask));
+    }
+    SECTION("odd length fails") {
+        REQUIRE_FALSE(makePattern("A", pattern, mask));
+    }
+    SECTION("invalid hex fails") {
+        REQUIRE_FALSE(makePattern("GG", pattern, mask));
+    }
+}
+
+TEST_CASE("findPattern", "[utility][pattern]") {
+    UINT8 data[] = {0x00, 0x11, 0x22, 0x33, 0x44};
+
+    SECTION("exact match at start") {
+        UINT8 pat[] = {0x00, 0x11};
+        UINT8 msk[] = {0xFF, 0xFF};
+        REQUIRE(findPattern(pat, msk, 2, data, 5, 0) == 0);
+    }
+    SECTION("match in middle") {
+        UINT8 pat[] = {0x22, 0x33};
+        UINT8 msk[] = {0xFF, 0xFF};
+        REQUIRE(findPattern(pat, msk, 2, data, 5, 0) == 2);
+    }
+    SECTION("no match") {
+        UINT8 pat[] = {0xFF};
+        UINT8 msk[] = {0xFF};
+        REQUIRE(findPattern(pat, msk, 1, data, 5, 0) == -1);
+    }
+    SECTION("wildcard matches") {
+        UINT8 pat[] = {0x00, 0x10};  // Low nibble 0, high nibble 1
+        UINT8 msk[] = {0x0F, 0xF0}; // Mask keeps low nibble of first, high nibble of second
+        REQUIRE(findPattern(pat, msk, 2, data, 5, 0) == 0);
+    }
+    SECTION("offset skips early match") {
+        UINT8 pat[] = {0x22};
+        UINT8 msk[] = {0xFF};
+        REQUIRE(findPattern(pat, msk, 1, data, 5, 3) == -1);
+    }
+    SECTION("empty pattern") {
+        REQUIRE(findPattern(nullptr, nullptr, 0, data, 5, 0) == -1);
+    }
+    SECTION("empty data") {
+        UINT8 pat[] = {0x00};
+        UINT8 msk[] = {0xFF};
+        REQUIRE(findPattern(pat, msk, 1, nullptr, 0, 0) == -1);
+    }
+    SECTION("pattern at exact end") {
+        UINT8 pat[] = {0x44};
+        UINT8 msk[] = {0xFF};
+        REQUIRE(findPattern(pat, msk, 1, data, 5, 0) == 4);
     }
 }
