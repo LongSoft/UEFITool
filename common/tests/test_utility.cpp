@@ -265,3 +265,88 @@ TEST_CASE("findPattern", "[utility][pattern]") {
         REQUIRE(findPattern(pat, msk, 1, data, 5, 0) == 4);
     }
 }
+
+TEST_CASE("fourCC", "[utility][string]") {
+    SECTION("FV signature") {
+        // 0x4856465F = '_' 'F' 'V' 'H' in LE
+        UString result = fourCC(0x4856465F);
+        REQUIRE(result == UString("_FVH"));
+    }
+    SECTION("CPD signature") {
+        UString result = fourCC(0x44504324);
+        REQUIRE(result == UString("$CPD"));
+    }
+}
+
+TEST_CASE("visibleAsciiOrHex", "[utility][string]") {
+    SECTION("all printable returns ASCII") {
+        UINT8 buf[] = {'H', 'e', 'l', 'l', 'o'};
+        REQUIRE(visibleAsciiOrHex(buf, 5) == UString("Hello"));
+    }
+    SECTION("printable with trailing zeros returns ASCII") {
+        UINT8 buf[] = {'H', 'i', 0x00, 0x00};
+        REQUIRE(visibleAsciiOrHex(buf, 4) == UString("Hi"));
+    }
+    SECTION("control char returns hex") {
+        UINT8 buf[] = {0x01};
+        REQUIRE(visibleAsciiOrHex(buf, 1) == UString("01"));
+    }
+    SECTION("high ASCII returns hex") {
+        UINT8 buf[] = {0x80};
+        REQUIRE(visibleAsciiOrHex(buf, 1) == UString("80"));
+    }
+    SECTION("null then non-null returns hex") {
+        UINT8 buf[] = {0x00, 'A'};
+        // 0x00 < 0x20, not printable -> hex
+        REQUIRE(visibleAsciiOrHex(buf, 2) == UString("0041"));
+    }
+}
+
+TEST_CASE("fixFileName", "[utility][string]") {
+    SECTION("normal name unchanged") {
+        UString name("firmware_v1.2");
+        fixFileName(name, false);
+        REQUIRE(name == UString("firmware_v1.2"));
+    }
+    SECTION("spaces replaced when flag set") {
+        UString name("my file");
+        fixFileName(name, true);
+        REQUIRE(name == UString("my_file"));
+    }
+    SECTION("spaces kept when flag clear") {
+        UString name("my file");
+        fixFileName(name, false);
+        REQUIRE(name == UString("my file"));
+    }
+    SECTION("slashes replaced") {
+        UString name("path/name");
+        fixFileName(name, false);
+        REQUIRE(name == UString("path_name"));
+    }
+    SECTION("windows banned chars replaced") {
+        UString name("a<b>c:d");
+        fixFileName(name, false);
+        REQUIRE(name == UString("a_b_c_d"));
+    }
+    SECTION("empty becomes underscore") {
+        UString name("");
+        fixFileName(name, false);
+        REQUIRE(name == UString("_"));
+    }
+}
+
+TEST_CASE("errorCodeToUString", "[utility][string]") {
+    SECTION("success") {
+        REQUIRE(errorCodeToUString(U_SUCCESS) == UString("Success"));
+    }
+    SECTION("common errors") {
+        REQUIRE(errorCodeToUString(U_INVALID_PARAMETER) == UString("Function called with invalid parameter"));
+        REQUIRE(errorCodeToUString(U_ITEM_NOT_FOUND) == UString("Item not found"));
+        REQUIRE(errorCodeToUString(U_NOT_IMPLEMENTED) == UString("Not implemented"));
+    }
+    SECTION("unknown code") {
+        UString result = errorCodeToUString(100);
+        // 100 = 0x64
+        REQUIRE(result == usprintf("Unknown error %02lX", (USTATUS)100));
+    }
+}
