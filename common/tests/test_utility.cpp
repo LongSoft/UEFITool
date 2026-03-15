@@ -104,3 +104,74 @@ TEST_CASE("fletcher32", "[utility][checksum]") {
         REQUIRE(fletcher32(a) != fletcher32(b));
     }
 }
+
+TEST_CASE("uniformByte", "[utility][uniform]") {
+    SECTION("empty array returns default") {
+        UByteArray empty;
+        REQUIRE(uniformByte(empty) == UINT32_MAX);
+    }
+    SECTION("empty array with custom default") {
+        UByteArray empty;
+        REQUIRE(uniformByte(empty, 0x42) == 0x42);
+    }
+    SECTION("single byte") {
+        UByteArray single("\x00", 1);
+        REQUIRE(uniformByte(single) == 0x00);
+    }
+    SECTION("single 0xFF") {
+        UByteArray single("\xFF", 1);
+        REQUIRE(uniformByte(single) == 0xFF);
+    }
+    SECTION("all same") {
+        UByteArray data(4, '\xAB');
+        REQUIRE(uniformByte(data) == 0xAB);
+    }
+    SECTION("not uniform") {
+        UByteArray data("\x00\x01", 2);
+        REQUIRE(uniformByte(data) == UINT32_MAX);
+    }
+    SECTION("non-uniform at end") {
+        UByteArray data("\xFF\xFF\xFF\x00", 4);
+        REQUIRE(uniformByte(data) == UINT32_MAX);
+    }
+}
+
+TEST_CASE("isUniformByte", "[utility][uniform]") {
+    SECTION("empty array matches any value") {
+        UByteArray empty;
+        REQUIRE(isUniformByte(empty, 0x00));
+        REQUIRE(isUniformByte(empty, 0xFF));
+    }
+    SECTION("matching uniform") {
+        UByteArray zeros(4, '\x00');
+        REQUIRE(isUniformByte(zeros, 0x00));
+    }
+    SECTION("non-matching uniform") {
+        UByteArray zeros(4, '\x00');
+        REQUIRE_FALSE(isUniformByte(zeros, 0xFF));
+    }
+}
+
+TEST_CASE("getPaddingType", "[utility][padding]") {
+    SECTION("all zeros") {
+        UByteArray zeros(4, '\x00');
+        REQUIRE(getPaddingType(zeros) == Subtypes::ZeroPadding);
+    }
+    SECTION("all 0xFF") {
+        UByteArray ones(4, '\xFF');
+        REQUIRE(getPaddingType(ones) == Subtypes::OnePadding);
+    }
+    SECTION("mixed data") {
+        UByteArray mixed("\x00\xFF", 2);
+        REQUIRE(getPaddingType(mixed) == Subtypes::DataPadding);
+    }
+    SECTION("single 0x42") {
+        UByteArray data("\x42", 1);
+        REQUIRE(getPaddingType(data) == Subtypes::DataPadding);
+    }
+    SECTION("empty") {
+        UByteArray empty;
+        // uniformByte returns UINT32_MAX, no case matches
+        REQUIRE(getPaddingType(empty) == Subtypes::DataPadding);
+    }
+}
