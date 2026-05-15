@@ -172,6 +172,7 @@ typedef ptrdiff_t INTN;
 #define SEARCH_MODE_HEADER    1
 #define SEARCH_MODE_BODY      2
 #define SEARCH_MODE_ALL       3
+#define SEARCH_MODE_INFO      4
 
 // EFI GUID
 typedef struct EFI_GUID_ {

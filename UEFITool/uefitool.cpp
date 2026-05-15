@@ -468,9 +468,10 @@ void UEFITool::search()
     searchDialog->ui->guidScopeBodyRadioButton->setChecked(mode == SEARCH_MODE_BODY);
     searchDialog->ui->guidScopeFullRadioButton->setChecked(mode >= SEARCH_MODE_ALL);
     mode = settings.value("searchDialog/textScopeMode", SEARCH_MODE_ALL).toUInt();
-    searchDialog->ui->textScopeHeaderRadioButton->setChecked(mode <= SEARCH_MODE_HEADER);
+    searchDialog->ui->textScopeHeaderRadioButton->setChecked(mode == SEARCH_MODE_HEADER);
     searchDialog->ui->textScopeBodyRadioButton->setChecked(mode == SEARCH_MODE_BODY);
-    searchDialog->ui->textScopeFullRadioButton->setChecked(mode >= SEARCH_MODE_ALL);
+    searchDialog->ui->textScopeFullRadioButton->setChecked(mode == SEARCH_MODE_ALL);
+    searchDialog->ui->textScopeInfoRadioButton->setChecked(mode == SEARCH_MODE_INFO);
     searchDialog->ui->textUnicodeCheckBox->setChecked(settings.value("searchDialog/textUnicode", true).toBool());
     searchDialog->ui->textCaseSensitiveCheckBox->setChecked(settings.value("searchDialog/textCaseSensitive", false).toBool());
 
@@ -497,6 +498,8 @@ void UEFITool::search()
         mode = SEARCH_MODE_HEADER;
     else if (searchDialog->ui->textScopeBodyRadioButton->isChecked())
         mode = SEARCH_MODE_BODY;
+    else if (searchDialog->ui->textScopeInfoRadioButton->isChecked())
+        mode = SEARCH_MODE_INFO;
     else
         mode = SEARCH_MODE_ALL;
     settings.setValue("searchDialog/textScopeMode", mode);
@@ -545,6 +548,8 @@ void UEFITool::search()
             mode = SEARCH_MODE_HEADER;
         else if (searchDialog->ui->textScopeBodyRadioButton->isChecked())
             mode = SEARCH_MODE_BODY;
+        else if (searchDialog->ui->textScopeInfoRadioButton->isChecked())
+            mode = SEARCH_MODE_INFO;
         else
             mode = SEARCH_MODE_ALL;
         ffsFinder->findTextPattern(pattern, mode, searchDialog->ui->textUnicodeCheckBox->isChecked(),

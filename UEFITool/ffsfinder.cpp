@@ -233,6 +233,25 @@ USTATUS FfsFinder::findTextPattern(const UModelIndex & index, const UString & pa
             ret = U_SUCCESS;
     }
 
+    if (mode == SEARCH_MODE_INFO || mode == SEARCH_MODE_ALL) {
+        UString info = model->info(index);
+        if (!info.isEmpty() && info.indexOf(pattern, 0, caseSensitive) >= 0) {
+            UModelIndex parentFileIndex = model->findParentOfType(index, Types::File);
+            UString name = model->name(index);
+            if (model->parent(index) == parentFileIndex) {
+                name = model->name(parentFileIndex) + UString("/") + name;
+            }
+            else if (parentFileIndex.isValid()) {
+                name = model->name(parentFileIndex) + UString("/.../") + name;
+            }
+
+            msg(UString("Text \"") + UString(pattern) + UString("\" found in ") + name + UString(" information"), index);
+            ret = U_SUCCESS;
+        }
+        if (mode == SEARCH_MODE_INFO)
+            return ret;
+    }
+
     UByteArray body;
     if (hasChildren) {
         if (mode != SEARCH_MODE_BODY)

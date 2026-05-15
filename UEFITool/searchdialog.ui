@@ -179,7 +179,7 @@
           <item>
            <widget class="QRadioButton" name="textScopeFullRadioButton">
             <property name="text">
-             <string>Header and body</string>
+             <string>Header, body and information</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -197,6 +197,13 @@
            <widget class="QRadioButton" name="textScopeBodyRadioButton">
             <property name="text">
              <string>Body only</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="textScopeInfoRadioButton">
+            <property name="text">
+             <string>Information only</string>
             </property>
            </widget>
           </item>
