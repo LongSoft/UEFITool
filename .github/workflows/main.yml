@@ -67,7 +67,7 @@ jobs:
           codesign -fs - --deep UEFITool.app
           zip -qry ../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_universal_mac.zip ./UEFITool.app
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macOS builds
           path: dist/*
@@ -109,7 +109,7 @@ jobs:
           zip -qryj ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_x64_linux.zip ./UEFIFind/uefifind
           zip -qryj ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_x64_linux.zip ./UEFITool/uefitool
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Linux builds
           path: dist/*.zip
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build on FreeBSD inside Ubuntu VM
         id: test
-        uses: cross-platform-actions/action@v0.27.0
+        uses: cross-platform-actions/action@v1.1.0
         with:
           operating_system: freebsd
           version: '13.3'
@@ -146,7 +146,7 @@ jobs:
             zip -qryj ../dist/UEFIFind_NE_${UEFITOOL_VER}_x64_freebsd.zip ./UEFIFind/uefifind
             zip -qryj ../dist/UEFITool_NE_${UEFITOOL_VER}_x64_freebsd.zip ./UEFITool/uefitool
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: FreeBSD builds
           path: dist/*.zip
@@ -241,7 +241,7 @@ jobs:
           UEFITOOL_VER=$(cat ../../../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           7z a ../../../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win32.zip UEFITool.exe
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Windows 32-bit builds
           path: dist/*.zip
@@ -290,7 +290,7 @@ jobs:
           7z a ../UEFITool/dist/UEFIFind_NE_${UEFITOOL_VER}_win64.zip ./UEFIFind/Release/UEFIFind.exe
           7z a ../UEFITool/dist/UEFITool_NE_${UEFITOOL_VER}_win64.zip ./UEFITool/Release/UEFITool.exe
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Windows 64-bit builds
           path: dist/*.zip
@@ -324,7 +324,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Qt
-        uses: jurplel/install-qt-action@v3
+        uses: jurplel/install-qt-action@v4.3.1
         with:
           version: '6.5.0'
           host: 'windows'
@@ -358,7 +358,7 @@ jobs:
           UEFITOOL_VER=$(cat ../UEFITool/version.h | grep PROGRAM_VERSION | cut -d'"' -f2 | sed 's/NE alpha /A/') ; \
           zip -qryj ../dist/ffsparser_fuzzer_NE_${UEFITOOL_VER}_x64_linux.zip ./ffsparser_fuzzer
       - name: Upload to artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Fuzzer
           path: ${{runner.workspace}}/dist/*.zip
