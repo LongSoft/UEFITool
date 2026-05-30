@@ -127,14 +127,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Build on FreeBSD inside Ubuntu VM
+      - name: Setup VM
         id: test
         uses: cross-platform-actions/action@v1.1.0
         with:
           operating_system: freebsd
           version: '13.3'
-          shell: sh
-          run: |
+      - name: Build
+        shell: cpa.sh {0}
+        run: |
+            sh << 'EOF'
+            set -e
             sudo pkg install -y zip cmake qt6-base
             mkdir dist
             mkdir build
