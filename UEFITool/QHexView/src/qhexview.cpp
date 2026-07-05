@@ -1507,7 +1507,7 @@ void QHexView::mouseMoveEvent(QMouseEvent* e) {
 void QHexView::wheelEvent(QWheelEvent* e) {
     e->ignore();
 
-#if defined(Q_OS_OSX)
+#if defined(Q_OS_MACOS)
     // In macOS scrollbar invisibility should not prevent scrolling from working
     if(!m_hexdocument)
         return;
