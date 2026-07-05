@@ -281,14 +281,14 @@ UString hashTypeToUString(const UINT16 algorithm_id)
 UString insydeFlashDeviceMapEntryTypeGuidToUString(const EFI_GUID & guid)
 {
     const UByteArray baGuid((const char*)&guid, sizeof(EFI_GUID));
-    if (baGuid == INSYDE_FLASH_MAP_REGION_AUX_FV_GUID)           return UString("Aux Firmare Volume");
-    if (baGuid == INSYDE_FLASH_MAP_REGION_BOOT_FV_GUID)          return UString("Boot Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_AUX_FV_GUID)           return UString("Aux Firmware Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_BOOT_FV_GUID)          return UString("Boot Firmware Volume");
     if (baGuid == INSYDE_FLASH_MAP_REGION_BVDT_GUID)             return UString("BIOS Version Data Table");
     if (baGuid == INSYDE_FLASH_MAP_REGION_EC_GUID)               return UString("EC Firmware");
     if (baGuid == INSYDE_FLASH_MAP_REGION_FTW_BACKUP_GUID)       return UString("FTW Backup");
     if (baGuid == INSYDE_FLASH_MAP_REGION_FTW_STATE_GUID)        return UString("FTW State");
-    if (baGuid == INSYDE_FLASH_MAP_REGION_FV_GUID)               return UString("Firmare Volume");
-    if (baGuid == INSYDE_FLASH_MAP_REGION_FV_OTHER_GUID)         return UString("Other Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_FV_GUID)               return UString("Firmware Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_FV_OTHER_GUID)         return UString("Other Firmware Volume");
     if (baGuid == INSYDE_FLASH_MAP_REGION_GPNV_GUID)             return UString("GPNV");
     if (baGuid == INSYDE_FLASH_MAP_REGION_LICENSE_GUID)          return UString("License");
     if (baGuid == INSYDE_FLASH_MAP_REGION_LOGO_GUID)             return UString("Logo");
@@ -306,9 +306,9 @@ UString insydeFlashDeviceMapEntryTypeGuidToUString(const EFI_GUID & guid)
     if (baGuid == INSYDE_FLASH_MAP_REGION_UNKNOWN_GUID)          return UString("Unknown");
     if (baGuid == INSYDE_FLASH_MAP_REGION_UNUSED_GUID)           return UString("Unused");
     if (baGuid == INSYDE_FLASH_MAP_REGION_USB_OPTION_ROM_GUID)   return UString("USB Option ROM");
-    if (baGuid == INSYDE_FLASH_MAP_REGION_DXE_FV_GUID)           return UString("DXE Firmare Volume");
-    if (baGuid == INSYDE_FLASH_MAP_REGION_PEI_FV_GUID)           return UString("PEI Firmare Volume");
-    if (baGuid == INSYDE_FLASH_MAP_REGION_UNSIGNED_FV_GUID)      return UString("Unsigned Firmare Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_DXE_FV_GUID)           return UString("DXE Firmware Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_PEI_FV_GUID)           return UString("PEI Firmware Volume");
+    if (baGuid == INSYDE_FLASH_MAP_REGION_UNSIGNED_FV_GUID)      return UString("Unsigned Firmware Volume");
     if (baGuid == INSYDE_FLASH_MAP_REGION_FACTORY_COPY_GUID)     return UString("Factory Copy");
     if (baGuid == INSYDE_FLASH_MAP_REGION_OPTION_ROM_GUID)       return UString("Option ROM");
     if (baGuid == INSYDE_FLASH_MAP_REGION_BDF_OPTION_ROM_GUID)   return UString("BusDeviceFunction Option ROM");

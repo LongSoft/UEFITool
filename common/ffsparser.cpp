@@ -1020,7 +1020,7 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
                                          (UINT32)entry->region_size(),
                                          entry->attributes());
                         
-                        // Add atributes
+                        // Add attributes
                         // Ignored or Valid
                         if ((entry->attributes() & INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_IGNORED) == 0) {
                             info += UString("EntryValid");
@@ -1035,9 +1035,9 @@ USTATUS FfsParser::parseRawArea(const UModelIndex & index)
                         else if ((entry->attributes() & INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_MODIFIABLE) == INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_MODIFIABLE) {
                             info += UString(", HashIgnored");
                         }
-                        // Unknown atributes other than the two known above
+                        // Unknown attributes other than the two known above
                         if (entry->attributes() > INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_IGNORED + INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_MODIFIABLE) {
-                            UINT32 unknown_attributes = entry->attributes() & ((UINT32)(0xFFFFFFFFC));
+                            UINT32 unknown_attributes = entry->attributes() & ~(UINT32)(INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_IGNORED | INSYDE_FLASH_DEVICE_MAP_ENTRY_ATTRIBUTE_MODIFIABLE);
                             info += usprintf(", Unknown %08Xh", unknown_attributes);
                             msg(usprintf("%s: FlashDeviceMap entry with unknown attributes %08Xh", __FUNCTION__, unknown_attributes), headerIndex);
                         }
