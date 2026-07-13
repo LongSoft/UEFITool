@@ -575,7 +575,7 @@ int ZEXPORT gzdirect(gzFile file) {
 
 /* -- see zlib.h -- */
 int ZEXPORT gzclose_r(gzFile file) {
-    int ret, err;
+    int ret, err, fd;
     gz_statep state;
 
     /* get internal structure */
@@ -596,7 +596,8 @@ int ZEXPORT gzclose_r(gzFile file) {
     err = state->err == Z_BUF_ERROR ? Z_BUF_ERROR : Z_OK;
     gz_error(state, Z_OK, NULL);
     free(state->path);
-    ret = close(state->fd);
+    fd = state->fd;
     free(state);
+    ret = close(fd);
     return ret ? Z_ERRNO : err;
 }
