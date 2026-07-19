@@ -252,3 +252,11 @@ UEFITool/qrc_uefitool.cpp
 XcodeQT5
 XcodeQT6
 *.dSYM
+
+# Build artifacts for the fork
+UEFITool/UEFITool
+UEFIEdit/UEFIEdit
+*.o
+*.o.d
+build/
+.opencode/

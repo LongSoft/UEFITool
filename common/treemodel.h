@@ -195,14 +195,17 @@ public:
     UByteArray header(const UModelIndex &index) const;
     bool hasEmptyHeader(const UModelIndex &index) const;
     UINT32 headerSize(const UModelIndex& index) const;
+    void setHeader(const UModelIndex &index, const UByteArray &header);
     
     UByteArray body(const UModelIndex &index) const;
     bool hasEmptyBody(const UModelIndex &index) const;
     UINT32 bodySize(const UModelIndex& index) const;
+    void setBody(const UModelIndex &index, const UByteArray &body);
 
     UByteArray tail(const UModelIndex &index) const;
     bool hasEmptyTail(const UModelIndex &index) const;
     UINT32 tailSize(const UModelIndex& index) const;
+    void setTail(const UModelIndex &index, const UByteArray &tail);
 
     UByteArray parsingData(const UModelIndex &index) const;
     bool hasEmptyParsingData(const UModelIndex &index) const;

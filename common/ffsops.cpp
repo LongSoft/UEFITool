@@ -47,19 +47,60 @@ USTATUS FfsOperations::extract(const UModelIndex & index, UString & name, UByteA
     return U_SUCCESS;
 }
 
-USTATUS FfsOperations::replace(const UModelIndex & index, UByteArray & data, const UINT8 mode)
+USTATUS FfsOperations::replace(const UModelIndex & index, const UByteArray & data, const UINT8 mode)
 {
-    U_UNUSED_PARAMETER(data);
-    
     // Sanity check
     if (!index.isValid())
         return U_INVALID_PARAMETER;
     
+    // Replace actions can only be applied to certain item types
+    UINT8 type = model->type(index);
+    if (type != Types::Region
+        && type != Types::Volume
+        && type != Types::File
+        && type != Types::Section) {
+        return U_INVALID_PARAMETER;
+    }
+    
     if (mode == REPLACE_MODE_AS_IS) {
-        return U_NOT_IMPLEMENTED;
+        // The new data must include header, body and tail
+        // Reconstruct the item by clearing children and storing the new full data
+        UByteArray header;
+        UByteArray body;
+        UByteArray tail;
+        // No way to split the incoming data into header/body/tail without knowing sizes;
+        // keep the original header and tail sizes, replace the body with the middle part.
+        UINT32 headerSize = model->headerSize(index);
+        UINT32 tailSize = model->tailSize(index);
+        if ((UINT32)data.size() < headerSize + tailSize)
+            return U_INVALID_PARAMETER;
+        header = data.left(headerSize);
+        body = data.mid(headerSize, data.size() - headerSize - tailSize);
+        tail = data.right(tailSize);
+        
+        // Set the new data on the model
+        model->setHeader(index, header);
+        model->setBody(index, body);
+        model->setTail(index, tail);
+        // Mark for rebuild
+        model->setAction(index, Actions::Replace);
+        // Mark parent for rebuild so the new size is reflected
+        UModelIndex parent = index.parent();
+        if (parent.isValid() && model->type(parent) != Types::Root
+            && model->action(parent) == Actions::NoAction)
+            rebuild(parent);
+        return U_SUCCESS;
     }
     else if (mode == REPLACE_MODE_BODY) {
-        return U_NOT_IMPLEMENTED;
+        // Replace only the body, keep the original header and tail
+        model->setBody(index, data);
+        model->setAction(index, Actions::Replace);
+        // Mark parent for rebuild
+        UModelIndex parent = index.parent();
+        if (parent.isValid() && model->type(parent) != Types::Root
+            && model->action(parent) == Actions::NoAction)
+            rebuild(parent);
+        return U_SUCCESS;
     }
     
     return U_UNKNOWN_REPLACE_MODE;

@@ -33,7 +33,7 @@ public:
     void clearMessages() { messagesVector.clear(); }
 
     USTATUS extract(const UModelIndex & index, UString & name, UByteArray & extracted, const UINT8 mode);
-    USTATUS replace(const UModelIndex & index, UByteArray & data, const UINT8 mode);
+    USTATUS replace(const UModelIndex & index, const UByteArray & data, const UINT8 mode);
     
     USTATUS remove(const UModelIndex & index);
     USTATUS rebuild(const UModelIndex & index);

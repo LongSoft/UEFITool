@@ -63,14 +63,17 @@ public:
     const UByteArray & header() const { return itemHeader; }
     bool hasEmptyHeader() const { return itemHeader.isEmpty(); }
     UINT32 headerSize() const { return (UINT32)itemHeader.size(); }
+    void setHeader(const UByteArray &header) { itemHeader = header; }
 
     const UByteArray & body() const { return itemBody; };
     bool hasEmptyBody() const { return itemBody.isEmpty(); }
     UINT32 bodySize() const { return (UINT32)itemBody.size(); }
+    void setBody(const UByteArray &body) { itemBody = body; }
 
     const UByteArray & tail() const { return itemTail; };
     bool hasEmptyTail() const { return itemTail.isEmpty(); }
     UINT32 tailSize() const {return (UINT32)itemTail.size();}
+    void setTail(const UByteArray &tail) { itemTail = tail; }
     
     UByteArray full() const { return itemHeader + itemBody + itemTail; }
     UINT32 fullSize() const { return (UINT32)(itemHeader.size() + itemBody.size() + itemTail.size()); }

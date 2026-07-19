@@ -246,6 +246,15 @@ UINT32 TreeModel::headerSize(const UModelIndex &index) const
     return item->headerSize();
 }
 
+void TreeModel::setHeader(const UModelIndex &index, const UByteArray &header)
+{
+    if (!index.isValid())
+        return;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setHeader(header);
+    emit dataChanged(index, index);
+}
+
 UByteArray TreeModel::body(const UModelIndex &index) const
 {
     if (!index.isValid())
@@ -270,6 +279,15 @@ UINT32 TreeModel::bodySize(const UModelIndex &index) const
     return item->bodySize();
 }
 
+void TreeModel::setBody(const UModelIndex &index, const UByteArray &body)
+{
+    if (!index.isValid())
+        return;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setBody(body);
+    emit dataChanged(index, index);
+}
+
 UByteArray TreeModel::tail(const UModelIndex &index) const
 {
     if (!index.isValid())
@@ -292,6 +310,15 @@ UINT32 TreeModel::tailSize(const UModelIndex &index) const
         return true;
     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
     return item->tailSize();
+}
+
+void TreeModel::setTail(const UModelIndex &index, const UByteArray &tail)
+{
+    if (!index.isValid())
+        return;
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    item->setTail(tail);
+    emit dataChanged(index, index);
 }
 
 UString TreeModel::name(const UModelIndex &index) const

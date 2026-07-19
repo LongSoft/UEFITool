@@ -1,3 +1,51 @@
+# UEFI-tools (UEFITool fork with editing support)
+
+Fork of [LongSoft/UEFITool](https://github.com/LongSoft/UEFITool) (branch `new_engine`, NE alpha 76) with implemented firmware editing features:
+- **insert / replace / remove / rebuild** in the GUI (`UEFITool`) for volumes, files, and sections;
+- new console utility **`UEFIEdit`** for scripted editing (insert/remove/replace/rebuild/save);
+- recalculation of FFS header/data checksums, tail, and size on rebuild;
+- consumption of volume free space on insert/remove so the image stays byte-exact when possible.
+
+See [IMPLEMENTATION.md](IMPLEMENTATION.md) for a full description of the implementation and [AGENTS.md](AGENTS.md) for the agent guide.
+
+Test files in `fw/`:
+- `HNX99TF_200525_original_E5C88C6F.bin` — 16 MB BIOS image (Intel flash descriptor + ME region + BIOS region with 3 FFS volumes);
+- `Mashinist_DXE_driver_SerialIo_SerialIo.ffs` — FFS file, GUID `97C81E5D-8FA0-486A-AAEA-0EFDF090FE4F`;
+- `MAshinist_DXE_driver_TerminalSrc_TerminalSrc.ffs` — FFS file, GUID `54891A9E-763E-4377-8841-8D5C90D88CDE`.
+
+## Build
+
+### GUI (Linux, qmake)
+
+```bash
+cd UEFITool
+qmake-qt5 uefitool.pro
+make -j$(nproc)
+./UEFITool
+```
+
+### UEFIEdit (qmake / cmake / meson)
+
+```bash
+cd UEFIEdit
+qmake-qt5 uefiedit.pro
+make -j$(nproc)
+./UEFIEdit
+```
+
+### Quick test
+
+```bash
+./UEFIEdit fw/HNX99TF_200525_original_E5C88C6F.bin save /tmp/out.bin
+cmp /tmp/out.bin fw/HNX99TF_200525_original_E5C88C6F.bin && echo "rebuild OK"
+
+./UEFIEdit fw/HNX99TF_200525_original_E5C88C6F.bin \
+  insert-after A0327FE0-1FDA-4E5B-905D-B510C45A61D0 fw/Mashinist_DXE_driver_SerialIo_SerialIo.ffs \
+  save /tmp/inserted.bin
+```
+
+---
+
 # UEFITool
 
 UEFITool is a viewer and editor of firmware images conforming to UEFI Platform Interface (PI) Specifications.

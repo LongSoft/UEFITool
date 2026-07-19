@@ -435,21 +435,27 @@ void UEFITool::populateUi(const QModelIndex &current)
     ui->actionUncompressedHashSha512->setDisabled(model->hasEmptyUncompressedData(current));
     ui->actionUncompressedHashSm3->setDisabled(model->hasEmptyUncompressedData(current));
     
-    // Disable rebuild for now
-    //ui->actionRebuild->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
-    //ui->actionReplace->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
+    // Disable rebuild for the descriptor region (read-only)
+    ui->actionRebuild->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
+    ui->actionReplace->setDisabled(type == Types::Region && subtype == Subtypes::DescriptorRegion);
     
-    //ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
+    // Enable rebuild for volumes, files, and sections
+    ui->actionRebuild->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     ui->actionExtractBody->setDisabled(model->hasEmptyBody(current));
     ui->actionExtractUncompressed->setDisabled(model->hasEmptyUncompressedData(current));
-    //ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
-    //ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume) ||
-    //    (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD) ||
-    //    (type == Types::Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
-    //ui->actionInsertBefore->setEnabled(type == Types::File || type == Types::Section);
-    //ui->actionInsertAfter->setEnabled(type == Types::File || type == Types::Section);
-    //ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion) || type == Types::Volume || type == Types::File || type == Types::Section);
-    //ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
+    // Enable remove for volumes, files, and sections
+    ui->actionRemove->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
+    // Enable insert into volume/file/encapsulation section
+    ui->actionInsertInto->setEnabled((type == Types::Volume && subtype != Subtypes::UnknownVolume)
+        || (type == Types::File && subtype != EFI_FV_FILETYPE_ALL && subtype != EFI_FV_FILETYPE_RAW && subtype != EFI_FV_FILETYPE_PAD)
+        || (type == Types::Section && (subtype == EFI_SECTION_COMPRESSION || subtype == EFI_SECTION_GUID_DEFINED || subtype == EFI_SECTION_DISPOSABLE)));
+    // Enable insert before/after for files and sections
+    ui->actionInsertBefore->setEnabled(type == Types::File || type == Types::Section);
+    ui->actionInsertAfter->setEnabled(type == Types::File || type == Types::Section);
+    // Enable replace for regions (except descriptor), volumes, files, and sections
+    ui->actionReplace->setEnabled((type == Types::Region && subtype != Subtypes::DescriptorRegion)
+        || type == Types::Volume || type == Types::File || type == Types::Section);
+    ui->actionReplaceBody->setEnabled(type == Types::Volume || type == Types::File || type == Types::Section);
     
     ui->menuMessageActions->setEnabled(false);
 }
@@ -679,7 +685,215 @@ void UEFITool::goToData()
 
 void UEFITool::insert(const UINT8 mode)
 {
-    U_UNUSED_PARAMETER(mode);
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+    
+    // Determine the insertion point. For CREATE_MODE_PREPEND, the new item
+    // is added as the first child of the selected volume/file/section.
+    // For CREATE_MODE_BEFORE/AFTER, it is added as a sibling of the selected item.
+    // Note: TreeModel::addItem interprets the "parent" argument differently for
+    // BEFORE/AFTER modes — it uses parent.internalPointer() as the reference item
+    // and inserts relative to that item's parent. So for BEFORE/AFTER we must
+    // pass the selected item itself (not its parent) as the addItem parent.
+    UModelIndex parentIndex;   // The logical container of the new item
+    UModelIndex refItem;       // The item passed to addItem
+    UINT8 createMode;
+    if (mode == CREATE_MODE_PREPEND) {
+        parentIndex = index;
+        refItem = index;
+        createMode = CREATE_MODE_PREPEND;
+    }
+    else if (mode == CREATE_MODE_BEFORE) {
+        parentIndex = index.parent();
+        refItem = index;
+        createMode = CREATE_MODE_BEFORE;
+    }
+    else if (mode == CREATE_MODE_AFTER) {
+        parentIndex = index.parent();
+        refItem = index;
+        createMode = CREATE_MODE_AFTER;
+    }
+    else {
+        return;
+    }
+    
+    if (!parentIndex.isValid())
+        return;
+    
+    // The type of the new item is determined by the container it is inserted into,
+    // not by the type of the selected item:
+    //   Volume  -> new File
+    //   File    -> new Section
+    //   encapsulation Section (Compression/GUID-defined/Disposable) -> new Section
+    UINT8 parentType = model->type(parentIndex);
+    UINT8 parentSubtype = model->subtype(parentIndex);
+    
+    // Validate the container and determine the file filter / caption
+    QString filter;
+    QString caption;
+    bool insertFile = false; // true = insert a File, false = insert a Section
+    if (parentType == Types::Volume) {
+        insertFile = true;
+        filter = tr("FFS files (*.ffs *.bin);;All files (*)");
+        caption = tr("Insert FFS file into volume");
+    }
+    else if (parentType == Types::File) {
+        insertFile = false;
+        filter = tr("Section files (*.sct *.bin);;All files (*)");
+        caption = tr("Insert section into file");
+    }
+    else if (parentType == Types::Section) {
+        // Sections can only be inserted into encapsulation sections
+        if (parentSubtype != EFI_SECTION_COMPRESSION
+            && parentSubtype != EFI_SECTION_GUID_DEFINED
+            && parentSubtype != EFI_SECTION_DISPOSABLE) {
+            QMessageBox::information(this, tr("Insertion not supported"),
+                tr("Sections can only be inserted into encapsulation sections (Compression, GUID-defined, Disposable)"),
+                QMessageBox::Ok);
+            return;
+        }
+        insertFile = false;
+        filter = tr("Section files (*.sct *.bin);;All files (*)");
+        caption = tr("Insert section");
+    }
+    else {
+        QMessageBox::information(this, tr("Insertion not supported"),
+            tr("Insertion is only supported into volumes, files, and encapsulation sections"),
+            QMessageBox::Ok);
+        return;
+    }
+    
+    QString path = QFileDialog::getOpenFileName(this, caption, currentDir, filter);
+    if (path.trimmed().isEmpty())
+        return;
+    
+    QFile inputFile;
+    inputFile.setFileName(path);
+    if (!inputFile.open(QFile::ReadOnly)) {
+        QMessageBox::critical(this, tr("Insertion failed"), tr("Can't open input file for reading"), QMessageBox::Ok);
+        return;
+    }
+    QByteArray data = inputFile.readAll();
+    inputFile.close();
+    
+    currentDir = QFileInfo(path).absolutePath();
+    
+    // Determine the type/subtype of the new item from its data
+    UINT8 newType = 0;
+    UINT8 newSubtype = 0;
+    UByteArray header;
+    UByteArray body;
+    if (insertFile) {
+        // Inserting a file: parse the first bytes as EFI_FFS_FILE_HEADER
+        if ((UINT32)data.size() < sizeof(EFI_FFS_FILE_HEADER)) {
+            QMessageBox::critical(this, tr("Insertion failed"), tr("The selected file is too small to be a FFS file"), QMessageBox::Ok);
+            return;
+        }
+        const EFI_FFS_FILE_HEADER* fh = (const EFI_FFS_FILE_HEADER*)data.constData();
+        UINT32 headerSize = sizeof(EFI_FFS_FILE_HEADER);
+        if (fh->Attributes & FFS_ATTRIB_LARGE_FILE) {
+            // Detect large file header size from the parent volume
+            UINT8 ffsVersion = 2;
+            UINT8 revision = 2;
+            if (parentType == Types::Volume && !model->hasEmptyParsingData(parentIndex)) {
+                VOLUME_PARSING_DATA pdata = *(const VOLUME_PARSING_DATA*)model->parsingData(parentIndex).constData();
+                ffsVersion = pdata.ffsVersion;
+                revision = pdata.revision;
+            }
+            if (ffsVersion == 2 && revision == 2)
+                headerSize = sizeof(EFI_FFS_FILE_HEADER2_LENOVO);
+            else if (ffsVersion == 3)
+                headerSize = sizeof(EFI_FFS_FILE_HEADER2);
+        }
+        newType = Types::File;
+        newSubtype = fh->Type;
+        header = UByteArray(data.constData(), headerSize);
+        body = UByteArray(data.constData() + headerSize, data.size() - headerSize);
+    }
+    else {
+        // Inserting a section: parse the first bytes as EFI_COMMON_SECTION_HEADER
+        if ((UINT32)data.size() < sizeof(EFI_COMMON_SECTION_HEADER)) {
+            QMessageBox::critical(this, tr("Insertion failed"), tr("The selected file is too small to be a section"), QMessageBox::Ok);
+            return;
+        }
+        const EFI_COMMON_SECTION_HEADER* sh = (const EFI_COMMON_SECTION_HEADER*)data.constData();
+        UINT32 headerSize = sizeof(EFI_COMMON_SECTION_HEADER);
+        // Detect FFSv3 section2 header from the parent volume
+        UINT8 ffsVersion = 2;
+        UModelIndex parentVolumeIndex = (parentType == Types::Volume) ? parentIndex : model->findParentOfType(parentIndex, Types::Volume);
+        if (parentVolumeIndex.isValid() && !model->hasEmptyParsingData(parentVolumeIndex)) {
+            VOLUME_PARSING_DATA pdata = *(const VOLUME_PARSING_DATA*)model->parsingData(parentVolumeIndex).constData();
+            ffsVersion = pdata.ffsVersion;
+        }
+        if (ffsVersion == 3 && uint24ToUint32(sh->Size) == EFI_SECTION2_IS_USED) {
+            if ((UINT32)data.size() < sizeof(EFI_COMMON_SECTION_HEADER2)) {
+                QMessageBox::critical(this, tr("Insertion failed"), tr("The selected file is too small to be a section2"), QMessageBox::Ok);
+                return;
+            }
+            const EFI_COMMON_SECTION_HEADER2* sh2 = (const EFI_COMMON_SECTION_HEADER2*)data.constData();
+            headerSize = sizeof(EFI_COMMON_SECTION_HEADER2);
+            // For encapsulation sections the header may be larger; use the original section size
+            UINT32 fullSize = sh2->ExtendedSize;
+            if (fullSize > (UINT32)data.size())
+                fullSize = (UINT32)data.size();
+            body = UByteArray(data.constData() + headerSize, fullSize - headerSize);
+        }
+        else {
+            UINT32 fullSize = uint24ToUint32(sh->Size);
+            if (fullSize > (UINT32)data.size())
+                fullSize = (UINT32)data.size();
+            body = UByteArray(data.constData() + headerSize, fullSize - headerSize);
+        }
+        newType = Types::Section;
+        newSubtype = sh->Type;
+        header = UByteArray(data.constData(), headerSize);
+    }
+    
+    // Create a unique name for the new item
+    UString name;
+    if (newType == Types::File) {
+        const EFI_FFS_FILE_HEADER* fh = (const EFI_FFS_FILE_HEADER*)header.constData();
+        name = guidToUString(fh->Name);
+    }
+    else {
+        name = sectionTypeToUString(newSubtype) + UString(" section");
+    }
+    
+    // Add the new item to the tree
+    UModelIndex newIndex = model->addItem(model->offset(index), newType, newSubtype,
+                                          name, UString(), UString(),
+                                          header, body, UByteArray(),
+                                          Movable, refItem, createMode);
+    if (!newIndex.isValid()) {
+        QMessageBox::critical(this, tr("Insertion failed"), tr("Failed to add the new item to the tree"), QMessageBox::Ok);
+        return;
+    }
+    
+    // Set parsing data for the new item
+    if (newType == Types::File) {
+        const EFI_FFS_FILE_HEADER* fh = (const EFI_FFS_FILE_HEADER*)header.constData();
+        FILE_PARSING_DATA pdata = {};
+        pdata.emptyByte = (fh->State & EFI_FILE_ERASE_POLARITY) ? 0xFF : 0x00;
+        pdata.guid = fh->Name;
+        model->setParsingData(newIndex, UByteArray((const char*)&pdata, sizeof(pdata)));
+    }
+    
+    // Mark the new item for insert, and all ancestors for rebuild so the
+    // change propagates up to the root during save.
+    model->setAction(newIndex, Actions::Insert);
+    for (UModelIndex p = parentIndex; p.isValid() && model->type(p) != Types::Root; p = p.parent()) {
+        if (model->action(p) == Actions::NoAction)
+            model->setAction(p, Actions::Rebuild);
+    }
+    UModelIndex rootIndex = model->index(0, 0);
+    if (rootIndex.isValid() && model->action(rootIndex) == Actions::NoAction)
+        model->setAction(rootIndex, Actions::Rebuild);
+    
+    ui->structureTreeView->selectionModel()->select(newIndex, QItemSelectionModel::Select | QItemSelectionModel::Rows | QItemSelectionModel::Clear);
+    
+    // Enable saving
+    ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::insertInto()
@@ -709,7 +923,69 @@ void UEFITool::replaceBody()
 
 void UEFITool::replace(const UINT8 mode)
 {
-    U_UNUSED_PARAMETER(mode);
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
+    
+    UINT8 type = model->type(index);
+    if (type != Types::Region && type != Types::Volume && type != Types::File && type != Types::Section) {
+        QMessageBox::information(this, tr("Replace not supported"),
+            tr("Replace is only supported for regions, volumes, files, and sections"),
+            QMessageBox::Ok);
+        return;
+    }
+    
+    QString filter;
+    QString caption;
+    if (mode == REPLACE_MODE_AS_IS) {
+        switch (type) {
+            case Types::Region:  filter = tr("Region files (*.rgn *.bin);;All files (*)"); caption = tr("Replace region as is"); break;
+            case Types::Volume:  filter = tr("Volume files (*.vol *.bin);;All files (*)"); caption = tr("Replace volume as is"); break;
+            case Types::File:    filter = tr("FFS files (*.ffs *.bin);;All files (*)"); caption = tr("Replace FFS file as is"); break;
+            case Types::Section: filter = tr("Section files (*.sct *.bin);;All files (*)"); caption = tr("Replace section as is"); break;
+            default:             filter = tr("All files (*)"); caption = tr("Replace object as is");
+        }
+    }
+    else {
+        switch (type) {
+            case Types::Volume:  filter = tr("Volume body files (*.vbd *.bin);;All files (*)"); caption = tr("Replace volume body"); break;
+            case Types::File:    filter = tr("FFS file body files (*.fbd *.bin);;All files (*)"); caption = tr("Replace FFS file body"); break;
+            case Types::Section: filter = tr("Section body files (*.bin);;All files (*)"); caption = tr("Replace section body"); break;
+            default:             filter = tr("Binary files (*.bin);;All files (*)"); caption = tr("Replace object body");
+        }
+    }
+    
+    QString path = QFileDialog::getOpenFileName(this, caption, currentDir, filter);
+    if (path.trimmed().isEmpty())
+        return;
+    
+    QFile inputFile;
+    inputFile.setFileName(path);
+    if (!inputFile.open(QFile::ReadOnly)) {
+        QMessageBox::critical(this, tr("Replacement failed"), tr("Can't open input file for reading"), QMessageBox::Ok);
+        return;
+    }
+    QByteArray data = inputFile.readAll();
+    inputFile.close();
+    
+    currentDir = QFileInfo(path).absolutePath();
+    
+    USTATUS result = ffsOps->replace(index, UByteArray(data.constData(), data.size()), mode);
+    if (result) {
+        QMessageBox::critical(this, tr("Replacement failed"), errorCodeToUString(result), QMessageBox::Ok);
+        return;
+    }
+    
+    // Mark all ancestors for rebuild so the replacement propagates to the root.
+    for (UModelIndex p = index.parent(); p.isValid() && model->type(p) != Types::Root; p = p.parent()) {
+        if (model->action(p) == Actions::NoAction)
+            model->setAction(p, Actions::Rebuild);
+    }
+    UModelIndex rootIndex = model->index(0, 0);
+    if (rootIndex.isValid() && model->action(rootIndex) == Actions::NoAction)
+        model->setAction(rootIndex, Actions::Rebuild);
+    
+    ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::extractAsIs()
@@ -797,12 +1073,57 @@ void UEFITool::extract(const UINT8 mode)
 
 void UEFITool::rebuild()
 {
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
     
+    USTATUS result = ffsOps->rebuild(index);
+    if (result) {
+        QMessageBox::critical(this, tr("Rebuild failed"), errorCodeToUString(result), QMessageBox::Ok);
+        return;
+    }
+    
+    // Enable saving after rebuild
+    ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::remove()
 {
+    QModelIndex index = ui->structureTreeView->selectionModel()->currentIndex();
+    if (!index.isValid())
+        return;
     
+    UINT8 type = model->type(index);
+    if (type != Types::Volume && type != Types::File && type != Types::Section) {
+        QMessageBox::information(this, tr("Remove not supported"),
+            tr("Remove is only supported for volumes, files, and sections"),
+            QMessageBox::Ok);
+        return;
+    }
+    
+    QMessageBox::StandardButton reply = QMessageBox::question(this, tr("Remove item"),
+        tr("Are you sure you want to remove the selected item? The change will only be applied after saving the image."),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (reply != QMessageBox::Yes)
+        return;
+    
+    USTATUS result = ffsOps->remove(index);
+    if (result) {
+        QMessageBox::critical(this, tr("Remove failed"), errorCodeToUString(result), QMessageBox::Ok);
+        return;
+    }
+    
+    // Mark all ancestors for rebuild so the removal propagates to the root.
+    for (UModelIndex p = index.parent(); p.isValid() && model->type(p) != Types::Root; p = p.parent()) {
+        if (model->action(p) == Actions::NoAction)
+            model->setAction(p, Actions::Rebuild);
+    }
+    UModelIndex rootIndex = model->index(0, 0);
+    if (rootIndex.isValid() && model->action(rootIndex) == Actions::NoAction)
+        model->setAction(rootIndex, Actions::Rebuild);
+    
+    // Enable saving after remove
+    ui->actionSaveImageFile->setEnabled(true);
 }
 
 void UEFITool::about()
@@ -841,7 +1162,52 @@ void UEFITool::exit()
 
 void UEFITool::saveImageFile()
 {
+    if (currentPath.isEmpty()) {
+        QMessageBox::information(this, tr("No image loaded"), tr("Please open an image file first"), QMessageBox::Ok);
+        return;
+    }
     
+    // Determine the root index for rebuilding
+    QModelIndex root = model->index(0, 0, QModelIndex());
+    if (!root.isValid()) {
+        QMessageBox::critical(this, tr("Saving failed"), tr("No image to save"), QMessageBox::Ok);
+        return;
+    }
+    
+    // Create the FfsBuilder if not yet created
+    if (!ffsBuilder) {
+        ffsBuilder = new FfsBuilder(model);
+    }
+    ffsBuilder->clearMessages();
+    
+    // Build the new image
+    UByteArray image;
+    USTATUS result = ffsBuilder->build(root, image);
+    showBuilderMessages();
+    if (result) {
+        QMessageBox::critical(this, tr("Saving failed"), tr("Image rebuild failed: ") + errorCodeToUString(result), QMessageBox::Ok);
+        return;
+    }
+    
+    // Prompt for the output file path
+    QFileInfo fileInfo(currentPath);
+    QString path = QFileDialog::getSaveFileName(this, tr("Save image to file"),
+        fileInfo.absoluteFilePath(),
+        tr("Image files (*.rom *.bin *.cap);;All files (*)"));
+    if (path.trimmed().isEmpty())
+        return;
+    
+    QFile outputFile;
+    outputFile.setFileName(path);
+    if (!outputFile.open(QFile::WriteOnly)) {
+        QMessageBox::critical(this, tr("Saving failed"), tr("Can't open output file for writing"), QMessageBox::Ok);
+        return;
+    }
+    outputFile.resize(0);
+    outputFile.write(image);
+    outputFile.close();
+    
+    ui->statusBar->showMessage(tr("Saved: %1").arg(path));
 }
 
 void UEFITool::onDockStateChange(const bool topLevel)

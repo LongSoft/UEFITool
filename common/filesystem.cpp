@@ -14,6 +14,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include "filesystem.h"
 #include <sys/stat.h>
 #include <fstream>
+#include <vector>
 
 bool readFileIntoBuffer(const UString& inPath, UByteArray& buf) 
 {
