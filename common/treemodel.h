@@ -226,6 +226,8 @@ public:
     UModelIndex findByBase(const UINT32 base, const UModelIndex& parent = UModelIndex()) const;
 
     UModelIndex updatedIndex(const UModelIndex* oldIndex) const;
+
+    void clearChildren(const UModelIndex &index);
 };
 
 #if defined(QT_CORE_LIB)

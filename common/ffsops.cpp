@@ -82,6 +82,9 @@ USTATUS FfsOperations::replace(const UModelIndex & index, const UByteArray & dat
         model->setHeader(index, header);
         model->setBody(index, body);
         model->setTail(index, tail);
+        // Clear children so builder uses the new body verbatim instead of
+        // re-assembling from stale child sections.
+        model->clearChildren(index);
         // Mark for rebuild
         model->setAction(index, Actions::Replace);
         // Mark parent for rebuild so the new size is reflected
@@ -94,6 +97,9 @@ USTATUS FfsOperations::replace(const UModelIndex & index, const UByteArray & dat
     else if (mode == REPLACE_MODE_BODY) {
         // Replace only the body, keep the original header and tail
         model->setBody(index, data);
+        // Clear children so builder uses the new body verbatim instead of
+        // re-assembling from stale child sections.
+        model->clearChildren(index);
         model->setAction(index, Actions::Replace);
         // Mark parent for rebuild
         UModelIndex parent = index.parent();

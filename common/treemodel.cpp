@@ -720,3 +720,15 @@ UModelIndex TreeModel::updatedIndex(const UModelIndex* oldIndex) const
 
     return index(static_cast<TreeItem*>(oldIndex->internalPointer())->row(), 0, oldIndex->parent());
 }
+
+void TreeModel::clearChildren(const UModelIndex &index)
+{
+    if (!index.isValid())
+        return;
+
+    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    if (!item)
+        return;
+
+    item->clearChildren();
+}

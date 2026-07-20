@@ -44,6 +44,15 @@ TreeItem::~TreeItem() {
     }
 }
 
+void TreeItem::clearChildren() {
+    std::list<TreeItem*>::iterator begin = childItems.begin();
+    while (begin != childItems.end()) {
+        delete *begin;
+        ++begin;
+    }
+    childItems.clear();
+}
+
 UINT8 TreeItem::insertChildBefore(TreeItem *item, TreeItem *newItem)
 {
     std::list<TreeItem*>::iterator found = std::find(childItems.begin(), childItems.end(), item);

@@ -240,6 +240,7 @@ USTATUS FfsOperations::replace(const UModelIndex & index, const UByteArray & dat
 
 - **REPLACE_MODE_AS_IS**: новые данные разделяются на header/body/tail по размерам оригинала, всё заменяется.
 - **REPLACE_MODE_BODY**: заменяется только body, header и tail сохраняются.
+- После замены вызывается `model->clearChildren(index)` — удаляются дочерние элементы, чтобы `FfsBuilder::buildFile`/`buildSection` использовали новый body напрямую, а не пересобирали из устаревших children (см. баг 9).
 - После замены устанавливается `Actions::Replace` и каскадно `Actions::Rebuild` для родителя.
 
 Сигнатура изменена с `UByteArray & data` на `const UByteArray & data`, т.к. данные не модифицируются.
@@ -303,7 +304,13 @@ if (newBodySize < oldBodySize)
 Обрабатывает `NoAction`/`Remove`/`Rebuild`/`Replace`/`Insert`. Ключевые моменты:
 
 - **Инкапсулирующие секции** (`EFI_SECTION_COMPRESSION`, `EFI_SECTION_GUID_DEFINED`, `EFI_SECTION_DISPOSABLE`, `EFI_SECTION_FIRMWARE_VOLUME_IMAGE`): пересобирают дочерние секции/тома в новый body.
-- **Compression section**: новый body сжимается через `compressData()` с использованием `compressionType` из `COMPRESSED_SECTION_PARSING_DATA`. Поддерживаются `EFI_NOT_COMPRESSED`, `EFI_STANDARD_COMPRESSION` (TianoCompress), `EFI_CUSTOMIZED_COMPRESSION` (EfiCompress).
+- **Compression section** (`EFI_SECTION_COMPRESSION`): новый body сжимается через `compressData()` с использованием `compressionType` из `COMPRESSED_SECTION_PARSING_DATA`. Поддерживаются `EFI_NOT_COMPRESSED`, `EFI_STANDARD_COMPRESSION` (TianoCompress), `EFI_CUSTOMIZED_COMPRESSION` (EfiCompress).
+- **GUID-defined section** (`EFI_SECTION_GUID_DEFINED`): новый body сжимается в зависимости от GUID из `GUIDED_SECTION_PARSING_DATA`:
+  - `EFI_GUIDED_SECTION_LZMA` / `LZMA_HP` / `LZMA_MS` — сжатие через `LzmaCompress` с `dictionarySize` из parsing data. `LzmaCompress` формирует полный LZMA-stream: `[props:5][uncompressed_size:8 LE][compressed_data]`, что соответствует формату AMI LZMA GUIDed-секции.
+  - `EFI_GUIDED_SECTION_TIANO` — сжатие через `compressData(EFI_STANDARD_COMPRESSION)`.
+  - `EFI_GUIDED_SECTION_LZMAF86` — сжатие через `LzmaCompress` (без x86 BCJ пост-фильтра; большинство прошивок принимает plain LZMA для этого GUID).
+  - Прочие GUID (CRC32, Brotli, GZip, Zlib, неизвестные) — body используется как есть (`body = newBody`), без сжатия.
+  - Заголовок `EFI_GUID_DEFINED_SECTION` (GUID + DataOffset + Attributes) сохраняется из оригинального `model->header(index)`, размер секции пересчитывается ниже.
 - **Авто-апгрейд common → section2**: если новый размер превышает 24-битный лимит в FFSv3, заголовок расширяется до `EFI_COMMON_SECTION_HEADER2`.
 - **Секция без детей**: используется сохранённое body.
 
@@ -521,6 +528,35 @@ GUID парсится функцией `parseGuidString()` — нормализ�
 
 **Решение**: каскадная пометка всех предков от `index.parent()` до root.
 
+### Баг 9: `replace` игнорировал новый body при наличии children
+
+**Симптом**: `UEFIEdit ... replace GUID file.ffs save out.rom` — образ не менялся, даже если FFS изменён. `replace-body` — аналогично.
+
+**Причина**: `FfsOperations::replace` вызывал `model->setBody(index, body)`, но не удалял дочерние элементы. В `FfsBuilder::buildFile` (и `buildSection`) для элементов с children body пересобирается из дочерних секций, а `model->body(index)` игнорируется:
+
+```cpp
+if (model->rowCount(index) == 0) {
+    body = model->body(index);  // используется новый body
+}
+for (int i = 0; i < model->rowCount(index); i++) {
+    // пересобирает из СТАРЫХ children, игнорирует новый body
+}
+```
+
+Поскольку у заменяемого FFS-файла есть children (секции), builder пересобирал файл из старых children, и новый body никогда не использовался.
+
+**Решение**: добавлен метод `TreeModel::clearChildren(index)` (и `TreeItem::clearChildren()`), удаляющий всех дочерних элементов. `FfsOperations::replace` вызывает `model->clearChildren(index)` перед `setBody` для обоих режимов (`REPLACE_MODE_AS_IS` и `REPLACE_MODE_BODY`). После очистки children `buildFile`/`buildSection` видят `rowCount==0` и используют новый body напрямую.
+
+### Баг 10: `buildSection` не сжимал GUIDed LZMA-секции
+
+**Симптом**: `replace`/`replace-body` для FFS-файла с LZMA GUIDed-секцией — секция не сжималась, тело записывалось несжатым. Объём FFS резко вырастал (98KB вместо 27KB сжатого), не помещался в volume.
+
+**Причина**: в `buildSection` компрессия применялась только к `EFI_SECTION_COMPRESSION` (строка 793). Для `EFI_SECTION_GUID_DEFINED` тело использовалось как есть: `body = newBody` — без сжатия. Это было документированное ограничение.
+
+**Решение**: в `buildSection` добавлена обработка `EFI_SECTION_GUID_DEFINED` с известными GUID-ами сжатия. Для `EFI_GUIDED_SECTION_LZMA`/`LZMA_HP`/`LZMA_MS` — вызов `LzmaCompress` с `dictionarySize` из `GUIDED_SECTION_PARSING_DATA`. Для `EFI_GUIDED_SECTION_TIANO` — `compressData(EFI_STANDARD_COMPRESSION)`. Для `EFI_GUIDED_SECTION_LZMAF86` — `LzmaCompress` (без x86 BCJ пост-фильтра). Прочие GUIDed-секции — `body = newBody` как раньше.
+
+`LzmaCompress` (из `common/LZMA/LzmaCompress.c`) уже был подключён (`#include "LZMA/LzmaCompress.h"`) и формирует полный LZMA-stream `[props:5][uncompressed_size:8 LE][compressed_data]`, что соответствует формату AMI LZMA GUIDed-секции. Заголовок `EFI_GUID_DEFINED_SECTION` (GUID + DataOffset + Attributes) сохраняется из оригинального header, размер секции пересчитывается стандартным блоком ниже.
+
 ---
 
 ## Тестирование
@@ -599,18 +635,43 @@ QT_QPA_PLATFORM=offscreen ./UEFITool HNX99TF_*.bin
 → образ открывается, парсится, GUI запускается без ошибок (exit=0)
 ```
 
+### Тест 9: Replace FFS с LZMA GUIDed-секцией (увеличение размера)
+
+Тест заменяет FFS-файл `899407D7-99FE-43D8-9A21-79EC328CAC21` (Setup, содержит LZMA GUIDed-секцию) на новый FFS с увеличенным PE32 (98208 байт вместо 90624). Новый FFS собран вручную: DXE dep section + GUIDed LZMA-секция с пересобранным PE32+UI+Version внутри.
+
+```
+UEFIEdit HNX99TF_*.bin replace 899407D7-... new_setup_ffs.bin save out.rom
+→ out.rom отличается от оригинала
+→ FFS size: 27596 (было 25889)
+→ GUIDed section: type=0x02, size=0x6B56, GUID=EE4E5898-... (LZMA), DataOffset=0x18, Attributes=0x01
+→ LZMA decompression: 98244 байта (соответствует new unc_data)
+→ PE32 внутри: 98208 байт, ifrextractor находит CR-формы
+```
+
+Тот же результат через `replace-body`:
+```
+UEFIEdit HNX99TF_*.bin replace-body 899407D7-... new_setup_ffs_body.bin save out.rom
+→ идентичный результат
+```
+
+Этот тест проверяет:
+- Баг 9 (clearChildren): образ изменился, новый body использован.
+- Баг 10 (LZMA компрессия): GUIDed-секция сжата через LzmaCompress, декомпрессия восстанавливает исходные данные.
+- FreeSpace-потребление: FFS вырос на 1707 байт, volume содержит 2MB free space — рост поглощён.
+
 ---
 
 ## Изменённые файлы
 
 | Файл | Изменение |
 |------|-----------|
-| `common/treeitem.h` | +`setHeader`/`setBody`/`setTail` |
-| `common/treemodel.h` | +`setHeader`/`setBody`/`setTail` |
-| `common/treemodel.cpp` | +реализация сеттеров |
+| `common/treeitem.h` | +`setHeader`/`setBody`/`setTail`, +`clearChildren` |
+| `common/treeitem.cpp` | +реализация `clearChildren` |
+| `common/treemodel.h` | +`setHeader`/`setBody`/`setTail`, +`clearChildren` |
+| `common/treemodel.cpp` | +реализация сеттеров, +реализация `clearChildren` |
 | `common/ffsops.h` | `replace` сигнатура → `const UByteArray &` |
-| `common/ffsops.cpp` | реализация `replace` (AS_IS/BODY) |
-| `common/ffsbuilder.cpp` | реализация `buildVolume`/`buildPadFile`/`buildFile`/`buildSection`, `Actions::Insert`, FreeSpace-потребление, `compressData()` |
+| `common/ffsops.cpp` | реализация `replace` (AS_IS/BODY), +`clearChildren` перед `setBody` |
+| `common/ffsbuilder.cpp` | реализация `buildVolume`/`buildPadFile`/`buildFile`/`buildSection`, `Actions::Insert`, FreeSpace-потребление, `compressData()`, +LZMA/Tiano компрессия для GUIDed-секций, +`#include "parsingdata.h"` |
 | `common/filesystem.cpp` | +`#include <vector>` |
 | `UEFITool/uefitool.cpp` | реализация `insert`/`replace`/`remove`/`rebuild`/`saveImageFile`, активация в `populateUi` |
 | `meson.build` | +`subdir('UEFIEdit')` |

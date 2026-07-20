@@ -39,10 +39,10 @@ UEFI-tools/                      (корень git-репозитория = фо
 | `ffs.cpp` | Реализация структур, `uint32ToUint24`, `uint24ToUint32`, `guidToUString` |
 | `parsingdata.h` | `VOLUME_PARSING_DATA`, `FILE_PARSING_DATA`, `COMPRESSED_SECTION_PARSING_DATA` |
 | `treemodel.h/cpp` | `TreeModel` (наследник `QAbstractItemModel` при QT_CORE_LIB, иначе своя реализация) |
-| `treeitem.h/cpp` | `TreeItem` — элемент дерева |
+| `treeitem.h/cpp` | `TreeItem` — элемент дерева; `clearChildren()` для удаления дочерних элементов |
 | `ffsparser.h/cpp` | `FfsParser` — парсинг образа в дерево (6947 строк) |
-| `ffsbuilder.h/cpp` | `FfsBuilder` — пересборка дерева в образ |
-| `ffsops.h/cpp` | `FfsOperations` — extract/replace/remove/rebuild |
+| `ffsbuilder.h/cpp` | `FfsBuilder` — пересборка дерева в образ; `buildSection` сжимает LZMA/Tiano GUIDed-секции |
+| `ffsops.h/cpp` | `FfsOperations` — extract/replace/remove/rebuild; `replace` вызывает `clearChildren` |
 | `utility.h/cpp` | `calculateSum8`, `calculateChecksum8/16`, `decompress`, `errorCodeToUString` |
 | `LZMA/`, `Tiano/`, `brotli/`, `zlib/` | Сжатие/декомпрессия (bundled) |
 | `kaitai/`, `generated/`, `ksy/` | KaitaiStruct-парсеры NVRAM-хранилищ |
@@ -171,6 +171,20 @@ for (UModelIndex p = index.parent(); p.isValid() && model->type(p) != Types::Roo
 
 `buildVolume` откладывает построение `Types::FreeSpace` детей до конца, суммирует их размер, и после построения остальных детей проверяет, что превышение body помещается в freeSpace. Это позволяет вставлять/заменять файлы, если в томе есть свободное место. Не удаляйте эту логику.
 
+### `replace` и `clearChildren` — критично для замены файлов с секциями
+
+`FfsOperations::replace` (оба режима: `REPLACE_MODE_AS_IS` и `REPLACE_MODE_BODY`) вызывает `model->clearChildren(index)` перед `setBody`. Без этого `FfsBuilder::buildFile`/`buildSection` пересобирают элемент из **старых** дочерних секций, игнорируя новый body — замена не вступает в силу. Подробно — в IMPLEMENTATION.md, баг 9.
+
+### LZMA-компрессия GUIDed-секций при rebuild
+
+`FfsBuilder::buildSection` для `EFI_SECTION_GUID_DEFINED` сжимает новый body в зависимости от GUID из `GUIDED_SECTION_PARSING_DATA`:
+- `EFI_GUIDED_SECTION_LZMA`/`LZMA_HP`/`LZMA_MS` → `LzmaCompress` с `dictionarySize` из parsing data.
+- `EFI_GUIDED_SECTION_TIANO` → `compressData(EFI_STANDARD_COMPRESSION)`.
+- `EFI_GUIDED_SECTION_LZMAF86` → `LzmaCompress` (без x86 BCJ пост-фильтра).
+- Прочие GUID → `body = newBody` (без сжатия).
+
+Это позволяет заменять FFS-файлы с LZMA-сжатыми GUIDed-секциями (например, Setup-модуль AMI BIOS). Подробно — в IMPLEMENTATION.md, баг 10.
+
 ### Контрольные суммы FFS
 
 При любой модификации файла (`buildFile` с `Rebuild`/`Replace`/`Insert`) пересчитываются:
@@ -196,8 +210,10 @@ for (UModelIndex p = index.parent(); p.isValid() && model->type(p) != Types::Roo
 | `5C60F367-A505-419A-859E-2A4FF6CA6FE5` | Volume | Второй том (FFSv2, 216 файлов) — основной для тестов |
 | `61C0F511-A691-4F54-974F-B9A42172CE53` | Volume | Третий том (FFSv2, 58 файлов) |
 | `A0327FE0-1FDA-4E5B-905D-B510C45A61D0` | File | DXE-драйвер во втором томе (строка 214) — цель для insert-after |
-| `CEF5B9A3-476D-497F-9FDC-E98143E0422C` | File | Первый файл в первом томе |
+| `CEF5B9A3-476D-49F7-9FDC-E98143E0422C` | File | Первый файл в первом томе |
 | `97C81E5D-8FA0-486A-AAEA-0EFDF090FE4F` | File | SerialIo — вставляемый файл |
+| `899407D7-99FE-43D8-9A21-79EC328CAC21` | File | Setup (DXE driver, содержит LZMA GUIDed-секцию `EE4E5898-...`) — цель для replace с пересжатием |
+| `EE4E5898-3914-4259-9D6E-DC7BD79403CF` | Section GUID | AMI LZMA GUIDed-секция внутри Setup — проверка LZMA-компрессии при rebuild |
 
 ### Регрессионные тесты (запускать после изменений в builder/ops)
 
@@ -227,6 +243,30 @@ UEFIEdit .../fw/HNX99TF_*.bin \
   insert-after A0327FE0-... TerminalSrc.ffs \
   remove 97C81E5D-... \
   save /tmp/t5.bin && echo OK
+
+# 6. Replace FFS с изменённым байтом (проверка clearChildren)
+# test_ffs3.bin = оригинальный FFS Setup с одним инвертированным байтом в body
+UEFIEdit .../fw/HNX99TF_*.bin replace 899407D7-99FE-43D8-9A21-79EC328CAC21 test_ffs3.bin save /tmp/t6.bin
+cmp /tmp/t6.bin .../fw/HNX99TF_*.bin  # должны различаться
+
+# 7. Replace FFS с LZMA GUIDed-секцией (увеличение размера + пересжатие)
+# new_setup_ffs.bin = FFS с новым PE32 (98208 байт) в LZMA GUIDed-секции
+UEFIEdit .../fw/HNX99TF_*.bin replace 899407D7-99FE-43D8-9A21-79EC328CAC21 new_setup_ffs.bin save /tmp/t7.bin
+# Проверка: FFS size вырос, LZMA-секция сжата, декомпрессия восстанавливает данные
+python3 -c "
+import struct, lzma
+data = open('/tmp/t7.bin','rb').read()
+pos = 0x8D1746  # GUIDed section offset in Setup FFS
+sec_size = struct.unpack('<I', data[pos:pos+4])[0] & 0xFFFFFF
+body = data[pos+24:pos+sec_size]
+props = body[0:5]; compressed = body[13:]
+pb,lp,lc = props[0]//45%5, props[0]//9%5, props[0]%9
+ds = struct.unpack('<I', props[1:5])[0]
+dec = lzma.decompress(compressed, format=lzma.FORMAT_RAW,
+    filters=[{'id':lzma.FILTER_LZMA1,'dict_size':ds,'lc':lc,'lp':lp,'pb':pb}])
+assert len(dec) == 98244, f'decompressed size {len(dec)} != 98244'
+print('LZMA round-trip OK')
+"
 ```
 
 ## Git
@@ -238,7 +278,8 @@ UEFIEdit .../fw/HNX99TF_*.bin \
 
 ## Что не реализовано (известные ограничения)
 
-- **Нет полной пересборки сжатых GUIDed-секций**: `buildSection` для compression-секций использует `compressData()` (Tiano/Efi), но LZMA/Brotli/Zlib-компрессия не реализована — только декомпрессия. Для LZMA-секций пересборка тела с повторным сжатием не сработает.
+- **Нет компрессии Brotli/GZip/Zlib для GUIDed-секций при rebuild**: `buildSection` сжимает только LZMA (`EFI_GUIDED_SECTION_LZMA`/`LZMA_HP`/`LZMA_MS`/`LZMAF86`) и Tiano (`EFI_GUIDED_SECTION_TIANO`) GUIDed-секции. Brotli, GZip, Zlib — только декомпрессия; при rebuild body используется как есть.
+- **Нет x86 BCJ пост-фильтра для LZMAF86**: `EFI_GUIDED_SECTION_LZMAF86` сжимается через plain `LzmaCompress` без BCJ-фильтра. Большинство прошивок принимает это, но теоретически возможны несовместимости.
 - **Нет переименования UI-секций**: поле `EFI_SECTION_USER_INTERFACE` (имя файла) не обновляется при insert.
 - **Нет обновления FIT-таблицы**: при вставке/удалении микрокода FIT не пересчитывается.
 - **Нет проверки свободного места перед вставкой**: `buildVolume` сообщает об ошибке только при сохранении, а не при insert.

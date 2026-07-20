@@ -35,6 +35,7 @@ public:
     void prependChild(TreeItem *item) { childItems.push_front(item); };
     UINT8 insertChildBefore(TreeItem *item, TreeItem *newItem);                // Non-trivial implementation in CPP file
     UINT8 insertChildAfter(TreeItem *item, TreeItem *newItem);                 // Non-trivial implementation in CPP file
+    void clearChildren();                                                       // Non-trivial implementation in CPP file
 
     // Model support operations
     TreeItem *child(int row);                                                  // Non-trivial implementation in CPP file
