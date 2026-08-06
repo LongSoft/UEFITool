@@ -102,7 +102,7 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
         }
         
         const IFWI_17_LAYOUT_HEADER* ifwi17Header = (const IFWI_17_LAYOUT_HEADER*)meRegion.constData();
-        // Check region size agan
+        // Check region size again
         if (!parsing_done && regionSize < ifwi17Header->DataPartition.Offset + sizeof(UINT32)) {
             msg(usprintf("%s: ME region too small to fit IFWI 1.7 data partition", __FUNCTION__), index);
             status = U_INVALID_ME_PARTITION_TABLE;
