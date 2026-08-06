@@ -364,22 +364,50 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             regions.push_back(me);
         }
     }
-    
+
+    // IPSE region
+    UINT32 ipseMinLen = 0x600000; // eyeballed (actually observed was 0x6CE000)
+    REGION_INFO ipse;
+    ipse.type = Subtypes::IpseRegion;
+    ipse.offset = me.offset + me.length;
+    ipse.length = 0;
+    // check if space after ME is large enough for IPSE
+    if (regionSection->MeLimit && regionSection->BiosLimit &&
+        calculateRegionOffset(regionSection->BiosBase) > ipse.offset + ipseMinLen &&
+        uniformByte(intelImage.mid(ipse.offset, ipseMinLen)) == UINT32_MAX) {
+	ipse.length = calculateRegionOffset(regionSection->BiosBase) - ipse.offset;
+
+        if (ipse.offset + ipse.length < ipse.offset) {
+            return U_INVALID_FLASH_DESCRIPTOR;
+        }
+        if ((UINT32)intelImage.size() < ipse.offset + ipse.length) {
+            msg(usprintf("%s: ", __FUNCTION__)
+                + itemSubtypeToUString(Types::Region, ipse.type)
+                + UString(" region is located outside of the opened image. If your system uses dual-chip storage, please append another part to the opened image"),
+                index);
+            if ((UINT32)intelImage.size() > ipse.offset)
+                return U_TRUNCATED_IMAGE;
+        } else {
+            ipse.data = intelImage.mid(ipse.offset, ipse.length);
+            regions.push_back(ipse);
+        }
+    }
+
     // BIOS region
     if (regionSection->BiosLimit) {
         REGION_INFO bios;
         bios.type = Subtypes::BiosRegion;
         bios.offset = calculateRegionOffset(regionSection->BiosBase);
         bios.length = calculateRegionSize(regionSection->BiosBase, regionSection->BiosLimit);
-        
+
         // Check for Gigabyte specific descriptor map
         if (bios.length == (UINT32)intelImage.size()) {
-            if (!me.offset) {
+            if (!ipse.offset) {
                 msg(usprintf("%s: can't determine BIOS region start from Gigabyte-specific descriptor", __FUNCTION__));
                 return U_INVALID_FLASH_DESCRIPTOR;
             }
-            // Use ME region end as BIOS region offset
-            bios.offset = me.offset + me.length;
+            // Use IPSE region end as BIOS region offset
+            bios.offset = ipse.offset + ipse.length;
             bios.length = (UINT32)intelImage.size() - bios.offset;
         }
 
@@ -628,6 +656,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             case Subtypes::MeRegion:
                 result = parseMeRegion(region.data, region.offset, index, regionIndex);
                 break;
+	    case Subtypes::IpseRegion:
+                result = parseIpseRegion(region.data, region.offset, index, regionIndex);
+                break;
             case Subtypes::GbeRegion:
                 result = parseGbeRegion(region.data, region.offset, index, regionIndex);
                 break;
@@ -730,6 +761,40 @@ USTATUS FfsParser::parseMeRegion(const UByteArray & me, const UINT32 localOffset
         meParser->parseMeRegionBody(index);
     }
     
+    return U_SUCCESS;
+}
+
+USTATUS FfsParser::parseIpseRegion(const UByteArray & ipse, const UINT32 localOffset, const UModelIndex & parent, UModelIndex & index)
+{
+    // Check sanity
+    if (ipse.isEmpty())
+        return U_EMPTY_REGION;
+
+    // Get info
+    UString name("IPSE region");
+    UString info;
+
+    // Parse region
+    bool emptyRegion = false;
+    // Check for empty region
+    auto c = uniformByte(ipse);
+    if (c <= UINT8_MAX) {
+        // Further parsing not needed
+        emptyRegion = true;
+        info = usprintf("State: empty (%02Xh)", (UINT8)c);
+    }
+
+    // Add tree item
+    index = model->addItem(localOffset, Types::Region, Subtypes::IpseRegion, name, UString(), info, UByteArray(), ipse, UByteArray(), Fixed, parent);
+
+    // Show messages
+    if (emptyRegion) {
+        msg(usprintf("%s: IPSE region is empty", __FUNCTION__), index);
+    }
+    else {
+	meParser->parseIpseRegionBody(index);
+    }
+
     return U_SUCCESS;
 }
 

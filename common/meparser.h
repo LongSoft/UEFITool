@@ -40,6 +40,7 @@ public:
 
     // ME parsing
     USTATUS parseMeRegionBody(const UModelIndex & index);
+    USTATUS parseIpseRegionBody(const UModelIndex & index);
 private:
     TreeModel *model;
     FfsParser *ffsParser;

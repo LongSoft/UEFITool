@@ -132,6 +132,77 @@ USTATUS MeParser::parseMeRegionBody(const UModelIndex & index)
     return status;
 }
 
+USTATUS MeParser::parseIpseRegionBody(const UModelIndex & index)
+{
+    // Sanity check
+    if (!index.isValid())
+        return U_INVALID_PARAMETER;
+
+    UString meVersion;
+    USTATUS status = U_INVALID_ME_PARTITION_TABLE;
+    bool parsing_done = false;
+
+    // Obtain IPSE region
+    UByteArray ipseRegion = model->body(index);
+    UINT32 regionSize = (UINT32)ipseRegion.size();
+
+    // Check IPSE signature to determine its version
+    {
+        // Check region size
+        if ((UINT32)ipseRegion.size() < ME_ROM_BYPASS_VECTOR_SIZE + sizeof(UINT32)) {
+            msg(usprintf("%s: IPSE region too small to fit ROM bypass vector", __FUNCTION__), index);
+            status = U_INVALID_ME_PARTITION_TABLE;
+            parsing_done = true;
+        }
+
+        if (!parsing_done &&
+            (*(UINT32*)ipseRegion.constData() == FPT_HEADER_SIGNATURE || *(UINT32*)(ipseRegion.constData() + ME_ROM_BYPASS_VECTOR_SIZE) == FPT_HEADER_SIGNATURE)) {
+            UModelIndex ptIndex;
+            status = parseFptRegion(ipseRegion, index, ptIndex, meVersion);
+            parsing_done = true;
+        }
+    }
+
+    // IPSE uses IFWI 1.7 header
+    if (!parsing_done) {
+        // Check region size
+        if (regionSize < sizeof(IFWI_17_LAYOUT_HEADER)) {
+            msg(usprintf("%s: IPSE region too small to fit IFWI 1.7 layout header", __FUNCTION__), index);
+            status = U_INVALID_ME_PARTITION_TABLE;
+            parsing_done = true;
+        }
+
+        const IFWI_17_LAYOUT_HEADER* ifwi17Header = (const IFWI_17_LAYOUT_HEADER*)ipseRegion.constData();
+        // Check region size again
+        if (!parsing_done && regionSize < ifwi17Header->BootPartition[0].Offset + sizeof(UINT32)) {
+            msg(usprintf("%s: IPSE region too small to fit IFWI 1.7 boot partition", __FUNCTION__), index);
+            status = U_INVALID_ME_PARTITION_TABLE;
+            parsing_done = true;
+        }
+        // check boot partition size
+        if (!parsing_done && *(UINT32*)(ipseRegion.constData() + ifwi17Header->BootPartition[0].Offset) == 0x55aa) {
+	    UModelIndex ptIndex;
+            status = parseIfwi17Region(ipseRegion, index, ptIndex, meVersion);
+            parsing_done = true;
+        }
+    }
+
+    // Something else entirely
+    if (!parsing_done) {
+        msg(usprintf("%s: unknown IPSE region format", __FUNCTION__), index);
+    }
+
+    // Add version info
+    if (meVersion.isEmpty()) {
+        model->addInfo(index, UString("Version: unknown\n"));
+    }
+    else {
+        model->addInfo(index, UString("Version: ") + meVersion + UString("\n"));
+    }
+
+    return status;
+}
+
 USTATUS MeParser::parseFptRegion(const UByteArray & region, const UModelIndex & parent, UModelIndex & index, UString & meVersion)
 {
     // Check region size
