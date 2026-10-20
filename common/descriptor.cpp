@@ -11,6 +11,99 @@
  */
 
 #include "descriptor.h"
+#include <cstring>
+
+FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(
+    const FLASH_DESCRIPTOR_MAP& map, const FLASH_DESCRIPTOR_COMPONENT_SECTION& component)
+{
+    const UINT32 knownVersion = (FLASH_DESCRIPTOR_VERSION_MAJOR << 21)
+        | (FLASH_DESCRIPTOR_VERSION_MINOR << 14);
+    if (map.DescriptorVersion == knownVersion || component.FlashParameters.ReadClockFrequency != 0)
+        return FlashDescriptorAccessLayout::Modern;
+
+    // A zero read-clock field also occurs on modern platforms.
+    return FlashDescriptorAccessLayout::Ambiguous;
+}
+
+static UString formatMasterAccess(const UINT8* masters, bool modern)
+{
+    UINT32 words[5];
+    std::memcpy(words, masters, sizeof(words));
+    UINT16 read[5], write[5];
+    for (size_t i = 0; i < 5; i++) {
+        read[i] = modern ? (words[i] >> 8) & 0xFFF : (words[i] >> 16) & 0xFF;
+        write[i] = modern ? (words[i] >> 20) & 0xFFF : (words[i] >> 24) & 0xFF;
+    }
+
+    UString info("\nRegion access settings:");
+    if (modern) {
+        info += usprintf("\nBIOS: %03Xh %03Xh\nME:   %03Xh %03Xh\nGbE:  %03Xh %03Xh\nEC:   %03Xh %03Xh",
+            read[0], write[0], read[1], write[1], read[2], write[2], read[4], write[4]);
+    }
+    else {
+        info += usprintf("\nBIOS: %02Xh %02Xh ME: %02Xh %02Xh\nGbE:  %02Xh %02Xh",
+            read[0], write[0], read[1], write[1], read[2], write[2]);
+    }
+    info += UString("\nBIOS access table:\n      Read  Write");
+    info += usprintf("\nDesc  %s  %s",
+        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ",
+        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
+    info += UString("\nBIOS  Yes   Yes");
+    info += usprintf("\nME    %s  %s",
+        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ",
+        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
+    info += usprintf("\nGbE   %s  %s",
+        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ",
+        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
+    info += usprintf("\nPDR   %s  %s",
+        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ",
+        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
+    if (modern) {
+        info += usprintf("\nEC    %s  %s",
+            read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ",
+            write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ");
+    }
+    return info;
+}
+
+USTATUS formatFlashDescriptorAccess(const UByteArray& descriptor,
+    FlashDescriptorAccessLayout layout, UString& info)
+{
+    if (descriptor.size() < FLASH_DESCRIPTOR_SIZE) {
+        info = UString("Descriptor access data is truncated");
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    FLASH_DESCRIPTOR_HEADER header;
+    FLASH_DESCRIPTOR_MAP map;
+    std::memcpy(&header, descriptor.constData(), sizeof(header));
+    std::memcpy(&map, descriptor.constData() + sizeof(header), sizeof(map));
+    if (header.Signature != FLASH_DESCRIPTOR_SIGNATURE
+        || map.MasterBase > FLASH_DESCRIPTOR_MAX_BASE
+        || map.MasterBase == map.RegionBase || map.MasterBase == map.ComponentBase) {
+        info = UString("Invalid descriptor access signature or master base");
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    const UINT8* masters = calculateAddress8((const UINT8*)descriptor.constData(), map.MasterBase);
+    switch (layout) {
+        case FlashDescriptorAccessLayout::Legacy:
+            info = UString("\nDescriptor access layout: legacy") + formatMasterAccess(masters, false);
+            break;
+        case FlashDescriptorAccessLayout::Modern:
+            info = UString("\nDescriptor access layout: modern (Skylake+)") + formatMasterAccess(masters, true);
+            break;
+        case FlashDescriptorAccessLayout::Ambiguous:
+            info = UString("\nDescriptor access layout: ambiguous")
+                + UString("\nA zero read-clock field does not distinguish legacy from modern permissions.")
+                + UString("\nLegacy interpretation:") + formatMasterAccess(masters, false)
+                + UString("\n\nModern (Skylake+) interpretation:") + formatMasterAccess(masters, true);
+            break;
+        default:
+            info = UString("Invalid descriptor access layout");
+            return U_INVALID_PARAMETER;
+    }
+    info += UString("\nDescriptor permissions are not a live write-protection measurement.");
+    return U_SUCCESS;
+}
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit

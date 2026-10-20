@@ -544,6 +544,17 @@ typedef struct AMD_ISH_DIRECTORY_TABLE_ {
 // Restore previous packing rules
 #pragma pack(pop)
 
+enum class FlashDescriptorAccessLayout {
+    Legacy,
+    Modern,
+    Ambiguous
+};
+
+extern FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(
+    const FLASH_DESCRIPTOR_MAP& map, const FLASH_DESCRIPTOR_COMPONENT_SECTION& component);
+extern USTATUS formatFlashDescriptorAccess(const UByteArray& descriptor,
+    FlashDescriptorAccessLayout layout, UString& info);
+
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
 extern const UINT8* calculateAddress8(const UINT8* baseAddress, const UINT8 baseOrLimit);
