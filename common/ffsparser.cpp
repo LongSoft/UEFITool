@@ -524,77 +524,28 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             + usprintf(" region offset: %Xh", regions[i].offset + localOffset);
     }
     
-    // Region access settings
-    if (descriptorVersion == 1) {
-        const FLASH_DESCRIPTOR_MASTER_SECTION* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->MasterBase);
-        info += UString("\nRegion access settings:");
-        info += usprintf("\nBIOS: %02Xh %02Xh ME: %02Xh %02Xh\nGbE:  %02Xh %02Xh",
-                         masterSection->BiosRead,
-                         masterSection->BiosWrite,
-                         masterSection->MeRead,
-                         masterSection->MeWrite,
-                         masterSection->GbeRead,
-                         masterSection->GbeWrite);
-        
-        // BIOS access table
-        info  += UString("\nBIOS access table:")
-        + UString("\n      Read  Write")
-        + usprintf("\nDesc  %s  %s",  masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ",
-                   masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
-        info  += UString("\nBIOS  Yes   Yes")
-        + usprintf("\nME    %s  %s",  masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME   ? "Yes " : "No  ",
-                   masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME   ? "Yes " : "No  ");
-        info += usprintf("\nGbE   %s  %s",  masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE  ? "Yes " : "No  ",
-                         masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE  ? "Yes " : "No  ");
-        info += usprintf("\nPDR   %s  %s",  masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ",
-                         masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR  ? "Yes " : "No  ");
+    const FlashDescriptorAccessLayout accessLayout = detectFlashDescriptorAccessLayout(*descriptorMap, *componentSection);
+    UString accessInfo;
+    const USTATUS accessResult = formatFlashDescriptorAccess(body, accessLayout, accessInfo);
+    if (accessResult != U_SUCCESS) {
+        msg(usprintf("%s: ", __FUNCTION__) + accessInfo, index);
+        return accessResult;
     }
-    else if (descriptorVersion == 2) {
-        const FLASH_DESCRIPTOR_MASTER_SECTION_V2* masterSection = (const FLASH_DESCRIPTOR_MASTER_SECTION_V2*)calculateAddress8((UINT8*)descriptor, descriptorMap->MasterBase);
-        info += UString("\nRegion access settings:");
-        info += usprintf("\nBIOS: %03Xh %03Xh"
-                         "\nME:   %03Xh %03Xh"
-                         "\nGbE:  %03Xh %03Xh"
-                         "\nEC:   %03Xh %03Xh",
-                         masterSection->BiosRead,
-                         masterSection->BiosWrite,
-                         masterSection->MeRead,
-                         masterSection->MeWrite,
-                         masterSection->GbeRead,
-                         masterSection->GbeWrite,
-                         masterSection->EcRead,
-                         masterSection->EcWrite);
-        
-        // BIOS access table
-        info  += UString("\nBIOS access table:")
-        + UString("\n      Read  Write")
-        + usprintf("\nDesc  %s  %s",
-                   masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ",
-                   masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
-        info  += UString("\nBIOS  Yes   Yes")
-        + usprintf("\nME    %s  %s",
-                   masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ",
-                   masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
-        info += usprintf("\nGbE   %s  %s",
-                         masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ",
-                         masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
-        info += usprintf("\nPDR   %s  %s",
-                         masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ",
-                         masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
-        info += usprintf("\nEC    %s  %s",
-                         masterSection->BiosRead  & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ",
-                         masterSection->BiosWrite & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ");
-        
-        // Prepend descriptor version if present
-        if (descriptorMap->DescriptorVersion != FLASH_DESCRIPTOR_VERSION_INVALID) {
-            const FLASH_DESCRIPTOR_VERSION* version = (const FLASH_DESCRIPTOR_VERSION*)&descriptorMap->DescriptorVersion;
-            UString versionStr = usprintf("Flash descriptor version: %d.%d", version->Major, version->Minor);
-            if (version->Major != FLASH_DESCRIPTOR_VERSION_MAJOR || version->Minor != FLASH_DESCRIPTOR_VERSION_MINOR) {
-                versionStr += ", unknown";
-                msg(usprintf("%s: unknown flash descriptor version %d.%d", __FUNCTION__, version->Major, version->Minor));
-            }
-            info = versionStr + "\n" + info;
+    info += accessInfo;
+    if (descriptorVersion == 1)
+        info += UString("\nRegion traversal retains the legacy read-clock heuristic.");
+    if (accessLayout == FlashDescriptorAccessLayout::Ambiguous) {
+        msg(usprintf("%s: ambiguous descriptor access layout; both permission interpretations are shown, legacy region traversal retained", __FUNCTION__), index);
+    }
+    else if (accessLayout == FlashDescriptorAccessLayout::Modern
+        && descriptorMap->DescriptorVersion != FLASH_DESCRIPTOR_VERSION_INVALID) {
+        const FLASH_DESCRIPTOR_VERSION* version = (const FLASH_DESCRIPTOR_VERSION*)&descriptorMap->DescriptorVersion;
+        UString versionStr = usprintf("Flash descriptor version: %d.%d", version->Major, version->Minor);
+        if (version->Major != FLASH_DESCRIPTOR_VERSION_MAJOR || version->Minor != FLASH_DESCRIPTOR_VERSION_MINOR) {
+            versionStr += ", unknown";
+            msg(usprintf("%s: unknown flash descriptor version %d.%d", __FUNCTION__, version->Major, version->Minor));
         }
+        info = versionStr + "\n" + info;
     }
     
     // VSCC table
