@@ -40,6 +40,7 @@ public:
 
     // ME parsing
     USTATUS parseMeRegionBody(const UModelIndex & index);
+    USTATUS parseIpseRegionBody(const UModelIndex & index);
 private:
     TreeModel *model;
     FfsParser *ffsParser;
@@ -68,6 +69,7 @@ public:
 
     // ME parsing
     USTATUS parseMeRegionBody(const UModelIndex & index) { U_UNUSED_PARAMETER(index); return U_SUCCESS; }
+    USTATUS parseIpseRegionBody(const UModelIndex & index) { U_UNUSED_PARAMETER(index); return U_SUCCESS; }
 };
 #endif // U_ENABLE_ME_PARSING_SUPPORT
 #endif // MEPARSER_H

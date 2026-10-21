@@ -654,6 +654,11 @@ typedef struct BPDT_ENTRY_ {
 #define BPDT_ENTRY_TYPE_EFWP        46
 #define BPDT_ENTRY_TYPE_ADSP        50
 
+// IPSE
+#define BPDT_ENTRY_TYPE_OSSR        0x0800 // OEM Silicon Soft ROM
+#define BPDT_ENTRY_TYPE_OSKM        0x0801 // OEM Silicon Key Management
+#define BPDT_ENTRY_TYPE_OSRT        0x0802 // OEM Silicon Run Time
+
 // CPD
 #define CPD_SIGNATURE 0x44504324 //$CPD
 
