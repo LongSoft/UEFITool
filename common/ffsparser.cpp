@@ -399,7 +399,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
 
         // Check for Gigabyte specific descriptor map
         if (bios.length == (UINT32)intelImage.size()) {
-            if (!ipse.offset) {
+            if (!ipse.offset || !me.offset) {
                 msg(usprintf("%s: can't determine BIOS region start from Gigabyte-specific descriptor", __FUNCTION__));
                 return U_INVALID_FLASH_DESCRIPTOR;
             }
