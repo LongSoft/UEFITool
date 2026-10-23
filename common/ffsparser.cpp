@@ -14,6 +14,7 @@
 
 #include <map>
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 
 #include "descriptor.h"
