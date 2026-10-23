@@ -313,7 +313,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)((UINT8*)descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
     
     // Check sanity of base values
-    if (descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
+    if (descriptorMap->MasterBase < 3 || descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
         || descriptorMap->MasterBase == descriptorMap->RegionBase
         || descriptorMap->MasterBase == descriptorMap->ComponentBase) {
         msg(usprintf("%s: invalid descriptor master base %02Xh", __FUNCTION__, descriptorMap->MasterBase));

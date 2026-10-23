@@ -94,7 +94,8 @@ ctest --test-dir build-descriptor-tests -C Release --output-on-failure
 
 The tests cover permission bits, compact and 16-slot region tables, larger
 descriptor extents, duplicate blocks, capsule-relative offsets, disabled and
-overlapping regions, and empty/malformed VSCC tables. An optional read-only
+overlapping regions, header-overlapping master bases with single-root UEFI
+fallback, and empty/malformed VSCC tables. An optional read-only
 inspection mode is available as `descriptor_parser_tests --inspect <image>`.
 Public real-image checks used MSI `E13Q3IMS.112` (IE/IPSE slot present) and
 `E1824IMS.11B` (slot absent), linked in

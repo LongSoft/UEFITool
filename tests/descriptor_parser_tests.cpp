@@ -87,6 +87,7 @@ static void validFixture(UByteArray image, UINT32 extent, bool extended)
     TreeModel model;
     FfsParser parser(&model);
     expect(parser.parse(image) == U_SUCCESS, "synthetic Intel image parses through production entry");
+    expect(model.rowCount() == 1, "valid Intel image has exactly one root");
     const UModelIndex descriptor = node(model, Subtypes::DescriptorRegion);
     expect(descriptor.isValid(), "descriptor region exists");
     if (!descriptor.isValid())
@@ -136,6 +137,19 @@ int main(int argc, char** argv)
     UByteArray image = fixture();
     validFixture(image, 0x1000, false);
     validFixture(fixture(0, 6), 0x1000, false);
+    for (UINT8 masterBase = 0; masterBase < 3; masterBase++) {
+        TreeModel model;
+        FfsParser parser(&model);
+        UByteArray malformed = fixture();
+        FLASH_DESCRIPTOR_MAP map = {};
+        std::memcpy(&map, malformed.constData() + sizeof(FLASH_DESCRIPTOR_HEADER), sizeof(map));
+        map.MasterBase = masterBase;
+        std::memcpy(malformed.data() + sizeof(FLASH_DESCRIPTOR_HEADER), &map, sizeof(map));
+        expect(parser.parse(malformed) == U_SUCCESS, "header-overlapping master base falls back to UEFI parsing");
+        const UModelIndex root = model.index(0, 0);
+        expect(model.rowCount() == 1 && model.subtype(root) == Subtypes::UefiImage
+            && model.rowCount(root) > 0, "invalid master base leaves one populated UEFI root, not an empty Intel root");
+    }
     word(image, 0x64, 0x00040004);
     word(image, 0x68, 0x00050005);
     word(image, 0x60, 0x00060007);
