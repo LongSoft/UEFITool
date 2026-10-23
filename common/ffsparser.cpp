@@ -332,7 +332,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->RegionBase);
     const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->ComponentBase);
     
-    const UINT8 regionCount = flashDescriptorRegionCount(*descriptorMap);
+    const FlashDescriptorAccessLayout accessLayout = detectFlashDescriptorAccessLayout(*descriptorMap, *componentSection);
+    const UINT8 regionCount = flashDescriptorRegionCount(*descriptorMap, accessLayout);
     if (regionCount < 3 || regionSection->DescriptorBase != 0) {
         msg(usprintf("%s: invalid descriptor region table or descriptor base", __FUNCTION__));
         return U_INVALID_FLASH_DESCRIPTOR;
@@ -539,7 +540,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
             + usprintf(" region offset: %Xh", regions[i].offset + localOffset);
     }
     
-    const FlashDescriptorAccessLayout accessLayout = detectFlashDescriptorAccessLayout(*descriptorMap, *componentSection);
+    if (accessLayout == FlashDescriptorAccessLayout::Ambiguous && descriptorMap->NumberOfRegions != 0)
+        info += UString("\nNonzero legacy region count limits traversal; no modern layout marker is present.");
     UString accessInfo;
     const USTATUS accessResult = formatFlashDescriptorAccess(body, accessLayout, accessInfo);
     if (accessResult != U_SUCCESS) {

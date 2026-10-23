@@ -137,11 +137,30 @@ int main()
     map.ComponentBase = 3;
     map.RegionBase = 4;
     map.MasterBase = 8;
-    expect(flashDescriptorRegionCount(map) == 16, "full region table has16 bounded slots");
+    expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Ambiguous) == 16,
+        "zero-count ambiguous descriptor retains sixteen bounded modern slots");
+    for (UINT8 count = 0; count < 8; count++) {
+        map.NumberOfRegions = count;
+        expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Legacy) == count + 1,
+            "legacy traversal respects every declared table length");
+        expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Modern) == 16,
+            "modern traversal ignores every value of the reserved legacy count");
+        expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Ambiguous)
+            == (count ? count + 1 : 16),
+            "ambiguous traversal honors a nonzero legacy count without truncating zero-count modern maps");
+    }
+    map.NumberOfRegions = 0;
     map.MasterBase = 6;
-    expect(flashDescriptorRegionCount(map) == 8, "compact table stops at master section");
+    expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Ambiguous) == 8,
+        "compact table stops at master section");
     map.ProcStrapsBase = 5;
-    expect(flashDescriptorRegionCount(map) == 4, "processor straps also bound region slots");
+    expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Ambiguous) == 4,
+        "processor straps also bound region slots");
+    map.NumberOfRegions = 7;
+    expect(flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Legacy) == 4
+        && flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Ambiguous) == 4
+        && flashDescriptorRegionCount(map, FlashDescriptorAccessLayout::Modern) == 4,
+        "declared or reserved counts can never extend traversal into the following section");
     expect(calculateRegionSize(8, 7) == 0, "disabled region does not underflow");
     expect(calculateRegionSize(0, 0) == FLASH_DESCRIPTOR_SIZE, "single-page descriptor extent");
 

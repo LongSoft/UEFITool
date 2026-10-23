@@ -32,10 +32,14 @@ static UINT32 descriptorSectionSize(const FLASH_DESCRIPTOR_MAP& map, UINT8 base)
     return end - offset;
 }
 
-UINT8 flashDescriptorRegionCount(const FLASH_DESCRIPTOR_MAP& map)
+UINT8 flashDescriptorRegionCount(const FLASH_DESCRIPTOR_MAP& map, FlashDescriptorAccessLayout layout)
 {
-    // The next mapped section bounds the table even when the legacy count is reserved.
-    return static_cast<UINT8>(std::min<UINT32>(16, descriptorSectionSize(map, map.RegionBase) / sizeof(UINT32)));
+    UINT32 count = std::min<UINT32>(16, descriptorSectionSize(map, map.RegionBase) / sizeof(UINT32));
+    // A zero count also occurs on modern descriptors without a version or clock marker.
+    if (layout == FlashDescriptorAccessLayout::Legacy
+        || (layout == FlashDescriptorAccessLayout::Ambiguous && map.NumberOfRegions != 0))
+        count = std::min<UINT32>(count, map.NumberOfRegions + 1);
+    return static_cast<UINT8>(count);
 }
 
 FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(

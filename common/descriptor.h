@@ -554,7 +554,7 @@ extern FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(
     const FLASH_DESCRIPTOR_MAP& map, const FLASH_DESCRIPTOR_COMPONENT_SECTION& component);
 extern USTATUS formatFlashDescriptorAccess(const UByteArray& descriptor,
     FlashDescriptorAccessLayout layout, UString& info);
-extern UINT8 flashDescriptorRegionCount(const FLASH_DESCRIPTOR_MAP& map);
+extern UINT8 flashDescriptorRegionCount(const FLASH_DESCRIPTOR_MAP& map, FlashDescriptorAccessLayout layout);
 extern USTATUS formatFlashDescriptorVscc(const UByteArray& descriptor, UString& info);
 
 // Calculate address of data structure addressed by descriptor address format

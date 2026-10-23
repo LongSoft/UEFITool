@@ -82,7 +82,8 @@ static bool message(FfsParser& parser, const char* text)
     return false;
 }
 
-static void validFixture(UByteArray image, UINT32 extent, bool extended)
+static void validFixture(UByteArray image, UINT32 extent, bool extended,
+    FlashDescriptorAccessLayout layout = FlashDescriptorAccessLayout::Ambiguous)
 {
     TreeModel model;
     FfsParser parser(&model);
@@ -96,7 +97,9 @@ static void validFixture(UByteArray image, UINT32 extent, bool extended)
     expect(model.base(descriptor) == 0, "raw descriptor base is zero");
     UString info = model.info(descriptor);
     expect(info.contains("bounded by following descriptor sections"), "table traversal basis is explicit");
-    expect(info.contains("Descriptor access layout: ambiguous"), "traversal does not silently choose a permission layout");
+    expect(info.contains(layout == FlashDescriptorAccessLayout::Modern
+        ? "Descriptor access layout: modern (Skylake+)" : "Descriptor access layout: ambiguous"),
+        "traversal preserves the detected permission layout");
     expect(info.contains("VSCC status: empty"), "zero-length VSCC is explicit");
     expect(node(model, Subtypes::DevExp2Region).isValid() == extended, "zero-clock DevExp2 is traversed only inside the region table");
     expect(node(model, Subtypes::IeRegion).isValid() == extended, "zero-clock IE slot is discovered without IPSE-content parsing");
@@ -154,6 +157,48 @@ int main(int argc, char** argv)
     word(image, 0x68, 0x00050005);
     word(image, 0x60, 0x00060007);
     validFixture(image, 0x1000, true);
+
+    const UINT8 legacyCounts[] = { 3, 5, 8 };
+    const UINT32 paddingValues[] = { 0x00007FFF, 0x00010001, 0x00100010 };
+    for (UINT8 count : legacyCounts) {
+        const UINT8 paddingSlots[] = { count, 9 };
+        for (UINT8 slot : paddingSlots) {
+            for (UINT32 padding : paddingValues) {
+                UByteArray legacy = fixture();
+                FLASH_DESCRIPTOR_MAP map;
+                std::memcpy(&map, legacy.constData() + sizeof(FLASH_DESCRIPTOR_HEADER), sizeof(map));
+                map.NumberOfRegions = count - 1;
+                std::memcpy(legacy.data() + sizeof(FLASH_DESCRIPTOR_HEADER), &map, sizeof(map));
+                word(legacy, 0x40 + slot * sizeof(UINT32), padding);
+                TreeModel model;
+                FfsParser parser(&model);
+                const USTATUS status = parser.parse(legacy);
+                const UModelIndex root = model.index(0, 0);
+                expect(status == U_SUCCESS && model.rowCount() == 1
+                    && model.subtype(root) == Subtypes::IntelImage
+                    && node(model, Subtypes::DescriptorRegion).isValid()
+                    && node(model, Subtypes::BiosRegion).isValid()
+                    && !node(model, slot).isValid(),
+                    "padding beyond the declared legacy table cannot create a region or discard the Intel image");
+                expect(model.info(root).contains(usprintf("Region slots: %u\n", count)),
+                    "legacy traversal reports the declared table length, not its available capacity");
+            }
+        }
+    }
+    for (UINT8 clock = 0; clock < 2; clock++) {
+        UByteArray modern = image;
+        FLASH_DESCRIPTOR_MAP map;
+        FLASH_DESCRIPTOR_COMPONENT_SECTION component;
+        std::memcpy(&map, modern.constData() + sizeof(FLASH_DESCRIPTOR_HEADER), sizeof(map));
+        std::memcpy(&component, modern.constData() + 0x30, sizeof(component));
+        map.NumberOfRegions = 4;
+        map.DescriptorVersion = clock ? FLASH_DESCRIPTOR_VERSION_INVALID
+            : (FLASH_DESCRIPTOR_VERSION_MAJOR << 21) | (FLASH_DESCRIPTOR_VERSION_MINOR << 14);
+        component.FlashParameters.ReadClockFrequency = clock;
+        std::memcpy(modern.data() + sizeof(FLASH_DESCRIPTOR_HEADER), &map, sizeof(map));
+        std::memcpy(modern.data() + 0x30, &component, sizeof(component));
+        validFixture(modern, 0x1000, true, FlashDescriptorAccessLayout::Modern);
+    }
 
     image = fixture(3);
     word(image, 0x64, 0x00040004);

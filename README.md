@@ -65,9 +65,11 @@ You can download the up-to-date version of that database using [this link](https
 Descriptor configuration blocks are 4 KiB; the declared descriptor region can
 be larger. The region tree preserves that extent and reports additional
 block-aligned descriptor signatures without selecting a different copy.
-Region-table traversal is bounded by the next mapped descriptor section,
-not by `ReadClockFrequency`. The legacy region-count field is reserved on
-modern descriptors and is labelled accordingly.
+Region-table traversal never exceeds the next mapped descriptor section.
+Without a modern layout marker, a nonzero legacy region count additionally
+limits traversal so padding is not parsed as regions. A zero count remains
+compatible with modern zero-clock descriptors. Recognised modern layouts
+ignore the reserved legacy count. This does not identify the chipset.
 
 A zero read-clock field without a recognised version remains ambiguous for
 access decoding. Both interpretations are shown. BIOS access is decoded from
@@ -92,7 +94,9 @@ cmake --build build-descriptor-tests --config Release --target descriptor_access
 ctest --test-dir build-descriptor-tests -C Release --output-on-failure
 ```
 
-The tests cover permission bits, compact and 16-slot region tables, larger
+The tests cover permission bits, compact and 16-slot region tables, legacy
+table padding (including valid-looking and out-of-image region values), modern
+reserved counts with both version and clock markers, larger
 descriptor extents, duplicate blocks, capsule-relative offsets, disabled and
 overlapping regions, header-overlapping master bases with single-root UEFI
 fallback, and empty/malformed VSCC tables. An optional read-only
