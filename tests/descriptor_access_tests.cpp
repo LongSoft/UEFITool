@@ -67,8 +67,8 @@ int main()
     expect(ambiguous.find("BIOS: 00Fh 00Ah") != std::string::npos, "modern masks decoded");
 
     const std::string modern = format(zeroClock, FlashDescriptorAccessLayout::Modern);
-    expect(modern.find("Desc  Yes   No") != std::string::npos, "modern descriptor is read-only");
-    expect(modern.find("ME    Yes   No") != std::string::npos, "modern ME is read-only");
+    expect(modern.find("Desc       Yes   No") != std::string::npos, "modern descriptor is read-only");
+    expect(modern.find("ME         Yes   No") != std::string::npos, "modern ME is read-only");
     expect(modern.find("live write-protection measurement") != std::string::npos,
         "file permissions are not presented as live hardware state");
 
@@ -77,7 +77,26 @@ int main()
         "an erased version marker does not prove legacy format");
     const std::string legacyInfo = format(legacy, FlashDescriptorAccessLayout::Legacy);
     expect(legacyInfo.find("BIOS: 07h 03h") != std::string::npos, "legacy access format preserved");
-    expect(legacyInfo.find("ME    Yes   No") != std::string::npos, "legacy ME access preserved");
+    expect(legacyInfo.find("ME         Yes   No") != std::string::npos, "legacy ME access preserved");
+
+    const std::string denied = format(fixture(0, 0, 0), FlashDescriptorAccessLayout::Modern);
+    expect(denied.find("BIOS       No    No") != std::string::npos, "BIOS access is not hardcoded");
+    expect(format(fixture(0, 0, 0x00200200), FlashDescriptorAccessLayout::Modern)
+        .find("BIOS       Yes   Yes") != std::string::npos, "modern BIOS bit1 grants access");
+    expect(format(fixture(0, 0, 0x02020000), FlashDescriptorAccessLayout::Legacy)
+        .find("BIOS       Yes   Yes") != std::string::npos, "legacy BIOS bit1 grants access");
+    expect(format(fixture(0, 0, 0x02002000), FlashDescriptorAccessLayout::Modern)
+        .find("EC         No    No") != std::string::npos, "modern bit5 is not EC");
+    expect(format(fixture(0, 0, 0x10010000), FlashDescriptorAccessLayout::Modern)
+        .find("EC         Yes   Yes") != std::string::npos, "modern EC uses bit8");
+    const std::string extended = format(fixture(0, 0, 0x00000011), FlashDescriptorAccessLayout::Modern);
+    expect(extended.find("Cannon Lake+ only; platform not identified") != std::string::npos,
+        "extended permissions are conditional, not silently enabled");
+    expect(extended.find("10GbE2     Yes   Yes") != std::string::npos, "conditional extended region12 uses low nibbles");
+    UByteArray compact = fixture(0, 0, 0);
+    compact[0x1A] = 9;
+    expect(format(compact, FlashDescriptorAccessLayout::Modern).find("EC master: unavailable") != std::string::npos,
+        "EC master is not read through the next mapped section");
 
     const UByteArray clockModern = fixture(FLASH_DESCRIPTOR_VERSION_INVALID, 1, 0x00A00F00);
     expect(detect(clockModern) == FlashDescriptorAccessLayout::Modern,
@@ -113,6 +132,60 @@ int main()
         == U_INVALID_FLASH_DESCRIPTOR, "overlapping master base rejected");
     expect(formatFlashDescriptorAccess(zeroClock, static_cast<FlashDescriptorAccessLayout>(99), info)
         == U_INVALID_PARAMETER, "invalid layout rejected");
+
+    FLASH_DESCRIPTOR_MAP map = {};
+    map.ComponentBase = 3;
+    map.RegionBase = 4;
+    map.MasterBase = 8;
+    expect(flashDescriptorRegionCount(map) == 16, "full region table has16 bounded slots");
+    map.MasterBase = 6;
+    expect(flashDescriptorRegionCount(map) == 8, "compact table stops at master section");
+    map.ProcStrapsBase = 5;
+    expect(flashDescriptorRegionCount(map) == 4, "processor straps also bound region slots");
+    expect(calculateRegionSize(8, 7) == 0, "disabled region does not underflow");
+    expect(calculateRegionSize(0, 0) == FLASH_DESCRIPTOR_SIZE, "single-page descriptor extent");
+
+    UByteArray vscc = zeroClock;
+    FLASH_DESCRIPTOR_UPPER_MAP upper = {};
+    upper.VsccTableBase = 0xDF;
+    upper.VsccTableSize = 2;
+    VSCC_TABLE_ENTRY entry = {};
+    entry.VendorId = 0xC8;
+    entry.DeviceId0 = 0x40;
+    entry.DeviceId1 = 0x19;
+    std::memcpy(vscc.data() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, &upper, sizeof(upper));
+    std::memcpy(vscc.data() + 0xDF0, &entry, sizeof(entry));
+    expect(formatFlashDescriptorVscc(vscc, info) == U_SUCCESS
+        && info.contains("valid (1 entries)") && info.contains("C84019 (GigaDevice GD25x256)"),
+        "valid VSCC entry is decoded at the indicated offset");
+    expect(formatFlashDescriptorVscc(vscc.left(FLASH_DESCRIPTOR_UPPER_MAP_BASE + 3), info)
+        == U_INVALID_FLASH_DESCRIPTOR && info.contains("truncated upper map"), "truncated VSCC upper map is explicit");
+    upper.VsccTableSize = 1;
+    std::memcpy(vscc.data() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, &upper, sizeof(upper));
+    expect(formatFlashDescriptorVscc(vscc, info) == U_INVALID_FLASH_DESCRIPTOR
+        && info.contains("incomplete entry") && !info.contains("C84019"), "partial VSCC entry is never decoded");
+    upper.VsccTableBase = 0xFF;
+    upper.VsccTableSize = 8;
+    std::memcpy(vscc.data() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, &upper, sizeof(upper));
+    expect(formatFlashDescriptorVscc(vscc, info) == U_INVALID_FLASH_DESCRIPTOR
+        && info.contains("outside configuration"), "out-of-block VSCC table rejected");
+    vscc += UByteArray(FLASH_DESCRIPTOR_SIZE * 3, '\0');
+    expect(formatFlashDescriptorVscc(vscc, info) == U_INVALID_FLASH_DESCRIPTOR,
+        "large descriptor region does not extend the selected VSCC block");
+    upper.VsccTableBase = 0xEF;
+    upper.VsccTableSize = 4;
+    std::memcpy(vscc.data() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, &upper, sizeof(upper));
+    expect(formatFlashDescriptorVscc(vscc, info) == U_INVALID_FLASH_DESCRIPTOR
+        && info.contains("overlaps upper map"), "VSCC may not overlap its upper map");
+    upper.VsccTableBase = 0;
+    upper.VsccTableSize = 2;
+    std::memcpy(vscc.data() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, &upper, sizeof(upper));
+    expect(formatFlashDescriptorVscc(vscc, info) == U_INVALID_FLASH_DESCRIPTOR, "VSCC may not point into the descriptor header");
+    upper.VsccTableBase = 0xFF;
+    upper.VsccTableSize = 0;
+    std::memcpy(vscc.data() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, &upper, sizeof(upper));
+    expect(formatFlashDescriptorVscc(vscc, info) == U_SUCCESS && info.contains("empty (zero table length)"),
+        "zero-length VSCC is empty even when its unused base isFF");
 
     if (failures)
         std::cerr << failures << " descriptor access checks failed\n";

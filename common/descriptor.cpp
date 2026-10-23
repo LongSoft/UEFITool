@@ -11,7 +11,32 @@
  */
 
 #include "descriptor.h"
+#include <algorithm>
 #include <cstring>
+
+static UINT32 descriptorSectionSize(const FLASH_DESCRIPTOR_MAP& map, UINT8 base)
+{
+    const UINT32 offset = static_cast<UINT32>(base) << 4;
+    if (offset < sizeof(FLASH_DESCRIPTOR_HEADER) + sizeof(FLASH_DESCRIPTOR_MAP)
+        || offset >= FLASH_DESCRIPTOR_UPPER_MAP_BASE)
+        return 0;
+    UINT32 end = FLASH_DESCRIPTOR_UPPER_MAP_BASE;
+    const UINT8 bases[] = { static_cast<UINT8>(map.ComponentBase), static_cast<UINT8>(map.RegionBase),
+        static_cast<UINT8>(map.MasterBase), static_cast<UINT8>(map.PchStrapsBase),
+        static_cast<UINT8>(map.ProcStrapsBase) };
+    for (size_t i = 0; i < sizeof(bases) / sizeof(bases[0]); i++) {
+        const UINT32 next = static_cast<UINT32>(bases[i]) << 4;
+        if (next > offset)
+            end = std::min(end, next);
+    }
+    return end - offset;
+}
+
+UINT8 flashDescriptorRegionCount(const FLASH_DESCRIPTOR_MAP& map)
+{
+    // The next mapped section bounds the table even when the legacy count is reserved.
+    return static_cast<UINT8>(std::min<UINT32>(16, descriptorSectionSize(map, map.RegionBase) / sizeof(UINT32)));
+}
 
 FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(
     const FLASH_DESCRIPTOR_MAP& map, const FLASH_DESCRIPTOR_COMPONENT_SECTION& component)
@@ -25,43 +50,46 @@ FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(
     return FlashDescriptorAccessLayout::Ambiguous;
 }
 
-static UString formatMasterAccess(const UINT8* masters, bool modern)
+static UString formatMasterAccess(const UINT8* masters, UINT32 masterCount, bool modern)
 {
-    UINT32 words[5];
-    std::memcpy(words, masters, sizeof(words));
-    UINT16 read[5], write[5];
-    for (size_t i = 0; i < 5; i++) {
+    UINT32 words[5] = {};
+    std::memcpy(words, masters, masterCount * sizeof(UINT32));
+    UINT16 read[5] = {}, write[5] = {};
+    for (size_t i = 0; i < masterCount; i++) {
         read[i] = modern ? (words[i] >> 8) & 0xFFF : (words[i] >> 16) & 0xFF;
         write[i] = modern ? (words[i] >> 20) & 0xFFF : (words[i] >> 24) & 0xFF;
     }
 
     UString info("\nRegion access settings:");
     if (modern) {
-        info += usprintf("\nBIOS: %03Xh %03Xh\nME:   %03Xh %03Xh\nGbE:  %03Xh %03Xh\nEC:   %03Xh %03Xh",
-            read[0], write[0], read[1], write[1], read[2], write[2], read[4], write[4]);
+        info += usprintf("\nBIOS: %03Xh %03Xh\nME:   %03Xh %03Xh\nGbE:  %03Xh %03Xh",
+            read[0], write[0], read[1], write[1], read[2], write[2]);
+        if (masterCount >= 5)
+            info += usprintf("\nEC:   %03Xh %03Xh", read[4], write[4]);
+        else
+            info += UString("\nEC master: unavailable before the next descriptor section");
     }
     else {
         info += usprintf("\nBIOS: %02Xh %02Xh ME: %02Xh %02Xh\nGbE:  %02Xh %02Xh",
             read[0], write[0], read[1], write[1], read[2], write[2]);
     }
-    info += UString("\nBIOS access table:\n      Read  Write");
-    info += usprintf("\nDesc  %s  %s",
-        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ",
-        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_DESC ? "Yes " : "No  ");
-    info += UString("\nBIOS  Yes   Yes");
-    info += usprintf("\nME    %s  %s",
-        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ",
-        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_ME ? "Yes " : "No  ");
-    info += usprintf("\nGbE   %s  %s",
-        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ",
-        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_GBE ? "Yes " : "No  ");
-    info += usprintf("\nPDR   %s  %s",
-        read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ",
-        write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_PDR ? "Yes " : "No  ");
+    static const char* names[] = { "Desc", "BIOS", "ME", "GbE", "PDR", "DevExp1", "BIOS2", "Microcode",
+        "EC", "DevExp2", "IE", "10GbE1", "10GbE2", "Reserved1", "Reserved2", "PTT" };
+    info += usprintf("\nBIOS master DWORD: %08Xh", words[0]);
+    info += UString("\nBIOS access table:\nRegion     Read  Write");
+    const UINT8 count = modern ? 12 : 8;
+    for (UINT8 i = 0; i < count; i++) {
+        info += usprintf("\n%-9s  %s  %s", names[i],
+            read[0] & (1U << i) ? "Yes " : "No  ",
+            write[0] & (1U << i) ? "Yes " : "No  ");
+    }
     if (modern) {
-        info += usprintf("\nEC    %s  %s",
-            read[0] & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ",
-            write[0] & FLASH_DESCRIPTOR_REGION_ACCESS_EC ? "Yes " : "No  ");
+        info += UString("\nExtended region interpretation (Cannon Lake+ only; platform not identified):");
+        for (UINT8 i = 12; i < 16; i++) {
+            info += usprintf("\n%-9s  %s  %s", names[i],
+                words[0] & (1U << (i - 12)) ? "Yes " : "No  ",
+                words[0] & (1U << (i - 8)) ? "Yes " : "No  ");
+        }
     }
     return info;
 }
@@ -83,25 +111,68 @@ USTATUS formatFlashDescriptorAccess(const UByteArray& descriptor,
         info = UString("Invalid descriptor access signature or master base");
         return U_INVALID_FLASH_DESCRIPTOR;
     }
+    const UINT32 masterCount = std::min<UINT32>(5, descriptorSectionSize(map, map.MasterBase) / sizeof(UINT32));
+    if (masterCount < 3) {
+        info = UString("Descriptor master table is truncated or overlaps another section");
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
     const UINT8* masters = calculateAddress8((const UINT8*)descriptor.constData(), map.MasterBase);
     switch (layout) {
         case FlashDescriptorAccessLayout::Legacy:
-            info = UString("\nDescriptor access layout: legacy") + formatMasterAccess(masters, false);
+            info = UString("\nDescriptor access layout: legacy") + formatMasterAccess(masters, masterCount, false);
             break;
         case FlashDescriptorAccessLayout::Modern:
-            info = UString("\nDescriptor access layout: modern (Skylake+)") + formatMasterAccess(masters, true);
+            info = UString("\nDescriptor access layout: modern (Skylake+)") + formatMasterAccess(masters, masterCount, true);
             break;
         case FlashDescriptorAccessLayout::Ambiguous:
             info = UString("\nDescriptor access layout: ambiguous")
                 + UString("\nA zero read-clock field does not distinguish legacy from modern permissions.")
-                + UString("\nLegacy interpretation:") + formatMasterAccess(masters, false)
-                + UString("\n\nModern (Skylake+) interpretation:") + formatMasterAccess(masters, true);
+                + UString("\nLegacy interpretation:") + formatMasterAccess(masters, masterCount, false)
+                + UString("\n\nModern (Skylake+) interpretation:") + formatMasterAccess(masters, masterCount, true);
             break;
         default:
             info = UString("Invalid descriptor access layout");
             return U_INVALID_PARAMETER;
     }
     info += UString("\nDescriptor permissions are not a live write-protection measurement.");
+    return U_SUCCESS;
+}
+
+USTATUS formatFlashDescriptorVscc(const UByteArray& descriptor, UString& info)
+{
+    info = usprintf("\nVSCC upper map offset: %Xh (configuration-block-relative)", FLASH_DESCRIPTOR_UPPER_MAP_BASE);
+    info += UString("\nVSCC lookup: conventional 4 KiB block; relocated layouts are not inferred");
+    if (descriptor.size() < FLASH_DESCRIPTOR_UPPER_MAP_BASE + sizeof(FLASH_DESCRIPTOR_UPPER_MAP)) {
+        info += UString("\nVSCC status: unavailable (truncated upper map)");
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    FLASH_DESCRIPTOR_UPPER_MAP upperMap;
+    std::memcpy(&upperMap, descriptor.constData() + FLASH_DESCRIPTOR_UPPER_MAP_BASE, sizeof(upperMap));
+    const UINT32 offset = static_cast<UINT32>(upperMap.VsccTableBase) << 4;
+    const UINT32 size = static_cast<UINT32>(upperMap.VsccTableSize) * sizeof(UINT32);
+    info += usprintf("\nVSCC table offset: %Xh\nVSCC table size: %Xh (%u DWORDs)", offset, size, upperMap.VsccTableSize);
+    if (size == 0) {
+        info += UString("\nVSCC status: empty (zero table length)");
+        return U_SUCCESS;
+    }
+    if (size % sizeof(VSCC_TABLE_ENTRY) != 0) {
+        info += UString("\nVSCC status: invalid (incomplete entry)");
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    if (offset < sizeof(FLASH_DESCRIPTOR_HEADER) + sizeof(FLASH_DESCRIPTOR_MAP)
+        || offset >= FLASH_DESCRIPTOR_UPPER_MAP_BASE || size > FLASH_DESCRIPTOR_UPPER_MAP_BASE - offset
+        || offset + size > static_cast<UINT32>(descriptor.size())) {
+        info += UString("\nVSCC status: invalid (table outside configuration data or overlaps upper map/OEM section)");
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    info += usprintf("\nVSCC status: valid (%u entries)\nFlash chips in VSCC table:",
+        size / static_cast<UINT32>(sizeof(VSCC_TABLE_ENTRY)));
+    for (UINT32 pos = offset; pos < offset + size; pos += sizeof(VSCC_TABLE_ENTRY)) {
+        VSCC_TABLE_ENTRY entry;
+        std::memcpy(&entry, descriptor.constData() + pos, sizeof(entry));
+        info += usprintf("\n%02X%02X%02X (", entry.VendorId, entry.DeviceId0, entry.DeviceId1)
+            + jedecIdToUString(entry.VendorId, entry.DeviceId0, entry.DeviceId1) + UString(")");
+    }
     return U_SUCCESS;
 }
 
@@ -127,7 +198,7 @@ UINT32 calculateRegionOffset(const UINT16 base)
 //Calculate size of region using its base and limit
 UINT32 calculateRegionSize(const UINT16 base, const UINT16 limit)
 {
-    if (limit)
+    if (base <= limit)
         return (limit + 1 - base) * 0x1000;
     return 0;
 }
