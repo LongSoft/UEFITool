@@ -14,6 +14,7 @@
 
 #include <map>
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 
 #include "descriptor.h"
@@ -310,10 +311,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     
     // Parse descriptor map
     const FLASH_DESCRIPTOR_MAP* descriptorMap = (const FLASH_DESCRIPTOR_MAP*)((UINT8*)descriptor + sizeof(FLASH_DESCRIPTOR_HEADER));
-    const FLASH_DESCRIPTOR_UPPER_MAP* upperMap = (const FLASH_DESCRIPTOR_UPPER_MAP*)((UINT8*)descriptor + FLASH_DESCRIPTOR_UPPER_MAP_BASE);
     
     // Check sanity of base values
-    if (descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
+    if (descriptorMap->MasterBase < 3 || descriptorMap->MasterBase > FLASH_DESCRIPTOR_MAX_BASE
         || descriptorMap->MasterBase == descriptorMap->RegionBase
         || descriptorMap->MasterBase == descriptorMap->ComponentBase) {
         msg(usprintf("%s: invalid descriptor master base %02Xh", __FUNCTION__, descriptorMap->MasterBase));
@@ -324,7 +324,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         msg(usprintf("%s: invalid descriptor region base %02Xh", __FUNCTION__, descriptorMap->RegionBase));
         return U_INVALID_FLASH_DESCRIPTOR;
     }
-    if (descriptorMap->ComponentBase > FLASH_DESCRIPTOR_MAX_BASE) {
+    if (descriptorMap->ComponentBase < 3 || descriptorMap->ComponentBase > FLASH_DESCRIPTOR_MAX_BASE) {
         msg(usprintf("%s: invalid descriptor component base %02Xh", __FUNCTION__, descriptorMap->ComponentBase));
         return U_INVALID_FLASH_DESCRIPTOR;
     }
@@ -332,10 +332,16 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     const FLASH_DESCRIPTOR_REGION_SECTION* regionSection = (const FLASH_DESCRIPTOR_REGION_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->RegionBase);
     const FLASH_DESCRIPTOR_COMPONENT_SECTION* componentSection = (const FLASH_DESCRIPTOR_COMPONENT_SECTION*)calculateAddress8((UINT8*)descriptor, descriptorMap->ComponentBase);
     
-    UINT8 descriptorVersion = 2;
-    // Check descriptor version by getting hardcoded value of zero in FlashParameters.ReadClockFrequency
-    if (componentSection->FlashParameters.ReadClockFrequency == 0)
-        descriptorVersion = 1;
+    const UINT8 regionCount = flashDescriptorRegionCount(*descriptorMap);
+    if (regionCount < 3 || regionSection->DescriptorBase != 0) {
+        msg(usprintf("%s: invalid descriptor region table or descriptor base", __FUNCTION__));
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
+    const UINT32 descriptorSize = calculateRegionSize(regionSection->DescriptorBase, regionSection->DescriptorLimit);
+    if (descriptorSize < FLASH_DESCRIPTOR_SIZE || descriptorSize > static_cast<UINT32>(intelImage.size())) {
+        msg(usprintf("%s: declared descriptor region extent %Xh is outside the opened image", __FUNCTION__, descriptorSize));
+        return U_INVALID_FLASH_DESCRIPTOR;
+    }
     
     // Regions
     std::vector<REGION_INFO> regions;
@@ -345,7 +351,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     me.type = Subtypes::MeRegion;
     me.offset = 0;
     me.length = 0;
-    if (regionSection->MeLimit) {
+    if (regionSection->MeLimit && regionSection->MeBase <= regionSection->MeLimit) {
         me.offset = calculateRegionOffset(regionSection->MeBase);
         me.length = calculateRegionSize(regionSection->MeBase, regionSection->MeLimit);
         if (me.offset + me.length < me.offset) {
@@ -366,7 +372,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     }
     
     // BIOS region
-    if (regionSection->BiosLimit) {
+    if (regionSection->BiosLimit && regionSection->BiosBase <= regionSection->BiosLimit) {
         REGION_INFO bios;
         bios.type = Subtypes::BiosRegion;
         bios.offset = calculateRegionOffset(regionSection->BiosBase);
@@ -402,13 +408,11 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     }
     
     // Add all other regions
-    for (UINT8 i = Subtypes::GbeRegion; i <= Subtypes::PttRegion; i++) {
-        if (descriptorVersion == 1 && i == Subtypes::MicrocodeRegion)
-            break; // Do not parse Microcode and other following regions for legacy descriptors
-        
+    for (UINT8 i = Subtypes::GbeRegion; i < regionCount; i++) {
         const UINT16* RegionBase = ((const UINT16*)regionSection) + 2 * i;
         const UINT16* RegionLimit = ((const UINT16*)regionSection) + 2 * i + 1;
-        if (*RegionLimit && !(*RegionBase == 0xFFFF && *RegionLimit == 0xFFFF)) {
+        if (*RegionLimit && *RegionBase <= *RegionLimit
+            && !(*RegionBase == 0xFFFF && *RegionLimit == 0xFFFF)) {
             REGION_INFO region;
             region.type = i;
             region.offset = calculateRegionOffset(*RegionBase);
@@ -442,7 +446,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     // Check for intersections and paddings between regions
     REGION_INFO region;
     // Check intersection with the descriptor
-    if (regions.front().offset < FLASH_DESCRIPTOR_SIZE) {
+    if (regions.front().offset < descriptorSize) {
         msg(usprintf("%s: ", __FUNCTION__)
             + itemSubtypeToUString(Types::Region, regions.front().type)
             + UString(" region has intersection with flash descriptor"),
@@ -450,9 +454,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         return U_INVALID_FLASH_DESCRIPTOR;
     }
     // Check for padding between descriptor and the first region
-    else if (regions.front().offset > FLASH_DESCRIPTOR_SIZE) {
-        region.offset = FLASH_DESCRIPTOR_SIZE;
-        region.length = regions.front().offset - FLASH_DESCRIPTOR_SIZE;
+    else if (regions.front().offset > descriptorSize) {
+        region.offset = descriptorSize;
+        region.length = regions.front().offset - descriptorSize;
         region.data = intelImage.mid(region.offset, region.length);
         region.type = getPaddingType(region.data);
         regions.insert(regions.begin(), region);
@@ -493,8 +497,9 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     
     // Intel image
     UString name("Intel image");
-    UString info = usprintf("Flash chips: %u\nRegions: %u\nMasters: %u\nPCH straps: %u\nPROC straps: %u",
+    UString info = usprintf("Flash chips: %u\nRegion slots: %u\nLegacy region-count field: %u (reserved on modern descriptors)\nMasters: %u\nPCH straps: %u\nPROC straps: %u",
                             descriptorMap->NumberOfFlashChips + 1, //
+                            regionCount,
                             descriptorMap->NumberOfRegions + 1,    // Zero-based numbers in storage
                             descriptorMap->NumberOfMasters + 1,    //
                             descriptorMap->NumberOfPchStraps,
@@ -508,7 +513,7 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     
     // Descriptor
     // Get descriptor info
-    UByteArray body = intelImage.left(FLASH_DESCRIPTOR_SIZE);
+    UByteArray body = intelImage.left(descriptorSize);
     name = UString("Descriptor region");
     info = usprintf("ReservedVector:\n%02X %02X %02X %02X %02X %02X %02X %02X\n"
                     "%02X %02X %02X %02X %02X %02X %02X %02X",
@@ -516,6 +521,16 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
                     descriptor->ReservedVector[4],  descriptor->ReservedVector[5],  descriptor->ReservedVector[6],  descriptor->ReservedVector[7],
                     descriptor->ReservedVector[8],  descriptor->ReservedVector[9],  descriptor->ReservedVector[10], descriptor->ReservedVector[11],
                     descriptor->ReservedVector[12], descriptor->ReservedVector[13], descriptor->ReservedVector[14], descriptor->ReservedVector[15]);
+    info += usprintf("\nDescriptor configuration block size: %Xh\nDeclared descriptor region size: %Xh\nRegion slots: %u (bounded by following descriptor sections)",
+        FLASH_DESCRIPTOR_SIZE, descriptorSize, regionCount);
+    for (UINT32 offset = FLASH_DESCRIPTOR_SIZE; offset <= descriptorSize - FLASH_DESCRIPTOR_SIZE; offset += FLASH_DESCRIPTOR_SIZE) {
+        const FLASH_DESCRIPTOR_HEADER* copy = (const FLASH_DESCRIPTOR_HEADER*)(intelImage.constData() + offset);
+        if (copy->Signature == FLASH_DESCRIPTOR_SIGNATURE) {
+            info += usprintf("\nAdditional descriptor signature at region-relative offset: %Xh (%s first block)",
+                offset, std::memcmp(intelImage.constData(), intelImage.constData() + offset, FLASH_DESCRIPTOR_SIZE) == 0
+                    ? "identical to" : "differs from");
+        }
+    }
     
     // Add offsets of actual regions
     for (size_t i = 0; i < regions.size(); i++) {
@@ -532,10 +547,8 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
         return accessResult;
     }
     info += accessInfo;
-    if (descriptorVersion == 1)
-        info += UString("\nRegion traversal retains the legacy read-clock heuristic.");
     if (accessLayout == FlashDescriptorAccessLayout::Ambiguous) {
-        msg(usprintf("%s: ambiguous descriptor access layout; both permission interpretations are shown, legacy region traversal retained", __FUNCTION__), index);
+        msg(usprintf("%s: ambiguous descriptor access layout; both permission interpretations are shown; region traversal is bounded by mapped sections, not the read-clock field", __FUNCTION__), index);
     }
     else if (accessLayout == FlashDescriptorAccessLayout::Modern
         && descriptorMap->DescriptorVersion != FLASH_DESCRIPTOR_VERSION_INVALID) {
@@ -549,23 +562,16 @@ USTATUS FfsParser::parseIntelImage(const UByteArray & intelImage, const UINT32 l
     }
     
     // VSCC table
-    const VSCC_TABLE_ENTRY* vsccTableEntry = (const VSCC_TABLE_ENTRY*)((UINT8*)descriptor + ((UINT16)upperMap->VsccTableBase << 4));
-    info += UString("\nFlash chips in VSCC table:");
-    UINT8 vsscTableSize = upperMap->VsccTableSize * sizeof(UINT32) / sizeof(VSCC_TABLE_ENTRY);
-    for (UINT8 i = 0; i < vsscTableSize; i++) {
-        UString jedecId = jedecIdToUString(vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1);
-        info += usprintf("\n%02X%02X%02X (", vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1)
-        + jedecId
-        + UString(")");
-        if (jedecId.startsWith("Unknown")) {
-            msg(usprintf("%s: SPI flash with unknown JEDEC ID %02X%02X%02X found in VSCC table", __FUNCTION__,
-                         vsccTableEntry->VendorId, vsccTableEntry->DeviceId0, vsccTableEntry->DeviceId1), index);
-        }
-        vsccTableEntry++;
-    }
+    UString vsccInfo;
+    const USTATUS vsccResult = formatFlashDescriptorVscc(body.left(FLASH_DESCRIPTOR_SIZE), vsccInfo);
+    info += vsccInfo;
+    if (vsccResult != U_SUCCESS)
+        msg(usprintf("%s: ", __FUNCTION__) + vsccInfo, index);
+    else if (vsccInfo.contains("Unknown"))
+        msg(usprintf("%s: SPI flash with unknown JEDEC ID found in VSCC table", __FUNCTION__), index);
     
     // Add descriptor tree item
-    UModelIndex regionIndex = model->addItem(localOffset, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
+    UModelIndex regionIndex = model->addItem(0, Types::Region, Subtypes::DescriptorRegion, name, UString(), info, UByteArray(), body, UByteArray(), Fixed, index);
     
     // Parse regions
     USTATUS result = U_SUCCESS;

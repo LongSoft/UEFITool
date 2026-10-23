@@ -8,6 +8,18 @@ on:
     types: [published]
 
 jobs:
+  descriptor_tests:
+    name: Native descriptor regressions (Windows x64, no Qt)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure descriptor tests
+        run: cmake -S tests -B build-descriptor-tests -A x64
+      - name: Build descriptor tests
+        run: cmake --build build-descriptor-tests --config Release --target descriptor_access_tests descriptor_parser_tests --parallel 2
+      - name: Run descriptor tests
+        run: ctest --test-dir build-descriptor-tests -C Release --output-on-failure
+
 # Release builds
   build_release_macos:
     name: Release build (macOS universal, static Qt 6.5.0)
@@ -129,10 +141,10 @@ jobs:
       - uses: actions/checkout@v6
       - name: Setup VM
         id: test
-        uses: cross-platform-actions/action@v1.1.0
+        uses: cross-platform-actions/action@v1.6.0
         with:
           operating_system: freebsd
-          version: '13.3'
+          version: '14.5'
       - name: Build
         shell: cpa.sh {0}
         run: |

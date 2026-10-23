@@ -59,3 +59,44 @@ You can either use [pre-built binaries](https://github.com/LongSoft/UEFITool/rel
 Every new release includes an update to the database of known UEFI-related GUIDs build with help of [Linux Vendor Firmware Service](https://fwupd.org).
 
 You can download the up-to-date version of that database using [this link](https://fwupd.org/lvfs/shards/export/csv).
+
+## Intel descriptor inspection and regression tests
+
+Descriptor configuration blocks are 4 KiB; the declared descriptor region can
+be larger. The region tree preserves that extent and reports additional
+block-aligned descriptor signatures without selecting a different copy.
+Region-table traversal is bounded by the next mapped descriptor section,
+not by `ReadClockFrequency`. The legacy region-count field is reserved on
+modern descriptors and is labelled accordingly.
+
+A zero read-clock field without a recognised version remains ambiguous for
+access decoding. Both interpretations are shown. BIOS access is decoded from
+bit 1, and modern EC access from bit 8. Permissions for regions 12-15 are shown
+only as a labelled, conditional Cannon Lake+ interpretation; the parser does
+not identify the platform from those bits. All-ones master words remain
+all-access in the corresponding interpretation. File permissions are not
+live hardware protection or proof that a region was physically read.
+
+VSCC reporting uses the conventional configuration-block-relative upper map
+at `0xEFC`, validates complete entries and table bounds, and distinguishes
+empty, unavailable and invalid data. A malformed table produces a parser
+message without discarding otherwise valid image geometry. Unknown relocated
+layouts are not guessed. IPSE-content parsing is outside this change.
+
+The deterministic tests require CMake and a C/C++ compiler, but no Qt or firmware
+downloads. From the repository root on Windows:
+
+```powershell
+cmake -S tests -B build-descriptor-tests
+cmake --build build-descriptor-tests --config Release --target descriptor_access_tests descriptor_parser_tests
+ctest --test-dir build-descriptor-tests -C Release --output-on-failure
+```
+
+The tests cover permission bits, compact and 16-slot region tables, larger
+descriptor extents, duplicate blocks, capsule-relative offsets, disabled and
+overlapping regions, header-overlapping master bases with single-root UEFI
+fallback, and empty/malformed VSCC tables. An optional read-only
+inspection mode is available as `descriptor_parser_tests --inspect <image>`.
+Public real-image checks used MSI `E13Q3IMS.112` (IE/IPSE slot present) and
+`E1824IMS.11B` (slot absent), linked in
+[LongSoft/UEFITool#485](https://github.com/LongSoft/UEFITool/pull/485).

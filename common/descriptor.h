@@ -29,7 +29,7 @@ typedef struct FLASH_DESCRIPTOR_HEADER_ {
 // Flash descriptor signature
 #define FLASH_DESCRIPTOR_SIGNATURE 0x0FF0A55A
 
-// Descriptor region size
+// Size of one descriptor configuration block, not necessarily the region extent
 #define FLASH_DESCRIPTOR_SIZE      0x1000
 
 // Maximum base value in descriptor map
@@ -94,7 +94,7 @@ typedef struct FLASH_DESCRIPTOR_COMPONENT_SECTION_ {
 
 // Region section
 // All base and limit register are storing upper part of actual UINT32 base and limit
-// If limit is zero - region is not present
+// A base greater than the inclusive limit disables a region
 typedef struct FLASH_DESCRIPTOR_REGION_SECTION_ {
     UINT16 DescriptorBase;             // Descriptor
     UINT16 DescriptorLimit;            //
@@ -166,7 +166,7 @@ typedef struct FLASH_DESCRIPTOR_MASTER_SECTION_V2_ {
 #define FLASH_DESCRIPTOR_REGION_ACCESS_ME   0x04
 #define FLASH_DESCRIPTOR_REGION_ACCESS_GBE  0x08
 #define FLASH_DESCRIPTOR_REGION_ACCESS_PDR  0x10
-#define FLASH_DESCRIPTOR_REGION_ACCESS_EC   0x20
+#define FLASH_DESCRIPTOR_REGION_ACCESS_EC   0x100
 
 // Base address of descriptor upper map
 #define FLASH_DESCRIPTOR_UPPER_MAP_BASE 0x0EFC
@@ -554,6 +554,8 @@ extern FlashDescriptorAccessLayout detectFlashDescriptorAccessLayout(
     const FLASH_DESCRIPTOR_MAP& map, const FLASH_DESCRIPTOR_COMPONENT_SECTION& component);
 extern USTATUS formatFlashDescriptorAccess(const UByteArray& descriptor,
     FlashDescriptorAccessLayout layout, UString& info);
+extern UINT8 flashDescriptorRegionCount(const FLASH_DESCRIPTOR_MAP& map);
+extern USTATUS formatFlashDescriptorVscc(const UByteArray& descriptor, UString& info);
 
 // Calculate address of data structure addressed by descriptor address format
 // 8 bit base or limit
