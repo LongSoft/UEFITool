@@ -110,6 +110,7 @@ namespace Subtypes {
         DescriptorRegion = 0,
         BiosRegion,
         MeRegion,
+        IpseRegion,
         GbeRegion,
         PdrRegion,
         DevExp1Region,

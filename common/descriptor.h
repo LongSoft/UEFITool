@@ -116,7 +116,7 @@ typedef struct FLASH_DESCRIPTOR_REGION_SECTION_ {
     UINT16 EcLimit;                    //
     UINT16 DevExp2Base;                // Device Expansion 2
     UINT16 DevExp2Limit;               //
-    UINT16 IeBase;                     // Innovation Engine
+    UINT16 IeBase;                     // Innovation Engine (sometimes Partner Security Engine)
     UINT16 IeLimit;                    //
     UINT16 Tgbe1Base;                  // 10 Gigabit Ethernet 1
     UINT16 Tgbe1Limit;                 //

@@ -22,6 +22,7 @@ UString regionTypeToUString(const UINT8 type)
         case Subtypes::DescriptorRegion:  return UString("Descriptor");
         case Subtypes::BiosRegion:        return UString("BIOS");
         case Subtypes::MeRegion:          return UString("ME");
+        case Subtypes::IpseRegion:        return UString("IPSE");
         case Subtypes::GbeRegion:         return UString("GbE");
         case Subtypes::PdrRegion:         return UString("PDR");
         case Subtypes::DevExp1Region:     return UString("DevExp1");
